@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron?secret=${CRON_SECRET}",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
