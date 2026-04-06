@@ -91,27 +91,26 @@ const ANIMATIONS: { value: AnimationType; label: string }[] = [
   { value: "rotate360", label: "Rotação 360" },
 ];
 
-const FONTS = [
-  "Helvetica Neue, Arial, sans-serif",
-  "Arial, sans-serif",
-  "Georgia, serif",
-  "Times New Roman, serif",
-  "Courier New, monospace",
-  "Impact, sans-serif",
-  "Verdana, sans-serif",
-  "Trebuchet MS, sans-serif",
+const FONTS: { value: string; label: string }[] = [
+  { value: "Helvetica Neue, Arial, sans-serif", label: "Helvetica Neue" },
+  { value: "Arial, sans-serif", label: "Arial" },
+  { value: "Inter, sans-serif", label: "Inter" },
+  { value: "Montserrat, sans-serif", label: "Montserrat" },
+  { value: "Poppins, sans-serif", label: "Poppins" },
+  { value: "Roboto, sans-serif", label: "Roboto" },
+  { value: "Open Sans, sans-serif", label: "Open Sans" },
+  { value: "Lato, sans-serif", label: "Lato" },
+  { value: "Raleway, sans-serif", label: "Raleway" },
+  { value: "Oswald, sans-serif", label: "Oswald" },
+  { value: "Bebas Neue, sans-serif", label: "Bebas Neue" },
+  { value: "Playfair Display, serif", label: "Playfair Display" },
+  { value: "Georgia, serif", label: "Georgia" },
+  { value: "Times New Roman, serif", label: "Times New Roman" },
+  { value: "Impact, sans-serif", label: "Impact" },
+  { value: "Verdana, sans-serif", label: "Verdana" },
+  { value: "Trebuchet MS, sans-serif", label: "Trebuchet MS" },
+  { value: "Courier New, monospace", label: "Courier New" },
 ];
-
-const FONT_LABELS: Record<string, string> = {
-  "Helvetica Neue, Arial, sans-serif": "Helvetica Neue",
-  "Arial, sans-serif": "Arial",
-  "Georgia, serif": "Georgia",
-  "Times New Roman, serif": "Times New Roman",
-  "Courier New, monospace": "Courier New",
-  "Impact, sans-serif": "Impact",
-  "Verdana, sans-serif": "Verdana",
-  "Trebuchet MS, sans-serif": "Trebuchet MS",
-};
 
 function genId() { return `el_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`; }
 
@@ -276,7 +275,7 @@ function RenderElement({ el, isSelected, playing, animState, onSelect, onChange,
         width={el.width}
         text={displayText}
         fontSize={el.fontSize || 32}
-        fontFamily={el.fontFamily || FONTS[0]}
+        fontFamily={el.fontFamily || FONTS[0].value}
         fontStyle={el.fontStyle || "normal"}
         fill={el.fill || "#FFFFFF"}
         align={el.align || "left"}
@@ -673,7 +672,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         <ToolBtn label="T" title="Texto" onClick={() => addElement({
           id: genId(), type: "text", name: "Texto", x: width / 4, y: height / 3,
           width: width / 2, height: 60, text: "Texto", fontSize: 32,
-          fontFamily: FONTS[0], fontStyle: "bold", fill: "#FFFFFF", align: "center",
+          fontFamily: FONTS[0].value, fontStyle: "bold", fill: "#FFFFFF", align: "center",
           animation: "fadeIn", animDelay: 0, animDuration: 0.6,
         })} />
         <ToolBtn label="□" title="Retângulo" onClick={() => addElement({
@@ -854,8 +853,8 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
               <PropField label="Tamanho" type="number" value={selected.fontSize || 32} onChange={v => updateElement(selected.id, { fontSize: +v })} />
               <div>
                 <label style={propLabelStyle}>Fonte</label>
-                <select value={selected.fontFamily || FONTS[0]} onChange={e => updateElement(selected.id, { fontFamily: e.target.value })} style={{ ...propInputStyle, cursor: "pointer" }}>
-                  {FONTS.map(f => <option key={f} value={f}>{FONT_LABELS[f] || f}</option>)}
+                <select value={selected.fontFamily || FONTS[0].value} onChange={e => updateElement(selected.id, { fontFamily: e.target.value })} style={{ ...propInputStyle, cursor: "pointer" }}>
+                  {FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                 </select>
               </div>
               <div>

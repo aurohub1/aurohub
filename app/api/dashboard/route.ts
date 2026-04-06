@@ -59,7 +59,7 @@ export async function GET() {
     .from("postagens")
     .select("formato");
 
-  const formatCount: Record<string, number> = { stories: 0, feed: 0, reels: 0, tv: 0 };
+  const formatCount: Record<string, number> = { stories: 0, feed: 0, reels: 0, transmissao: 0 };
   if (formatData) {
     for (const p of formatData) {
       const f = p.formato?.toLowerCase() || "";
