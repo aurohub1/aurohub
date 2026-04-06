@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/cron", "/api/debug"];
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Rotas públicas
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  // Ignorar rotas de API, assets e login
+  if (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/favicon")
+  ) {
     return NextResponse.next();
   }
 
@@ -19,7 +22,3 @@ export function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
-
-export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|img|fonts|api/).*)"],
-};
