@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase";
 import { cookies } from "next/headers";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
@@ -29,8 +30,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // TODO: bcrypt compare — por enquanto compara direto (migrar para hash)
-    if (user.senha_hash !== senha) {
+    const senhaValida = await bcrypt.compare(senha, user.senha_hash);
+    if (!senhaValida) {
       return NextResponse.json(
         { error: "Credenciais inválidas" },
         { status: 401 }
