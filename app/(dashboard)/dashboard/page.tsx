@@ -1,35 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const STATS = [
-  { label: "Clientes Ativos", value: "12", delta: "+3", up: true, accent: "var(--blue)" },
-  { label: "Posts Hoje", value: "34", delta: "+12", up: true, accent: "var(--gold)" },
-  { label: "Engajamento", value: "7.8%", delta: "+1.2%", up: true, accent: "var(--success)" },
-  { label: "Tokens", value: "Ativo", delta: "3 contas", up: true, accent: "var(--orange)" },
-];
+interface DashData {
+  stats: {
+    usuarios_ativos: number;
+    posts_hoje: number;
+    total_posts: number;
+    posts_publicados: number;
+    lojas_com_ig: number;
+    total_lojas: number;
+  };
+  formatos: { stories: number; feed: number; reels: number; tv: number };
+  chart: number[];
+  activity: { user: string; action: string; formato: string; time: string }[];
+}
 
-const ACTIVITY = [
-  { user: "AZV Rio Preto", action: "Publicou 3 stories — Cancún", time: "15 min", dot: "var(--gold)" },
-  { user: "AZV Barretos", action: "Agendou post — Cruzeiro MSC", time: "1h", dot: "var(--orange)" },
-  { user: "AZV Damha", action: "Baixou arte — Porto Seguro", time: "2h", dot: "var(--blue)" },
-  { user: "Sistema", action: "Pack 30 ativado — AZV Rio Preto", time: "5h", dot: "var(--border)" },
-  { user: "Sistema", action: "Cron — 2 posts publicados", time: "6h", dot: "var(--border)" },
-];
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+}
 
-const FORMATS = [
-  { label: "Stories", used: 24, total: 60, color: "var(--blue)" },
-  { label: "Feed", used: 18, total: 30, color: "var(--gold)" },
-  { label: "Reels", used: 6, total: 30, color: "var(--orange)" },
-  { label: "TV", used: 2, total: 10, color: "var(--blue-deep)" },
-];
-
-const CHART = [28,45,38,62,55,72,68,85,78,92,88,95,90,105,98,112,108,118,115,125,120,130,128,135,132,140,138,142,140,145];
-
-function Chart() {
-  const max = Math.max(...CHART), min = Math.min(...CHART);
+function Chart({ data }: { data: number[] }) {
+  if (!data.length) return null;
+  const max = Math.max(...data, 1);
   const w = 500, h = 120;
-  const pts = CHART.map((v, i) => ({ x: (i / (CHART.length - 1)) * w, y: h - ((v - min) / (max - min)) * h }));
+  const pts = data.map((v, i) => ({ x: (i / (data.length - 1)) * w, y: h - (v / max) * h }));
   const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: 120 }}>
@@ -47,13 +49,53 @@ function Chart() {
       </defs>
       <path d={d + ` L${w},${h} L0,${h} Z`} fill="url(#cg)" />
       <path d={d} fill="none" stroke="url(#cl)" strokeWidth="2.5" filter="url(#gl)" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="4" fill="var(--orange)" filter="url(#gl)" />
+      <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="4" fill="var(--orange)" filter="url(#gl)" />
     </svg>
   );
 }
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState("30d");
+  const [dash, setDash] = useState<DashData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/dashboard")
+      .then(r => r.json())
+      .then(d => { setDash(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const s = dash?.stats;
+  const taxa = s && s.total_posts > 0 ? ((s.posts_publicados / s.total_posts) * 100).toFixed(1) : "0";
+
+  const STATS = [
+    { label: "Clientes Ativos", value: s ? String(s.usuarios_ativos) : "—", delta: "", accent: "var(--blue)" },
+    { label: "Posts Hoje", value: s ? String(s.posts_hoje) : "—", delta: s ? `${s.total_posts} total` : "", accent: "var(--gold)" },
+    { label: "Taxa Publicação", value: s ? `${taxa}%` : "—", delta: s ? `${s.posts_publicados} publicados` : "", accent: "var(--success)" },
+    { label: "Instagram", value: s ? `${s.lojas_com_ig}/${s.total_lojas}` : "—", delta: s && s.lojas_com_ig > 0 ? "Conectado" : "Sem token", accent: "var(--orange)" },
+  ];
+
+  const fmt = dash?.formatos || { stories: 0, feed: 0, reels: 0, tv: 0 };
+  const totalFmt = Math.max(fmt.stories + fmt.feed + fmt.reels + fmt.tv, 1);
+  const FORMATS = [
+    { label: "Stories", used: fmt.stories, total: totalFmt, color: "var(--blue)" },
+    { label: "Feed", used: fmt.feed, total: totalFmt, color: "var(--gold)" },
+    { label: "Reels", used: fmt.reels, total: totalFmt, color: "var(--orange)" },
+    { label: "TV", used: fmt.tv, total: totalFmt, color: "var(--blue-deep)" },
+  ];
+
+  const DOT_COLORS: Record<string, string> = {
+    stories: "var(--blue)", feed: "var(--gold)", reels: "var(--orange)", tv: "var(--blue-deep)",
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", color: "var(--text-muted)", fontSize: 14 }}>
+        Carregando dashboard...
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -81,7 +123,7 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        {STATS.map((s, i) => (
+        {STATS.map((st, i) => (
           <div key={i} style={{
             padding: "20px 22px", borderRadius: 18,
             background: "var(--bg-card)", border: "1px solid var(--border)",
@@ -90,19 +132,21 @@ export default function DashboardPage() {
           }}>
             <div style={{
               position: "absolute", top: -30, right: -30, width: 100, height: 100, borderRadius: "50%",
-              background: `radial-gradient(circle, ${s.accent} 0%, transparent 70%)`, opacity: 0.08,
+              background: `radial-gradient(circle, ${st.accent} 0%, transparent 70%)`, opacity: 0.08,
             }} />
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0, height: 3, opacity: 0.4,
-              background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)`,
+              background: `linear-gradient(90deg, transparent, ${st.accent}, transparent)`,
             }} />
-            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0, letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>{s.label}</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0, letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>{st.label}</p>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 8 }}>
-              <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1, color: "var(--text)" }}>{s.value}</span>
-              <span style={{
-                fontSize: 11, fontWeight: 600, color: "var(--success)",
-                padding: "2px 8px", borderRadius: 6, background: "rgba(72,187,120,0.1)",
-              }}>{s.delta}</span>
+              <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1, color: "var(--text)" }}>{st.value}</span>
+              {st.delta && (
+                <span style={{
+                  fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
+                  padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.05)",
+                }}>{st.delta}</span>
+              )}
             </div>
           </div>
         ))}
@@ -129,7 +173,7 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-          <Chart />
+          <Chart data={dash?.chart || []} />
 
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
             <h3 style={{ fontSize: 12, fontWeight: 600, margin: "0 0 14px", color: "var(--text-secondary)", letterSpacing: 1, textTransform: "uppercase" }}>Uso por Formato</h3>
@@ -137,12 +181,13 @@ export default function DashboardPage() {
               <div key={f.label} style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{f.label}</span>
-                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{f.used}/{f.total}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{f.used}</span>
                 </div>
                 <div style={{ height: 4, borderRadius: 2, background: "var(--border-light)" }}>
                   <div style={{
                     height: "100%", borderRadius: 2, width: `${(f.used / f.total) * 100}%`,
                     background: f.color, transition: "width 1s ease",
+                    minWidth: f.used > 0 ? 4 : 0,
                   }} />
                 </div>
               </div>
@@ -160,13 +205,17 @@ export default function DashboardPage() {
             boxShadow: "var(--card-shadow)",
           }}>
             <h3 style={{ fontSize: 13, fontWeight: 600, margin: "0 0 14px", color: "var(--gold)" }}>Ações Rápidas</h3>
-            {["Criar Post", "Abrir Editor", "Ver Agendamentos", "Gerenciar Templates"].map((a) => (
-              <a key={a} href="#" style={{
+            {[
+              { label: "Criar Post", href: "/publish" },
+              { label: "Ver Agendamentos", href: "/schedule" },
+              { label: "Gerenciar Usuários", href: "/admin/usuarios" },
+            ].map((a) => (
+              <a key={a.label} href={a.href} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)",
                 background: "var(--bg-input)", color: "var(--text)", textDecoration: "none",
                 fontSize: 12, fontWeight: 500, marginBottom: 8, transition: "all 0.2s",
-              }}>{a}<span style={{ color: "var(--text-muted)" }}>→</span></a>
+              }}>{a.label}<span style={{ color: "var(--text-muted)" }}>→</span></a>
             ))}
           </div>
 
@@ -177,17 +226,19 @@ export default function DashboardPage() {
             boxShadow: "var(--card-shadow)",
           }}>
             <h3 style={{ fontSize: 13, fontWeight: 600, margin: "0 0 14px", color: "var(--text-secondary)" }}>Atividade Recente</h3>
-            {ACTIVITY.map((a, i) => (
+            {(!dash?.activity || dash.activity.length === 0) ? (
+              <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Nenhuma atividade ainda</p>
+            ) : dash.activity.map((a, i) => (
               <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
                 <div style={{
                   width: 6, height: 6, borderRadius: 3, marginTop: 6, flexShrink: 0,
-                  background: a.dot,
+                  background: DOT_COLORS[a.formato] || "var(--border)",
                 }} />
                 <div>
                   <p style={{ fontSize: 12, margin: 0, color: "var(--text)", fontWeight: 500, lineHeight: 1.4 }}>
                     <span style={{ color: "var(--gold)" }}>{a.user}</span> {a.action}
                   </p>
-                  <p style={{ fontSize: 10, margin: "3px 0 0", color: "var(--text-muted)" }}>{a.time} atrás</p>
+                  <p style={{ fontSize: 10, margin: "3px 0 0", color: "var(--text-muted)" }}>{timeAgo(a.time)} atrás</p>
                 </div>
               </div>
             ))}
