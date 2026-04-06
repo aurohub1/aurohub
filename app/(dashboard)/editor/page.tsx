@@ -4,8 +4,18 @@ import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import type { EditorSchema } from "@/components/editor/canvas-editor";
 
-// Konva needs window — dynamic import
-const CanvasEditor = dynamic(() => import("@/components/editor/canvas-editor").then(m => m.CanvasEditor), { ssr: false });
+// Konva needs window — dynamic import with loading fallback
+const CanvasEditor = dynamic(
+  () => import("@/components/editor/canvas-editor").then(m => m.CanvasEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-muted)" }}>
+        Carregando editor...
+      </div>
+    ),
+  }
+);
 
 const FORMATS = [
   { id: "stories", label: "Stories", w: 1080, h: 1920 },

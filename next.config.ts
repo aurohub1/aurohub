@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = [...(config.externals || []), "canvas"];
+    } else {
+      config.resolve = config.resolve || {};
+      config.resolve.fallback = { ...config.resolve.fallback, canvas: false };
     }
     return config;
   },
