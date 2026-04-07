@@ -59,6 +59,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Imagem e data de agendamento obrigatórios" }, { status: 400 });
     }
 
+    const fmt = formato || "stories";
+
+    // Verificar cota e feature de agendamento
+    const { verificarCota, deduzirPack } = await import("@/lib/cotas");
+    const cota = await verificarCota(user.id, user.loja_id, fmt);
+
+    if (!cota.plano?.inclui_agendamento) {
+      return NextResponse.json({ error: "Seu plano não inclui agendamento" }, { status: 403 });
+    }
+
+    if (!cota.permitido) {
+      return NextResponse.json({ error: cota.motivo, cota: cota.uso }, { status: 403 });
+    }
+
+    // Deduzir pack se excedeu plano
+    const pontos = fmt === "reels" ? 2 : 1;
+    const tipo = fmt === "stories" ? "stories" : "posts";
+    const excedeuPlano = tipo === "stories"
+      ? cota.uso.stories_usados + pontos > cota.uso.stories_limite
+      : cota.uso.posts_pontos + pontos > cota.uso.posts_limite;
+
+    if (excedeuPlano) {
+      const ok = await deduzirPack(user.id, pontos);
+      if (!ok) {
+        return NextResponse.json({ error: "Sem créditos disponíveis" }, { status: 403 });
+      }
+    }
+
     const sb = createServerSupabase();
     const { data, error } = await sb
       .from("postagens")
@@ -67,7 +95,7 @@ export async function POST(request: Request) {
         loja_id: user.loja_id,
         imagem_url,
         legenda: legenda || "",
-        formato: formato || "stories",
+        formato: fmt,
         status: "agendado",
         agendado_para,
       })

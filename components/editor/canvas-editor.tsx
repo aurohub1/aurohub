@@ -370,6 +370,10 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
 
   const totalDuration = schema.duration || 5;
 
+  // Ref para evitar stale closure em operações async
+  const schemaRef = useRef(schema);
+  schemaRef.current = schema;
+
   // Fit canvas
   useEffect(() => {
     if (!containerRef.current) return;
@@ -443,9 +447,10 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   }, [schema, changeSchema]);
 
   const addElement = useCallback((el: EditorElement) => {
-    changeSchema({ ...schema, elements: [...schema.elements, el] });
+    const current = schemaRef.current;
+    changeSchema({ ...current, elements: [...current.elements, el] });
     setSelectedId(el.id);
-  }, [schema, changeSchema]);
+  }, [changeSchema]);
 
   const deleteSelected = useCallback(() => {
     if (!selectedId) return;

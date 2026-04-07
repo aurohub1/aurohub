@@ -20,7 +20,8 @@ const FORMATS = [
   { id: "stories", label: "Stories", w: 1080, h: 1920, desc: "1080×1920" },
   { id: "feed", label: "Feed", w: 1080, h: 1350, desc: "1080×1350" },
   { id: "reels", label: "Reels", w: 1080, h: 1920, desc: "1080×1920" },
-  { id: "transmissao", label: "Transmissão", w: 1920, h: 1080, desc: "1920×1080" },
+  { id: "transmissao", label: "Transmissão", w: 1080, h: 1920, desc: "1080×1920" },
+  { id: "tv", label: "TV", w: 1920, h: 1080, desc: "1920×1080" },
 ];
 
 const PALETTES = [
@@ -67,7 +68,7 @@ interface CloudImage { url: string; id: string; width: number; height: number; }
 export default function EditorPage() {
   const [activeFormat, setActiveFormat] = useState("stories");
   const [schemas, setSchemas] = useState<Record<string, EditorSchema>>({
-    stories: emptySchema(), feed: emptySchema(), reels: emptySchema(), transmissao: emptySchema(),
+    stories: emptySchema(), feed: emptySchema(), reels: emptySchema(), transmissao: emptySchema(), tv: emptySchema(),
   });
 
   const [statusMsg, setStatusMsg] = useState("");
@@ -163,14 +164,17 @@ export default function EditorPage() {
   }
 
   function selectGalleryImage(url: string) {
-    // Adiciona imagem ao canvas via schema
+    // Adiciona imagem ao canvas via schema (functional update para evitar stale closure)
     const el: EditorElement = {
       id: `el_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       type: "image", name: "Imagem", x: fmt.w / 4, y: fmt.h / 4,
       width: fmt.w / 2, height: fmt.h / 3, src: url, opacity: 1,
       animation: "fadeIn", animDelay: 0, animDuration: 0.6,
     };
-    setSchema({ ...schema, elements: [...schema.elements, el] });
+    setSchemas(prev => {
+      const current = prev[activeFormat];
+      return { ...prev, [activeFormat]: { ...current, elements: [...current.elements, el] } };
+    });
     setShowGallery(false);
     showStatus("Imagem adicionada");
   }
@@ -247,7 +251,7 @@ export default function EditorPage() {
             ))}
           </div>
           <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{fmt.w}×{fmt.h}</span>
-          {activeFormat === "transmissao" && <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 5, background: "rgba(255,122,26,0.1)", color: "var(--orange)", fontWeight: 700 }}>Download</span>}
+          {activeFormat === "tv" && <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 5, background: "rgba(255,122,26,0.1)", color: "var(--orange)", fontWeight: 700 }}>Download</span>}
         </div>
 
         {/* Center */}

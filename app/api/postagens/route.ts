@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase";
 import { cookies } from "next/headers";
+import { verificarCota, deduzirPack } from "@/lib/cotas";
 
 export async function POST(request: Request) {
   try {
@@ -24,6 +25,30 @@ export async function POST(request: Request) {
 
     if (!imagem_url) return NextResponse.json({ error: "Imagem obrigatória" }, { status: 400 });
 
+    const fmt = formato || "stories";
+
+    // Verificar cota antes de publicar (rascunhos não consomem cota)
+    if (postStatus !== "rascunho") {
+      const cota = await verificarCota(user.id, user.loja_id, fmt);
+      if (!cota.permitido) {
+        return NextResponse.json({ error: cota.motivo, cota: cota.uso }, { status: 403 });
+      }
+
+      // Se excedeu plano mas tem pack, deduzir pack
+      const pontos = fmt === "reels" ? 2 : 1;
+      const tipo = fmt === "stories" ? "stories" : "posts";
+      const excedeuPlano = tipo === "stories"
+        ? cota.uso.stories_usados + pontos > cota.uso.stories_limite
+        : cota.uso.posts_pontos + pontos > cota.uso.posts_limite;
+
+      if (excedeuPlano) {
+        const ok = await deduzirPack(user.id, pontos);
+        if (!ok) {
+          return NextResponse.json({ error: "Sem créditos disponíveis" }, { status: 403 });
+        }
+      }
+    }
+
     const { data, error } = await sb
       .from("postagens")
       .insert({
@@ -31,7 +56,7 @@ export async function POST(request: Request) {
         loja_id: user.loja_id,
         imagem_url,
         legenda: legenda || "",
-        formato: formato || "stories",
+        formato: fmt,
         ig_media_id: ig_media_id || null,
         status: postStatus || "rascunho",
         publicado_em: ig_media_id ? new Date().toISOString() : null,

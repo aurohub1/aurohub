@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import type { CotaStatus } from "@/lib/cotas";
 import html2canvas from "html2canvas";
 
 const LOGO_URL = "https://res.cloudinary.com/dxgj4bcch/image/upload/f_auto,q_auto/page/page/logo_aurovista.png";
@@ -9,7 +10,8 @@ const FORMATS = [
   { id: "stories", label: "Stories", w: 1080, h: 1920 },
   { id: "feed", label: "Feed", w: 1080, h: 1350 },
   { id: "reels", label: "Reels", w: 1080, h: 1920 },
-  { id: "transmissao", label: "Transmissão", w: 1920, h: 1080 },
+  { id: "transmissao", label: "Transmissão", w: 1080, h: 1920 },
+  { id: "tv", label: "TV", w: 1920, h: 1080 },
 ];
 
 const BADGES = [
@@ -34,17 +36,27 @@ export default function PublishPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [statusMsg, setStatusMsg] = useState("");
   const [badgeOpen, setBadgeOpen] = useState(false);
+  const [gerandoIA, setGerandoIA] = useState(false);
+  const [fonteIA, setFonteIA] = useState("");
+  const [cotas, setCotas] = useState<CotaStatus | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
 
+  // Buscar cotas do usuário
+  useEffect(() => {
+    fetch("/api/cotas").then(r => r.json()).then(d => {
+      if (d.uso) setCotas(d);
+    }).catch(() => {});
+  }, []);
+
   const update = (key: string, val: string) => setData(d => ({ ...d, [key]: val }));
   const fmt = FORMATS.find(f => f.id === format)!;
-  const isTransmissao = format === "transmissao";
+  const isTV = format === "tv";
 
   // Base do preview = tamanho "real" do card para captura (proporcional)
-  const baseW = isTransmissao ? 480 : 300;
-  const baseH = isTransmissao ? 270 : (format === "feed" ? 375 : 533);
+  const baseW = isTV ? 480 : 300;
+  const baseH = isTV ? 270 : (format === "feed" ? 375 : 533);
   const captureScale = fmt.w / baseW;
 
   // Auto-fit preview no container
@@ -103,13 +115,14 @@ export default function PublishPage() {
       const user = sessionData.user;
 
       let igMediaId = null;
-      if (user.loja_id && format !== "transmissao") {
+      if (user.loja_id && format !== "tv") {
         setStatus("publishing"); setStatusMsg("Publicando no Instagram...");
         const pubRes = await fetch("/api/instagram/publish", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ loja_id: user.loja_id, image_url: imageUrl, caption: data.legenda || `${data.destino} — ${data.parcelas_qtd} R$ ${data.parcela_int},${data.parcela_cent || "00"}` }),
+          body: JSON.stringify({ loja_id: user.loja_id, image_url: imageUrl, caption: data.legenda || `${data.destino} — ${data.parcelas_qtd} R$ ${data.parcela_int},${data.parcela_cent || "00"}`, formato: format }),
         });
         const pubData = await pubRes.json();
+        if (pubRes.status === 403) throw new Error(pubData.error || "Limite de publicações atingido");
         if (pubRes.ok) igMediaId = pubData.ig_media_id;
       }
 
@@ -120,7 +133,9 @@ export default function PublishPage() {
       });
 
       setStatus("done");
-      setStatusMsg(igMediaId ? "Publicado com sucesso!" : format === "transmissao" ? "Salvo (transmissão = download only)" : "Salvo como rascunho");
+      setStatusMsg(igMediaId ? "Publicado com sucesso!" : format === "tv" ? "Salvo (TV = download only)" : "Salvo como rascunho");
+      // Atualizar cotas após publicação
+      fetch("/api/cotas").then(r => r.json()).then(d => { if (d.uso) setCotas(d); }).catch(() => {});
       setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 4000);
     } catch (err) {
       setStatus("error"); setStatusMsg(err instanceof Error ? err.message : "Erro");
@@ -232,12 +247,12 @@ export default function PublishPage() {
 
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0,
-              padding: isTransmissao ? "18px 22px" : "22px 18px",
+              padding: isTV ? "18px 22px" : "22px 18px",
               background: "linear-gradient(transparent, rgba(8,16,32,0.95))",
             }}>
               <p style={{ fontSize: 8, fontWeight: 700, margin: 0, color: "#D4A843", letterSpacing: 3, textTransform: "uppercase" }}>DESTINO</p>
               <h2 style={{
-                fontSize: isTransmissao ? 22 : 20, fontWeight: 800, margin: "4px 0 0",
+                fontSize: isTV ? 22 : 20, fontWeight: 800, margin: "4px 0 0",
                 textTransform: "uppercase", letterSpacing: -0.5, color: "#FFFFFF",
               }}>{data.destino || "DESTINO"}</h2>
 
@@ -335,14 +350,68 @@ export default function PublishPage() {
 
         {/* Legenda IA */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-            <label style={{ ...labelStyle, marginBottom: 0 }}>Legenda</label>
-            <span style={{ fontSize: 7, padding: "2px 6px", borderRadius: 4, background: "rgba(59,130,246,0.1)", color: "var(--blue)", fontWeight: 700 }}>AI</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Legenda</label>
+              <span style={{ fontSize: 7, padding: "2px 6px", borderRadius: 4, background: "rgba(59,130,246,0.1)", color: "var(--blue)", fontWeight: 700 }}>AI</span>
+              {fonteIA && <span style={{ fontSize: 7, padding: "2px 6px", borderRadius: 4, background: "rgba(72,187,120,0.1)", color: "var(--success)", fontWeight: 600 }}>{fonteIA}</span>}
+            </div>
+            <button
+              onClick={async () => {
+                if (!data.destino) { setStatusMsg("Preencha o destino primeiro"); setStatus("error"); return; }
+                setGerandoIA(true); setFonteIA("");
+                try {
+                  const res = await fetch("/api/ai/legenda", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      destino: data.destino, ida: data.ida, volta: data.volta, noites: data.noites,
+                      servicos: data.servicos, parcelas_qtd: data.parcelas_qtd,
+                      parcela_int: data.parcela_int, parcela_cent: data.parcela_cent,
+                      total: data.total, badge: data.badge,
+                    }),
+                  });
+                  const result = await res.json();
+                  if (result.legenda) {
+                    update("legenda", result.legenda);
+                    setFonteIA(result.fonte === "claude" ? "Claude" : result.fonte === "ollama" ? "Ollama" : "Template");
+                  } else {
+                    setStatusMsg(result.error || "Erro ao gerar"); setStatus("error");
+                  }
+                } catch { setStatusMsg("Erro ao gerar legenda"); setStatus("error"); }
+                setGerandoIA(false);
+              }}
+              disabled={gerandoIA || busy}
+              style={{
+                padding: "4px 10px", borderRadius: 6, border: "none", cursor: gerandoIA ? "wait" : "pointer",
+                background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))",
+                color: "var(--blue)", fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                opacity: gerandoIA ? 0.7 : 1,
+              }}
+            >{gerandoIA ? "Gerando..." : "Gerar com IA"}</button>
           </div>
           <textarea rows={5} value={data.legenda} onChange={e => update("legenda", e.target.value)}
-            placeholder="Clique em gerar para criar com IA..."
+            placeholder="Clique em 'Gerar com IA' ou escreva manualmente..."
             style={{ ...inputStyle, resize: "vertical", fontSize: 11, fontFamily: "inherit", lineHeight: 1.5 }} />
         </div>
+
+        {/* Cotas */}
+        {cotas && cotas.plano && (
+          <div style={{ marginBottom: 16, padding: 12, borderRadius: 10, background: "var(--bg-input)", border: "1px solid var(--border)" }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", letterSpacing: 1.2, textTransform: "uppercase" }}>Cotas do Mês</span>
+            <CotaBar label="Feed/Reels" usado={cotas.uso.posts_pontos} limite={cotas.uso.posts_limite} unidade="pts" />
+            <CotaBar label="Stories" usado={cotas.uso.stories_usados} limite={cotas.uso.stories_limite} unidade="" />
+            {cotas.uso.pack_creditos_restantes > 0 && (
+              <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Pack extra</span>
+                <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 700 }}>{cotas.uso.pack_creditos_restantes} créditos</span>
+              </div>
+            )}
+            <div style={{ marginTop: 6, fontSize: 9, color: "var(--text-muted)" }}>
+              Plano: <strong style={{ color: "var(--gold)" }}>{cotas.plano.nome}</strong>
+            </div>
+          </div>
+        )}
 
         {/* Formato ativo */}
         <div style={{ marginBottom: 16, padding: 12, borderRadius: 10, background: "var(--bg-input)", border: "1px solid var(--border)" }}>
@@ -354,7 +423,7 @@ export default function PublishPage() {
             <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>Tamanho</span>
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{fmt.w}×{fmt.h}</span>
           </div>
-          {isTransmissao && (
+          {isTV && (
             <p style={{ fontSize: 9, color: "var(--orange)", margin: "8px 0 0", fontWeight: 600 }}>Apenas download — sem publicação IG</p>
           )}
         </div>
@@ -379,7 +448,7 @@ export default function PublishPage() {
             cursor: busy ? "wait" : "pointer",
             boxShadow: "0 4px 20px rgba(212,168,67,0.3)",
             opacity: busy ? 0.7 : 1, transition: "all 0.25s",
-          }}>{busy ? "Processando..." : isTransmissao ? "Salvar" : "Publicar"}</button>
+          }}>{busy ? "Processando..." : isTV ? "Salvar" : "Publicar"}</button>
           <button onClick={handleDownload} disabled={busy} style={{
             padding: "14px 18px", borderRadius: 12,
             border: "1px solid var(--border)", background: "var(--bg-card)",
@@ -416,6 +485,26 @@ function Field({ label, value, onChange, placeholder }: {
         onFocus={e => e.target.style.borderColor = "rgba(212,168,67,0.4)"}
         onBlur={e => e.target.style.borderColor = "var(--border)"}
       />
+    </div>
+  );
+}
+
+function CotaBar({ label, usado, limite, unidade }: {
+  label: string; usado: number; limite: number; unidade: string;
+}) {
+  const pct = limite > 0 ? Math.min((usado / limite) * 100, 100) : 0;
+  const cor = pct >= 90 ? "var(--danger)" : pct >= 70 ? "var(--orange)" : "var(--gold)";
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+        <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>{label}</span>
+        <span style={{ fontSize: 10, color: pct >= 90 ? "var(--danger)" : "var(--text-muted)", fontWeight: 600 }}>
+          {usado}/{limite}{unidade ? ` ${unidade}` : ""}
+        </span>
+      </div>
+      <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)" }}>
+        <div style={{ height: 4, borderRadius: 2, background: cor, width: `${pct}%`, transition: "width 0.3s" }} />
+      </div>
     </div>
   );
 }
