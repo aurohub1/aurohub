@@ -64,10 +64,50 @@ export async function GET(request: Request) {
     .lt("validade", now)
     .select("id");
 
+  // 3. Refresh tokens Instagram expirando em até 7 dias
+  let tokensRefreshed = 0;
+  const setesDias = new Date();
+  setesDias.setDate(setesDias.getDate() + 7);
+
+  const { data: lojasExpirando } = await sb
+    .from("lojas")
+    .select("id, ig_access_token, ig_token_expires_at")
+    .eq("ativa", true)
+    .not("ig_access_token", "is", null)
+    .not("ig_token_expires_at", "is", null)
+    .lt("ig_token_expires_at", setesDias.toISOString())
+    .gt("ig_token_expires_at", now);
+
+  if (lojasExpirando) {
+    for (const loja of lojasExpirando) {
+      try {
+        const res = await fetch(
+          `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${loja.ig_access_token}`
+        );
+        const data = await res.json();
+        if (data.access_token) {
+          const novaExpiracao = new Date();
+          novaExpiracao.setSeconds(novaExpiracao.getSeconds() + (data.expires_in || 5184000));
+          await sb
+            .from("lojas")
+            .update({
+              ig_access_token: data.access_token,
+              ig_token_expires_at: novaExpiracao.toISOString(),
+            })
+            .eq("id", loja.id);
+          tokensRefreshed++;
+        }
+      } catch (err) {
+        console.error(`Token refresh failed for loja ${loja.id}:`, err);
+      }
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     published,
     packs_expired: expiredPacks?.length || 0,
+    tokens_refreshed: tokensRefreshed,
     timestamp: now,
   });
 }

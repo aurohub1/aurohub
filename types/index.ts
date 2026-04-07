@@ -33,6 +33,7 @@ export interface Loja {
   cidade: string;
   ig_user_id: string | null;
   ig_access_token: string | null;
+  ig_token_expires_at: string | null;
   ativa: boolean;
   created_at: string;
 }

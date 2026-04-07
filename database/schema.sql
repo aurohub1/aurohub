@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS lojas (
   cidade TEXT NOT NULL,
   ig_user_id TEXT,
   ig_access_token TEXT,
+  ig_token_expires_at TIMESTAMPTZ,
   ativa BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
