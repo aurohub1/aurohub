@@ -4,6 +4,67 @@ import { createServerSupabase } from "@/lib/supabase";
 import { cookies } from "next/headers";
 import { verificarCota, deduzirPack } from "@/lib/cotas";
 
+async function getUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("aurohub_session")?.value;
+  if (!token) return null;
+  const sb = createServerSupabase();
+  const { data } = await sb.from("usuarios").select("id, tipo, marca_id, loja_id").eq("id", token).eq("ativo", true).single();
+  return data;
+}
+
+// GET — listar postagens do usuário (rascunhos, publicados, etc.)
+export async function GET(request: Request) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get("status") || "";
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = Math.min(parseInt(searchParams.get("limit") || "30"), 100);
+
+  const sb = createServerSupabase();
+
+  let query = sb
+    .from("postagens")
+    .select("id, imagem_url, legenda, formato, status, ig_media_id, agendado_para, publicado_em, erro_msg, created_at, loja_id", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range((page - 1) * limit, page * limit - 1);
+
+  // Filtro hierarquia
+  if (user.tipo === "loja" || user.tipo === "cliente") {
+    query = query.eq("usuario_id", user.id);
+  } else if (user.tipo === "licenciado" && user.marca_id) {
+    // Licenciado vê posts de lojas da sua marca — filtrar via loja
+    const { data: lojaIds } = await sb.from("lojas").select("id").eq("marca_id", user.marca_id);
+    const ids = (lojaIds || []).map(l => l.id);
+    if (ids.length > 0) query = query.in("loja_id", ids);
+    else query = query.eq("usuario_id", user.id);
+  }
+  // ADM vê tudo
+
+  if (status) query = query.eq("status", status);
+
+  const { data: posts, count, error } = await query;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Enriquecer com nome da loja
+  const lojaIds = [...new Set((posts || []).map(p => p.loja_id).filter(Boolean))];
+  let lojaMap: Record<string, string> = {};
+  if (lojaIds.length > 0) {
+    const { data: lojas } = await sb.from("lojas").select("id, nome").in("id", lojaIds);
+    lojaMap = Object.fromEntries((lojas || []).map(l => [l.id, l.nome]));
+  }
+
+  const postsEnriquecidos = (posts || []).map(p => ({
+    ...p,
+    loja_nome: lojaMap[p.loja_id] || "—",
+  }));
+
+  return NextResponse.json({ posts: postsEnriquecidos, total: count || 0, page, limit });
+}
+
+// POST — criar postagem
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -67,6 +128,49 @@ export async function POST(request: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     return NextResponse.json({ postagem: data }, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
+
+// PUT — editar legenda de postagem
+export async function PUT(request: Request) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+  try {
+    const { id, legenda } = await request.json();
+    if (!id) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
+
+    const sb = createServerSupabase();
+    const { data, error } = await sb
+      .from("postagens")
+      .update({ legenda })
+      .eq("id", id)
+      .select("id, legenda")
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ postagem: data });
+  } catch {
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
+
+// DELETE — deletar rascunho
+export async function DELETE(request: Request) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+  try {
+    const { id } = await request.json();
+    if (!id) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
+
+    const sb = createServerSupabase();
+    // Só permite deletar rascunhos
+    const { error } = await sb.from("postagens").delete().eq("id", id).eq("status", "rascunho");
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }

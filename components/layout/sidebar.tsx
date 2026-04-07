@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { label: "Overview", href: "/dashboard", icon: "◎" },
   { label: "Publicar", href: "/publish", icon: "◫" },
   { label: "Editor", href: "/editor", icon: "✦" },
+  { label: "Meus Posts", href: "/posts", icon: "▦" },
   { label: "Agendamentos", href: "/schedule", icon: "◷" },
   { label: "Métricas", href: "/metrics", icon: "◉" },
 ];
