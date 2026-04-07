@@ -39,14 +39,23 @@ export default function PublishPage() {
   const [gerandoIA, setGerandoIA] = useState(false);
   const [fonteIA, setFonteIA] = useState("");
   const [cotas, setCotas] = useState<CotaStatus | null>(null);
+  const [lojasDisponiveis, setLojasDisponiveis] = useState<{ id: string; nome: string; cidade: string }[]>([]);
+  const [lojasSelecionadas, setLojasSelecionadas] = useState<string[]>([]);
+  const [multiResultados, setMultiResultados] = useState<{ loja_nome: string; status: string; erro?: string }[] | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
 
-  // Buscar cotas do usuário
+  // Buscar cotas e lojas disponíveis
   useEffect(() => {
     fetch("/api/cotas").then(r => r.json()).then(d => {
       if (d.uso) setCotas(d);
+    }).catch(() => {});
+    fetch("/api/instagram/publish-multi").then(r => r.json()).then(d => {
+      if (d.lojas) {
+        setLojasDisponiveis(d.lojas);
+        if (d.loja_id_padrao) setLojasSelecionadas([d.loja_id_padrao]);
+      }
     }).catch(() => {});
   }, []);
 
@@ -114,26 +123,56 @@ export default function PublishPage() {
       if (!sessionRes.ok) throw new Error("Sessão expirada");
       const user = sessionData.user;
 
+      const caption = data.legenda || `${data.destino} — ${data.parcelas_qtd} R$ ${data.parcela_int},${data.parcela_cent || "00"}`;
+      const targetLojas = lojasSelecionadas.length > 0 ? lojasSelecionadas : (user.loja_id ? [user.loja_id] : []);
+
       let igMediaId = null;
-      if (user.loja_id && format !== "tv") {
-        setStatus("publishing"); setStatusMsg("Publicando no Instagram...");
-        const pubRes = await fetch("/api/instagram/publish", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ loja_id: user.loja_id, image_url: imageUrl, caption: data.legenda || `${data.destino} — ${data.parcelas_qtd} R$ ${data.parcela_int},${data.parcela_cent || "00"}`, formato: format }),
-        });
-        const pubData = await pubRes.json();
-        if (pubRes.status === 403) throw new Error(pubData.error || "Limite de publicações atingido");
-        if (pubRes.ok) igMediaId = pubData.ig_media_id;
+      setMultiResultados(null);
+
+      if (targetLojas.length > 0 && format !== "tv") {
+        setStatus("publishing");
+
+        if (targetLojas.length === 1) {
+          // Publicação simples
+          setStatusMsg("Publicando no Instagram...");
+          const pubRes = await fetch("/api/instagram/publish", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ loja_id: targetLojas[0], image_url: imageUrl, caption, formato: format }),
+          });
+          const pubData = await pubRes.json();
+          if (pubRes.status === 403) throw new Error(pubData.error || "Limite de publicações atingido");
+          if (pubRes.ok) igMediaId = pubData.ig_media_id;
+        } else {
+          // Multi-destino
+          setStatusMsg(`Publicando em ${targetLojas.length} lojas...`);
+          const multiRes = await fetch("/api/instagram/publish-multi", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ loja_ids: targetLojas, image_url: imageUrl, caption, formato: format, legenda: data.legenda }),
+          });
+          const multiData = await multiRes.json();
+          if (multiData.resultados) {
+            setMultiResultados(multiData.resultados);
+            if (multiData.sucesso > 0) igMediaId = "multi";
+          }
+        }
       }
 
-      setStatus("saving"); setStatusMsg("Salvando...");
-      await fetch("/api/postagens", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagem_url: imageUrl, legenda: data.legenda, formato: format, ig_media_id: igMediaId, status: igMediaId ? "publicado" : "rascunho" }),
-      });
+      // Salvar postagem (para publicação simples ou TV)
+      if (igMediaId !== "multi") {
+        setStatus("saving"); setStatusMsg("Salvando...");
+        await fetch("/api/postagens", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imagem_url: imageUrl, legenda: data.legenda, formato: format, ig_media_id: igMediaId, status: igMediaId ? "publicado" : "rascunho" }),
+        });
+      }
 
       setStatus("done");
-      setStatusMsg(igMediaId ? "Publicado com sucesso!" : format === "tv" ? "Salvo (TV = download only)" : "Salvo como rascunho");
+      if (igMediaId === "multi" && multiResultados) {
+        // Mensagem será exibida pelo painel de resultados
+        setStatusMsg("Publicação multi-destino concluída");
+      } else {
+        setStatusMsg(igMediaId ? "Publicado com sucesso!" : format === "tv" ? "Salvo (TV = download only)" : "Salvo como rascunho");
+      }
       // Atualizar cotas após publicação
       fetch("/api/cotas").then(r => r.json()).then(d => { if (d.uso) setCotas(d); }).catch(() => {});
       setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 4000);
@@ -428,6 +467,67 @@ export default function PublishPage() {
           )}
         </div>
 
+        {/* Destinos (multi-loja) */}
+        {lojasDisponiveis.length > 1 && !isTV && (
+          <div style={{ marginBottom: 16, padding: 12, borderRadius: 10, background: "var(--bg-input)", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", letterSpacing: 1.2, textTransform: "uppercase" }}>Publicar em</span>
+              <button onClick={() => {
+                if (lojasSelecionadas.length === lojasDisponiveis.length) setLojasSelecionadas([]);
+                else setLojasSelecionadas(lojasDisponiveis.map(l => l.id));
+              }} style={{
+                fontSize: 8, padding: "2px 6px", borderRadius: 4, border: "1px solid var(--border)",
+                background: "transparent", color: "var(--blue)", fontWeight: 600, cursor: "pointer",
+              }}>{lojasSelecionadas.length === lojasDisponiveis.length ? "Nenhuma" : "Todas"}</button>
+            </div>
+            {lojasDisponiveis.map(l => {
+              const sel = lojasSelecionadas.includes(l.id);
+              return (
+                <button key={l.id} onClick={() => {
+                  setLojasSelecionadas(prev => sel ? prev.filter(id => id !== l.id) : [...prev, l.id]);
+                }} style={{
+                  display: "flex", alignItems: "center", gap: 6, width: "100%",
+                  padding: "6px 8px", marginBottom: 3, borderRadius: 6, border: "1px solid",
+                  borderColor: sel ? "rgba(72,187,120,0.3)" : "var(--border)",
+                  background: sel ? "rgba(72,187,120,0.06)" : "transparent",
+                  cursor: "pointer", textAlign: "left",
+                }}>
+                  <span style={{
+                    width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+                    border: sel ? "none" : "1px solid var(--border)",
+                    background: sel ? "var(--success)" : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 9, color: "#fff", fontWeight: 700,
+                  }}>{sel ? "✓" : ""}</span>
+                  <span style={{ fontSize: 11, color: sel ? "var(--text)" : "var(--text-muted)", fontWeight: sel ? 600 : 400 }}>{l.nome}</span>
+                  <span style={{ fontSize: 9, color: "var(--text-muted)", marginLeft: "auto" }}>{l.cidade}</span>
+                </button>
+              );
+            })}
+            {lojasSelecionadas.length > 1 && (
+              <p style={{ fontSize: 9, color: "var(--gold)", margin: "6px 0 0", fontWeight: 600 }}>
+                {lojasSelecionadas.length} lojas selecionadas
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Resultados multi-destino */}
+        {multiResultados && (
+          <div style={{ marginBottom: 12, padding: 10, borderRadius: 10, background: "var(--bg-input)", border: "1px solid var(--border)" }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", letterSpacing: 1, textTransform: "uppercase" }}>Resultados</span>
+            {multiResultados.map((r, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>{r.loja_nome}</span>
+                <span style={{
+                  fontSize: 9, fontWeight: 600,
+                  color: r.status === "publicado" ? "var(--success)" : "var(--danger)",
+                }}>{r.status === "publicado" ? "OK" : r.erro || "Erro"}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={{ flex: 1 }} />
 
         {/* Status */}
@@ -448,7 +548,7 @@ export default function PublishPage() {
             cursor: busy ? "wait" : "pointer",
             boxShadow: "0 4px 20px rgba(212,168,67,0.3)",
             opacity: busy ? 0.7 : 1, transition: "all 0.25s",
-          }}>{busy ? "Processando..." : isTV ? "Salvar" : "Publicar"}</button>
+          }}>{busy ? "Processando..." : isTV ? "Salvar" : lojasSelecionadas.length > 1 ? `Publicar (${lojasSelecionadas.length})` : "Publicar"}</button>
           <button onClick={handleDownload} disabled={busy} style={{
             padding: "14px 18px", borderRadius: 12,
             border: "1px solid var(--border)", background: "var(--bg-card)",
