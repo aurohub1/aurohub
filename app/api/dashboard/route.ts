@@ -144,15 +144,62 @@ export async function GET() {
     }
   }
 
+  // MRR (receita recorrente mensal) — soma valor_mensalidade de marcas ativas
+  const { data: marcasAtivas } = await sb
+    .from("marcas")
+    .select("id, valor_mensalidade")
+    .eq("status", "ativo");
+
+  const mrr = (marcasAtivas || []).reduce((sum, m) => sum + (parseFloat(m.valor_mensalidade) || 0), 0);
+  const clientesAtivos = marcasAtivas?.length || 0;
+
+  // Tokens com alerta de expiração (< 15 dias)
+  const d15 = new Date();
+  d15.setDate(d15.getDate() + 15);
+  const { data: tokensExpirando } = await sb
+    .from("lojas")
+    .select("id, nome, ig_token_expires_at")
+    .eq("ativa", true)
+    .not("ig_access_token", "is", null)
+    .lt("ig_token_expires_at", d15.toISOString());
+
+  // Notificações não lidas
+  const { count: notificacoesNaoLidas } = await sb
+    .from("notificacoes")
+    .select("*", { count: "exact", head: true })
+    .eq("lida", false);
+
+  // Usuários online (últimos 5 minutos)
+  const d5min = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data: onlineUsers } = await sb
+    .from("usuarios_online")
+    .select("nome, loja, pagina, ultimo_ping")
+    .gte("ultimo_ping", d5min);
+
+  // Agendamentos pendentes
+  const { count: agendamentosPendentes } = await sb
+    .from("postagens")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "agendado");
+
   return NextResponse.json({
     stats: {
       usuarios_ativos: totalUsuarios || 0,
+      clientes_ativos: clientesAtivos,
       posts_hoje: postsHoje || 0,
       total_posts: totalPosts || 0,
       posts_publicados: postsPublicados || 0,
       lojas_com_ig: lojasComIG || 0,
       total_lojas: totalLojas || 0,
+      mrr,
+      notificacoes_nao_lidas: notificacoesNaoLidas || 0,
+      agendamentos_pendentes: agendamentosPendentes || 0,
     },
+    tokens_expirando: (tokensExpirando || []).map(t => ({
+      nome: t.nome,
+      dias: Math.ceil((new Date(t.ig_token_expires_at).getTime() - Date.now()) / 86400000),
+    })),
+    online: onlineUsers || [],
     formatos: formatCount,
     chart,
     activity,
