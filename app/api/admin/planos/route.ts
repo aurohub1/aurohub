@@ -18,7 +18,7 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const sb = createServerSupabase();
-  const { data: planos, error: pe } = await sb.from("planos").select("*").order("preco_mensal", { ascending: true });
+  const { data: planos, error: pe } = await sb.from("planos").select("*").order("sort_order", { ascending: true });
   const { data: packs, error: pke } = await sb.from("packs").select("*, usuarios(nome, email)").order("created_at", { ascending: false });
 
   if (pe) return NextResponse.json({ error: pe.message }, { status: 500 });
@@ -36,7 +36,13 @@ export async function PUT(request: Request) {
     if (!id) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
 
     const sb = createServerSupabase();
-    const allowed = ["nome", "preco_mensal", "preco_anual", "limite_lojas", "limite_usuarios", "limite_posts", "limite_stories", "inclui_transmissao", "inclui_agendamento", "ativo"];
+    const allowed = [
+      "nome", "descricao", "preco_mensal", "preco_anual", "preco_implantacao", "fidelidade",
+      "limite_lojas", "limite_usuarios", "limite_posts", "limite_stories",
+      "max_feed_reels_dia", "max_stories_dia", "transmissao",
+      "inclui_transmissao", "inclui_agendamento", "can_metrics", "can_ia_legenda",
+      "ativo", "vendas_ativas", "mostrar_bloqueado", "is_enterprise", "sort_order",
+    ];
     const update: Record<string, unknown> = {};
     for (const key of allowed) {
       if (fields[key] !== undefined) update[key] = fields[key];
