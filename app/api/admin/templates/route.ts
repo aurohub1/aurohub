@@ -13,11 +13,22 @@ async function getAdmin() {
   return data;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const admin = await getAdmin();
   if (!admin) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
   const sb = createServerSupabase();
+
+  // Retornar template único por ID
+  if (id) {
+    const { data, error } = await sb.from("templates").select("*").eq("id", id).single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ template: data });
+  }
+
   const { data, error } = await sb
     .from("templates")
     .select("*")

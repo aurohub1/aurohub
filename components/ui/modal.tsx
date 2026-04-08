@@ -11,12 +11,18 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative card p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">{title}</h2>
-          <button onClick={onClose} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)" }} onClick={onClose} />
+      <div style={{
+        position: "relative", width: "100%", maxWidth: 448, margin: "0 16px",
+        maxHeight: "80vh", overflowY: "auto",
+        background: "var(--bg-card)", border: "1px solid var(--border)",
+        borderRadius: 20, padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+        backdropFilter: "blur(20px)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "var(--text)" }}>{title}</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 18, cursor: "pointer" }}>
             ✕
           </button>
         </div>

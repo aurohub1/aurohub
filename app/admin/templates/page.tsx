@@ -286,6 +286,11 @@ export default function AdminTemplatesPage() {
                         padding: "5px 12px", borderRadius: 8, border: "1px solid var(--border)",
                         background: "var(--bg-input)", color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, cursor: "pointer",
                       }}>Editar</button>
+                      <a href={`/editor?template_id=${t.id}`} style={{
+                        padding: "5px 12px", borderRadius: 8, border: "1px solid rgba(212,168,67,0.2)",
+                        background: "rgba(212,168,67,0.06)", color: "var(--gold)", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                        textDecoration: "none", display: "inline-flex", alignItems: "center",
+                      }}>Editor</a>
                       <button onClick={() => openAcesso(t)} style={{
                         padding: "5px 12px", borderRadius: 8, border: "1px solid rgba(59,130,246,0.2)",
                         background: "rgba(59,130,246,0.06)", color: "var(--blue)", fontSize: 11, fontWeight: 600, cursor: "pointer",

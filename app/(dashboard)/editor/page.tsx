@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { EditorSchema, EditorElement } from "@/components/editor/canvas-editor";
 
@@ -16,13 +17,12 @@ const CanvasEditor = dynamic(
   }
 );
 
-const FORMATS = [
-  { id: "stories", label: "Stories", w: 1080, h: 1920, desc: "1080×1920" },
-  { id: "feed", label: "Feed", w: 1080, h: 1350, desc: "1080×1350" },
-  { id: "reels", label: "Reels", w: 1080, h: 1920, desc: "1080×1920" },
-  { id: "transmissao", label: "Transmissão", w: 1080, h: 1920, desc: "1080×1920" },
-  { id: "tv", label: "TV", w: 1920, h: 1080, desc: "1920×1080" },
-];
+const FORMATS: Record<string, { label: string; w: number; h: number }> = {
+  stories: { label: "Stories", w: 1080, h: 1920 },
+  feed: { label: "Feed", w: 1080, h: 1350 },
+  reels: { label: "Reels", w: 1080, h: 1920 },
+  transmissao: { label: "Transmissão", w: 1920, h: 1080 },
+};
 
 const PALETTES = [
   { name: "Aurohub", colors: ["#0E1520", "#1E3A6E", "#3B82F6", "#D4A843", "#FF7A1A"] },
@@ -48,31 +48,25 @@ function emptySchema(): EditorSchema {
   return { background: "#0E1520", elements: [], duration: 5 };
 }
 
-function adaptElements(elements: EditorElement[], fromW: number, fromH: number, toW: number, toH: number): EditorElement[] {
-  const sx = toW / fromW;
-  const sy = toH / fromH;
-  const s = Math.min(sx, sy);
-  return elements.map(el => ({
-    ...el,
-    id: `el_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    x: Math.round(el.x * sx),
-    y: Math.round(el.y * sy),
-    width: Math.round(el.width * s),
-    height: Math.round(el.height * s),
-    fontSize: el.fontSize ? Math.round(el.fontSize * s) : undefined,
-  }));
+interface TemplateInfo {
+  id: string;
+  nome: string;
+  formato: string;
+  tipo_form: string;
 }
 
 interface CloudImage { url: string; id: string; width: number; height: number; }
 
 export default function EditorPage() {
-  const [activeFormat, setActiveFormat] = useState("stories");
-  const [schemas, setSchemas] = useState<Record<string, EditorSchema>>({
-    stories: emptySchema(), feed: emptySchema(), reels: emptySchema(), transmissao: emptySchema(), tv: emptySchema(),
-  });
+  const searchParams = useSearchParams();
+  const templateId = searchParams.get("template_id");
+
+  const [template, setTemplate] = useState<TemplateInfo | null>(null);
+  const [schema, setSchema] = useState<EditorSchema>(emptySchema());
+  const [loading, setLoading] = useState(!!templateId);
+  const [dirty, setDirty] = useState(false);
 
   const [statusMsg, setStatusMsg] = useState("");
-  const [showAdaptMenu, setShowAdaptMenu] = useState(false);
 
   // Modais
   const [showBgModal, setShowBgModal] = useState(false);
@@ -83,13 +77,35 @@ export default function EditorPage() {
   const [bgGradient, setBgGradient] = useState("");
   const [bgTab, setBgTab] = useState<"cor" | "gradiente" | "paleta">("cor");
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const fmt = FORMATS.find(f => f.id === activeFormat)!;
-  const schema = schemas[activeFormat];
+  const formato = template?.formato || "stories";
+  const fmt = FORMATS[formato] || FORMATS.stories;
 
-  const setSchema = useCallback((s: EditorSchema) => {
-    setSchemas(prev => ({ ...prev, [activeFormat]: s }));
-  }, [activeFormat]);
+  // Carregar template do banco
+  useEffect(() => {
+    if (!templateId) return;
+    setLoading(true);
+    fetch(`/api/admin/templates?id=${templateId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.template) {
+          const t = data.template;
+          setTemplate({ id: t.id, nome: t.nome, formato: t.formato, tipo_form: t.tipo_form });
+          if (t.schema_json && t.schema_json.elements) {
+            setSchema(t.schema_json);
+            setBgColor(t.schema_json.background || "#0E1520");
+          }
+        }
+      })
+      .catch(() => showStatus("Erro ao carregar template"))
+      .finally(() => setLoading(false));
+  }, [templateId]);
+
+  const handleSchemaChange = useCallback((s: EditorSchema) => {
+    setSchema(s);
+    setDirty(true);
+  }, []);
 
   // Sync bgColor com schema
   useEffect(() => { setBgColor(schema.background); }, [schema.background]);
@@ -101,30 +117,10 @@ export default function EditorPage() {
 
   // Background modal
   function applyBg(color: string) {
-    setSchema({ ...schema, background: color });
+    handleSchemaChange({ ...schema, background: color });
     setBgColor(color);
     setShowBgModal(false);
     showStatus("Fundo alterado");
-  }
-
-  // Adaptar formato
-  function handleAdapt(fromId: string) {
-    const from = FORMATS.find(f => f.id === fromId)!;
-    const fromSchema = schemas[fromId];
-    if (!fromSchema.elements.length) { showStatus(`${from.label} está vazio`); return; }
-    const adapted = adaptElements(fromSchema.elements, from.w, from.h, fmt.w, fmt.h);
-    setSchema({ ...schema, elements: [...schema.elements, ...adapted] });
-    setShowAdaptMenu(false);
-    showStatus(`${adapted.length} elementos copiados de ${from.label}`);
-  }
-
-  function handleCopyStoriesToReels() {
-    const s = schemas.stories;
-    if (!s.elements.length) { showStatus("Stories está vazio"); return; }
-    const copied = s.elements.map(el => ({ ...el, id: `el_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` }));
-    setSchemas(prev => ({ ...prev, reels: { ...s, elements: copied } }));
-    setActiveFormat("reels");
-    showStatus("Stories copiado para Reels");
   }
 
   // Upload de imagem
@@ -164,58 +160,45 @@ export default function EditorPage() {
   }
 
   function selectGalleryImage(url: string) {
-    // Adiciona imagem ao canvas via schema (functional update para evitar stale closure)
     const el: EditorElement = {
       id: `el_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       type: "image", name: "Imagem", x: fmt.w / 4, y: fmt.h / 4,
       width: fmt.w / 2, height: fmt.h / 3, src: url, opacity: 1,
       animation: "fadeIn", animDelay: 0, animDuration: 0.6,
     };
-    setSchemas(prev => {
-      const current = prev[activeFormat];
-      return { ...prev, [activeFormat]: { ...current, elements: [...current.elements, el] } };
-    });
+    handleSchemaChange({ ...schema, elements: [...schema.elements, el] });
     setShowGallery(false);
     showStatus("Imagem adicionada");
   }
 
   const handleExport = useCallback((dataUrl: string) => {
     const link = document.createElement("a");
-    link.download = `${activeFormat}-${Date.now()}.png`;
+    link.download = `${formato}-${Date.now()}.png`;
     link.href = dataUrl; link.click();
     showStatus("PNG exportado!");
-  }, [activeFormat]);
+  }, [formato]);
 
   async function handleSave() {
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(schemas, null, 2));
-      showStatus("Schema copiado!");
-    } catch {
-      const blob = new Blob([JSON.stringify(schemas, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = "template.json"; a.click();
-      URL.revokeObjectURL(url);
-      showStatus("Schema baixado!");
+    if (!template) {
+      showStatus("Nenhum template selecionado");
+      return;
     }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/templates", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: template.id, schema_json: schema }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showStatus(data.error || "Erro ao salvar"); setSaving(false); return; }
+      setDirty(false);
+      showStatus("Template salvo!");
+    } catch {
+      showStatus("Erro ao salvar");
+    }
+    setSaving(false);
   }
-
-  function handleLoad() {
-    const input = document.createElement("input");
-    input.type = "file"; input.accept = ".json";
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      try {
-        const parsed = JSON.parse(await file.text());
-        if (parsed.stories || parsed.feed) setSchemas(prev => ({ ...prev, ...parsed }));
-        else if (parsed.elements) setSchema(parsed);
-        showStatus("Carregado!");
-      } catch { showStatus("JSON inválido"); }
-    };
-    input.click();
-  }
-
-  const counts = Object.fromEntries(FORMATS.map(f => [f.id, schemas[f.id]?.elements.length || 0]));
 
   // Styles compartilhados
   const btnStyle: React.CSSProperties = {
@@ -223,6 +206,31 @@ export default function EditorPage() {
     background: "var(--bg-input)", color: "var(--text-secondary)",
     fontSize: 10, fontWeight: 600, cursor: "pointer",
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", margin: "-24px", color: "var(--text-muted)", fontSize: 13 }}>
+        Carregando template...
+      </div>
+    );
+  }
+
+  if (!template && templateId) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", margin: "-24px", color: "var(--danger)", fontSize: 13 }}>
+        Template não encontrado
+      </div>
+    );
+  }
+
+  if (!template) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", margin: "-24px", flexDirection: "column", gap: 12 }}>
+        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Selecione um template na página de Templates para editar.</p>
+        <a href="/admin/templates" style={{ fontSize: 12, color: "var(--gold)", fontWeight: 600, textDecoration: "none" }}>Ir para Templates</a>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", margin: "-24px", height: "calc(100vh)" }}>
@@ -234,82 +242,48 @@ export default function EditorPage() {
       }}>
         {/* Left */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <h1 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--text)" }}>Editor</h1>
-          <div style={{ display: "flex", gap: 3, padding: 3, borderRadius: 10, background: "var(--bg-input)" }}>
-            {FORMATS.map(f => (
-              <button key={f.id} onClick={() => setActiveFormat(f.id)} title={f.desc} style={{
-                padding: "5px 12px", borderRadius: 7, border: "none",
-                background: activeFormat === f.id ? "rgba(212,168,67,0.12)" : "transparent",
-                color: activeFormat === f.id ? "var(--gold)" : "var(--text-muted)",
-                fontSize: 11, fontWeight: 600, cursor: "pointer", position: "relative",
-              }}>
-                {f.label}
-                {counts[f.id] > 0 && (
-                  <span style={{ position: "absolute", top: -3, right: -3, width: 14, height: 14, borderRadius: 7, background: "var(--gold)", color: "#0B1120", fontSize: 8, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{counts[f.id]}</span>
-                )}
-              </button>
-            ))}
-          </div>
+          <a href="/admin/templates" style={{ color: "var(--text-muted)", fontSize: 14, textDecoration: "none" }}>←</a>
+          <h1 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--text)" }}>{template.nome}</h1>
+          <span style={{
+            fontSize: 9, fontWeight: 700, padding: "3px 10px", borderRadius: 6,
+            background: "rgba(212,168,67,0.1)", color: "var(--gold)",
+            letterSpacing: 0.8, textTransform: "uppercase",
+          }}>{fmt.label}</span>
           <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{fmt.w}×{fmt.h}</span>
-          {activeFormat === "tv" && <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 5, background: "rgba(255,122,26,0.1)", color: "var(--orange)", fontWeight: 700 }}>Download</span>}
+          {formato === "transmissao" && <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 5, background: "rgba(255,122,26,0.1)", color: "var(--orange)", fontWeight: 700 }}>Download</span>}
+          {dirty && <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 5, background: "rgba(245,101,101,0.1)", color: "var(--danger)", fontWeight: 700 }}>Alterado</span>}
         </div>
 
         {/* Center */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {/* Fundo */}
           <button onClick={() => setShowBgModal(true)} style={{ ...btnStyle, display: "flex", alignItems: "center", gap: 5 }}>
             <span style={{ width: 12, height: 12, borderRadius: 3, background: schema.background, border: "1px solid var(--border)" }} />
             Fundo
           </button>
-
-          {/* Galeria */}
           <button onClick={openGallery} style={btnStyle}>Galeria</button>
-
-          {/* Copiar de */}
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setShowAdaptMenu(!showAdaptMenu)} style={btnStyle}>Copiar de...</button>
-            {showAdaptMenu && (
-              <div style={{
-                position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 50,
-                background: "var(--bg-card)", border: "1px solid var(--border)",
-                borderRadius: 10, padding: 4, minWidth: 180, boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
-              }}>
-                {FORMATS.filter(f => f.id !== activeFormat).map(f => (
-                  <button key={f.id} onClick={() => handleAdapt(f.id)} style={{
-                    display: "block", width: "100%", padding: "8px 12px", borderRadius: 7,
-                    border: "none", background: "transparent", color: "var(--text-secondary)",
-                    fontSize: 11, cursor: "pointer", textAlign: "left",
-                  }}>{f.label} <span style={{ color: "var(--text-muted)", fontSize: 10 }}>({counts[f.id]})</span></button>
-                ))}
-                {activeFormat !== "reels" && (
-                  <button onClick={handleCopyStoriesToReels} style={{
-                    display: "block", width: "100%", padding: "8px 12px", borderRadius: 7, marginTop: 4,
-                    border: "none", background: "rgba(212,168,67,0.06)", color: "var(--gold)",
-                    fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "left", borderTop: "1px solid var(--border)",
-                  }}>Stories → Reels (cópia direta)</button>
-                )}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Right */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {uploading && <span style={{ fontSize: 10, color: "var(--blue)", fontWeight: 600 }}>Enviando...</span>}
           {statusMsg && <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 600 }}>{statusMsg}</span>}
-          <button onClick={handleLoad} style={btnStyle}>Abrir</button>
-          <button onClick={handleSave} style={{ ...btnStyle, border: "none", background: "linear-gradient(135deg, var(--gold), var(--orange))", color: "#0B1120", fontWeight: 700 }}>Salvar</button>
+          <button onClick={handleSave} disabled={saving} style={{
+            ...btnStyle, border: "none",
+            background: saving ? "var(--border)" : "linear-gradient(135deg, var(--gold), var(--orange))",
+            color: saving ? "var(--text-muted)" : "#0B1120", fontWeight: 700,
+            cursor: saving ? "wait" : "pointer",
+          }}>{saving ? "Salvando..." : "Salvar"}</button>
         </div>
       </div>
 
       {/* Editor */}
-      <div style={{ flex: 1, overflow: "hidden" }} onClick={() => { showAdaptMenu && setShowAdaptMenu(false); }}>
+      <div style={{ flex: 1, overflow: "hidden" }}>
         <CanvasEditor
-          key={activeFormat}
+          key={template.id}
           width={fmt.w}
           height={fmt.h}
           schema={schema}
-          onChange={setSchema}
+          onChange={handleSchemaChange}
           onExport={handleExport}
           onUploadImage={handleUploadImage}
         />
