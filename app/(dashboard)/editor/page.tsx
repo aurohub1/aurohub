@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { EditorSchema, EditorElement } from "@/components/editor/canvas-editor";
@@ -58,6 +58,14 @@ interface TemplateInfo {
 interface CloudImage { url: string; id: string; width: number; height: number; }
 
 export default function EditorPage() {
+  return (
+    <Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", margin: "-24px", color: "var(--text-muted)", fontSize: 13 }}>Carregando editor...</div>}>
+      <EditorContent />
+    </Suspense>
+  );
+}
+
+function EditorContent() {
   const searchParams = useSearchParams();
   const templateId = searchParams.get("template_id");
 
