@@ -19,7 +19,6 @@ const ADMIN_ITEMS = [
   { label: "Usuários", href: "/admin/usuarios", icon: "◈" },
   { label: "Planos", href: "/admin/planos", icon: "◇" },
   { label: "Templates", href: "/admin/templates", icon: "◧" },
-  { label: "Add-ons", href: "/admin/addons", icon: "◆" },
   { label: "Instagram", href: "/admin/instagram", icon: "▣" },
   { label: "Logs", href: "/admin/logs", icon: "▤" },
 ];
