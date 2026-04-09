@@ -50,6 +50,7 @@ export default function InicioPage() {
   const [licensee, setLicensee] = useState<Licensee | null>(null);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("");
 
   // KPIs
   const [postsMes, setPostsMes] = useState(0);
@@ -67,8 +68,12 @@ export default function InicioPage() {
 
   const loadData = useCallback(async () => {
     try {
+      // Nome via email do auth
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
+      const email = user.email || "";
+      const nameFromEmail = email.split("@")[0];
+      setUserName(nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1));
 
       // Profile
       const { data: prof } = await supabase.from("profiles").select("id, name, role, licensee_id, store_id").eq("id", user.id).single();
@@ -83,16 +88,24 @@ export default function InicioPage() {
         if (s) { setStore(s as Store); effectiveLicId = effectiveLicId ?? s.licensee_id; }
       }
 
-      // Licensee + Plan
+      // Fallback AZV para ADM sem licensee vinculado
+      if (!effectiveLicId && p.role === "adm") {
+        effectiveLicId = "fd7cd9a7-2680-4682-a271-94b7dfe0a97e";
+      }
+
+      // Licensee + Plan (join com plans)
       if (effectiveLicId) {
-        const { data: l } = await supabase.from("licensees").select("id, name, plan, status, expires_at").eq("id", effectiveLicId).single();
+        const { data: l } = await supabase
+          .from("licensees")
+          .select("id, name, plan, status, expires_at, plans(name, max_posts_day)")
+          .eq("id", effectiveLicId)
+          .single();
         if (l) {
-          const lic = l as Licensee;
-          setLicensee(lic);
-          if (lic.plan) {
-            const { data: pi } = await supabase.from("plans").select("name, max_posts_day").eq("slug", lic.plan).single();
-            if (pi) setPlanInfo(pi as PlanInfo);
-          }
+          const raw = l as Record<string, unknown>;
+          setLicensee({ id: raw.id as string, name: raw.name as string, plan: raw.plan as string, status: raw.status as string, expires_at: raw.expires_at as string | null });
+          const plansArr = raw.plans as PlanInfo[] | PlanInfo | null;
+          const pi = Array.isArray(plansArr) ? plansArr[0] : plansArr;
+          if (pi) setPlanInfo(pi);
         }
       }
 
@@ -175,7 +188,7 @@ export default function InicioPage() {
 
   /* ── Derived ───────────────────────────────────── */
 
-  const displayName = store?.name ?? licensee?.name ?? profile?.name ?? "Usuário";
+  const displayName = userName || store?.name || licensee?.name || profile?.name || "Usuário";
   const mesAtual = new Date().getMonth() + 1;
   const datas = DATAS_COMEMORATIVAS[mesAtual] ?? [];
   const postsLimite = planInfo ? (planInfo.max_posts_day === -1 ? "Ilimitado" : `${planInfo.max_posts_day}/dia`) : "—";
