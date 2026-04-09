@@ -12,6 +12,7 @@ interface Licensee { id: string; name: string; plan: string; status: string; exp
 interface LogEntry { id: string; event_type: string; metadata: Record<string, unknown> | null; created_at: string; }
 interface Embarque { id: string; destino: string; data_embarque: string; cliente_nome: string; }
 interface PlanInfo { name: string; max_posts_day: number; }
+interface DataComemorativa { id: string; nome: string; data_mes: number; data_dia: number; tipo: string; cidade: string | null; estado: string | null; destaque: boolean; }
 
 /* ── Helpers ─────────────────────────────────────── */
 
@@ -27,19 +28,11 @@ function monthStart(): string {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
 }
 
-const DATAS_COMEMORATIVAS: Record<number, string[]> = {
-  1:  ["01/01 — Ano Novo", "25/01 — Aniversário de São Paulo"],
-  2:  ["14/02 — Dia dos Namorados (EUA)", "Carnaval"],
-  3:  ["08/03 — Dia da Mulher", "15/03 — Dia do Consumidor"],
-  4:  ["21/04 — Tiradentes", "22/04 — Dia da Terra"],
-  5:  ["01/05 — Dia do Trabalho", "2º dom — Dia das Mães"],
-  6:  ["12/06 — Dia dos Namorados", "Férias de inverno"],
-  7:  ["20/07 — Dia do Amigo", "Férias escolares"],
-  8:  ["2º dom — Dia dos Pais", "Alta temporada Europa"],
-  9:  ["07/09 — Independência", "23/09 — Início da primavera"],
-  10: ["12/10 — Dia das Crianças", "15/10 — Dia do Professor"],
-  11: ["Black Friday", "02/11 — Finados"],
-  12: ["25/12 — Natal", "31/12 — Réveillon", "Alta temporada viagens"],
+const TIPO_EMOJI: Record<string, string> = { feriado: "🎌", aniversario: "🏙️", evento: "🎉" };
+const TIPO_STYLE: Record<string, { bg: string; text: string }> = {
+  feriado:      { bg: "var(--red3)", text: "var(--red)" },
+  aniversario:  { bg: "var(--blue3)", text: "var(--blue)" },
+  evento:       { bg: "var(--gold3)", text: "var(--gold)" },
 };
 
 /* ── Component ───────────────────────────────────── */
@@ -61,6 +54,7 @@ export default function InicioPage() {
   // Content
   const [recentArts, setRecentArts] = useState<{ url: string; date: string }[]>([]);
   const [embarques, setEmbarques] = useState<Embarque[]>([]);
+  const [datasComem, setDatasComem] = useState<DataComemorativa[]>([]);
   const [igConnected, setIgConnected] = useState(false);
   const [postsUsados, setPostsUsados] = useState(0);
 
@@ -180,6 +174,39 @@ export default function InicioPage() {
           .limit(5);
         setEmbarques((emb as Embarque[]) ?? []);
       }
+
+      // Datas comemorativas dos próximos 14 dias
+      const hojeDt = new Date();
+      const mesAtual = hojeDt.getMonth() + 1;
+      const diaAtual = hojeDt.getDate();
+      const diaFim = diaAtual + 14;
+
+      if (diaFim <= 31) {
+        const { data: dc } = await supabase
+          .from("datas_comemorativas")
+          .select("*")
+          .eq("data_mes", mesAtual)
+          .gte("data_dia", diaAtual)
+          .lte("data_dia", diaFim)
+          .order("data_dia");
+        setDatasComem((dc as DataComemorativa[]) ?? []);
+      } else {
+        // Virada de mês: busca fim do mês atual + início do próximo
+        const { data: dc1 } = await supabase
+          .from("datas_comemorativas")
+          .select("*")
+          .eq("data_mes", mesAtual)
+          .gte("data_dia", diaAtual)
+          .order("data_dia");
+        const proxMes = mesAtual === 12 ? 1 : mesAtual + 1;
+        const { data: dc2 } = await supabase
+          .from("datas_comemorativas")
+          .select("*")
+          .eq("data_mes", proxMes)
+          .lte("data_dia", diaFim - 31)
+          .order("data_dia");
+        setDatasComem([...((dc1 as DataComemorativa[]) ?? []), ...((dc2 as DataComemorativa[]) ?? [])]);
+      }
     } catch (err) { console.error("[Inicio] load:", err); }
     finally { setLoading(false); }
   }, []);
@@ -189,8 +216,6 @@ export default function InicioPage() {
   /* ── Derived ───────────────────────────────────── */
 
   const displayName = userName || store?.name || licensee?.name || profile?.name || "Usuário";
-  const mesAtual = new Date().getMonth() + 1;
-  const datas = DATAS_COMEMORATIVAS[mesAtual] ?? [];
   const postsLimite = planInfo ? (planInfo.max_posts_day === -1 ? "Ilimitado" : `${planInfo.max_posts_day}/dia`) : "—";
   const postsRestantes = planInfo && planInfo.max_posts_day > 0
     ? Math.max(0, planInfo.max_posts_day * 30 - postsUsados)
@@ -287,17 +312,32 @@ export default function InicioPage() {
             )}
 
             {/* Datas comemorativas */}
-            <div className="mb-4">
-              <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Datas do mês</div>
-              <div className="flex flex-col gap-1.5">
-                {datas.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] px-3 py-2">
-                    <span className="text-[14px]">📅</span>
-                    <span className="text-[12px] text-[var(--txt2)]">{d}</span>
-                  </div>
-                ))}
+            {datasComem.length > 0 && (
+              <div className="mb-4">
+                <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Próximas datas</div>
+                <div className="flex flex-col gap-1.5">
+                  {datasComem.map((d) => {
+                    const emoji = TIPO_EMOJI[d.tipo] ?? "📅";
+                    const style = TIPO_STYLE[d.tipo] ?? TIPO_STYLE.evento;
+                    const dataStr = `${String(d.data_dia).padStart(2, "0")}/${String(d.data_mes).padStart(2, "0")}`;
+                    return (
+                      <div key={d.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px]">{emoji}</span>
+                          <div>
+                            <span className="text-[12px] text-[var(--txt)]">{dataStr} — {d.nome}</span>
+                            {d.cidade && <span className="ml-1 text-[10px] text-[var(--txt3)]">({d.cidade}/{d.estado})</span>}
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.5rem] font-bold" style={{ background: style.bg, color: style.text }}>
+                          {d.tipo === "feriado" ? "Feriado" : d.tipo === "aniversario" ? "Aniv." : "Evento"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Dicas rápidas */}
             <div>
