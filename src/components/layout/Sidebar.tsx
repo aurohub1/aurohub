@@ -29,6 +29,16 @@ const SECTIONS: NavSection[] = [
     title: "Geral",
     items: [
       {
+        label: "Início",
+        href: "/inicio",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M3 10l7-7 7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5 8.5V16a1 1 0 001 1h3v-4h2v4h3a1 1 0 001-1V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ),
+      },
+      {
         label: "Dashboard",
         href: "/dashboard",
         icon: (
