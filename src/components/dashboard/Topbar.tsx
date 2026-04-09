@@ -52,13 +52,12 @@ export default function Topbar() {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      localStorage.setItem("ah_theme", next);
-      document.documentElement.setAttribute("data-theme", next);
-      return next;
-    });
-  }, []);
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("ah_theme", next);
+    document.documentElement.setAttribute("data-theme", next);
+    window.dispatchEvent(new CustomEvent("theme-change", { detail: next }));
+  }, [theme]);
 
   const title = PAGE_TITLES[pathname] ?? "Aurohub";
 

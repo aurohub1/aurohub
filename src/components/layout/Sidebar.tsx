@@ -226,12 +226,18 @@ export default function Sidebar({ activePath, user, onLogout }: SidebarProps) {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
     if (saved) setTheme(saved);
 
+    const onThemeChange = (e: Event) => {
+      const t = (e as CustomEvent).detail as "dark" | "light";
+      setTheme(t);
+    };
+    window.addEventListener("theme-change", onThemeChange);
+
     const observer = new MutationObserver(() => {
       const t = document.documentElement.getAttribute("data-theme") as "dark" | "light";
       if (t) setTheme(t);
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); window.removeEventListener("theme-change", onThemeChange); };
   }, []);
 
   return (

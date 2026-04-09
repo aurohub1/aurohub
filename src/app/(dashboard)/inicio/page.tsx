@@ -69,37 +69,35 @@ export default function InicioPage() {
       const nameFromEmail = email.split("@")[0];
       setUserName(nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1));
 
-      // Profile
+      // Profile (pode não existir para ADM)
       const { data: prof } = await supabase.from("profiles").select("id, name, role, licensee_id, store_id").eq("id", user.id).single();
-      if (!prof) { setLoading(false); return; }
-      const p = prof as Profile;
-      setProfile(p);
+      const p = prof as Profile | null;
+      if (p) setProfile(p);
 
       // Store
-      let effectiveLicId = p.licensee_id;
-      if (p.store_id) {
+      let effectiveLicId = p?.licensee_id ?? null;
+      if (p?.store_id) {
         const { data: s } = await supabase.from("stores").select("id, name, licensee_id").eq("id", p.store_id).single();
         if (s) { setStore(s as Store); effectiveLicId = effectiveLicId ?? s.licensee_id; }
       }
 
-      // Fallback AZV para ADM sem licensee vinculado
-      if (!effectiveLicId && p.role === "adm") {
+      // Fallback AZV — sempre carrega licensee para mostrar dados
+      if (!effectiveLicId) {
         effectiveLicId = "fd7cd9a7-2680-4682-a271-94b7dfe0a97e";
       }
 
-      // Licensee + Plan (join com plans)
-      if (effectiveLicId) {
-        const { data: l } = await supabase
-          .from("licensees")
-          .select("id, name, plan, status, expires_at, plans(name, max_posts_day)")
-          .eq("id", effectiveLicId)
-          .single();
-        if (l) {
-          const raw = l as Record<string, unknown>;
-          setLicensee({ id: raw.id as string, name: raw.name as string, plan: raw.plan as string, status: raw.status as string, expires_at: raw.expires_at as string | null });
-          const plansArr = raw.plans as PlanInfo[] | PlanInfo | null;
-          const pi = Array.isArray(plansArr) ? plansArr[0] : plansArr;
-          if (pi) setPlanInfo(pi);
+      // Licensee + Plan
+      const { data: licData } = await supabase
+        .from("licensees")
+        .select("id, name, plan, status, expires_at")
+        .eq("id", effectiveLicId)
+        .single();
+      if (licData) {
+        const lic = licData as Licensee;
+        setLicensee(lic);
+        if (lic.plan) {
+          const { data: pi } = await supabase.from("plans").select("name, max_posts_day").eq("slug", lic.plan).single();
+          if (pi) setPlanInfo(pi as PlanInfo);
         }
       }
 
@@ -115,7 +113,7 @@ export default function InicioPage() {
       const allLogs = (logs as LogEntry[]) ?? [];
       const userLogs = allLogs.filter((lg) => {
         const m = lg.metadata ?? {};
-        if (p.store_id && m.store_id) return m.store_id === p.store_id;
+        if (p?.store_id && m.store_id) return m.store_id === p.store_id;
         if (effectiveLicId && m.licensee_id) return m.licensee_id === effectiveLicId;
         return true;
       });
@@ -181,14 +179,16 @@ export default function InicioPage() {
       const diaAtual = hojeDt.getDate();
       const diaFim = diaAtual + 14;
 
+      console.log("[Inicio] Buscando datas comemorativas:", { mesAtual, diaAtual, diaFim });
       if (diaFim <= 31) {
-        const { data: dc } = await supabase
+        const { data: dc, error: dcErr } = await supabase
           .from("datas_comemorativas")
           .select("*")
           .eq("data_mes", mesAtual)
           .gte("data_dia", diaAtual)
           .lte("data_dia", diaFim)
           .order("data_dia");
+        console.log("[Inicio] Datas encontradas:", dc?.length ?? 0, dcErr?.message ?? "OK");
         setDatasComem((dc as DataComemorativa[]) ?? []);
       } else {
         // Virada de mês: busca fim do mês atual + início do próximo
