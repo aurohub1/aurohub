@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-dm-sans);
+  --font-serif: var(--font-dm-serif);
+}
+
+/* ── Dark (default) ──────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg: #060B16;
+  --bg1: #0A1020;
+  --bg2: #0C1428;
+  --bg3: #182844;
+
+  --navy: #1E3A6E;
+  --gold: #D4A843;
+  --gold2: #E2BC68;
+  --gold3: rgba(212, 168, 67, 0.12);
+  --orange: #FF7A1A;
+  --orange2: #FF9A3C;
+  --orange3: rgba(255, 122, 26, 0.12);
+
+  --green: #22C55E;
+  --green3: rgba(34, 197, 94, 0.12);
+  --red: #EF4444;
+  --red3: rgba(239, 68, 68, 0.12);
+  --blue: #3B82F6;
+  --blue3: rgba(59, 130, 246, 0.12);
+  --purple: #A78BFA;
+  --purple3: rgba(167, 139, 250, 0.12);
+
+  --txt: #EEF2FF;
+  --txt2: #8A9BBF;
+  --txt3: #4A5878;
+
+  --bdr: rgba(255, 255, 255, 0.055);
+  --bdr2: rgba(255, 255, 255, 0.10);
+
+  --sh: 0 4px 28px rgba(0, 0, 0, 0.5);
+  --sh2: 0 8px 48px rgba(0, 0, 0, 0.6);
+
+  --r: 10px;
+  --r2: 16px;
+  --r3: 22px;
+
+  --card-bg: rgba(12, 20, 40, 0.72);
+  --sidebar-bg: rgba(8, 14, 28, 0.92);
+  --topbar-bg: rgba(8, 14, 28, 0.90);
+  --hover-bg: rgba(255, 255, 255, 0.02);
+  --input-bg: rgba(255, 255, 255, 0.04);
+  --overlay-bg: rgba(0, 0, 0, 0.6);
+}
+
+/* ── Light ───────────────────────────────────────── */
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --bg1: #ffffff;
+  --bg2: #f1f5f9;
+  --bg3: #e2e8f0;
+
+  --txt: #0f172a;
+  --txt2: #334155;
+  --txt3: #64748b;
+
+  --bdr: #e2e8f0;
+  --bdr2: #cbd5e1;
+
+  --sh: 0 2px 12px rgba(13, 22, 40, 0.08);
+  --sh2: 0 8px 32px rgba(13, 22, 40, 0.12);
+
+  --card-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+  --topbar-bg: #ffffff;
+  --hover-bg: rgba(13, 22, 40, 0.06);
+  --input-bg: rgba(13, 22, 40, 0.06);
+  --overlay-bg: rgba(0, 0, 0, 0.4);
+}
+
+*, *::before, *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+
+body {
+  background: var(--bg);
+  color: var(--txt);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bdr2);
+  border-radius: 99px;
+}
+
+/* ── Light: form controls ───────────────────────── */
+[data-theme="light"] select,
+[data-theme="light"] input[type="date"] {
+  background-color: var(--bg1);
+  color: var(--txt);
+  border-color: var(--bdr2);
+}
+
+[data-theme="light"] select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+[data-theme="dark"] select option {
+  background-color: #1c2128;
+  color: #e6edf3;
+}
+
+[data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="email"],
+[data-theme="light"] input[type="password"],
+[data-theme="light"] input[type="number"],
+[data-theme="light"] input[type="tel"],
+[data-theme="light"] input[type="search"],
+[data-theme="light"] textarea {
+  color: var(--txt);
+  border-color: var(--bdr2);
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: var(--txt3);
+}
+
+/* ── Light: modais, sidebar, topbar ────────────── */
+[data-theme="light"] aside {
+  border-color: var(--bdr);
+  box-shadow: 1px 0 0 var(--bdr);
+}
+
+/* ── Light: badges/pills legíveis ──────────────── */
+[data-theme="light"] .card-glass {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.card-glass {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--bdr);
+  border-radius: 18px;
+}

@@ -1,78 +1,36 @@
-# Aurohub v2
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Plataforma SaaS para criação e publicação de conteúdo profissional para Instagram.
+## Getting Started
 
-## Stack
+First, run the development server:
 
-| Camada | Tecnologia |
-|---|---|
-| Frontend + Backend | Next.js 15 + TypeScript |
-| Estilo | Tailwind CSS v4 |
-| Editor Canvas | Konva.js + react-konva |
-| Banco | Supabase (wwwpuqjdpecnixvbqigq) |
-| Storage | Cloudinary (dxgj4bcch) |
-| Deploy | Vercel |
-
-## Hierarquia de Usuários
-
-```
-ADM Raiz
-  └── Marca / Licenciado (ADM com marca_id)
-        └── Loja
-              └── Funcionário (cliente)
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-Cada nível só vê e gerencia o que está abaixo dele.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Estrutura
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-```
-app/
-  (auth)/login/       → tela de login
-  (dashboard)/        → layout com sidebar
-    dashboard/        → painel principal
-    publish/          → publicar post
-    schedule/         → agendamentos
-    metrics/          → métricas
-    editor/           → editor canvas Konva
-  admin/              → páginas ADM
-    usuarios/
-    planos/
-    templates/
-    logs/
-  api/
-    auth/login/       → autenticação
-    auth/logout/      → logout
-    instagram/publish/ → publicação Instagram
-    cloudinary/       → upload de imagens
-    cron/             → jobs agendados
-components/
-  ui/                 → botões, inputs, modais
-  editor/             → componentes Konva
-  layout/             → sidebar, topbar
-lib/
-  supabase.ts         → clients Supabase
-  auth.ts             → session helpers
-  instagram.ts        → Graph API
-  format.ts           → formatação BR
-types/
-  index.ts            → tipos TypeScript
-database/
-  schema.sql          → schema completo
-```
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Setup
+## Learn More
 
-1. Clone o repo
-2. `npm install`
-3. Copie `.env.example` → `.env.local` e preencha
-4. Rode `database/schema.sql` no Supabase SQL Editor
-5. `npm run dev`
+To learn more about Next.js, take a look at the following resources:
 
-## Deploy
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-Push para `main` → Vercel faz deploy automático.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Regras
+## Deploy on Vercel
 
-Ver [REGRAS.md](./REGRAS.md) para todas as regras obrigatórias.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
