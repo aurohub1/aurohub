@@ -62,14 +62,14 @@ export default function CalculadoraPage() {
   const calc = useMemo(() => {
     const base = planData?.price_monthly ?? 0;
     const desconto = periodo === "anual" ? 0.85 : 1;
-    const mensalidade = base * lojas * desconto;
+    const mensalidade = base * lojas * usuarios * desconto;
     const implantacao = display.implant * lojas;
-    const addonMensal = ADDONS.filter((a) => addons.includes(a.key)).reduce((s, a) => s + a.price, 0) * lojas;
+    const addonMensal = ADDONS.filter((a) => addons.includes(a.key)).reduce((s, a) => s + a.price, 0);
     const totalMensal = mensalidade + addonMensal;
     const meses = periodo === "anual" ? 12 : display.fidelity;
     const totalPeriodo = totalMensal * meses + implantacao;
     return { mensalidade, implantacao, addonMensal, totalMensal, totalPeriodo, meses, base };
-  }, [planData, lojas, periodo, addons, display.implant, display.fidelity]);
+  }, [planData, lojas, usuarios, periodo, addons, display.implant, display.fidelity]);
 
   /* ── Proposta ──────────────────────────────────── */
 
@@ -112,7 +112,15 @@ export default function CalculadoraPage() {
   }
 
   function toggleAddon(key: string) {
-    setAddons((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
+    const transmissaoKeys = ["individual", "time", "rede"];
+    if (transmissaoKeys.includes(key)) {
+      setAddons((prev) => {
+        const semTrans = prev.filter((k) => !transmissaoKeys.includes(k));
+        return prev.includes(key) ? semTrans : [...semTrans, key];
+      });
+    } else {
+      setAddons((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
+    }
   }
 
   /* ── Render ────────────────────────────────────── */
@@ -192,16 +200,18 @@ export default function CalculadoraPage() {
               {ADDONS.map((a) => {
                 const checked = addons.includes(a.key);
                 return (
-                  <label key={a.key} className={`flex items-center justify-between rounded-lg border px-4 py-3 cursor-pointer hover:bg-[var(--hover-bg)] ${checked ? "border-[var(--orange)] bg-[var(--orange3)]" : "border-[var(--bdr)]"}`}>
+                  <button key={a.key} onClick={() => toggleAddon(a.key)} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-left transition-colors ${checked ? "border-[var(--gold)] bg-[var(--gold3)]" : "border-[var(--bdr)] hover:bg-[var(--hover-bg)]"}`}>
                     <div className="flex items-center gap-3">
-                      <input type="checkbox" checked={checked} onChange={() => toggleAddon(a.key)} className="accent-[var(--orange)]" />
+                      <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-[var(--gold)] bg-[var(--gold)]" : "border-[var(--txt3)]"}`}>
+                        {checked && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </div>
                       <div>
-                        <div className={`text-[13px] font-medium ${checked ? "text-[var(--orange)]" : "text-[var(--txt)]"}`}>{a.label}</div>
+                        <div className={`text-[13px] font-medium ${checked ? "text-[var(--gold)]" : "text-[var(--txt)]"}`}>{a.label}</div>
                         <div className="text-[11px] text-[var(--txt3)]">{a.desc}</div>
                       </div>
                     </div>
-                    <span className={`text-[13px] font-semibold ${checked ? "text-[var(--orange)]" : "text-[var(--txt2)]"}`}>+{brl(a.price)}</span>
-                  </label>
+                    <span className={`text-[13px] font-semibold ${checked ? "text-[var(--gold)]" : "text-[var(--txt2)]"}`}>+{brl(a.price)}</span>
+                  </button>
                 );
               })}
             </div>
