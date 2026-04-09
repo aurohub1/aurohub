@@ -23,7 +23,11 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  turbopack: {},
+  turbopack: {
+    resolveAlias: {
+      canvas: { browser: "" },
+    },
+  },
 };
 
 export default nextConfig;

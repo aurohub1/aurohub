@@ -50,6 +50,16 @@ const SECTIONS: NavSection[] = [
         ),
       },
       {
+        label: "Embarques",
+        href: "/embarques",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
+        ),
+      },
+      {
         label: "Central de Publicação",
         href: "/central-de-publicacao",
         icon: (
