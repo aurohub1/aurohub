@@ -1,3 +1,4 @@
+import React from "react";
 import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save } from "lucide-react";
 
 interface Props {
@@ -8,6 +9,9 @@ interface Props {
   canUndo: boolean; canRedo: boolean;
   onToggleParamView?: () => void; paramViewActive?: boolean;
   format?: string; onFormatChange?: (f: string) => void;
+  formType?: string; onFormTypeChange?: (f: string) => void;
+  qtdDestinos?: number; onQtdDestinosChange?: (n: number) => void;
+  onLoadTemplate?: () => void;
 }
 
 export default function Toolbar(p: Props) {
@@ -28,13 +32,24 @@ export default function Toolbar(p: Props) {
       <span style={{ color: "#FF7A1A", fontSize: 14, marginRight: 2 }}>★</span>
       <span style={{ color: "var(--ed-txt)", fontSize: 12, fontWeight: 700, marginRight: 4 }}>Aurohub</span>
       <Sep />
-      {p.onFormatChange && (
-        <select value={p.format || "stories"} onChange={e => p.onFormatChange!(e.target.value)} style={{ height: 28, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: "var(--ed-txt)", fontSize: 10, padding: "0 6px", outline: "none", cursor: "pointer" }}>
-          <option value="stories">Stories 9:16</option>
-          <option value="reels">Reels 9:16</option>
-          <option value="feed">Feed 4:5</option>
-          <option value="tv">TV 16:9</option>
+      {p.onFormTypeChange && (
+        <select value={p.formType || "pacote"} onChange={e => p.onFormTypeChange!(e.target.value)} style={selS}>
+          <option value="pacote">Pacote</option><option value="campanha">Campanha</option>
+          <option value="passagem">Passagem</option><option value="cruzeiro">Cruzeiro</option>
+          <option value="anoiteceu">Anoiteceu</option><option value="lamina">Lâmina</option>
         </select>
+      )}
+      {p.onFormatChange && (
+        <select value={p.format || "stories"} onChange={e => p.onFormatChange!(e.target.value)} style={selS}>
+          <option value="stories">Stories 9:16</option><option value="reels">Reels 9:16</option>
+          <option value="feed">Feed 4:5</option><option value="tv">TV 16:9</option>
+        </select>
+      )}
+      {p.formType === "lamina" && p.onQtdDestinosChange && (
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 9, color: "var(--ed-txt2)" }}>Destinos:</span>
+          <input type="number" min={1} max={10} value={p.qtdDestinos || 4} onChange={e => p.onQtdDestinosChange!(Math.max(1, Math.min(10, +e.target.value)))} style={{ width: 40, height: 28, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: "var(--ed-txt)", fontSize: 10, textAlign: "center", outline: "none" }} />
+        </div>
       )}
       <Sep />
       <Btn icon={<Undo2 size={14} />} tip="Desfazer (Ctrl+Z)" o={p.onUndo} d={!p.canUndo} />
@@ -61,3 +76,4 @@ function Btn({ icon, tip, o, d, danger, gold, active, label }: { icon: React.Rea
   return <button onClick={o} title={tip} disabled={d} style={{ minWidth: label ? 52 : 28, height: 28, borderRadius: 6, border: "none", background: active ? "var(--ed-active)" : "var(--ed-hover)", color: danger ? "var(--ed-danger)" : gold ? "var(--ed-bind)" : active ? "var(--ed-active-txt)" : "var(--ed-txt2)", fontSize: 10, fontWeight: label ? 600 : 400, cursor: d ? "default" : "pointer", opacity: d ? 0.25 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 3, padding: label ? "0 8px" : 0 }}>{icon}{label}</button>;
 }
 function Sep() { return <div style={{ width: 1, height: 18, background: "var(--ed-bdr)", margin: "0 2px" }} />; }
+const selS: React.CSSProperties = { height: 28, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: "var(--ed-txt)", fontSize: 10, padding: "0 6px", outline: "none", cursor: "pointer" };

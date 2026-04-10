@@ -42,6 +42,7 @@ export interface EditorSchema {
   elements: EditorElement[];
   background: string;
   duration?: number;
+  qtdDestinos?: number;
 }
 
 export const BIND_GROUPS = [
@@ -82,3 +83,23 @@ export const EASINGS: { value: EasingType; label: string }[] = [
 export const BLEND_MODES: BlendMode[] = ["source-over","multiply","screen","overlay","darken","lighten","color-dodge","color-burn","hard-light","soft-light","difference","exclusion"];
 
 export function genId() { return `el_${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
+
+/** Gera bind groups dinâmicos para Lâmina baseado no nº de destinos */
+export function getLaminaBindGroups(qtd: number): typeof BIND_GROUPS {
+  const groups: typeof BIND_GROUPS = [];
+  for (let n = 1; n <= qtd; n++) {
+    groups.push({
+      group: `Destino ${n}`,
+      fields: [
+        `d${n}_destino`, `d${n}_hotel`, `d${n}_preco`, `d${n}_periodo`,
+        `d${n}_dataida`, `d${n}_datavolta`, `d${n}_noites`, `d${n}_regime`, `d${n}_servicos`,
+      ],
+    });
+  }
+  return [
+    { group: "Imagens", fields: ["imgfundo", "imgloja"] },
+    { group: "Genérico", fields: ["titulo", "subtitulo", "texto1", "texto2"] },
+    ...groups,
+    { group: "Loja", fields: ["loja", "agente", "fone"] },
+  ];
+}

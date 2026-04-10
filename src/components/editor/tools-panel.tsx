@@ -1,5 +1,5 @@
 import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Hexagon, AlignCenter, ArrowUp, ArrowDown, ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Eye, EyeOff, Trash2 } from "lucide-react";
-import { EditorElement, EditorSchema, BIND_GROUPS, FONTS, genId } from "./types";
+import { EditorElement, EditorSchema, BIND_GROUPS, FONTS, genId, getLaminaBindGroups } from "./types";
 
 interface Props {
   schema: EditorSchema; selectedId: string | null;
@@ -8,9 +8,13 @@ interface Props {
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
   onMoveLayer: (dir: "up" | "down") => void; onRemove: (id: string) => void;
   stageScale: number; onZoom: (s: number) => void; onFit: () => void;
+  formType?: string; qtdDestinos?: number;
+  selectedIds?: string[];
 }
 
 export default function ToolsPanel(p: Props) {
+  const bindGroups = p.formType === "lamina" ? getLaminaBindGroups(p.qtdDestinos || 4) : BIND_GROUPS;
+
   const add = (type: EditorElement["type"], overrides: Partial<EditorElement> = {}) => {
     const defaults: Record<string, Partial<EditorElement>> = {
       text: { name: "Texto", x: p.canvasW / 4, y: p.canvasH / 3, width: p.canvasW / 2, height: 60, text: "Texto", fontSize: 32, fontFamily: FONTS[0], fontStyle: "bold", fill: "#FFFFFF", align: "center", opacity: 1 },
@@ -59,7 +63,7 @@ export default function ToolsPanel(p: Props) {
         <div style={{ position: "relative" }} className="group">
           <TB icon={<Hexagon size={14} />} t="Campo Bind" o={() => {}} gold />
           <div className="hidden group-hover:block" style={{ position: "absolute", left: 42, top: 0, zIndex: 999, width: 180, maxHeight: 300, overflowY: "auto", borderRadius: 8, border: "1px solid var(--ed-bdr)", padding: 6, background: "var(--ed-surface)", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
-            {BIND_GROUPS.map(g => (
+            {bindGroups.map(g => (
               <div key={g.group} style={{ marginBottom: 6 }}>
                 <div style={{ fontSize: 7, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase" as const, color: "var(--ed-txt3)", marginBottom: 2 }}>{g.group}</div>
                 <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 2 }}>{g.fields.map(f => (
@@ -86,9 +90,9 @@ export default function ToolsPanel(p: Props) {
         {[...p.schema.elements].reverse().map(el => (
           <div key={el.id} onClick={() => p.onSelect(el.id)} style={{
             display: "flex", alignItems: "center", gap: 3, padding: "4px 4px", cursor: "pointer", fontSize: 8,
-            background: el.id === p.selectedId ? "var(--ed-active)" : "transparent",
-            borderLeft: el.id === p.selectedId ? "2px solid var(--ed-active-txt)" : "2px solid transparent",
-            color: el.id === p.selectedId ? "var(--ed-active-txt)" : "var(--ed-txt2)",
+            background: (p.selectedIds ?? [p.selectedId]).filter(Boolean).includes(el.id) ? "var(--ed-active)" : "transparent",
+            borderLeft: (p.selectedIds ?? [p.selectedId]).filter(Boolean).includes(el.id) ? "2px solid var(--ed-active-txt)" : "2px solid transparent",
+            color: (p.selectedIds ?? [p.selectedId]).filter(Boolean).includes(el.id) ? "var(--ed-active-txt)" : "var(--ed-txt2)",
             opacity: el.visible === false ? 0.3 : 1,
           }}>
             <span style={{ color: el.bindParam ? "var(--ed-bind)" : undefined, fontSize: 7 }}>{el.bindParam ? "⬡" : el.type === "text" ? "T" : el.type === "rect" ? "□" : el.type === "circle" ? "○" : "🖼"}</span>

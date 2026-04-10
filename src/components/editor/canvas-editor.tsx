@@ -20,18 +20,20 @@ interface CanvasEditorProps {
   onExport?: (dataUrl: string) => void;
   onSave?: () => void;
   saving?: boolean;
-  format?: string;
-  onFormatChange?: (f: string) => void;
+  format?: string; onFormatChange?: (f: string) => void;
+  formType?: string; onFormTypeChange?: (f: string) => void;
+  qtdDestinos?: number; onQtdDestinosChange?: (n: number) => void;
 }
 
-export function CanvasEditor({ width, height, schema, onChange, onExport, onSave, saving, format, onFormatChange }: CanvasEditorProps) {
+export function CanvasEditor({ width, height, schema, onChange, onExport, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange }: CanvasEditorProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [stageScale, setStageScale] = useState(1);
   const [history, setHistory] = useState<EditorSchema[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
   const skipHistoryRef = useRef(false);
-  const clipboardRef = useRef<EditorElement | null>(null);
+  const clipboardRef = useRef<EditorElement[]>([]);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const animFrameRef = useRef<number>(0);
@@ -43,6 +45,28 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
 
   const totalDuration = schema.duration || 5;
   const selected = schema.elements.find(el => el.id === selectedId) ?? null;
+
+  // Selection helpers
+  const selectSingle = useCallback((id: string | null) => {
+    setSelectedId(id);
+    setSelectedIds(id ? [id] : []);
+  }, []);
+
+  const shiftSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      setSelectedId(next.length > 0 ? next[next.length - 1] : null);
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    const ids = schema.elements.map(el => el.id);
+    setSelectedIds(ids);
+    setSelectedId(ids.length > 0 ? ids[ids.length - 1] : null);
+  }, [schema.elements]);
+
+  const clearSelection = useCallback(() => { setSelectedId(null); setSelectedIds([]); }, []);
 
   // Fit canvas
   useEffect(() => {
@@ -58,7 +82,6 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
   }, [historyIdx]);
 
   const changeSchema = useCallback((s: EditorSchema) => { onChange(s); pushHistory(s); }, [onChange, pushHistory]);
-
   useEffect(() => { if (history.length === 0) { setHistory([schema]); setHistoryIdx(0); } }, []);
 
   const undo = useCallback(() => { if (historyIdx <= 0) return; skipHistoryRef.current = true; setHistoryIdx(historyIdx - 1); onChange(history[historyIdx - 1]); }, [historyIdx, history, onChange]);
@@ -84,23 +107,36 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
 
   const addElement = useCallback((el: EditorElement) => {
     changeSchema({ ...schemaRef.current, elements: [...schemaRef.current.elements, el] });
-    setSelectedId(el.id);
-  }, [changeSchema]);
+    selectSingle(el.id);
+  }, [changeSchema, selectSingle]);
 
+  // Multi-aware ops
   const deleteSelected = useCallback(() => {
-    if (!selectedId) return;
-    changeSchema({ ...schema, elements: schema.elements.filter(el => el.id !== selectedId) });
-    setSelectedId(null);
-  }, [selectedId, schema, changeSchema]);
+    if (selectedIds.length === 0) return;
+    changeSchema({ ...schema, elements: schema.elements.filter(el => !selectedIds.includes(el.id)) });
+    clearSelection();
+  }, [selectedIds, schema, changeSchema, clearSelection]);
 
   const duplicateSelected = useCallback(() => {
-    const el = schema.elements.find(e => e.id === selectedId);
-    if (!el) return;
-    addElement({ ...el, id: genId(), x: el.x + 20, y: el.y + 20, name: (el.name || el.type) + " cópia" });
-  }, [selectedId, schema, addElement]);
+    const toDup = schema.elements.filter(e => selectedIds.includes(e.id));
+    if (toDup.length === 0) return;
+    const newEls = toDup.map(el => ({ ...el, id: genId(), x: el.x + 20, y: el.y + 20, name: (el.name || el.type) + " cópia" }));
+    changeSchema({ ...schema, elements: [...schema.elements, ...newEls] });
+    setSelectedIds(newEls.map(e => e.id));
+    setSelectedId(newEls[newEls.length - 1].id);
+  }, [selectedIds, schema, changeSchema]);
 
-  const copySelected = useCallback(() => { const el = schema.elements.find(e => e.id === selectedId); if (el) clipboardRef.current = { ...el }; }, [selectedId, schema]);
-  const paste = useCallback(() => { if (!clipboardRef.current) return; addElement({ ...clipboardRef.current, id: genId(), x: clipboardRef.current.x + 20, y: clipboardRef.current.y + 20 }); }, [addElement]);
+  const copySelected = useCallback(() => {
+    clipboardRef.current = schema.elements.filter(e => selectedIds.includes(e.id)).map(e => ({ ...e }));
+  }, [selectedIds, schema]);
+
+  const paste = useCallback(() => {
+    if (clipboardRef.current.length === 0) return;
+    const newEls = clipboardRef.current.map(el => ({ ...el, id: genId(), x: el.x + 20, y: el.y + 20 }));
+    changeSchema({ ...schema, elements: [...schema.elements, ...newEls] });
+    setSelectedIds(newEls.map(e => e.id));
+    setSelectedId(newEls[newEls.length - 1].id);
+  }, [schema, changeSchema]);
 
   const moveLayer = useCallback((dir: "up" | "down") => {
     if (!selectedId) return;
@@ -119,7 +155,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
     updateElement(el.id, u);
   }, [selectedId, schema, width, height, updateElement]);
 
-  const play = useCallback(() => { setSelectedId(null); setCurrentTime(0); setPlaying(true); }, []);
+  const play = useCallback(() => { clearSelection(); setCurrentTime(0); setPlaying(true); }, [clearSelection]);
   const pause = useCallback(() => setPlaying(false), []);
   const reset = useCallback(() => { setPlaying(false); setCurrentTime(0); }, []);
 
@@ -133,12 +169,13 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
     onExport(uri);
   }, [width, height, onExport]);
 
-  // Keyboard
+  // Keyboard — multi-aware
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = document.activeElement?.tagName || "";
       if (["INPUT", "TEXTAREA", "SELECT"].includes(tag)) return;
       if (e.key === "Delete" || e.key === "Backspace") { deleteSelected(); e.preventDefault(); }
+      if (e.key === "Escape") { clearSelection(); e.preventDefault(); }
       if (e.key === " ") { e.preventDefault(); playing ? pause() : play(); }
       if (e.ctrlKey && e.key === "z") { e.preventDefault(); undo(); }
       if (e.ctrlKey && e.key === "y") { e.preventDefault(); redo(); }
@@ -149,19 +186,26 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
       if (e.ctrlKey && e.key === "e") { e.preventDefault(); handleExport(); }
       if (e.ctrlKey && e.key === "[") { e.preventDefault(); moveLayer("down"); }
       if (e.ctrlKey && e.key === "]") { e.preventDefault(); moveLayer("up"); }
-      if (e.ctrlKey && e.key === "a") { e.preventDefault(); /* Select all — selects last element for now */ if (schema.elements.length > 0) setSelectedId(schema.elements[schema.elements.length - 1].id); }
-      if (selectedId && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
+      if (e.ctrlKey && e.key === "a") { e.preventDefault(); selectAll(); }
+      // Arrows move ALL selected
+      if (selectedIds.length > 0 && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
         e.preventDefault(); const step = e.shiftKey ? 10 : 1;
-        const el = schema.elements.find(x => x.id === selectedId); if (!el || el.locked) return;
-        const u: Partial<EditorElement> = {};
-        if (e.key === "ArrowUp") u.y = el.y - step; if (e.key === "ArrowDown") u.y = el.y + step;
-        if (e.key === "ArrowLeft") u.x = el.x - step; if (e.key === "ArrowRight") u.x = el.x + step;
-        updateElement(el.id, u);
+        const updates: Record<string, Partial<EditorElement>> = {};
+        for (const id of selectedIds) {
+          const el = schema.elements.find(x => x.id === id);
+          if (!el || el.locked) continue;
+          if (e.key === "ArrowUp") updates[id] = { y: el.y - step };
+          if (e.key === "ArrowDown") updates[id] = { y: el.y + step };
+          if (e.key === "ArrowLeft") updates[id] = { x: el.x - step };
+          if (e.key === "ArrowRight") updates[id] = { x: el.x + step };
+        }
+        const newEls = schema.elements.map(el => updates[el.id] ? { ...el, ...updates[el.id] } : el);
+        changeSchema({ ...schema, elements: newEls });
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [deleteSelected, playing, pause, play, undo, redo, copySelected, paste, duplicateSelected, selectedId, schema, updateElement, handleExport, onSave]);
+  }, [deleteSelected, clearSelection, playing, pause, play, undo, redo, copySelected, paste, duplicateSelected, selectAll, selectedIds, schema, changeSchema, handleExport, onSave, moveLayer]);
 
   const fitScreen = useCallback(() => {
     const cw = Math.max(window.innerWidth - 42 - 232 - 40, 200);
@@ -177,44 +221,50 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
         onExport={onExport ? handleExport : undefined}
         onSave={onSave} saving={saving}
         zoom={stageScale} format={format} onFormatChange={onFormatChange}
+        formType={formType} onFormTypeChange={onFormTypeChange}
+        qtdDestinos={qtdDestinos} onQtdDestinosChange={onQtdDestinosChange}
         canUndo={historyIdx > 0} canRedo={historyIdx < history.length - 1}
         onToggleParamView={() => setParamView(!paramView)} paramViewActive={paramView}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <ToolsPanel
-          schema={schema} selectedId={selectedId}
+          schema={schema} selectedId={selectedId} selectedIds={selectedIds}
           canvasW={width} canvasH={height}
-          onAdd={addElement} onSelect={setSelectedId}
+          onAdd={addElement} onSelect={selectSingle}
           onUpdate={updateElement} onMoveLayer={moveLayer} onRemove={deleteSelected}
           stageScale={stageScale} onZoom={setStageScale} onFit={fitScreen}
+          formType={formType} qtdDestinos={qtdDestinos}
         />
 
         <CanvasStage
           width={width} height={height} schema={schema}
-          selectedId={selectedId} stageScale={stageScale}
+          selectedIds={selectedIds} stageScale={stageScale}
           playing={playing} currentTime={currentTime}
-          onSelect={setSelectedId} onUpdate={updateElement}
+          onSelect={selectSingle} onShiftSelect={shiftSelect}
+          onUpdate={updateElement}
           onStageRef={(r) => { stageRef.current = r; }}
           onScaleChange={setStageScale}
         />
 
         {paramView ? (
-          <ParameterView schema={schema} onUpdate={updateElement} />
+          <ParameterView schema={schema} onUpdate={updateElement} onExport={onExport ? handleExport : undefined} />
         ) : (
           <PropsPanel
             selected={selected} canvasW={width} canvasH={height}
             onUpdate={updateElement} onAlign={alignSelected}
             activeTab={propsTab} onTabChange={setPropsTab}
+            selectedCount={selectedIds.length}
           />
         )}
       </div>
 
-      {/* Statusbar with timeline */}
+      {/* Statusbar */}
       <div style={{ height: 26, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", background: "var(--ed-surface)", borderTop: "1px solid var(--ed-bdr)", flexShrink: 0 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9, color: "var(--ed-txt3)" }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E" }} /> Pronto</span>
         <span style={{ fontSize: 9, color: "var(--ed-txt3)" }}>{width}×{height}</span>
         <span style={{ fontSize: 9, color: "var(--ed-txt3)" }}>{schema.elements.length} elem</span>
+        {selectedIds.length > 1 && <span style={{ fontSize: 9, color: "var(--ed-bind)", fontWeight: 700 }}>✦ {selectedIds.length} sel</span>}
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 9, color: "var(--ed-txt2)", fontVariantNumeric: "tabular-nums" }}>{currentTime.toFixed(1)}s / {totalDuration}s</span>
         <button onClick={playing ? pause : play} style={{ width: 22, height: 18, borderRadius: 4, border: "none", background: playing ? "var(--ed-active)" : "var(--ed-hover)", color: playing ? "var(--ed-active-txt)" : "var(--ed-txt2)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{playing ? "⏸" : "▶"}</button>

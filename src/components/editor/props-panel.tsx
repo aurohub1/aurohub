@@ -9,9 +9,10 @@ interface Props {
   onAlign: (a: string) => void;
   activeTab: "design" | "animate";
   onTabChange: (t: "design" | "animate") => void;
+  selectedCount?: number;
 }
 
-export default function PropsPanel({ selected: s, canvasW, canvasH, onUpdate, onAlign, activeTab, onTabChange }: Props) {
+export default function PropsPanel({ selected: s, canvasW, canvasH, onUpdate, onAlign, activeTab, onTabChange, selectedCount }: Props) {
   if (!s) return (
     <div style={{ width: 232, background: "var(--ed-surface)", borderLeft: "1px solid var(--ed-bdr)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>Selecione um elemento</span>
@@ -27,11 +28,21 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, onUpdate, on
         <TabBtn active={activeTab === "design"} onClick={() => onTabChange("design")}>Design</TabBtn>
         <TabBtn active={activeTab === "animate"} onClick={() => onTabChange("animate")}>Animate</TabBtn>
       </div>
+      {selectedCount && selectedCount > 1 && (
+        <div style={{ padding: "8px 12px", fontSize: 10, color: "var(--ed-bind)", fontWeight: 700, borderBottom: "1px solid var(--ed-bdr)" }}>
+          ✦ {selectedCount} selecionados
+        </div>
+      )}
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
         {activeTab === "design" ? <DesignTab s={s} u={u} onAlign={onAlign} /> : <AnimateTab s={s} u={u} />}
       </div>
     </div>
   );
+}
+
+/* ══ Helpers ══════════════════════════════════════ */
+function isLine(el: EditorElement): boolean {
+  return el.type === "rect" && (el.name?.toLowerCase().includes("linha") || el.height <= 8);
 }
 
 /* ══ DESIGN TAB ═══════════════════════════════════ */
@@ -73,15 +84,30 @@ function DesignTab({ s, u, onAlign }: { s: EditorElement; u: (up: Partial<Editor
         </div>
       </Sec>
 
-      {/* Fill */}
-      {s.type !== "image" && (
+      {/* Fill — hide for lines */}
+      {s.type !== "image" && !isLine(s) && (
         <Sec t="Preenchimento">
           <ColorField value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
         </Sec>
       )}
 
-      {/* Border */}
-      <Sec t="Borda">
+      {/* Line-specific section */}
+      {isLine(s) && (
+        <Sec t="Linha">
+          <F l="Cor"><ColorField value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
+          <F l="Espessura"><Num v={s.height} c={v => u({ height: Math.max(1, Math.min(100, v)) })} /></F>
+          <F l="Estilo">
+            <div style={{ display: "flex", gap: 3 }}>
+              <SBtn active={!s.strokeDashArray || s.strokeDashArray.length === 0} onClick={() => u({ strokeDashArray: undefined })}>Sólido</SBtn>
+              <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 6} onClick={() => u({ strokeDashArray: [6, 4] })}>Tracejado</SBtn>
+              <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 2} onClick={() => u({ strokeDashArray: [2, 3] })}>Pontilhado</SBtn>
+            </div>
+          </F>
+        </Sec>
+      )}
+
+      {/* Border — hide for lines */}
+      {!isLine(s) && <Sec t="Borda">
         <G2>
           <F l="Cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
           <F l="Espessura"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} /></F>
@@ -93,7 +119,7 @@ function DesignTab({ s, u, onAlign }: { s: EditorElement; u: (up: Partial<Editor
             <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 2} onClick={() => u({ strokeDashArray: [2, 3] })}>Pontilhado</SBtn>
           </div>
         </F>
-      </Sec>
+      </Sec>}
 
       {/* Corners */}
       {s.type === "rect" && (
