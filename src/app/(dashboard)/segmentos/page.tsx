@@ -12,6 +12,7 @@ interface Segment {
   icon: string | null;
   active: boolean;
   created_at: string;
+  quotes: string[] | null;
 }
 
 interface Licensee {
@@ -39,7 +40,8 @@ export default function SegmentosPage() {
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", icon: "" });
+  const [form, setForm] = useState<{ name: string; description: string; icon: string; quotes: string[] }>({ name: "", description: "", icon: "", quotes: [] });
+  const [newQuote, setNewQuote] = useState("");
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState("");
 
@@ -112,23 +114,37 @@ export default function SegmentosPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", description: "", icon: "" });
+    setForm({ name: "", description: "", icon: "", quotes: [] });
+    setNewQuote("");
     setModalError("");
     setModalOpen(true);
   }
 
   function openEdit(seg: Segment) {
     setEditingId(seg.id);
-    setForm({ name: seg.name, description: seg.description ?? "", icon: seg.icon ?? "" });
+    setForm({ name: seg.name, description: seg.description ?? "", icon: seg.icon ?? "", quotes: Array.isArray(seg.quotes) ? seg.quotes : [] });
+    setNewQuote("");
     setModalError("");
     setModalOpen(true);
+  }
+
+  function addQuote() {
+    const q = newQuote.trim();
+    if (!q) return;
+    if (form.quotes.includes(q)) { setNewQuote(""); return; }
+    setForm({ ...form, quotes: [...form.quotes, q] });
+    setNewQuote("");
+  }
+
+  function removeQuote(idx: number) {
+    setForm({ ...form, quotes: form.quotes.filter((_, i) => i !== idx) });
   }
 
   async function handleSave() {
     if (!form.name.trim()) { setModalError("Nome obrigatório."); return; }
     setSaving(true); setModalError("");
     try {
-      const payload = { name: form.name.trim(), description: form.description.trim() || null, icon: form.icon.trim() || null };
+      const payload = { name: form.name.trim(), description: form.description.trim() || null, icon: form.icon.trim() || null, quotes: form.quotes };
       if (editingId) {
         const { error } = await supabase.from("segments").update(payload).eq("id", editingId);
         if (error) { setModalError(error.message); return; }
@@ -208,6 +224,7 @@ export default function SegmentosPage() {
                   <th className="px-4 py-3 text-left text-[11px] font-medium text-[var(--txt3)]">Descrição</th>
                   <th className="px-4 py-3 text-center text-[11px] font-medium text-[var(--txt3)]">Clientes</th>
                   <th className="px-4 py-3 text-center text-[11px] font-medium text-[var(--txt3)]">Lojas</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-medium text-[var(--txt3)]">Frases</th>
                   <th className="px-4 py-3 text-left text-[11px] font-medium text-[var(--txt3)]">Status</th>
                   <th className="px-4 py-3 text-right text-[11px] font-medium text-[var(--txt3)]">Criado em</th>
                   <th className="px-5 py-3 text-right text-[11px] font-medium text-[var(--txt3)]">Ações</th>
@@ -228,6 +245,11 @@ export default function SegmentosPage() {
                       <td className="px-4 py-3 text-[var(--txt3)]">{seg.description || "—"}</td>
                       <td className="px-4 py-3 text-center text-[var(--txt2)]">{lics.length}</td>
                       <td className="px-4 py-3 text-center text-[var(--txt2)]">{stores}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${(seg.quotes?.length ?? 0) > 0 ? "bg-[var(--gold3)] text-[var(--gold)]" : "bg-[var(--bg3)] text-[var(--txt3)]"}`}>
+                          {seg.quotes?.length ?? 0}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 text-[12px] ${seg.active ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${seg.active ? "bg-[var(--green)]" : "bg-[var(--red)]"}`} />
@@ -294,6 +316,48 @@ export default function SegmentosPage() {
               <div>
                 <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Ícone (emoji)</label>
                 <input type="text" value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="✈️" className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
+              </div>
+
+              {/* Frases do segmento */}
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">
+                  Frases do segmento <span className="text-[var(--txt3)]">({form.quotes.length})</span>
+                </label>
+                {form.quotes.length > 0 && (
+                  <div className="mb-2 flex flex-col gap-1.5 max-h-[180px] overflow-y-auto rounded-lg border border-[var(--bdr)] p-2">
+                    {form.quotes.map((q, idx) => (
+                      <div key={idx} className="flex items-start gap-2 rounded-md bg-[var(--bg3)] px-2.5 py-1.5">
+                        <span className="flex-1 text-[12px] leading-snug text-[var(--txt)]">{q}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeQuote(idx)}
+                          title="Remover frase"
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--txt3)] hover:bg-[var(--red3)] hover:text-[var(--red)]"
+                        >
+                          <svg viewBox="0 0 16 16" className="h-3 w-3"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newQuote}
+                    onChange={(e) => setNewQuote(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addQuote(); } }}
+                    placeholder="Nova frase..."
+                    className="h-9 flex-1 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={addQuote}
+                    disabled={!newQuote.trim()}
+                    className="h-9 rounded-lg bg-[var(--txt2)] px-3 text-[12px] font-semibold text-[var(--bg)] disabled:opacity-40"
+                  >
+                    + Adicionar
+                  </button>
+                </div>
               </div>
 
               {/* Linked licensees (edit only) */}

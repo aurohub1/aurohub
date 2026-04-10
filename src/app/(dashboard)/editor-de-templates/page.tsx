@@ -1,8 +1,19 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+
+interface CanvasTemplate {
+  key: string;
+  displayName: string;
+  format: string;
+  formType: string;
+  updatedAt: string | null;
+  licenseeNome: string;
+  lojaNome: string;
+}
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -91,6 +102,67 @@ export default function EditorTemplatesPage() {
 
   // Delete
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Canvas templates (system_config tmpl_*)
+  const router = useRouter();
+  const [canvasTemplates, setCanvasTemplates] = useState<CanvasTemplate[]>([]);
+  const [canvasLoading, setCanvasLoading] = useState(true);
+
+  const loadCanvasTemplates = useCallback(async () => {
+    setCanvasLoading(true);
+    try {
+      const { data } = await supabase
+        .from("system_config")
+        .select("key,value,updated_at")
+        .like("key", "tmpl_%")
+        .order("updated_at", { ascending: false });
+      const list: CanvasTemplate[] = (data || []).map((r: { key: string; value: string; updated_at: string }) => {
+        let format = "—", formType = "—", licenseeNome = "Sem marca", lojaNome = "Sem loja";
+        try {
+          const parsed = JSON.parse(r.value);
+          format = parsed.format || "—";
+          formType = parsed.formType || "—";
+          licenseeNome = parsed.licenseeNome || "Sem marca";
+          lojaNome = parsed.lojaNome || "Sem loja";
+        } catch {}
+        return {
+          key: r.key,
+          displayName: r.key.replace(/^tmpl_/, ""),
+          format,
+          formType,
+          updatedAt: r.updated_at,
+          licenseeNome,
+          lojaNome,
+        };
+      });
+      setCanvasTemplates(list);
+    } catch (err) { console.error("[CanvasTemplates] load:", err); }
+    finally { setCanvasLoading(false); }
+  }, []);
+
+  useEffect(() => { loadCanvasTemplates(); }, [loadCanvasTemplates]);
+
+  const editCanvasTmpl = (key: string) => {
+    router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`);
+  };
+
+  const groupedCanvasTemplates = useMemo(() => {
+    const map: Record<string, Record<string, CanvasTemplate[]>> = {};
+    for (const t of canvasTemplates) {
+      if (!map[t.licenseeNome]) map[t.licenseeNome] = {};
+      if (!map[t.licenseeNome][t.lojaNome]) map[t.licenseeNome][t.lojaNome] = [];
+      map[t.licenseeNome][t.lojaNome].push(t);
+    }
+    return map;
+  }, [canvasTemplates]);
+
+  const deleteCanvasTmpl = async (key: string) => {
+    if (!confirm(`Excluir template "${key.replace(/^tmpl_/, "")}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    try {
+      await supabase.from("system_config").delete().eq("key", key);
+      await loadCanvasTemplates();
+    } catch (err) { console.error("[CanvasTemplates] delete:", err); alert("Erro ao excluir."); }
+  };
 
   /* ── Load ──────────────────────────────────────── */
 
@@ -325,6 +397,79 @@ export default function EditorTemplatesPage() {
 
   return (
     <>
+      {/* Templates do Canvas (schemas salvos no editor) */}
+      <section className="border-b border-[var(--bdr)] pb-6">
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <h2 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Templates do Canvas</h2>
+            <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Designs salvos direto do editor visual</p>
+          </div>
+          <a href="/editor" className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] px-4 py-2 text-[12px] font-semibold text-[var(--txt)] hover:border-[var(--bdr2)]">
+            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            Novo design
+          </a>
+        </div>
+        {canvasLoading ? (
+          <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
+        ) : canvasTemplates.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
+            Nenhum template salvo ainda. Clique em &quot;Novo design&quot; para abrir o editor.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {Object.entries(groupedCanvasTemplates).map(([licName, lojas]) => {
+              const licTotal = Object.values(lojas).reduce((a, arr) => a + arr.length, 0);
+              return (
+                <details key={licName} open className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
+                  <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-[14px] font-bold text-[var(--txt)] hover:bg-[var(--hover-bg)]">
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block h-2 w-2 rounded-full bg-[#D4A843]" />
+                      {licName}
+                    </span>
+                    <span className="text-[11px] font-semibold text-[var(--txt3)]">{licTotal} template{licTotal !== 1 ? "s" : ""}</span>
+                  </summary>
+                  <div className="flex flex-col gap-3 border-t border-[var(--bdr)] px-4 py-4">
+                    {Object.entries(lojas).map(([lojaName, items]) => (
+                      <div key={lojaName}>
+                        <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+                          <svg viewBox="0 0 16 16" className="h-3 w-3"><path d="M2 6l6-3 6 3v8H2V6z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round" /></svg>
+                          {lojaName}
+                          <span className="text-[10px] font-normal text-[var(--txt3)]">· {items.length}</span>
+                        </div>
+                        {items.length === 0 ? (
+                          <div className="rounded-lg border border-dashed border-[var(--bdr)] p-4 text-center text-[11px] text-[var(--txt3)]">Sem templates</div>
+                        ) : (
+                          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                            {items.map(t => (
+                              <div key={t.key} className="overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)]" style={{ background: "var(--bg1)" }}>
+                                <div className="px-4 py-3">
+                                  <div className="truncate text-[13px] font-bold text-[var(--txt)]" title={t.displayName}>{t.displayName}</div>
+                                  <div className="mt-2 flex gap-1.5 text-[10px]">
+                                    <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.formType}</span>
+                                    <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.format}</span>
+                                  </div>
+                                  <div className="mt-2 text-[10px] text-[var(--txt3)]">
+                                    {t.updatedAt ? new Date(t.updatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                                  </div>
+                                </div>
+                                <div className="flex border-t border-[var(--bdr)] divide-x divide-[var(--bdr)]">
+                                  <button onClick={() => editCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">Editar</button>
+                                  <button onClick={() => deleteCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--red)] hover:bg-[var(--hover-bg)]">Excluir</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* KPIs */}
       <div className="flex flex-wrap gap-6">
         <KI label="Total" value={String(kpis.total)} />

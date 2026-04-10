@@ -9,22 +9,39 @@ interface SidebarProps {
   activePath: string;
   user: { name: string; role: string };
   onLogout: () => void;
+  sections?: NavSection[];
+  brandLabel?: string;
 }
 
-interface NavItem {
+export interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
 }
 
-interface NavSection {
+export interface NavSection {
   title: string;
   items: NavItem[];
 }
 
 /* ── Navigation map ──────────────────────────────── */
 
-const SECTIONS: NavSection[] = [
+/* Ícones compartilhados (reuso entre sections por role) */
+const I = {
+  home: (<svg viewBox="0 0 20 20" fill="none"><path d="M3 10l7-7 7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 8.5V16a1 1 0 001 1h3v-4h2v4h3a1 1 0 001-1V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+  templates: (<svg viewBox="0 0 20 20" fill="none"><path d="M14.3 3.7a1 1 0 011.4 1.4l-9.5 9.5-2 .6.6-2 9.5-9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
+  users: (<svg viewBox="0 0 20 20" fill="none"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM1 16a7 7 0 0114 0H1z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
+  stores: (<svg viewBox="0 0 20 20" fill="none"><path d="M2 7l2-4h12l2 4M3 7h14v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7zM8 18v-5h4v5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>),
+  metrics: (<svg viewBox="0 0 20 20" fill="none"><path d="M2 14l4-4 4 4 4-6 4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+  settings: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" /><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
+  publish: (<svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 7l4-4 4 4M4 17h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+  vendors: (<svg viewBox="0 0 20 20" fill="none"><circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" /><path d="M1 17c0-3.3 2.7-6 6-6s6 2.7 6 6M13 6a3 3 0 110 6M19 17c0-2-1-3.5-3-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
+  calendar: (<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.5" /><path d="M7 2v4M13 2v4M3 8h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
+  bell: (<svg viewBox="0 0 20 20" fill="none"><path d="M5 9a5 5 0 0110 0v4l1.5 2h-13L5 13V9zM8 17a2 2 0 004 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+};
+
+/* ── ADM Sections (default) ───────────────────── */
+const ADM_SECTIONS: NavSection[] = [
   {
     title: "Geral",
     items: [
@@ -204,11 +221,65 @@ const SECTIONS: NavSection[] = [
   },
 ];
 
+/* ── Sections por role ───────────────────────────── */
+
+export const CLIENTE_SECTIONS: NavSection[] = [
+  {
+    title: "Gestão",
+    items: [
+      { label: "Início", href: "/cliente/inicio", icon: I.home },
+      { label: "Templates", href: "/cliente/templates", icon: I.templates },
+      { label: "Unidades", href: "/cliente/unidades", icon: I.stores },
+      { label: "Usuários", href: "/cliente/usuarios", icon: I.users },
+      { label: "Métricas", href: "/cliente/metricas", icon: I.metrics },
+    ],
+  },
+  {
+    title: "Sistema",
+    items: [
+      { label: "Configurações", href: "/cliente/configuracoes", icon: I.settings },
+    ],
+  },
+];
+
+export const UNIDADE_SECTIONS: NavSection[] = [
+  {
+    title: "Operação",
+    items: [
+      { label: "Início", href: "/unidade/inicio", icon: I.home },
+      { label: "Publicar", href: "/unidade/publicar", icon: I.publish },
+      { label: "Templates", href: "/unidade/templates", icon: I.templates },
+      { label: "Vendedores", href: "/unidade/vendedores", icon: I.vendors },
+    ],
+  },
+  {
+    title: "Sistema",
+    items: [
+      { label: "Configurações", href: "/unidade/configuracoes", icon: I.settings },
+    ],
+  },
+];
+
+export const VENDEDOR_SECTIONS: NavSection[] = [
+  {
+    title: "Minhas atividades",
+    items: [
+      { label: "Início", href: "/vendedor/inicio", icon: I.home },
+      { label: "Publicar", href: "/vendedor/publicar", icon: I.publish },
+      { label: "Calendário", href: "/vendedor/calendario", icon: I.calendar },
+      { label: "Lembretes", href: "/vendedor/lembretes", icon: I.bell },
+    ],
+  },
+];
+
 /* ── Role badge label ────────────────────────────── */
 
 function roleBadgeLabel(role: string): string {
   const map: Record<string, string> = {
     adm: "ADM RAIZ",
+    cliente: "CLIENTE",
+    unidade: "UNIDADE",
+    vendedor: "VENDEDOR",
     licensee: "LICENCIADO",
     store: "LOJA",
     employee: "FUNCIONARIO",
@@ -218,7 +289,9 @@ function roleBadgeLabel(role: string): string {
 
 /* ── Component ───────────────────────────────────── */
 
-export default function Sidebar({ activePath, user, onLogout }: SidebarProps) {
+export default function Sidebar({ activePath, user, onLogout, sections, brandLabel }: SidebarProps) {
+  const navSections = sections ?? ADM_SECTIONS;
+  const label = brandLabel ?? "Central ADM";
   const initial = user.name.charAt(0).toUpperCase();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
@@ -265,14 +338,14 @@ export default function Sidebar({ activePath, user, onLogout }: SidebarProps) {
             Aurohub
           </div>
           <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#D4A843]">
-            Central ADM
+            {label}
           </div>
         </div>
       </div>
 
       {/* ── Nav ─────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto px-3 pb-2">
-        {SECTIONS.map((section) => (
+        {navSections.map((section) => (
           <div key={section.title}>
             <div className="mt-5 mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
               {section.title}

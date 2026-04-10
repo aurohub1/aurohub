@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save } from "lucide-react";
+import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate } from "lucide-react";
 
 interface Props {
   onUndo: () => void; onRedo: () => void;
@@ -12,6 +12,11 @@ interface Props {
   formType?: string; onFormTypeChange?: (f: string) => void;
   qtdDestinos?: number; onQtdDestinosChange?: (n: number) => void;
   onLoadTemplate?: () => void;
+  onPreview?: () => void;
+  onVariants?: () => void; variantsEnabled?: boolean;
+  onHistory?: () => void;
+  onSaveComponent?: () => void; canSaveComponent?: boolean;
+  onNew?: () => void;
 }
 
 export default function Toolbar(p: Props) {
@@ -24,12 +29,12 @@ export default function Toolbar(p: Props) {
   const isLight = typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light";
 
   return (
-    <header style={{ height: 44, display: "flex", alignItems: "center", gap: 4, padding: "0 10px", background: "var(--ed-surface)", borderBottom: "1px solid var(--ed-bdr)", flexShrink: 0 }}>
+    <header style={{ position: "relative", height: 44, display: "flex", alignItems: "center", gap: 4, padding: "0 10px", background: "var(--ed-surface)", borderBottom: "1px solid var(--ed-bdr)", flexShrink: 0 }}>
       <a href="/editor-de-templates" style={{ display: "flex", alignItems: "center", gap: 4, textDecoration: "none", color: "var(--ed-txt2)", fontSize: 11, marginRight: 4 }}>
         <ArrowLeft size={14} /> Voltar
       </a>
       <Sep />
-      <span style={{ color: "#FF7A1A", fontSize: 14, marginRight: 2 }}>★</span>
+      <LayoutTemplate size={15} color="#FF7A1A" style={{ marginRight: 3 }} />
       <span style={{ color: "var(--ed-txt)", fontSize: 12, fontWeight: 700, marginRight: 4 }}>Aurohub</span>
       <Sep />
       {p.onFormTypeChange && (
@@ -59,15 +64,24 @@ export default function Toolbar(p: Props) {
       <Btn icon={<ClipboardPaste size={14} />} tip="Colar" o={p.onPaste} />
       <Btn icon={<CopyPlus size={14} />} tip="Duplicar" o={p.onDuplicate} />
       <Btn icon={<Trash2 size={14} />} tip="Deletar" o={p.onDelete} danger />
+      {p.onSaveComponent && <Btn icon={<Package size={14} />} tip="Salvar como componente" o={p.onSaveComponent} d={!p.canSaveComponent} />}
       {p.onToggleParamView && <><Sep /><Btn icon={p.paramViewActive ? <EyeOff size={14} /> : <Eye size={14} />} tip="Parameter View (Ctrl+P)" o={p.onToggleParamView} active={p.paramViewActive} /></>}
-      <div style={{ flex: 1 }} />
-      <Btn icon={isLight ? <Moon size={14} /> : <Sun size={14} />} tip="Alternar tema" o={toggleTheme} />
-      <Sep />
-      <span style={{ fontSize: 9, color: "var(--ed-txt3)", fontVariantNumeric: "tabular-nums" }}>{Math.round(p.zoom * 100)}%</span>
-      {p.onExport && <Btn icon={<Download size={14} />} tip="Exportar PNG" o={p.onExport} gold label="PNG" />}
-      {p.onSave && <button onClick={p.onSave} disabled={p.saving} style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", opacity: p.saving ? 0.5 : 1, display: "flex", alignItems: "center", gap: 4 }}>
-        <Save size={12} />{p.saving ? "..." : "Salvar"}
-      </button>}
+      {p.onHistory && <Btn icon={<History size={14} />} tip="Histórico" o={p.onHistory} />}
+      {p.onPreview && <Btn icon={<Smartphone size={14} />} tip="Preview Instagram" o={p.onPreview} />}
+      {p.onVariants && p.variantsEnabled && <Btn icon={<Layers size={14} />} tip="Gerar variantes" o={p.onVariants} gold label="Variantes" />}
+      <div style={{ position: "absolute", right: 240, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 4 }}>
+        <Sep />
+        <Btn icon={isLight ? <Moon size={14} /> : <Sun size={14} />} tip="Alternar tema" o={toggleTheme} />
+        <span style={{ fontSize: 9, color: "var(--ed-txt3)", fontVariantNumeric: "tabular-nums" }}>{Math.round(p.zoom * 100)}%</span>
+        {p.onExport && <Btn icon={<Download size={14} />} tip="Exportar PNG" o={p.onExport} gold label="PNG" />}
+        {(p.onNew || p.onSave) && <Sep />}
+        {p.onNew && <button onClick={p.onNew} title="Novo template" style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-hover)", color: "var(--ed-txt)", fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <FilePlus size={12} />Novo
+        </button>}
+        {p.onSave && <button onClick={p.onSave} disabled={p.saving} style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", opacity: p.saving ? 0.5 : 1, display: "flex", alignItems: "center", gap: 4 }}>
+          <Save size={12} />{p.saving ? "..." : "Salvar"}
+        </button>}
+      </div>
     </header>
   );
 }

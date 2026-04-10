@@ -1,4 +1,4 @@
-import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Hexagon, AlignCenter, ArrowUp, ArrowDown, ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Eye, EyeOff, Trash2 } from "lucide-react";
+import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Hexagon, AlignCenter, ArrowUp, ArrowDown, ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Eye, EyeOff, Trash2, QrCode, FolderOpen, Package, MapPin } from "lucide-react";
 import { EditorElement, EditorSchema, BIND_GROUPS, FONTS, genId, getLaminaBindGroups } from "./types";
 
 interface Props {
@@ -10,6 +10,9 @@ interface Props {
   stageScale: number; onZoom: (s: number) => void; onFit: () => void;
   formType?: string; qtdDestinos?: number;
   selectedIds?: string[];
+  onOpenAssets?: () => void;
+  onOpenComponents?: () => void;
+  onOpenDestinos?: () => void;
 }
 
 export default function ToolsPanel(p: Props) {
@@ -21,6 +24,7 @@ export default function ToolsPanel(p: Props) {
       rect: { name: "Retângulo", x: p.canvasW / 4, y: p.canvasH / 3, width: p.canvasW / 3, height: p.canvasH / 6, fill: "#D4A843", cornerRadius: 0, opacity: 1 },
       circle: { name: "Círculo", x: p.canvasW / 2, y: p.canvasH / 2, width: 120, height: 120, fill: "#3B82F6", opacity: 1 },
       image: { name: "Imagem", x: p.canvasW / 4, y: p.canvasH / 4, width: p.canvasW / 2, height: p.canvasH / 3, opacity: 1 },
+      qrcode: { name: "QR Code", x: p.canvasW / 2 - 150, y: p.canvasH / 2 - 150, width: 300, height: 300, qrUrl: "https://aurohub.com.br", qrFg: "#000000", qrBg: "#FFFFFF", opacity: 1 },
     };
     p.onAdd({ id: genId(), type, ...defaults[type], ...overrides } as EditorElement);
   };
@@ -59,6 +63,9 @@ export default function ToolsPanel(p: Props) {
           input.click();
         }} />
 
+        <GL>QR</GL>
+        <TB icon={<QrCode size={14} />} t="QR Code" o={() => add("qrcode")} />
+
         <GL>BIND</GL>
         <div style={{ position: "relative" }} className="group">
           <TB icon={<Hexagon size={14} />} t="Campo Bind" o={() => {}} gold />
@@ -74,6 +81,11 @@ export default function ToolsPanel(p: Props) {
           </div>
         </div>
 
+        <GL>LIB</GL>
+        {p.onOpenAssets && <TB icon={<FolderOpen size={14} />} t="Assets (Cloudinary)" o={p.onOpenAssets} />}
+        {p.onOpenComponents && <TB icon={<Package size={14} />} t="Componentes" o={p.onOpenComponents} />}
+        {p.onOpenDestinos && <TB icon={<MapPin size={14} />} t="Destinos" o={p.onOpenDestinos} gold />}
+
         <GL>OBJ</GL>
         <TB icon={<ArrowUp size={14} />} t="Camada +" o={() => p.onMoveLayer("up")} />
         <TB icon={<ArrowDown size={14} />} t="Camada -" o={() => p.onMoveLayer("down")} />
@@ -84,22 +96,6 @@ export default function ToolsPanel(p: Props) {
         <TB icon={<Maximize2 size={14} />} t="Fit Screen" o={p.onFit} />
       </div>
 
-      {/* Layers */}
-      <div style={{ maxHeight: "40%", overflowY: "auto", borderTop: "1px solid var(--ed-bdr)" }}>
-        <div style={{ fontSize: 7, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--ed-txt3)", padding: "6px 4px 2px" }}>Layers</div>
-        {[...p.schema.elements].reverse().map(el => (
-          <div key={el.id} onClick={() => p.onSelect(el.id)} style={{
-            display: "flex", alignItems: "center", gap: 3, padding: "4px 4px", cursor: "pointer", fontSize: 8,
-            background: (p.selectedIds ?? [p.selectedId]).filter(Boolean).includes(el.id) ? "var(--ed-active)" : "transparent",
-            borderLeft: (p.selectedIds ?? [p.selectedId]).filter(Boolean).includes(el.id) ? "2px solid var(--ed-active-txt)" : "2px solid transparent",
-            color: (p.selectedIds ?? [p.selectedId]).filter(Boolean).includes(el.id) ? "var(--ed-active-txt)" : "var(--ed-txt2)",
-            opacity: el.visible === false ? 0.3 : 1,
-          }}>
-            <span style={{ color: el.bindParam ? "var(--ed-bind)" : undefined, fontSize: 7 }}>{el.bindParam ? "⬡" : el.type === "text" ? "T" : el.type === "rect" ? "□" : el.type === "circle" ? "○" : "🖼"}</span>
-            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{el.name || el.type}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

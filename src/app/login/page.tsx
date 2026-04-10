@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { LayoutTemplate } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getProfile, homeForRole } from "@/lib/auth";
 
 /* ── Particle system ─────────────────────────────── */
 
@@ -97,6 +99,75 @@ function useParticles(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   }, [canvasRef]);
 }
 
+/* ── Splash screen (pós-login) ───────────────────── */
+
+function SplashScreen({ name, onDone }: { name: string; onDone: () => void }) {
+  const [fadingOut, setFadingOut] = useState(false);
+  useEffect(() => {
+    const fadeT = setTimeout(() => setFadingOut(true), 1600);
+    const doneT = setTimeout(() => onDone(), 1900);
+    return () => { clearTimeout(fadeT); clearTimeout(doneT); };
+  }, [onDone]);
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 99999,
+      background: "#0d1117",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      opacity: fadingOut ? 0 : 1,
+      transition: "opacity 0.3s ease-out",
+    }}>
+      <style>{`
+        @keyframes ah-splash-logo {
+          from { opacity: 0; transform: scale(0.8); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes ah-splash-fade {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes ah-splash-progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
+      <div style={{
+        animation: "ah-splash-logo 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) forwards",
+        marginBottom: 28,
+        filter: "drop-shadow(0 8px 32px rgba(255,122,26,0.35))",
+      }}>
+        <LayoutTemplate size={96} color="#FF7A1A" strokeWidth={1.5} />
+      </div>
+      <h1 style={{
+        fontSize: 32, fontWeight: 800, color: "#FFFFFF", margin: 0,
+        letterSpacing: "-0.02em",
+        opacity: 0,
+        animation: "ah-splash-fade 0.3s ease-out 0.4s forwards",
+      }}>
+        Aurohub
+      </h1>
+      <p style={{
+        fontSize: 15, color: "#D4A843", margin: "10px 0 0 0", fontWeight: 500,
+        opacity: 0,
+        animation: "ah-splash-fade 0.3s ease-out 0.6s forwards",
+      }}>
+        Bem-vindo, {name.charAt(0).toUpperCase() + name.slice(1)}
+      </p>
+      <div style={{
+        position: "absolute", bottom: 0, left: 0, right: 0,
+        height: 3, background: "rgba(255,255,255,0.06)",
+      }}>
+        <div style={{
+          height: "100%",
+          background: "linear-gradient(90deg, #FF7A1A, #D4A843)",
+          width: 0,
+          animation: "ah-splash-progress 1.2s linear forwards",
+        }} />
+      </div>
+    </div>
+  );
+}
+
 /* ── Login page ──────────────────────────────────── */
 
 export default function LoginPage() {
@@ -108,6 +179,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [splash, setSplash] = useState<{ name: string; home: string } | null>(null);
 
   useParticles(canvasRef);
 
@@ -131,10 +203,12 @@ export default function LoginPage() {
       setLoading(true);
 
       try {
-        const { error: authError } = await supabase.auth.signInWithPassword({
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+
+        console.log("[Login] signIn result:", { error: authError, user: data?.user, hasSession: !!data?.session });
 
         if (authError) {
           setError(
@@ -145,8 +219,23 @@ export default function LoginPage() {
           return;
         }
 
-        router.push("/dashboard");
-      } catch {
+        // Busca profile pra obter role + home correta (evita flash do /inicio)
+        const profile = await getProfile(supabase);
+        console.log("[Login] Profile fetched:", { role: profile?.role, name: profile?.name, licensee_id: profile?.licensee_id });
+
+        const u = data?.user;
+        const name = profile?.name
+          || (u?.user_metadata?.name as string | undefined)
+          || (u?.user_metadata?.full_name as string | undefined)
+          || u?.email?.split("@")[0]
+          || "você";
+        const home = homeForRole(profile?.role ?? null);
+        console.log("[Login] Showing splash → will redirect to:", home);
+        setLoading(false);
+        setSplash({ name, home });
+        return;
+      } catch (err) {
+        console.error("[Login] signIn exception:", err);
         setError("Erro ao conectar. Tente novamente.");
       } finally {
         setLoading(false);
@@ -170,6 +259,10 @@ export default function LoginPage() {
   const inputBg = dk ? "rgba(255,255,255,0.05)" : "rgba(13,22,40,0.04)";
   const inputBorder = dk ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(13,22,40,0.12)";
   const inputColor = dk ? "#fff" : "#0D1628";
+
+  if (splash) {
+    return <SplashScreen name={splash.name} onDone={() => router.push(splash.home)} />;
+  }
 
   return (
     <div style={{display:'flex',width:'100vw',minHeight:'100dvh',background:containerBg,position:'relative',overflow:'hidden'}}>

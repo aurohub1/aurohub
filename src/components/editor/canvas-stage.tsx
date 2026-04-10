@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Stage, Layer, Rect, Circle, Text, Image as KImage, Transformer, Line } from "react-konva";
+import { Stage, Layer, Rect, Circle, Text, Image as KImage, Transformer, Line, Group } from "react-konva";
 import type Konva from "konva";
-import { EditorElement, EditorSchema } from "./types";
+import QRCode from "qrcode";
+import { EditorElement, EditorSchema, SnapLine, calcSnapLines } from "./types";
 
 interface Props {
   width: number; height: number;
@@ -19,6 +20,25 @@ interface Props {
 function useImage(src?: string): HTMLImageElement | null {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   useEffect(() => { if (!src) { setImg(null); return; } const i = new window.Image(); i.crossOrigin = "anonymous"; i.onload = () => setImg(i); i.src = src; }, [src]);
+  return img;
+}
+
+function useQrImage(url: string, fg: string, bg: string, size: number): HTMLImageElement | null {
+  const [img, setImg] = useState<HTMLImageElement | null>(null);
+  useEffect(() => {
+    if (!url) { setImg(null); return; }
+    let cancel = false;
+    const px = Math.max(64, Math.min(1024, Math.round(size)));
+    QRCode.toDataURL(url, { margin: 1, width: px, color: { dark: fg || "#000000", light: bg || "#FFFFFF" } })
+      .then(dataUrl => {
+        if (cancel) return;
+        const i = new window.Image();
+        i.onload = () => { if (!cancel) setImg(i); };
+        i.src = dataUrl;
+      })
+      .catch(() => { if (!cancel) setImg(null); });
+    return () => { cancel = true; };
+  }, [url, fg, bg, size]);
   return img;
 }
 
@@ -54,14 +74,22 @@ function getAnimState(el: EditorElement, time: number): AnimState {
 }
 
 /* ── Per-element renderer (NO Transformer inside) ── */
-function RenderElement({ el, playing, animState, onClick, onChange, onRegisterRef }: {
+function RenderElement({ el, playing, animState, onClick, onChange, onRegisterRef, onDragMoveSnap, onDragEndClear }: {
   el: EditorElement; playing: boolean; animState: AnimState;
   onClick: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   onChange: (u: Partial<EditorElement>) => void;
   onRegisterRef: (id: string, node: Konva.Node | null) => void;
+  onDragMoveSnap: (id: string, rawX: number, rawY: number) => { x: number; y: number };
+  onDragEndClear: () => void;
 }) {
   const shapeRef = useRef<Konva.Node>(null);
   const img = useImage(el.type === "image" ? el.src : undefined);
+  const qrImg = useQrImage(
+    el.type === "qrcode" ? (el.qrUrl || "") : "",
+    el.qrFg || "#000000",
+    el.qrBg || "#FFFFFF",
+    el.width
+  );
 
   useEffect(() => { onRegisterRef(el.id, shapeRef.current); return () => onRegisterRef(el.id, null); }, [el.id, shapeRef.current]);
 
@@ -78,7 +106,18 @@ function RenderElement({ el, playing, animState, onClick, onChange, onRegisterRe
     // onClick/onTap handled per-element below
     shadowColor: el.shadow?.color, shadowOffsetX: el.shadow?.offsetX, shadowOffsetY: el.shadow?.offsetY, shadowBlur: el.shadow?.blur, shadowEnabled: !!el.shadow,
     // globalCompositeOperation applied via node attrs
-    onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => onChange({ x: e.target.x() - animState.offsetX, y: e.target.y() - animState.offsetY }),
+    onDragMove: (e: Konva.KonvaEventObject<DragEvent>) => {
+      const tgt = e.target;
+      const rawX = tgt.x() - animState.offsetX;
+      const rawY = tgt.y() - animState.offsetY;
+      const snapped = onDragMoveSnap(el.id, rawX, rawY);
+      if (snapped.x !== rawX) tgt.x(snapped.x + animState.offsetX);
+      if (snapped.y !== rawY) tgt.y(snapped.y + animState.offsetY);
+    },
+    onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
+      onDragEndClear();
+      onChange({ x: e.target.x() - animState.offsetX, y: e.target.y() - animState.offsetY });
+    },
     onTransformEnd: () => {
       const n = shapeRef.current!;
       const sx = Math.abs(n.scaleX()); const sy = Math.abs(n.scaleY());
@@ -97,7 +136,7 @@ function RenderElement({ el, playing, animState, onClick, onChange, onRegisterRe
     return <Text ref={shapeRef as React.RefObject<Konva.Text>}
       x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
       shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled}
-      onDragEnd={common.onDragEnd} onTransformEnd={common.onTransformEnd}
+      onDragMove={common.onDragMove} onDragEnd={common.onDragEnd} onTransformEnd={common.onTransformEnd}
       onClick={(e) => onClick(e)} onDblClick={() => { if (!playing && !el.locked) { const t = prompt("Editar texto:", el.text || ""); if (t !== null) onChange({ text: t }); } }}
       width={el.width} text={displayText} fontSize={el.fontSize || 32} fontFamily={el.fontFamily || "DM Sans"} fontStyle={el.fontStyle || "normal"} fill={el.fill || "#FFF"} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
@@ -114,7 +153,73 @@ function RenderElement({ el, playing, animState, onClick, onChange, onRegisterRe
         <Text x={el.x + el.width / 2 - 40} y={el.y + el.height / 2 - 8} text={el.bindParam ? `📸 ${el.bindParam}` : "Placeholder"} fontSize={14} fill="#888" listening={false} />
       </>;
     }
-    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={(e) => onClick(e)} image={img} width={el.width} height={el.height} cornerRadius={el.cornerRadius || 0} />;
+    // Crop: explícito (do CropModal) tem precedência; senão auto-calc via imageFit
+    let crop = (el.cropW && el.cropH) ? { x: el.cropX || 0, y: el.cropY || 0, width: el.cropW, height: el.cropH } : undefined;
+    if (!crop && img.naturalWidth > 0 && img.naturalHeight > 0 && el.imageFit && el.imageFit !== "fill") {
+      const targetAspect = el.width / el.height;
+      const srcAspect = img.naturalWidth / img.naturalHeight;
+      if (el.imageFit === "cover") {
+        if (srcAspect > targetAspect) {
+          // Fonte mais larga — corta nas laterais
+          const cw = img.naturalHeight * targetAspect;
+          crop = { x: (img.naturalWidth - cw) / 2, y: 0, width: cw, height: img.naturalHeight };
+        } else {
+          // Fonte mais alta — corta topo/base
+          const ch = img.naturalWidth / targetAspect;
+          crop = { x: 0, y: (img.naturalHeight - ch) / 2, width: img.naturalWidth, height: ch };
+        }
+      } else if (el.imageFit === "contain") {
+        // Contain: expande a source region para que a imagem inteira caiba (letterbox).
+        // Não há "cropsmall" padrão no Konva pro contain, mas podemos simular aumentando o crop além da source — Konva renderiza fundo transparente nas bordas.
+        if (srcAspect > targetAspect) {
+          // Fonte mais larga — adiciona padding vertical
+          const ch = img.naturalWidth / targetAspect;
+          crop = { x: 0, y: (img.naturalHeight - ch) / 2, width: img.naturalWidth, height: ch };
+        } else {
+          // Fonte mais alta — adiciona padding horizontal
+          const cw = img.naturalHeight * targetAspect;
+          crop = { x: (img.naturalWidth - cw) / 2, y: 0, width: cw, height: img.naturalHeight };
+        }
+      }
+    }
+    const clipShape = el.clipShape || "none";
+    if (clipShape !== "none") {
+      const radius = el.clipRadius ?? Math.min(el.width, el.height) * 0.25;
+      const clipFunc = clipShape === "circle"
+        ? (rawCtx: unknown) => {
+            const ctx = rawCtx as CanvasRenderingContext2D;
+            ctx.beginPath();
+            ctx.ellipse(el.width / 2, el.height / 2, el.width / 2, el.height / 2, 0, 0, Math.PI * 2);
+            ctx.closePath();
+          }
+        : (rawCtx: unknown) => {
+            const ctx = rawCtx as CanvasRenderingContext2D;
+            const r = Math.min(radius, el.width / 2, el.height / 2);
+            ctx.beginPath();
+            ctx.moveTo(r, 0);
+            ctx.lineTo(el.width - r, 0);
+            ctx.quadraticCurveTo(el.width, 0, el.width, r);
+            ctx.lineTo(el.width, el.height - r);
+            ctx.quadraticCurveTo(el.width, el.height, el.width - r, el.height);
+            ctx.lineTo(r, el.height);
+            ctx.quadraticCurveTo(0, el.height, 0, el.height - r);
+            ctx.lineTo(0, r);
+            ctx.quadraticCurveTo(0, 0, r, 0);
+            ctx.closePath();
+          };
+      return (
+        <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={(e) => onClick(e)} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
+          <KImage image={img} x={0} y={0} width={el.width} height={el.height} crop={crop} />
+        </Group>
+      );
+    }
+    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={(e) => onClick(e)} image={img} width={el.width} height={el.height} cornerRadius={el.cornerRadius || 0} crop={crop} />;
+  }
+  if (el.type === "qrcode") {
+    if (!qrImg) {
+      return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={el.height} fill={el.qrBg || "#FFFFFF"} stroke="#aaa" strokeWidth={1} dash={[4, 3]} cornerRadius={4} />;
+    }
+    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={(e) => onClick(e)} image={qrImg} width={el.width} height={el.height} />;
   }
   return null;
 }
@@ -125,6 +230,17 @@ export default function CanvasStage(p: Props) {
   const stageRef = useRef<Konva.Stage>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const nodeRefs = useRef<Map<string, Konva.Node>>(new Map());
+  const [guides, setGuides] = useState<SnapLine[]>([]);
+
+  const handleDragMoveSnap = useCallback((id: string, rawX: number, rawY: number) => {
+    const el = schema.elements.find(e => e.id === id);
+    if (!el) return { x: rawX, y: rawY };
+    const r = calcSnapLines({ id, x: rawX, y: rawY, width: el.width, height: el.height }, schema.elements, width, height);
+    setGuides(r.lines);
+    return { x: r.x, y: r.y };
+  }, [schema.elements, width, height]);
+
+  const handleDragEndClear = useCallback(() => setGuides([]), []);
 
   useEffect(() => { p.onStageRef(stageRef.current); }, [stageRef.current]);
 
@@ -176,7 +292,19 @@ export default function CanvasStage(p: Props) {
               animState={playing || currentTime > 0 ? getAnimState(el, currentTime) : getAnimState(el, 999)}
               onClick={(e) => handleElementClick(el.id, e)}
               onChange={attrs => p.onUpdate(el.id, attrs)}
-              onRegisterRef={registerRef} />
+              onRegisterRef={registerRef}
+              onDragMoveSnap={handleDragMoveSnap}
+              onDragEndClear={handleDragEndClear} />
+          ))}
+          {guides.map((g, i) => (
+            <Line key={`g${i}`}
+              points={g.orientation === "V"
+                ? [g.position, 0, g.position, height]
+                : [0, g.position, width, g.position]}
+              stroke={g.kind === "edge" ? "#3B82F6" : "#FF3B7A"}
+              strokeWidth={1 / stageScale}
+              dash={[4 / stageScale, 3 / stageScale]}
+              listening={false} />
           ))}
           <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} boundBoxFunc={(_, nw) => nw} />
         </Layer>

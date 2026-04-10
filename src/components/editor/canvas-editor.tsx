@@ -5,9 +5,13 @@ import type Konva from "konva";
 import { EditorElement, EditorSchema, genId } from "./types";
 import Toolbar from "./toolbar";
 import ToolsPanel from "./tools-panel";
+import LayersPanel from "./layers-panel";
 import PropsPanel from "./props-panel";
 import CanvasStage from "./canvas-stage";
 import ParameterView from "./parameter-view";
+import { AssetsPanel, ComponentsPanel, DestinosPanel, HistoryPanel, InstagramPreviewModal, VariantsModal, SaveComponentModal, CropModal } from "./modals";
+
+const BADGE_ALLINCLUSIVE_URL = "https://res.cloudinary.com/dxgj4bcch/image/upload/aurohubv2/badges/allinclusive.png";
 
 export type { EditorSchema, EditorElement };
 
@@ -18,14 +22,18 @@ interface CanvasEditorProps {
   schema: EditorSchema;
   onChange: (s: EditorSchema) => void;
   onExport?: (dataUrl: string) => void;
-  onSave?: () => void;
+  onSave?: (thumbnail?: string) => void;
   saving?: boolean;
   format?: string; onFormatChange?: (f: string) => void;
   formType?: string; onFormTypeChange?: (f: string) => void;
   qtdDestinos?: number; onQtdDestinosChange?: (n: number) => void;
+  templateId?: string | null;
+  variantsEnabled?: boolean;
+  onSaveVariants?: (variants: { format: string; width: number; height: number; schema: EditorSchema }[]) => void;
+  onNew?: () => void;
 }
 
-export function CanvasEditor({ width, height, schema, onChange, onExport, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange }: CanvasEditorProps) {
+export function CanvasEditor({ width, height, schema, onChange, onExport, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onNew }: CanvasEditorProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -40,6 +48,16 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
   const startTimeRef = useRef(0);
   const [propsTab, setPropsTab] = useState<"design" | "animate">("design");
   const [paramView, setParamView] = useState(false);
+  const [showAssets, setShowAssets] = useState(false);
+  const [showComponents, setShowComponents] = useState(false);
+  const [showDestinos, setShowDestinos] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<string>("");
+  const [showVariants, setShowVariants] = useState(false);
+  const [showSaveComponent, setShowSaveComponent] = useState(false);
+  const [cropElementId, setCropElementId] = useState<string | null>(null);
+  const lastBadgeCheckRef = useRef<string>("");
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
 
@@ -70,7 +88,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
 
   // Fit canvas
   useEffect(() => {
-    const cw = Math.max(window.innerWidth - 42 - 232 - 40, 200);
+    const cw = Math.max(window.innerWidth - 42 - 160 - 232 - 40, 200);
     const ch = Math.max(window.innerHeight - 44 - 26 - 40, 200);
     setStageScale(Math.min(cw / width, ch / height, 1));
   }, [width, height]);
@@ -169,6 +187,22 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
     onExport(uri);
   }, [width, height, onExport]);
 
+  // Save com thumbnail (declarado antes do keyboard useEffect)
+  const handleSaveClick = useCallback(() => {
+    if (!onSave) return;
+    let thumb: string | undefined;
+    if (stageRef.current) {
+      const old = stageRef.current.scaleX();
+      stageRef.current.scale({ x: 1, y: 1 });
+      try {
+        const pr = 150 / Math.max(width, height);
+        thumb = stageRef.current.toDataURL({ x: 0, y: 0, width, height, pixelRatio: pr });
+      } catch (err) { console.warn("[Thumbnail]", err); }
+      stageRef.current.scale({ x: old, y: old });
+    }
+    onSave(thumb);
+  }, [onSave, width, height]);
+
   // Keyboard — multi-aware
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -182,7 +216,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
       if (e.ctrlKey && e.key === "c") { e.preventDefault(); copySelected(); }
       if (e.ctrlKey && e.key === "v") { e.preventDefault(); paste(); }
       if (e.ctrlKey && e.key === "d") { e.preventDefault(); duplicateSelected(); }
-      if (e.ctrlKey && e.key === "s") { e.preventDefault(); onSave?.(); }
+      if (e.ctrlKey && e.key === "s") { e.preventDefault(); handleSaveClick(); }
       if (e.ctrlKey && e.key === "e") { e.preventDefault(); handleExport(); }
       if (e.ctrlKey && e.key === "[") { e.preventDefault(); moveLayer("down"); }
       if (e.ctrlKey && e.key === "]") { e.preventDefault(); moveLayer("up"); }
@@ -205,10 +239,88 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [deleteSelected, clearSelection, playing, pause, play, undo, redo, copySelected, paste, duplicateSelected, selectAll, selectedIds, schema, changeSchema, handleExport, onSave, moveLayer]);
+  }, [deleteSelected, clearSelection, playing, pause, play, undo, redo, copySelected, paste, duplicateSelected, selectAll, selectedIds, schema, changeSchema, handleExport, handleSaveClick, moveLayer]);
+
+  /* ── Badge automático (item 10) ───────────────────── */
+  useEffect(() => {
+    const servicosEl = schema.elements.find(el => el.bindParam === "servicos");
+    const trigger = (servicosEl?.text || "").toLowerCase();
+    const key = `${servicosEl?.id || ""}|${trigger}`;
+    if (key === lastBadgeCheckRef.current) return;
+    lastBadgeCheckRef.current = key;
+    const hasAI = trigger.includes("all inclusive") || trigger.includes("allinclusive") || trigger.includes("all-inclusive");
+    const existingBadge = schema.elements.find(el => el.bindParam === "allinclusivo");
+    if (hasAI && !existingBadge) {
+      const badge: EditorElement = {
+        id: genId(), type: "image", name: "Badge All Inclusive",
+        x: width - 220, y: 60, width: 180, height: 180,
+        src: BADGE_ALLINCLUSIVE_URL, bindParam: "allinclusivo", opacity: 1,
+      };
+      changeSchema({ ...schemaRef.current, elements: [...schemaRef.current.elements, badge] });
+    }
+  }, [schema.elements, width, changeSchema]);
+
+  /* ── Assets / Components / Destinos inserts ───────── */
+  const insertImageFromUrl = useCallback((url: string, imgW: number, imgH: number, name = "Imagem") => {
+    const ratio = imgW / imgH;
+    const maxW = width * 0.5;
+    const w = Math.min(imgW, maxW);
+    const h = w / ratio;
+    addElement({ id: genId(), type: "image", name, x: (width - w) / 2, y: (height - h) / 2, width: w, height: h, src: url, opacity: 1 });
+  }, [addElement, width, height]);
+
+  const insertComponents = useCallback((els: EditorElement[]) => {
+    const offset = 30;
+    const newEls = els.map(el => ({ ...el, id: genId(), x: el.x + offset, y: el.y + offset }));
+    changeSchema({ ...schemaRef.current, elements: [...schemaRef.current.elements, ...newEls] });
+    setSelectedIds(newEls.map(e => e.id));
+    setSelectedId(newEls[newEls.length - 1].id);
+  }, [changeSchema]);
+
+  const insertDestino = useCallback((url: string, asBackground: boolean) => {
+    if (asBackground) {
+      const existingBg = schema.elements.find(el => el.bindParam === "imgfundo");
+      if (existingBg) {
+        updateElement(existingBg.id, { src: url });
+      } else {
+        addElement({ id: genId(), type: "image", name: "Fundo", x: 0, y: 0, width, height, src: url, bindParam: "imgfundo", opacity: 1 });
+      }
+    } else {
+      insertImageFromUrl(url, 1200, 800, "Destino");
+    }
+  }, [schema.elements, width, height, updateElement, addElement, insertImageFromUrl]);
+
+  /* ── Preview Instagram (item 11) ──────────────────── */
+  const openPreview = useCallback(() => {
+    if (!stageRef.current) return;
+    const old = stageRef.current.scaleX();
+    stageRef.current.scale({ x: 1, y: 1 });
+    const uri = stageRef.current.toDataURL({ x: 0, y: 0, width, height, pixelRatio: 1 });
+    stageRef.current.scale({ x: old, y: old });
+    setPreviewData(uri);
+    setShowPreview(true);
+  }, [width, height]);
+
+  /* ── Variantes (item 12) ──────────────────────────── */
+  const handleVariantsConfirm = useCallback((variants: { format: string; width: number; height: number; schema: EditorSchema }[]) => {
+    if (onSaveVariants) onSaveVariants(variants);
+    setShowVariants(false);
+  }, [onSaveVariants]);
+
+  /* ── Save Component (item 5) ──────────────────────── */
+  const selectedElements = schema.elements.filter(el => selectedIds.includes(el.id));
+
+  /* ── Crop confirm (item 2) ────────────────────────── */
+  const handleCropConfirm = useCallback((crop: { x: number; y: number; width: number; height: number }) => {
+    if (!cropElementId) return;
+    updateElement(cropElementId, { cropX: crop.x, cropY: crop.y, cropW: crop.width, cropH: crop.height });
+    setCropElementId(null);
+  }, [cropElementId, updateElement]);
+
+  const croppingEl = cropElementId ? schema.elements.find(el => el.id === cropElementId) : null;
 
   const fitScreen = useCallback(() => {
-    const cw = Math.max(window.innerWidth - 42 - 232 - 40, 200);
+    const cw = Math.max(window.innerWidth - 42 - 160 - 232 - 40, 200);
     const ch = Math.max(window.innerHeight - 44 - 26 - 40, 200);
     setStageScale(Math.min(cw / width, ch / height, 1));
   }, [width, height]);
@@ -219,12 +331,17 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
         onUndo={undo} onRedo={redo} onCopy={copySelected} onPaste={paste}
         onDuplicate={duplicateSelected} onDelete={deleteSelected}
         onExport={onExport ? handleExport : undefined}
-        onSave={onSave} saving={saving}
+        onSave={onSave ? handleSaveClick : undefined} saving={saving}
         zoom={stageScale} format={format} onFormatChange={onFormatChange}
         formType={formType} onFormTypeChange={onFormTypeChange}
         qtdDestinos={qtdDestinos} onQtdDestinosChange={onQtdDestinosChange}
         canUndo={historyIdx > 0} canRedo={historyIdx < history.length - 1}
         onToggleParamView={() => setParamView(!paramView)} paramViewActive={paramView}
+        onPreview={openPreview}
+        onVariants={() => setShowVariants(true)} variantsEnabled={!!variantsEnabled}
+        onHistory={templateId ? () => setShowHistory(true) : undefined}
+        onSaveComponent={() => setShowSaveComponent(true)} canSaveComponent={selectedIds.length > 0}
+        onNew={onNew}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -235,6 +352,16 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
           onUpdate={updateElement} onMoveLayer={moveLayer} onRemove={deleteSelected}
           stageScale={stageScale} onZoom={setStageScale} onFit={fitScreen}
           formType={formType} qtdDestinos={qtdDestinos}
+          onOpenAssets={() => setShowAssets(true)}
+          onOpenComponents={() => setShowComponents(true)}
+          onOpenDestinos={() => setShowDestinos(true)}
+        />
+
+        <LayersPanel
+          elements={schema.elements}
+          selectedIds={selectedIds}
+          onSelect={selectSingle}
+          onUpdate={updateElement}
         />
 
         <CanvasStage
@@ -255,28 +382,40 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
             onUpdate={updateElement} onAlign={alignSelected}
             activeTab={propsTab} onTabChange={setPropsTab}
             selectedCount={selectedIds.length}
+            onOpenCrop={selected?.type === "image" && selected.src ? () => setCropElementId(selected.id) : undefined}
           />
         )}
       </div>
 
       {/* Statusbar */}
-      <div style={{ height: 26, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", background: "var(--ed-surface)", borderTop: "1px solid var(--ed-bdr)", flexShrink: 0 }}>
+      <div style={{ position: "relative", height: 26, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", background: "var(--ed-surface)", borderTop: "1px solid var(--ed-bdr)", flexShrink: 0 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9, color: "var(--ed-txt3)" }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E" }} /> Pronto</span>
         <span style={{ fontSize: 9, color: "var(--ed-txt3)" }}>{width}×{height}</span>
         <span style={{ fontSize: 9, color: "var(--ed-txt3)" }}>{schema.elements.length} elem</span>
         {selectedIds.length > 1 && <span style={{ fontSize: 9, color: "var(--ed-bind)", fontWeight: 700 }}>✦ {selectedIds.length} sel</span>}
-        <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 9, color: "var(--ed-txt2)", fontVariantNumeric: "tabular-nums" }}>{currentTime.toFixed(1)}s / {totalDuration}s</span>
-        <button onClick={playing ? pause : play} style={{ width: 22, height: 18, borderRadius: 4, border: "none", background: playing ? "var(--ed-active)" : "var(--ed-hover)", color: playing ? "var(--ed-active-txt)" : "var(--ed-txt2)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{playing ? "⏸" : "▶"}</button>
-        <button onClick={reset} style={{ width: 22, height: 18, borderRadius: 4, border: "none", background: "var(--ed-hover)", color: "var(--ed-txt2)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>⏹</button>
-        <div style={{ width: 100, height: 4, borderRadius: 2, background: "var(--ed-input)", position: "relative", cursor: "pointer" }}
-          onClick={e => { if (playing) return; const r = e.currentTarget.getBoundingClientRect(); setCurrentTime(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * totalDuration); }}>
-          <div style={{ position: "absolute", left: 0, top: 0, height: "100%", borderRadius: 2, width: `${(currentTime / totalDuration) * 100}%`, background: "linear-gradient(90deg, #D4A843, #FF7A1A)", transition: playing ? "none" : "width 0.1s" }} />
+        <div style={{ position: "absolute", right: 240, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 9, color: "var(--ed-txt2)", fontVariantNumeric: "tabular-nums" }}>{currentTime.toFixed(1)}s / {totalDuration}s</span>
+          <button onClick={playing ? pause : play} style={{ width: 22, height: 18, borderRadius: 4, border: "none", background: playing ? "var(--ed-active)" : "var(--ed-hover)", color: playing ? "var(--ed-active-txt)" : "var(--ed-txt2)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{playing ? "⏸" : "▶"}</button>
+          <button onClick={reset} style={{ width: 22, height: 18, borderRadius: 4, border: "none", background: "var(--ed-hover)", color: "var(--ed-txt2)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>⏹</button>
+          <div style={{ width: 100, height: 4, borderRadius: 2, background: "var(--ed-input)", position: "relative", cursor: "pointer" }}
+            onClick={e => { if (playing) return; const r = e.currentTarget.getBoundingClientRect(); setCurrentTime(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * totalDuration); }}>
+            <div style={{ position: "absolute", left: 0, top: 0, height: "100%", borderRadius: 2, width: `${(currentTime / totalDuration) * 100}%`, background: "linear-gradient(90deg, #D4A843, #FF7A1A)", transition: playing ? "none" : "width 0.1s" }} />
+          </div>
+          <select value={totalDuration} onChange={e => onChange({ ...schema, duration: +e.target.value })} style={{ height: 18, borderRadius: 4, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: "var(--ed-txt2)", fontSize: 9, cursor: "pointer", outline: "none" }}>
+            {[3, 5, 8, 10, 15, 20, 30].map(d => <option key={d} value={d}>{d}s</option>)}
+          </select>
         </div>
-        <select value={totalDuration} onChange={e => onChange({ ...schema, duration: +e.target.value })} style={{ height: 18, borderRadius: 4, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: "var(--ed-txt2)", fontSize: 9, cursor: "pointer", outline: "none" }}>
-          {[3, 5, 8, 10, 15, 20, 30].map(d => <option key={d} value={d}>{d}s</option>)}
-        </select>
       </div>
+
+      {/* ── Modals ──────────────────────────── */}
+      {showAssets && <AssetsPanel onClose={() => setShowAssets(false)} onInsert={(url, w, h) => insertImageFromUrl(url, w, h, "Asset")} />}
+      {showComponents && <ComponentsPanel onClose={() => setShowComponents(false)} onInsert={insertComponents} />}
+      {showDestinos && <DestinosPanel onClose={() => setShowDestinos(false)} onPick={insertDestino} />}
+      {showHistory && templateId && <HistoryPanel templateId={templateId} onClose={() => setShowHistory(false)} onRestore={s => { onChange(s); pushHistory(s); }} />}
+      {showPreview && <InstagramPreviewModal dataUrl={previewData} format={format || "stories"} onClose={() => setShowPreview(false)} />}
+      {showVariants && <VariantsModal schema={schema} srcFormat={format || "stories"} srcW={width} srcH={height} onClose={() => setShowVariants(false)} onConfirm={handleVariantsConfirm} />}
+      {showSaveComponent && <SaveComponentModal elements={selectedElements} onClose={() => setShowSaveComponent(false)} onSaved={() => {}} />}
+      {croppingEl?.src && <CropModal src={croppingEl.src} initial={croppingEl.cropW && croppingEl.cropH ? { x: croppingEl.cropX || 0, y: croppingEl.cropY || 0, width: croppingEl.cropW, height: croppingEl.cropH } : undefined} onClose={() => setCropElementId(null)} onConfirm={handleCropConfirm} />}
     </div>
   );
 }

@@ -3,12 +3,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import {
+  Sparkles, Calendar, CalendarClock, Palette, BarChart3,
+  Flag, Cake, PartyPopper,
+  Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
+} from "lucide-react";
 
 /* ── Types ───────────────────────────────────────── */
 
 interface Profile { id: string; name: string | null; role: string; licensee_id: string | null; store_id: string | null; }
 interface Store { id: string; name: string; licensee_id: string; }
-interface Licensee { id: string; name: string; plan: string; status: string; expires_at: string | null; }
+interface Licensee { id: string; name: string; plan: string; status: string; expires_at: string | null; segment_id: string | null; }
 interface LogEntry { id: string; event_type: string; metadata: Record<string, unknown> | null; created_at: string; }
 interface Embarque { id: string; destino: string; data_embarque: string; cliente_nome: string; }
 interface PlanInfo { name: string; max_posts_day: number; }
@@ -28,12 +33,42 @@ function monthStart(): string {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
 }
 
-const TIPO_EMOJI: Record<string, string> = { feriado: "🎌", aniversario: "🏙️", evento: "🎉" };
+const TIPO_ICON: Record<string, React.ComponentType<{ size?: number }>> = {
+  feriado: Flag,
+  aniversario: Cake,
+  evento: PartyPopper,
+};
 const TIPO_STYLE: Record<string, { bg: string; text: string }> = {
   feriado:      { bg: "var(--red3)", text: "var(--red)" },
   aniversario:  { bg: "var(--blue3)", text: "var(--blue)" },
   evento:       { bg: "var(--gold3)", text: "var(--gold)" },
 };
+
+/* ── Quotes (fallback hardcoded caso segmento não tenha) ─ */
+const FALLBACK_QUOTES = [
+  "Cada destino começa com uma decisão.",
+  "Vender viagem é vender memórias.",
+  "Inspire primeiro, venda depois.",
+  "Destinos não se vendem — se sonham.",
+  "Cada post é um convite para sonhar.",
+];
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/* ── Weather (open-meteo) ────────────────────────── */
+function WeatherIcon({ code, size = 28 }: { code: number | null; size?: number }) {
+  const color = "#FF7A1A";
+  if (code === null) return <Cloud size={size} color={color} />;
+  if (code === 0) return <Sun size={size} color={color} />;
+  if (code <= 3) return <CloudSun size={size} color={color} />;
+  if (code <= 48) return <CloudFog size={size} color={color} />;
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return <CloudRain size={size} color={color} />;
+  if (code >= 71 && code <= 77) return <CloudSnow size={size} color={color} />;
+  if (code >= 95) return <CloudLightning size={size} color={color} />;
+  return <Cloud size={size} color={color} />;
+}
 
 /* ── Component ───────────────────────────────────── */
 
@@ -57,6 +92,21 @@ export default function InicioPage() {
   const [datasComem, setDatasComem] = useState<DataComemorativa[]>([]);
   const [igConnected, setIgConnected] = useState(false);
   const [postsUsados, setPostsUsados] = useState(0);
+
+  // Quote (carregado a partir do segmento do licensee no loadData)
+  const [quote, setQuote] = useState<string>("");
+
+  // Weather (open-meteo, Rio Preto SP default)
+  const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
+  useEffect(() => {
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=-20.8116&longitude=-49.3755&current=temperature_2m,weather_code&timezone=America/Sao_Paulo";
+    fetch(url)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code });
+      })
+      .catch(() => { /* silent */ });
+  }, []);
 
   /* ── Load ──────────────────────────────────────── */
 
@@ -89,17 +139,45 @@ export default function InicioPage() {
       // Licensee + Plan
       const { data: licData } = await supabase
         .from("licensees")
-        .select("id, name, plan, status, expires_at")
+        .select("id, name, plan, status, expires_at, segment_id")
         .eq("id", effectiveLicId)
         .single();
+      let segmentIdToLoad: string | null = null;
       if (licData) {
         const lic = licData as Licensee;
         setLicensee(lic);
+        segmentIdToLoad = lic.segment_id;
         if (lic.plan) {
           const { data: pi } = await supabase.from("plans").select("name, max_posts_day").eq("slug", lic.plan).single();
           if (pi) setPlanInfo(pi as PlanInfo);
         }
       }
+
+      // Frases do segmento (fallback: Outros → hardcoded)
+      let segmentQuotes: string[] | null = null;
+      if (segmentIdToLoad) {
+        const { data: seg, error: segErr } = await supabase
+          .from("segments")
+          .select("quotes")
+          .eq("id", segmentIdToLoad)
+          .single();
+        if (!segErr && seg && Array.isArray((seg as { quotes?: unknown }).quotes)) {
+          const arr = (seg as { quotes: string[] }).quotes;
+          if (arr.length > 0) segmentQuotes = arr;
+        }
+      }
+      if (!segmentQuotes) {
+        const { data: outros, error: outrosErr } = await supabase
+          .from("segments")
+          .select("quotes")
+          .eq("name", "Outros")
+          .single();
+        if (!outrosErr && outros && Array.isArray((outros as { quotes?: unknown }).quotes)) {
+          const arr = (outros as { quotes: string[] }).quotes;
+          if (arr.length > 0) segmentQuotes = arr;
+        }
+      }
+      setQuote(pickRandom(segmentQuotes ?? FALLBACK_QUOTES));
 
       // Activity logs do mês
       const inicio = monthStart();
@@ -215,7 +293,6 @@ export default function InicioPage() {
 
   /* ── Derived ───────────────────────────────────── */
 
-  const displayName = userName || store?.name || licensee?.name || profile?.name || "Usuário";
   const postsLimite = planInfo ? (planInfo.max_posts_day === -1 ? "Ilimitado" : `${planInfo.max_posts_day}/dia`) : "—";
   const postsRestantes = planInfo && planInfo.max_posts_day > 0
     ? Math.max(0, planInfo.max_posts_day * 30 - postsUsados)
@@ -227,21 +304,51 @@ export default function InicioPage() {
 
   return (
     <>
-      {/* ═══ HERO ═══════════════════════════════════ */}
-      <div className="card-glass relative overflow-hidden px-8 py-8">
+      {/* ═══ HERO — quote + weather ═════════════════ */}
+      <div className="card-glass relative overflow-hidden px-8 py-7">
         <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }} />
-        <div className="relative z-10 flex items-center justify-between">
-          <div>
-            <p className="text-[13px] font-medium text-[var(--txt3)]">{greeting()}</p>
-            <h1 className="font-[family-name:var(--font-dm-serif)] text-[26px] font-bold leading-tight text-[var(--txt)]">{displayName}</h1>
+        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">Aurohub · {greeting()}</p>
+            <h2 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-[1.25] text-[var(--txt)] max-w-[560px] min-h-[28px]">
+              {quote}
+            </h2>
           </div>
-          <div className="flex gap-3">
+
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Weather widget */}
+            <div
+              className="flex items-center gap-3 rounded-2xl border border-[var(--bdr)] px-4 py-2.5"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,122,26,0.08), rgba(59,130,246,0.05))",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                marginTop: 10,
+              }}
+            >
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                style={{
+                  background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.14))",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <WeatherIcon code={weather?.code ?? null} size={22} />
+              </div>
+              <div>
+                <div className="font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-none text-[var(--txt)] tabular-nums">
+                  {weather ? `${weather.temp}°` : "—"}
+                </div>
+                <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--txt3)]">Rio Preto</div>
+              </div>
+            </div>
+
+            {/* Actions */}
             <Link href="/editor-de-templates" className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]" style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}>
-              <span className="text-[16px]">✨</span>Criar arte agora
-              <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5 ml-1"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <Sparkles size={15} />Criar arte
             </Link>
-            <Link href="/central-de-publicacao" className="flex items-center gap-2 rounded-xl border border-[var(--bdr2)] px-5 py-2.5 text-[13px] font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]">
-              <span className="text-[14px]">📅</span>Agendamentos
+            <Link href="/central-de-publicacao" className="flex items-center gap-2 rounded-xl border border-[var(--bdr2)] px-4 py-2.5 text-[13px] font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]">
+              <Calendar size={14} />Agenda
             </Link>
           </div>
         </div>
@@ -265,7 +372,7 @@ export default function InicioPage() {
           </div>
           <div className="flex-1 p-5">
             {recentArts.length === 0 ? (
-              <Empty icon="🎨" text="Nenhuma arte criada ainda" action={{ label: "Criar primeira arte", href: "/editor-de-templates" }} />
+              <Empty icon={<Palette size={22} />} text="Nenhuma arte criada ainda" action={{ label: "Criar primeira arte", href: "/editor-de-templates" }} />
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {recentArts.map((art, i) => (
@@ -317,13 +424,15 @@ export default function InicioPage() {
                 <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Próximas datas</div>
                 <div className="flex flex-col gap-1.5">
                   {datasComem.map((d) => {
-                    const emoji = TIPO_EMOJI[d.tipo] ?? "📅";
+                    const Icon = TIPO_ICON[d.tipo] ?? PartyPopper;
                     const style = TIPO_STYLE[d.tipo] ?? TIPO_STYLE.evento;
                     const dataStr = `${String(d.data_dia).padStart(2, "0")}/${String(d.data_mes).padStart(2, "0")}`;
                     return (
                       <div key={d.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[14px]">{emoji}</span>
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: style.bg, color: style.text }}>
+                            <Icon size={12} />
+                          </div>
                           <div>
                             <span className="text-[12px] text-[var(--txt)]">{dataStr} — {d.nome}</span>
                             {d.cidade && <span className="ml-1 text-[10px] text-[var(--txt3)]">({d.cidade}/{d.estado})</span>}
@@ -343,9 +452,9 @@ export default function InicioPage() {
             <div>
               <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Dicas</div>
               <div className="flex flex-col gap-1.5">
-                <Tip emoji="🎨" text="Crie artes para os embarques da semana" />
-                <Tip emoji="📊" text="Confira suas métricas do Instagram" />
-                <Tip emoji="📅" text="Agende posts para as datas do mês" />
+                <Tip icon={<Palette size={13} />} text="Crie artes para os embarques da semana" />
+                <Tip icon={<BarChart3 size={13} />} text="Confira suas métricas do Instagram" />
+                <Tip icon={<CalendarClock size={13} />} text="Agende posts para as datas do mês" />
               </div>
             </div>
           </div>
@@ -426,19 +535,34 @@ function StatusRow({ label, value, badge }: { label: string; value: string; badg
   );
 }
 
-function Tip({ emoji, text }: { emoji: string; text: string }) {
+function Tip({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-2.5 rounded-lg border border-[var(--bdr)] px-3 py-2 hover:bg-[var(--hover-bg)]">
-      <span className="text-[14px]">{emoji}</span>
+      <span
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[#FF7A1A]"
+        style={{ background: "linear-gradient(135deg, rgba(255,122,26,0.14), rgba(30,58,110,0.10))" }}
+      >
+        {icon}
+      </span>
       <span className="text-[12px] text-[var(--txt2)]">{text}</span>
     </div>
   );
 }
 
-function Empty({ icon, text, action }: { icon: string; text: string; action?: { label: string; href: string } }) {
+function Empty({ icon, text, action }: { icon: React.ReactNode; text: string; action?: { label: string; href: string } }) {
   return (
     <div className="flex flex-col items-center gap-3 py-8">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--orange3)] text-[20px]">{icon}</div>
+      <div
+        className="flex h-14 w-14 items-center justify-center rounded-2xl text-[#FF7A1A]"
+        style={{
+          background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
+          border: "1px solid rgba(255,255,255,0.08)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        }}
+      >
+        {icon}
+      </div>
       <p className="text-[13px] text-[var(--txt3)]">{text}</p>
       {action && <Link href={action.href} className="text-[12px] font-medium text-[var(--orange)] hover:underline">{action.label}</Link>}
     </div>

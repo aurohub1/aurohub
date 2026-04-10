@@ -10,9 +10,10 @@ interface Props {
   activeTab: "design" | "animate";
   onTabChange: (t: "design" | "animate") => void;
   selectedCount?: number;
+  onOpenCrop?: () => void;
 }
 
-export default function PropsPanel({ selected: s, canvasW, canvasH, onUpdate, onAlign, activeTab, onTabChange, selectedCount }: Props) {
+export default function PropsPanel({ selected: s, canvasW, canvasH, onUpdate, onAlign, activeTab, onTabChange, selectedCount, onOpenCrop }: Props) {
   if (!s) return (
     <div style={{ width: 232, background: "var(--ed-surface)", borderLeft: "1px solid var(--ed-bdr)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>Selecione um elemento</span>
@@ -34,7 +35,7 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, onUpdate, on
         </div>
       )}
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
-        {activeTab === "design" ? <DesignTab s={s} u={u} onAlign={onAlign} /> : <AnimateTab s={s} u={u} />}
+        {activeTab === "design" ? <DesignTab s={s} u={u} onAlign={onAlign} onOpenCrop={onOpenCrop} /> : <AnimateTab s={s} u={u} />}
       </div>
     </div>
   );
@@ -46,7 +47,7 @@ function isLine(el: EditorElement): boolean {
 }
 
 /* ══ DESIGN TAB ═══════════════════════════════════ */
-function DesignTab({ s, u, onAlign }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; onAlign: (a: string) => void }) {
+function DesignTab({ s, u, onAlign, onOpenCrop }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; onAlign: (a: string) => void; onOpenCrop?: () => void }) {
   return (
     <>
       {/* Align 3x3 SVG grid */}
@@ -84,8 +85,8 @@ function DesignTab({ s, u, onAlign }: { s: EditorElement; u: (up: Partial<Editor
         </div>
       </Sec>
 
-      {/* Fill — hide for lines */}
-      {s.type !== "image" && !isLine(s) && (
+      {/* Fill — hide for lines, images and qrcode */}
+      {s.type !== "image" && s.type !== "qrcode" && !isLine(s) && (
         <Sec t="Preenchimento">
           <ColorField value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
         </Sec>
@@ -193,7 +194,70 @@ function DesignTab({ s, u, onAlign }: { s: EditorElement; u: (up: Partial<Editor
       {s.type === "image" && (
         <Sec t="Imagem">
           <F l="URL"><Inp v={s.src || ""} c={v => u({ src: v })} /></F>
+          <button
+            onClick={() => {
+              const input = document.createElement("input");
+              input.type = "file"; input.accept = "image/*";
+              input.onchange = (e) => {
+                const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+                const r = new FileReader();
+                r.onload = () => {
+                  if (!r.result) return;
+                  const dataUrl = r.result as string;
+                  const img = new window.Image();
+                  img.onload = () => {
+                    const ratio = img.naturalWidth / img.naturalHeight;
+                    // Mantém width, recalcula height proporcional — limpa crop antigo pra evitar mismatch
+                    u({
+                      src: dataUrl,
+                      height: Math.max(10, Math.round(s.width / ratio)),
+                      cropX: undefined, cropY: undefined, cropW: undefined, cropH: undefined,
+                    });
+                  };
+                  img.onerror = () => u({ src: dataUrl });
+                  img.src = dataUrl;
+                };
+                r.readAsDataURL(f);
+              };
+              input.click();
+            }}
+            style={{ width: "100%", height: 32, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: "var(--ed-txt)", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+          >
+            ⟳ Substituir imagem
+          </button>
           <F l="Borda Raio"><Num v={s.cornerRadius || 0} c={v => u({ cornerRadius: v })} /></F>
+          <F l="Ajuste">
+            <select value={s.imageFit || "fill"} onChange={e => u({ imageFit: e.target.value as EditorElement["imageFit"] })} style={selS}>
+              <option value="fill">Esticar (fill)</option>
+              <option value="cover">Cobrir (cover)</option>
+              <option value="contain">Conter (contain)</option>
+            </select>
+          </F>
+          {s.src && onOpenCrop && (
+            <button onClick={onOpenCrop} style={{ width: "100%", height: 32, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: "var(--ed-txt)", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>✂ Cortar imagem</button>
+          )}
+          {(s.cropW && s.cropH) ? (
+            <button onClick={() => u({ cropX: undefined, cropY: undefined, cropW: undefined, cropH: undefined })} style={{ width: "100%", height: 28, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "transparent", color: "var(--ed-txt2)", fontSize: 10, cursor: "pointer", marginTop: 2 }}>Remover corte</button>
+          ) : null}
+          <F l="Máscara">
+            <select value={s.clipShape || "none"} onChange={e => u({ clipShape: e.target.value as EditorElement["clipShape"] })} style={selS}>
+              <option value="none">Nenhuma</option>
+              <option value="circle">Círculo</option>
+              <option value="rounded">Retângulo arredondado</option>
+            </select>
+          </F>
+          {s.clipShape === "rounded" && (
+            <F l="Raio da máscara"><Num v={s.clipRadius ?? 40} c={v => u({ clipRadius: Math.max(0, v) })} /></F>
+          )}
+        </Sec>
+      )}
+
+      {/* QR Code */}
+      {s.type === "qrcode" && (
+        <Sec t="QR Code">
+          <F l="URL / Texto"><Inp v={s.qrUrl || ""} c={v => u({ qrUrl: v })} /></F>
+          <F l="Cor frente"><ColorField value={s.qrFg || "#000000"} onChange={v => u({ qrFg: v })} /></F>
+          <F l="Cor fundo"><ColorField value={s.qrBg || "#FFFFFF"} onChange={v => u({ qrBg: v })} /></F>
         </Sec>
       )}
 
