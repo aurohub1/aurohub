@@ -169,7 +169,16 @@ export default function PublicarPage() {
   // Template atual — match estrito por formType + format (sem fallback)
   // Se não existir template pra (tab, format), o preview mostra placeholder
   const currentTemplate = useMemo(() => {
-    return templates.find((t) => t.formType === tab && t.format === format) ?? null;
+    const t = templates.find((t) => t.formType === tab && t.format === format) ?? null;
+    console.log("[DEBUG] currentTemplate match", {
+      tab,
+      format,
+      templatesCount: templates.length,
+      allFormTypes: [...new Set(templates.map((x) => x.formType))],
+      allFormats: [...new Set(templates.map((x) => x.format))],
+      matched: t ? { key: t.key, nome: t.nome, formType: t.formType, format: t.format, elementCount: t.schema.elements.length, elementsWithBind: t.schema.elements.filter((e) => !!e.bindParam).map((e) => ({ id: e.id, type: e.type, bindParam: e.bindParam })) } : null,
+    });
+    return t;
   }, [templates, tab, format]);
 
   // Legenda
@@ -490,15 +499,23 @@ export default function PublicarPage() {
 
   async function onDestinoBlur() {
     const destino = values.destino?.trim();
+    console.log("[DEBUG] onDestinoBlur", { destino, hotel: values.hotel });
     if (!destino) return;
     // Hotel tem prioridade — se já existe, usar hotel
     const hotel = values.hotel?.trim();
     if (hotel) {
       const hUrl = await fetchImgHotel(hotel);
+      console.log("[DEBUG] fetchImgHotel →", { hotel, hUrl });
       if (hUrl) { setField("imgfundo", hUrl); return; }
     }
     const url = await fetchImgFundo(destino);
-    if (url) setField("imgfundo", url);
+    console.log("[DEBUG] fetchImgFundo →", { destino, url });
+    if (url) {
+      console.log("[DEBUG] setField imgfundo =", url);
+      setField("imgfundo", url);
+    } else {
+      console.warn("[DEBUG] fetchImgFundo retornou null pra", destino);
+    }
   }
   async function onHotelBlur() {
     const hotel = values.hotel?.trim();
@@ -665,6 +682,22 @@ export default function PublicarPage() {
   const width = currentTemplate?.width ?? defW;
   const height = currentTemplate?.height ?? defH;
   const schema: EditorSchema = currentTemplate?.schema ?? { elements: [], background: "#0E1520", duration: 5 };
+
+  // Debug: o que o PreviewStage está recebendo
+  console.log("[DEBUG] render/PreviewStage props", {
+    hasTemplate: !!currentTemplate,
+    tab, format, width, height,
+    schemaElements: schema.elements.length,
+    values, // todos os campos incluindo imgfundo
+    imgfundoPresent: !!values.imgfundo,
+    imgfundoUrl: values.imgfundo?.slice(0, 80),
+    // Elementos do schema que têm bindParam
+    bindElements: schema.elements.filter((e) => e.bindParam).map((e) => ({
+      type: e.type,
+      bindParam: e.bindParam,
+      hasValueInForm: e.bindParam ? !!values[e.bindParam] : false,
+    })),
+  });
 
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 

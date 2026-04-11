@@ -11,10 +11,17 @@ function useImage(src?: string): HTMLImageElement | null {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
     if (!src) { setImg(null); return; }
+    console.log("[DEBUG] useImage loading", src.slice(0, 100));
     const i = new window.Image();
     i.crossOrigin = "anonymous";
-    i.onload = () => setImg(i);
-    i.onerror = () => setImg(null);
+    i.onload = () => {
+      console.log("[DEBUG] useImage ✓ loaded", { src: src.slice(0, 80), w: i.naturalWidth, h: i.naturalHeight });
+      setImg(i);
+    };
+    i.onerror = (err) => {
+      console.error("[DEBUG] useImage ✗ error", { src, err });
+      setImg(null);
+    };
     i.src = src;
   }, [src]);
   return img;
@@ -26,8 +33,16 @@ function resolveText(el: EditorElement, values: Record<string, string>): string 
 }
 
 function resolveImage(el: EditorElement, values: Record<string, string>): string | undefined {
-  if (el.bindParam && values[el.bindParam]) return values[el.bindParam];
-  return el.src;
+  const bound = el.bindParam ? values[el.bindParam] : undefined;
+  const chosen = bound || el.src;
+  console.log("[DEBUG] resolveImage", {
+    elId: el.id,
+    bindParam: el.bindParam,
+    boundValue: bound?.slice(0, 80),
+    fallbackSrc: el.src?.slice(0, 80),
+    chosen: chosen?.slice(0, 80),
+  });
+  return chosen;
 }
 
 /* ── Per-element ────────────────────────────────── */
