@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 
 interface Plan {
   id: string; slug: string; name: string; price_monthly: number; price_yearly: number;
+  max_feed_reels_day?: number | null; max_stories_day?: number | null;
   price_setup?: number; min_months?: number;
   max_users: number; max_posts_day: number; can_schedule: boolean; can_metrics: boolean;
   can_print: boolean; is_enterprise: boolean; active: boolean; sort_order: number;
@@ -160,6 +161,8 @@ export default function PlanosPage() {
         price_setup: String(p.price_setup ?? setupDefaults[p.slug] ?? "0"),
         min_months: String(p.min_months ?? monthDefaults[p.slug] ?? "6"),
         max_users: String(p.max_users), max_posts_day: String(p.max_posts_day),
+        max_feed_reels_day: String(p.max_feed_reels_day ?? 0),
+        max_stories_day: String(p.max_stories_day ?? 0),
         can_schedule: p.can_schedule, can_metrics: p.can_metrics,
         can_print: p.can_print, is_enterprise: p.is_enterprise,
       };
@@ -179,6 +182,8 @@ export default function PlanosPage() {
           min_months: parseInt(f.min_months as string) || 6,
           max_users: parseInt(f.max_users as string) || 1,
           max_posts_day: parseInt(f.max_posts_day as string) || 0,
+          max_feed_reels_day: parseInt(f.max_feed_reels_day as string) || 0,
+          max_stories_day: parseInt(f.max_stories_day as string) || 0,
           can_schedule: f.can_schedule as boolean,
           can_metrics: f.can_metrics as boolean,
         }).eq("id", plan.id);
@@ -239,6 +244,13 @@ export default function PlanosPage() {
           const info = PLAN_INFO[slug];
           const subs = tabCounts[slug] ?? 0;
           const isPro = slug === "pro";
+          const dbPlan = planMap[slug];
+          const postsStr = dbPlan?.max_feed_reels_day != null && dbPlan.max_feed_reels_day > 0
+            ? `${dbPlan.max_feed_reels_day} Feed+Reels/dia`
+            : info.posts;
+          const storiesStr = dbPlan?.max_stories_day != null && dbPlan.max_stories_day > 0
+            ? (dbPlan.max_stories_day >= 99 ? "Stories ilimitados" : `${dbPlan.max_stories_day} Stories/dia`)
+            : info.stories;
 
           return (
             <div
@@ -278,8 +290,8 @@ export default function PlanosPage() {
 
                 {/* Capacity */}
                 <div className="mb-1.5 text-[12px] font-medium text-[var(--txt2)]">{info.profiles} · {info.logins}</div>
-                <div className="mb-1 text-[12px] text-[var(--txt3)]">{info.posts}</div>
-                {info.stories !== "—" && <div className="mb-0 text-[12px] text-[var(--txt3)]">{info.stories}</div>}
+                <div className="mb-1 text-[12px] text-[var(--txt3)]">{postsStr}</div>
+                {storiesStr !== "—" && <div className="mb-0 text-[12px] text-[var(--txt3)]">{storiesStr}</div>}
 
                 {/* Divider */}
                 <div className="my-5 h-px bg-[var(--bdr)]" />
@@ -496,6 +508,8 @@ export default function PlanosPage() {
                         <div className="h-px bg-[var(--bdr)]" />
                         <MF label="Máx. usuários" value={f.max_users as string} onChange={(v) => ef(plan.id, "max_users", v)} hint="-1 = ilimitado" />
                         <MF label="Posts/dia" value={f.max_posts_day as string} onChange={(v) => ef(plan.id, "max_posts_day", v)} hint="0 = sem posts" />
+                        <MF label="Feed/Reels por dia" value={f.max_feed_reels_day as string} onChange={(v) => ef(plan.id, "max_feed_reels_day", v)} hint="0 = não permite" />
+                        <MF label="Stories por dia" value={f.max_stories_day as string} onChange={(v) => ef(plan.id, "max_stories_day", v)} hint="99 = ilimitado" />
                         <div className="h-px bg-[var(--bdr)]" />
                         <div className="text-[11px] font-medium text-[var(--txt3)]">Autorizações</div>
                         <div className="flex flex-col gap-2 text-[12px]">
