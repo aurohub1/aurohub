@@ -51,15 +51,14 @@ export interface EditorSchema {
 }
 
 export const BIND_GROUPS = [
-  { group: "Imagens", fields: ["imgfundo","imgdestino","imghotel","imgaviao","imgciamaritima","imgloja"] },
+  { group: "Imagens", fields: ["imgfundo","imghotel","imgaviao","imgciamaritima","imgloja"] },
   { group: "Destino", fields: ["destino","saida","tipovoo"] },
   { group: "Período", fields: ["dataida","datavolta","noites","feriado"] },
   { group: "Hotel / Navio", fields: ["hotel","navio","categoria","itinerario","incluso"] },
   { group: "Serviços", fields: ["servico1","servico2","servico3","servico4","servico5","servico6"] },
-  { group: "Selos", fields: ["seloultimos","seloferiado","selooferta","selodesconto"] },
   { group: "Pagamento", fields: ["formapagamento","parcelas","valorparcela","desconto"] },
   { group: "Total", fields: ["totalduplo","totalcruzeiro"] },
-  { group: "Anoiteceu", fields: ["desconto","inicio","fim","paraviagens"] },
+  { group: "Anoiteceu", fields: ["inicio","fim","paraviagens"] },
   { group: "Loja", fields: ["loja","agente","fone"] },
   { group: "Genérico", fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
 ];

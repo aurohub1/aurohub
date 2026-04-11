@@ -33,6 +33,9 @@ function EditorInner() {
   const [editingStarterId, setEditingStarterId] = useState<string | null>(null);
   const [variantsEnabled, setVariantsEnabled] = useState(false);
   const [pendingSave, setPendingSave] = useState<{ thumbnail?: string } | null>(null);
+  const [pendingVariants, setPendingVariants] = useState<
+    { schema: EditorSchema; width: number; height: number; format: string }[] | null
+  >(null);
   const [loadedNome, setLoadedNome] = useState<string>("");
   const [loadedLicenseeId, setLoadedLicenseeId] = useState<string | undefined>(undefined);
   const [loadedLojaId, setLoadedLojaId] = useState<string | undefined>(undefined);
@@ -100,19 +103,10 @@ function EditorInner() {
         templateId={templateId}
         variantsEnabled={variantsEnabled}
         onNew={() => setShowQuickStart(true)}
-        onSaveVariants={async (variants) => {
-          try {
-            for (const v of variants) {
-              const key = `tmpl_variant_${v.format}_${Date.now()}`;
-              const payload = { ...v.schema, width: v.width, height: v.height, format: v.format, formType, qtdDestinos, licenseeId: "aurovista", lojaId: "global", licenseeNome: "Aurovista", lojaNome: "Global" };
-              await supabase.from("system_config").upsert({
-                key,
-                value: JSON.stringify(payload),
-                updated_at: new Date().toISOString(),
-              }, { onConflict: "key" });
-            }
-            alert(`${variants.length} variantes salvas!`);
-          } catch (err) { console.error("[SaveVariants]", err); alert("Erro ao salvar variantes."); }
+        onSaveVariants={(variants) => {
+          // Stash as variantes e abre o modal pra coletar licensee/loja
+          setPendingVariants(variants);
+          setPendingSave({});
         }}
         onSave={(thumbnail) => {
           // Abre modal com metadados em vez de salvar direto
@@ -133,11 +127,36 @@ function EditorInner() {
           initialFormat={format}
           initialLicenseeId={loadedLicenseeId}
           initialLojaId={loadedLojaId}
-          onClose={() => setPendingSave(null)}
+          onClose={() => { setPendingSave(null); setPendingVariants(null); }}
           onConfirm={async (meta: SaveTemplateData) => {
             setSaving(true);
             const thumbnail = pendingSave.thumbnail;
             try {
+              // Fluxo de variantes: salva cada uma com meta do modal
+              if (pendingVariants && pendingVariants.length > 0) {
+                for (const v of pendingVariants) {
+                  const key = `tmpl_variant_${v.format}_${Date.now()}`;
+                  const payload = {
+                    ...v.schema, width: v.width, height: v.height,
+                    format: v.format, formType: meta.formType, qtdDestinos,
+                    nome: meta.nome,
+                    licenseeId: meta.licenseeId, lojaId: meta.lojaId,
+                    licenseeNome: meta.licenseeNome, lojaNome: meta.lojaNome,
+                  };
+                  await supabase.from("system_config").upsert({
+                    key,
+                    value: JSON.stringify(payload),
+                    updated_at: new Date().toISOString(),
+                  }, { onConflict: "key" });
+                }
+                alert(`${pendingVariants.length} variantes salvas!`);
+                setPendingVariants(null);
+                setPendingSave(null);
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2000);
+                return;
+              }
+
               // Fluxo especial: editando template starter
               if (editingStarterId) {
                 const asStarter = confirm("Salvar como template padrão (starter)?\n\nOK = substitui o padrão de fábrica para todos os usuários\nCancelar = salva como template normal");

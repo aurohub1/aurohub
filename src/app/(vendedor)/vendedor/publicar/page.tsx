@@ -169,16 +169,7 @@ export default function PublicarPage() {
   // Template atual — match estrito por formType + format (sem fallback)
   // Se não existir template pra (tab, format), o preview mostra placeholder
   const currentTemplate = useMemo(() => {
-    const t = templates.find((t) => t.formType === tab && t.format === format) ?? null;
-    console.log("[DEBUG] currentTemplate match", {
-      tab,
-      format,
-      templatesCount: templates.length,
-      allFormTypes: [...new Set(templates.map((x) => x.formType))],
-      allFormats: [...new Set(templates.map((x) => x.format))],
-      matched: t ? { key: t.key, nome: t.nome, formType: t.formType, format: t.format, elementCount: t.schema.elements.length, elementsWithBind: t.schema.elements.filter((e) => !!e.bindParam).map((e) => ({ id: e.id, type: e.type, bindParam: e.bindParam })) } : null,
-    });
-    return t;
+    return templates.find((t) => t.formType === tab && t.format === format) ?? null;
   }, [templates, tab, format]);
 
   // Legenda
@@ -273,7 +264,7 @@ export default function PublicarPage() {
         .from("system_config")
         .select("key, value")
         .like("key", "tmpl_%")
-        .like("value", `%"licenseeId":"${p.licensee_id}"%`);
+        .like("value", p.licensee_id ? `%"licenseeId":"${p.licensee_id}"%` : `%"licenseeId":%`);
 
       const rows: TemplateRow[] = [];
       for (const r of (tplData ?? []) as { key: string; value: string }[]) {
@@ -497,28 +488,24 @@ export default function PublicarPage() {
 
   const hoje = todayISO();
 
-  async function onDestinoBlur() {
-    const destino = values.destino?.trim();
-    console.log("[DEBUG] onDestinoBlur", { destino, hotel: values.hotel });
+  /**
+   * Recebe `override` quando o usuário seleciona da lista do Combobox —
+   * evita o stale-closure onde `values` ainda é o state antigo no momento do setTimeout.
+   */
+  async function onDestinoBlur(override?: string) {
+    const destino = (override ?? values.destino)?.trim();
     if (!destino) return;
     // Hotel tem prioridade — se já existe, usar hotel
     const hotel = values.hotel?.trim();
     if (hotel) {
       const hUrl = await fetchImgHotel(hotel);
-      console.log("[DEBUG] fetchImgHotel →", { hotel, hUrl });
       if (hUrl) { setField("imgfundo", hUrl); return; }
     }
     const url = await fetchImgFundo(destino);
-    console.log("[DEBUG] fetchImgFundo →", { destino, url });
-    if (url) {
-      console.log("[DEBUG] setField imgfundo =", url);
-      setField("imgfundo", url);
-    } else {
-      console.warn("[DEBUG] fetchImgFundo retornou null pra", destino);
-    }
+    if (url) setField("imgfundo", url);
   }
-  async function onHotelBlur() {
-    const hotel = values.hotel?.trim();
+  async function onHotelBlur(override?: string) {
+    const hotel = (override ?? values.hotel)?.trim();
     if (!hotel) return;
     const hUrl = await fetchImgHotel(hotel);
     if (hUrl) { setField("imgfundo", hUrl); return; }
@@ -529,8 +516,8 @@ export default function PublicarPage() {
       if (dUrl) setField("imgfundo", dUrl);
     }
   }
-  async function onNavioBlur() {
-    const navio = values.navio?.trim();
+  async function onNavioBlur(override?: string) {
+    const navio = (override ?? values.navio)?.trim();
     if (!navio) return;
     const url = await fetchImgCruise(navio);
     if (url) setField("imgfundo", url);
@@ -682,22 +669,6 @@ export default function PublicarPage() {
   const width = currentTemplate?.width ?? defW;
   const height = currentTemplate?.height ?? defH;
   const schema: EditorSchema = currentTemplate?.schema ?? { elements: [], background: "#0E1520", duration: 5 };
-
-  // Debug: o que o PreviewStage está recebendo
-  console.log("[DEBUG] render/PreviewStage props", {
-    hasTemplate: !!currentTemplate,
-    tab, format, width, height,
-    schemaElements: schema.elements.length,
-    values, // todos os campos incluindo imgfundo
-    imgfundoPresent: !!values.imgfundo,
-    imgfundoUrl: values.imgfundo?.slice(0, 80),
-    // Elementos do schema que têm bindParam
-    bindElements: schema.elements.filter((e) => e.bindParam).map((e) => ({
-      type: e.type,
-      bindParam: e.bindParam,
-      hasValueInForm: e.bindParam ? !!values[e.bindParam] : false,
-    })),
-  });
 
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
@@ -1414,7 +1385,8 @@ function Combobox({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  onBlur?: () => void;
+  /** Recebe `freshValue` quando vem de um select da lista (evita stale closure). */
+  onBlur?: (freshValue?: string) => void;
   loader: () => Promise<string[]>;
   placeholder?: string;
 }) {
@@ -1487,7 +1459,8 @@ function Combobox({
     onChange(v);
     setOpen(false);
     setFocused(-1);
-    setTimeout(() => onBlur?.(), 0);
+    // Passa o valor fresco — não depende do closure de `values` do caller
+    setTimeout(() => onBlur?.(v), 0);
   }
 
   function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
