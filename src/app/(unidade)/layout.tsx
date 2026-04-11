@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
 import Sidebar, { UNIDADE_SECTIONS } from "@/components/layout/Sidebar";
+import { useContentProtection } from "@/hooks/useContentProtection";
+import WelcomeTour from "@/components/tour/WelcomeTour";
 
 export default function UnidadeLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,6 +15,8 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(true);
+
+  useContentProtection();
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -63,6 +67,7 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
           <span>{profile?.store?.name || "—"}</span>
         </footer>
       </div>
+      <WelcomeTour role="unidade" />
     </>
   );
 }
