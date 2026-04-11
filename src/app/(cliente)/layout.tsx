@@ -33,7 +33,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
 
   async function handleLogout() {
     try { await supabase.auth.signOut(); } catch (err) { console.error("[Logout]", err); }
-    router.push("/login");
+    window.location.href = "/login";
   }
 
   if (checking) {

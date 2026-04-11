@@ -39,7 +39,7 @@ export default function DashboardLayout({
     } catch (err) {
       console.error("[Logout] exception:", err);
     }
-    router.push("/login");
+    window.location.href = "/login";
   }
 
   if (checking) {

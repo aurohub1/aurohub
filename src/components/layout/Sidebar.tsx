@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Sun, Moon } from "lucide-react";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -404,6 +405,21 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
               {roleBadgeLabel(user.role)}
             </span>
           </div>
+
+          {/* Theme toggle */}
+          <button
+            onClick={() => {
+              const next = theme === "dark" ? "light" : "dark";
+              setTheme(next);
+              localStorage.setItem("ah_theme", next);
+              document.documentElement.setAttribute("data-theme", next);
+              window.dispatchEvent(new CustomEvent("theme-change", { detail: next }));
+            }}
+            title={theme === "dark" ? "Tema claro" : "Tema escuro"}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:bg-[rgba(255,122,26,0.12)] hover:text-[#FF7A1A]"
+          >
+            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
 
           {/* Logout */}
           <button
