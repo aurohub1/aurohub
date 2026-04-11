@@ -29,13 +29,39 @@ interface DataTurismo {
 
 const LS_LEMBRETES = "ah_vendedor_lembretes_v1";
 
-const FALLBACK_QUOTES = [
-  "Cada destino começa com uma decisão.",
-  "Vender viagem é vender memórias.",
-  "Inspire primeiro, venda depois.",
-  "Destinos não se vendem — se sonham.",
-  "Cada post é um convite para sonhar.",
+/** Frases do Augusto Cury — fallback genérico misturado ao pool de segmento. */
+const AUGUSTO_CURY = [
+  "Grandes sonhos exigem grandes atitudes.",
+  "O sucesso não é o destino, é a jornada.",
+  "Quem não treina a mente para superar obstáculos desiste no primeiro problema.",
+  "Seja o protagonista da sua história.",
+  "A mente que se abre a uma nova ideia jamais volta ao seu tamanho original.",
+  "Não tenha medo dos momentos difíceis — o melhor aço é forjado no fogo mais intenso.",
+  "Aprenda a ser feliz com o que você tem enquanto busca o que deseja.",
+  "Pessoas emocionalmente saudáveis transformam obstáculos em degraus.",
+  "Quem tem um porquê suporta qualquer como.",
+  "O maior adversário que você vai enfrentar está dentro de você.",
+  "Treine sua mente como um atleta treina o corpo.",
+  "Cada amanhecer é uma chance de reescrever sua história.",
+  "Inteligência sem emoção é como um carro sem combustível.",
+  "Os mais sábios aprendem com os próprios erros e com os erros dos outros.",
+  "Não espere a tempestade passar — aprenda a dançar na chuva.",
 ];
+
+/**
+ * Mistura o pool de frases: 70% do segmento + 30% Augusto Cury.
+ * Se o segmento não tem frases, cai pra Augusto Cury puro.
+ * Retorna uma frase aleatória do pool misturado.
+ */
+function pickQuote(segmentQuotes: string[] | null): string {
+  if (!segmentQuotes || segmentQuotes.length === 0) {
+    return AUGUSTO_CURY[Math.floor(Math.random() * AUGUSTO_CURY.length)];
+  }
+  // 70% → segmento, 30% → Cury
+  const pickFromSegment = Math.random() < 0.7;
+  const pool = pickFromSegment ? segmentQuotes : AUGUSTO_CURY;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 // Calendário do turismo 2026 — feriados, vésperas e alta temporada relevantes
 const CALENDARIO_TURISMO: DataTurismo[] = [
@@ -80,10 +106,6 @@ function daysUntil(iso: string): number {
 function formatData(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-}
-
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function uid(): string {
@@ -138,20 +160,19 @@ export default function VendedorInicioPage() {
         : allLogs;
       setPostsHoje(filtrados.length);
 
-      // Frase do segmento
+      // Frase: segmento do licensee (vendor_quotes) misturado com Augusto Cury
       let segmentQuotes: string[] | null = null;
       const segmentId = p?.licensee?.segment_id ?? null;
       if (segmentId) {
-        const { data: seg } = await supabase.from("segments").select("quotes").eq("id", segmentId).single();
-        const arr = (seg as { quotes?: unknown } | null)?.quotes;
+        const { data: seg } = await supabase
+          .from("segments")
+          .select("vendor_quotes")
+          .eq("id", segmentId)
+          .single();
+        const arr = (seg as { vendor_quotes?: unknown } | null)?.vendor_quotes;
         if (Array.isArray(arr) && arr.length > 0) segmentQuotes = arr as string[];
       }
-      if (!segmentQuotes) {
-        const { data: outros } = await supabase.from("segments").select("quotes").eq("name", "Outros").single();
-        const arr = (outros as { quotes?: unknown } | null)?.quotes;
-        if (Array.isArray(arr) && arr.length > 0) segmentQuotes = arr as string[];
-      }
-      setQuote(pickRandom(segmentQuotes ?? FALLBACK_QUOTES));
+      setQuote(pickQuote(segmentQuotes));
 
       // Cidade da store (best-effort — coluna pode não existir)
       let cidade: string | null = null;
