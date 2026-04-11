@@ -35,6 +35,13 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('ah_theme');document.documentElement.setAttribute('data-theme',t||'light');})();`,
+          }}
+        />
+      </head>
       <body
         suppressHydrationWarning
         className="min-h-full flex bg-[var(--bg)] text-[var(--txt)] font-[family-name:var(--font-dm-sans)]"

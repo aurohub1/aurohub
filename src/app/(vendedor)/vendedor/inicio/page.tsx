@@ -200,23 +200,12 @@ export default function VendedorInicioPage() {
         if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code });
       }
 
-      // Notícias do setor — RSS via proxy rss2json (com fallback)
+      // Notícias do setor — API interna que tenta múltiplos feeds com cache
       try {
-        const FEEDS = [
-          "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fabrirviagensbrasil.com.br%2Ffeed%2F&count=5",
-          "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.melhoresdestinosdobrasil.com.br%2Ffeed%2F&count=5",
-        ];
-        for (const url of FEEDS) {
-          try {
-            const rss = await fetch(url);
-            if (!rss.ok) continue;
-            const rd = await rss.json();
-            const items = rd.items as { title: string; link: string }[] | undefined;
-            if (items && items.length > 0) {
-              setNoticias(items.slice(0, 5).map((i) => ({ title: i.title, url: i.link })));
-              break;
-            }
-          } catch { /* tenta próximo */ }
+        const res = await fetch("/api/noticias");
+        if (res.ok) {
+          const items = await res.json();
+          if (items.length) setNoticias(items);
         }
       } catch { /* silencioso */ }
     } catch (err) {
