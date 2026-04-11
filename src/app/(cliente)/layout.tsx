@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
+import { getFeatures } from "@/lib/features";
 import Sidebar, { CLIENTE_SECTIONS } from "@/components/layout/Sidebar";
 
 export default function ClienteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [profile, setProfile] = useState<FullProfile | null>(null);
+  const [features, setFeatures] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
@@ -27,6 +29,8 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         return;
       }
       setProfile(p);
+      const feats = await getFeatures(supabase, p);
+      setFeatures(feats);
       setChecking(false);
     })();
   }, [router]);
@@ -47,6 +51,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         user={{ name: profile?.name || "Cliente", role: "cliente" }}
         onLogout={handleLogout}
         sections={CLIENTE_SECTIONS}
+        activeFeatures={features}
         brandLabel={profile?.licensee?.name || "Central do Cliente"}
       />
       <div className="ml-[220px] flex min-h-dvh flex-1 flex-col">

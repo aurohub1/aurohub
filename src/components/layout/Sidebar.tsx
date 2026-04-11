@@ -12,12 +12,16 @@ interface SidebarProps {
   onLogout: () => void;
   sections?: NavSection[];
   brandLabel?: string;
+  /** Features ativas para o usuário. Itens com `feature` fora deste set são ocultados. */
+  activeFeatures?: Set<string>;
 }
 
 export interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  /** Se definida, o item só aparece quando a feature estiver ativa para o usuário. */
+  feature?: string;
 }
 
 export interface NavSection {
@@ -229,10 +233,10 @@ export const CLIENTE_SECTIONS: NavSection[] = [
     title: "Gestão",
     items: [
       { label: "Início", href: "/cliente/inicio", icon: I.home },
-      { label: "Templates", href: "/cliente/templates", icon: I.templates },
-      { label: "Unidades", href: "/cliente/unidades", icon: I.stores },
-      { label: "Usuários", href: "/cliente/usuarios", icon: I.users },
-      { label: "Métricas", href: "/cliente/metricas", icon: I.metrics },
+      { label: "Templates", href: "/cliente/templates", icon: I.templates, feature: "templates" },
+      { label: "Unidades", href: "/cliente/unidades", icon: I.stores, feature: "unidades" },
+      { label: "Usuários", href: "/cliente/usuarios", icon: I.users, feature: "usuarios" },
+      { label: "Métricas", href: "/cliente/metricas", icon: I.metrics, feature: "metricas" },
     ],
   },
   {
@@ -248,9 +252,9 @@ export const UNIDADE_SECTIONS: NavSection[] = [
     title: "Operação",
     items: [
       { label: "Início", href: "/unidade/inicio", icon: I.home },
-      { label: "Publicar", href: "/unidade/publicar", icon: I.publish },
-      { label: "Templates", href: "/unidade/templates", icon: I.templates },
-      { label: "Vendedores", href: "/unidade/vendedores", icon: I.vendors },
+      { label: "Publicar", href: "/unidade/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Templates", href: "/unidade/templates", icon: I.templates, feature: "templates" },
+      { label: "Vendedores", href: "/unidade/vendedores", icon: I.vendors, feature: "vendedores" },
     ],
   },
   {
@@ -266,9 +270,9 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     title: "Minhas atividades",
     items: [
       { label: "Início", href: "/vendedor/inicio", icon: I.home },
-      { label: "Publicar", href: "/vendedor/publicar", icon: I.publish },
-      { label: "Calendário", href: "/vendedor/calendario", icon: I.calendar },
-      { label: "Lembretes", href: "/vendedor/lembretes", icon: I.bell },
+      { label: "Publicar", href: "/vendedor/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Calendário", href: "/vendedor/calendario", icon: I.calendar, feature: "calendario" },
+      { label: "Lembretes", href: "/vendedor/lembretes", icon: I.bell, feature: "lembretes" },
     ],
   },
 ];
@@ -290,8 +294,16 @@ function roleBadgeLabel(role: string): string {
 
 /* ── Component ───────────────────────────────────── */
 
-export default function Sidebar({ activePath, user, onLogout, sections, brandLabel }: SidebarProps) {
-  const navSections = sections ?? ADM_SECTIONS;
+export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures }: SidebarProps) {
+  const rawSections = sections ?? ADM_SECTIONS;
+  const navSections = activeFeatures
+    ? rawSections
+        .map((section) => ({
+          ...section,
+          items: section.items.filter((item) => !item.feature || activeFeatures.has(item.feature)),
+        }))
+        .filter((section) => section.items.length > 0)
+    : rawSections;
   const label = brandLabel ?? "Central ADM";
   const initial = user.name.charAt(0).toUpperCase();
   const [theme, setTheme] = useState<"dark" | "light">("dark");

@@ -3,6 +3,14 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import {
+  ALL_FEATURES,
+  FEATURE_LABELS,
+  planDefaultFeatures,
+  getLicenseeOverrides,
+  saveLicenseeOverrides,
+  type Feature,
+} from "@/lib/features";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -12,12 +20,12 @@ interface Licensee {
   logo_url: string | null;
 }
 interface Segment { id: string; name: string; icon: string | null; }
-interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; }
+interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; }
 interface Store { id: string; licensee_id: string; name: string; ig_user_id: string | null; }
 interface Profile { id: string; licensee_id: string | null; store_id: string | null; name: string | null; status: string; }
 
 type TabFilter = "" | "active" | "inactive";
-type ModalTab = "dados" | "plano" | "lojas";
+type ModalTab = "dados" | "plano" | "lojas" | "features";
 
 const PLAN_COLORS: Record<string, { color: string; label: string }> = {
   basic: { color: "#64748b", label: "Essencial" },
@@ -51,6 +59,8 @@ export default function ClientesPage() {
   const [uploading, setUploading] = useState(false);
   const [modalError, setModalError] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
+  /** Overrides carregadas. `undefined` = segue o padrão do plano. */
+  const [featureOverrides, setFeatureOverrides] = useState<Partial<Record<Feature, boolean>>>({});
 
   // View stores modal
   const [viewStoresId, setViewStoresId] = useState<string | null>(null);
@@ -77,7 +87,7 @@ export default function ClientesPage() {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
         supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
-        supabase.from("plans").select("slug, name, price_monthly, is_internal"),
+        supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
         supabase.from("profiles").select("id, licensee_id, store_id, name, status"),
       ]);
@@ -121,6 +131,7 @@ export default function ClientesPage() {
     setEditingId(null);
     setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "" });
     setFormStores([{ name: "", ig_user_id: "" }]);
+    setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
   }
 
@@ -129,6 +140,8 @@ export default function ClientesPage() {
     setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
+    setFeatureOverrides({});
+    getLicenseeOverrides(supabase, l.id).then(setFeatureOverrides).catch(() => setFeatureOverrides({}));
     setModalTab("dados"); setModalError(""); setModalOpen(true);
   }
 
@@ -146,6 +159,7 @@ export default function ClientesPage() {
         payload.expires_at = form.expires_at;
       }
 
+      let persistedId: string | null = null;
       if (editingId) {
         const { error } = await supabase.from("licensees").update(payload).eq("id", editingId);
         if (error) { setModalError(error.message); return; }
@@ -158,16 +172,23 @@ export default function ClientesPage() {
             }
           }
         }
+        persistedId = editingId;
       } else {
         const { data, error } = await supabase.from("licensees").insert(payload).select("id").single();
         if (error) { setModalError(error.message.includes("duplicate") ? "Email já cadastrado." : error.message); return; }
         if (data) {
+          persistedId = (data as { id: string }).id;
           for (const fs of formStores) {
             if (fs.name.trim()) {
-              await supabase.from("stores").insert({ licensee_id: data.id, name: fs.name.trim(), ig_user_id: fs.ig_user_id.trim() || null });
+              await supabase.from("stores").insert({ licensee_id: persistedId, name: fs.name.trim(), ig_user_id: fs.ig_user_id.trim() || null });
             }
           }
         }
+      }
+      // Salva overrides de features
+      if (persistedId) {
+        try { await saveLicenseeOverrides(supabase, persistedId, featureOverrides); }
+        catch (err) { console.error("[features overrides save]", err); }
       }
       setModalOpen(false); await loadData();
     } catch { setModalError("Erro ao salvar."); } finally { setSaving(false); }
@@ -520,9 +541,9 @@ export default function ClientesPage() {
 
             {/* Tabs */}
             <div className="flex border-b border-[var(--bdr)] px-6">
-              {(["dados", "plano", "lojas"] as ModalTab[]).map((t) => (
+              {(["dados", "plano", "lojas", "features"] as ModalTab[]).map((t) => (
                 <button key={t} onClick={() => setModalTab(t)} className={`border-b-2 px-4 py-2.5 text-[12px] font-medium transition-colors ${modalTab === t ? "border-[var(--txt)] text-[var(--txt)]" : "border-transparent text-[var(--txt3)] hover:text-[var(--txt2)]"}`}>
-                  {t === "dados" ? "Dados" : t === "plano" ? "Plano" : "Lojas"}
+                  {t === "dados" ? "Dados" : t === "plano" ? "Plano" : t === "lojas" ? "Lojas" : "Features"}
                 </button>
               ))}
             </div>
@@ -612,6 +633,15 @@ export default function ClientesPage() {
                     </>
                   )}
                 </div>
+              )}
+
+              {modalTab === "features" && (
+                <FeaturesPanel
+                  planSlug={form.plan}
+                  plans={plans}
+                  overrides={featureOverrides}
+                  onChange={setFeatureOverrides}
+                />
               )}
 
               {modalTab === "lojas" && (
@@ -952,6 +982,124 @@ function Field({ label, value, onChange, placeholder, type }: { label: string; v
     <div>
       <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">{label}</label>
       <input type={type ?? "text"} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
+    </div>
+  );
+}
+
+/* ── Painel de Features ──────────────────────────── */
+
+function FeaturesPanel({
+  planSlug,
+  plans,
+  overrides,
+  onChange,
+}: {
+  planSlug: string;
+  plans: Plan[];
+  overrides: Partial<Record<Feature, boolean>>;
+  onChange: (next: Partial<Record<Feature, boolean>>) => void;
+}) {
+  const plan = plans.find((p) => p.slug === planSlug);
+  const defaults = planDefaultFeatures({
+    slug: plan?.slug ?? "",
+    name: plan?.name ?? "",
+    max_posts_day: 0,
+    can_metrics: !!plan?.can_metrics,
+    can_schedule: !!plan?.can_schedule,
+    can_print: false,
+    can_ia_legenda: !!plan?.can_ia_legenda,
+    is_enterprise: false,
+  });
+
+  function setFeature(f: Feature, next: boolean | undefined) {
+    const copy: Partial<Record<Feature, boolean>> = { ...overrides };
+    if (next === undefined) delete copy[f];
+    else copy[f] = next;
+    onChange(copy);
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[11px] text-[var(--txt3)]">
+        <span className="font-bold text-[var(--txt2)]">Padrão do plano</span> define o estado inicial.
+        Marque <span className="font-bold">Ativar</span> ou <span className="font-bold">Bloquear</span> para sobrescrever.
+        O botão <span className="font-bold">Default</span> remove a override e volta ao plano.
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {ALL_FEATURES.map((f) => {
+          const def = defaults.has(f);
+          const override = overrides[f];
+          const effective = override === undefined ? def : override;
+          return (
+            <div
+              key={f}
+              className="flex items-center justify-between gap-3 rounded-lg border border-[var(--bdr)] px-3 py-2.5"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-[13px] font-semibold text-[var(--txt)]">
+                    {FEATURE_LABELS[f]}
+                  </span>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase"
+                    style={
+                      effective
+                        ? { background: "var(--green3)", color: "var(--green)" }
+                        : { background: "var(--red3)", color: "var(--red)" }
+                    }
+                  >
+                    {effective ? "ON" : "OFF"}
+                  </span>
+                  {override !== undefined && (
+                    <span className="rounded-full bg-[var(--blue3)] px-2 py-0.5 text-[9px] font-bold uppercase text-[var(--blue)]">
+                      Override
+                    </span>
+                  )}
+                </div>
+                <div className="mt-0.5 text-[10px] text-[var(--txt3)]">
+                  Padrão do plano: {def ? "Ativo" : "Inativo"} · Código: <code>{f}</code>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setFeature(f, true)}
+                  className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    override === true
+                      ? "border-[var(--green)] bg-[var(--green3)] text-[var(--green)]"
+                      : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt2)]"
+                  }`}
+                >
+                  Ativar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeature(f, false)}
+                  className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    override === false
+                      ? "border-[var(--red)] bg-[var(--red3)] text-[var(--red)]"
+                      : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt2)]"
+                  }`}
+                >
+                  Bloquear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeature(f, undefined)}
+                  className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    override === undefined
+                      ? "border-[var(--txt2)] text-[var(--txt)]"
+                      : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt2)]"
+                  }`}
+                >
+                  Default
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
