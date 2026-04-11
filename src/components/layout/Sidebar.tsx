@@ -271,6 +271,7 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/vendedor/inicio", icon: I.home },
       { label: "Publicar", href: "/vendedor/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Templates", href: "/vendedor/templates", icon: I.templates, feature: "templates" },
       { label: "Calendário", href: "/vendedor/calendario", icon: I.calendar, feature: "calendario" },
       { label: "Lembretes", href: "/vendedor/lembretes", icon: I.bell, feature: "lembretes" },
     ],
