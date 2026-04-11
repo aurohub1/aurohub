@@ -14,6 +14,8 @@ interface SidebarProps {
   brandLabel?: string;
   /** Features ativas para o usuário. Itens com `feature` fora deste set são ocultados. */
   activeFeatures?: Set<string>;
+  /** Slot opcional renderizado entre o menu e a barra de usuário (relógio, clima, etc). */
+  extraPanel?: React.ReactNode;
 }
 
 export interface NavItem {
@@ -307,7 +309,7 @@ function roleBadgeLabel(role: string): string {
 
 /* ── Component ───────────────────────────────────── */
 
-export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures }: SidebarProps) {
+export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel }: SidebarProps) {
   const rawSections = sections ?? ADM_SECTIONS;
   const navSections = activeFeatures
     ? rawSections
@@ -411,6 +413,13 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
           </div>
         ))}
       </nav>
+
+      {/* ── Slot opcional (relógio/clima/contador) ── */}
+      {extraPanel && (
+        <div className="shrink-0 border-t border-[var(--bdr)]">
+          {extraPanel}
+        </div>
+      )}
 
       {/* ── Footer ──────────────────────────────── */}
       <div className="shrink-0 border-t border-[var(--bdr)] px-3 py-3">

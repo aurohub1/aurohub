@@ -5,10 +5,11 @@ import dynamic from "next/dynamic";
 import type Konva from "konva";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
+import { getFeatures } from "@/lib/features";
 import type { EditorSchema } from "@/components/editor/types";
 import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
-  Image as ImageIcon, Search as SearchIcon,
+  Image as ImageIcon, Search as SearchIcon, ChevronDown,
 } from "lucide-react";
 
 const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
@@ -35,9 +36,22 @@ interface StoreOption { id: string; name: string; }
 interface PlanLimits {
   slug: string;
   max_posts_day: number;
+  max_feed_reels_day: number | null;
+  max_stories_day: number | null;
   can_schedule: boolean;
   can_ia_legenda: boolean;
+  is_enterprise: boolean;
 }
+
+/** Derivado do PlanLimits — limite por formato ou null=escondido. */
+interface FormatLimits {
+  stories: number | null; // null = ilimitado (mas visível)
+  feed: number | null;
+  reels: number | null;
+  tv: number | null;
+}
+/** Null pra "escondido" (plano não libera). */
+type FormatVisibility = Record<Format, boolean>;
 
 interface PostsByFormat { stories: number; feed: number; reels: number; tv: number; }
 
@@ -112,6 +126,24 @@ function slugify(s: string): string {
   return s.toLowerCase().trim().replace(/\s+/g, "_");
 }
 
+/** YYYY-MM-DD de hoje (horário local) */
+function todayISO(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Calcula noites entre 2 datas YYYY-MM-DD (Volta - Ida). */
+function calcNoites(ida: string, volta: string): number {
+  if (!ida || !volta) return 0;
+  const a = new Date(ida + "T00:00:00");
+  const b = new Date(volta + "T00:00:00");
+  const diff = Math.round((b.getTime() - a.getTime()) / 86400000);
+  return diff > 0 ? diff : 0;
+}
+
 /* ── Component principal ─────────────────────────── */
 
 export default function PublicarPage() {
@@ -151,6 +183,36 @@ export default function PublicarPage() {
   // Daily counter
   const [postsByFormat, setPostsByFormat] = useState<PostsByFormat>({ stories: 0, feed: 0, reels: 0, tv: 0 });
   const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
+  const [features, setFeatures] = useState<Set<string>>(new Set());
+
+  // Limites e visibilidade por formato derivados do plano
+  const formatLimits = useMemo<FormatLimits>(() => {
+    if (!planLimits) return { stories: null, feed: null, reels: null, tv: null };
+    const fr = planLimits.max_feed_reels_day ?? 0;
+    const st = planLimits.max_stories_day ?? 0;
+    return {
+      // stories: 99 = ilimitado (convenção herdada do schema); null aqui = sem barra de limite
+      stories: st >= 99 ? null : st,
+      feed:  fr > 0 ? fr : 0,
+      reels: fr > 0 ? fr : 0,
+      tv:    planLimits.is_enterprise ? (planLimits.max_posts_day || 999) : 0,
+    };
+  }, [planLimits]);
+
+  const formatVisible = useMemo<FormatVisibility>(() => {
+    if (!planLimits) return { stories: true, feed: true, reels: true, tv: false };
+    return {
+      stories: (planLimits.max_stories_day ?? 0) !== 0,
+      feed:    (planLimits.max_feed_reels_day ?? 0) > 0,
+      reels:   (planLimits.max_feed_reels_day ?? 0) > 0,
+      tv:      !!planLimits.is_enterprise,
+    };
+  }, [planLimits]);
+
+  // Feature "publicar" — se ausente, esconde botão de publicar IG
+  const canPublishFeature = features.has("publicar");
+  // "drive" ainda não é feature liberada — mantemos hardcode false
+  const canDriveFeature = features.has("drive");
 
   // Publish status
   const [status, setStatus] = useState<PublishStatus>("idle");
@@ -250,16 +312,22 @@ export default function PublicarPage() {
       setPublishTargets(targets);
       setSelectedTargetIds(targets.length > 0 ? [targets[0].id] : []);
 
-      // Plano
+      // Plano completo (limites por formato)
       const slug = p.plan?.slug || p.licensee?.plan_slug || p.licensee?.plan;
       if (slug) {
         const { data: plan } = await supabase
           .from("plans")
-          .select("slug, max_posts_day, can_schedule, can_ia_legenda")
+          .select("slug, max_posts_day, max_feed_reels_day, max_stories_day, can_schedule, can_ia_legenda, is_enterprise")
           .eq("slug", slug)
           .single();
         if (plan) setPlanLimits(plan as PlanLimits);
       }
+
+      // Features ativas para o licensee (override do ADM)
+      try {
+        const feats = await getFeatures(supabase, p);
+        setFeatures(feats);
+      } catch { /* noop */ }
 
       // Daily counter (via primeira store selecionada)
       if (targets[0]) await loadDailyCount(targets[0].id);
@@ -357,6 +425,69 @@ export default function PublicarPage() {
     setBadgeCache((c) => ({ ...c, [tab]: { ...c[tab], [name]: v } }));
   }
 
+  /** V1: ao mudar ida, volta = max(volta, ida); ao mudar volta, se < ida, força = ida. */
+  function setDateIda(v: string) {
+    setFormCache((c) => {
+      const cur: Record<string, string> = c[tab];
+      const next: Record<string, string> = { ...cur, dataida: v };
+      if (cur.datavolta && cur.datavolta < v) next.datavolta = v;
+      return { ...c, [tab]: next };
+    });
+  }
+  /** Data Volta: só salva raw — validação acontece no onBlur. */
+  function setDateVolta(v: string) {
+    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], datavolta: v } }));
+  }
+  /** onBlur da Volta: se for data válida e menor que ida, força = ida. */
+  function blurDateVolta() {
+    setFormCache((c) => {
+      const cur: Record<string, string> = c[tab];
+      const volta = cur.datavolta || "";
+      const ida = cur.dataida || "";
+      if (!volta || !ida) return c;
+      // Aceita apenas strings YYYY-MM-DD completas (evita correção durante digitação parcial)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(volta)) return c;
+      if (volta < ida) {
+        return { ...c, [tab]: { ...cur, datavolta: ida } };
+      }
+      return c;
+    });
+  }
+
+  function setDateInicio(v: string) {
+    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], inicio: v } }));
+  }
+  /** Data Fim (Anoiteceu): só salva raw — validação no onBlur. */
+  function setDateFim(v: string) {
+    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], fim: v } }));
+  }
+  function blurDateFim() {
+    setFormCache((c) => {
+      const cur: Record<string, string> = c[tab];
+      const fim = cur.fim || "";
+      const ini = cur.inicio || "";
+      if (!fim || !ini) return c;
+      // datetime-local vem como YYYY-MM-DDTHH:MM
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(fim)) return c;
+      if (fim < ini) {
+        return { ...c, [tab]: { ...cur, fim: ini } };
+      }
+      return c;
+    });
+  }
+
+  // Noites calculado (readonly) — sincroniza no cache sempre que ida/volta mudam
+  useEffect(() => {
+    const n = calcNoites(values.dataida || "", values.datavolta || "");
+    const key = String(n || "");
+    if (values.noites !== key) {
+      setFormCache((c) => ({ ...c, [tab]: { ...c[tab], noites: key } }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.dataida, values.datavolta, tab]);
+
+  const hoje = todayISO();
+
   async function onDestinoBlur() {
     const destino = values.destino?.trim();
     if (!destino) return;
@@ -453,10 +584,10 @@ export default function PublicarPage() {
   async function handlePublish() {
     if (!profile?.licensee_id) { setStatus("error"); setStatusMsg("Sem licensee"); return; }
     if (selectedTargetIds.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
-    // Checa limite diário
-    const limiteFormat = planLimits?.max_posts_day ?? 0;
+    // Checa limite diário do formato atual (derivado do plano)
+    const limiteFormat = formatLimits[format];
     const usado = postsByFormat[format] || 0;
-    if (limiteFormat > 0 && usado >= limiteFormat && format !== "stories") {
+    if (limiteFormat !== null && limiteFormat > 0 && usado >= limiteFormat) {
       setStatus("error");
       setStatusMsg(`Limite diário de ${format} atingido (${usado}/${limiteFormat})`);
       return;
@@ -538,28 +669,60 @@ export default function PublicarPage() {
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr]">
       {/* ═══ COLUNA ESQUERDA — FORM ═══ */}
-      <div className="card-glass flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden">
-        {/* Tabs */}
-        <div className="flex shrink-0 flex-wrap border-b border-[var(--bdr)] px-3 pt-3">
-          {FORM_ORDER.map((f) => {
-            const active = tab === f;
-            return (
-              <button
-                key={f}
-                onClick={() => setTab(f)}
-                className="px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors"
-                style={
-                  active
-                    ? { color: "#D4A843", borderBottom: "2px solid #D4A843" }
-                    : { color: "var(--txt3)", borderBottom: "2px solid transparent" }
-                }
-              >
-                {FORM_LABELS[f]}
-              </button>
-            );
-          })}
+      <div
+        className="flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden rounded-2xl border border-[var(--bdr)] shadow-xl"
+        style={{ background: "var(--bg1)" }}
+      >
+        {/* Header */}
+        <div className="shrink-0 border-b border-[var(--bdr)] px-5 pt-5 pb-4">
+          <h1 className="truncate font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-tight text-[var(--txt)]">
+            {profile?.store?.name || profile?.licensee?.name || "Minha unidade"}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span
+              className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em]"
+              style={{ background: "rgba(255,122,26,0.14)", color: "#FF7A1A" }}
+            >
+              {FORMAT_LABELS[format]}
+            </span>
+            <span
+              className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em]"
+              style={{ background: "var(--bg2)", color: "var(--txt2)" }}
+            >
+              {FORM_LABELS[tab]}
+            </span>
+          </div>
+        </div>
+
+        {/* Tabs — linha única, sem quebra */}
+        <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-2">
+          <div className="flex flex-nowrap items-center gap-0.5" style={{ whiteSpace: "nowrap" }}>
+            {FORM_ORDER.map((f) => {
+              const active = tab === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setTab(f)}
+                  className="flex h-7 flex-1 items-center justify-center whitespace-nowrap rounded-full px-2 text-[10px] font-semibold transition-all"
+                  style={
+                    active
+                      ? { background: "#FF7A1A", color: "#FFFFFF", boxShadow: "0 2px 6px rgba(255,122,26,0.35)" }
+                      : { background: "transparent", color: "var(--txt2)" }
+                  }
+                  onMouseEnter={(e) => {
+                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt2)";
+                  }}
+                >
+                  {FORM_LABELS[f]}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Scroll dos campos */}
@@ -575,142 +738,205 @@ export default function PublicarPage() {
 
           {currentTemplate && (
             <div className="flex flex-col gap-4">
-              {tab === "pacote" || tab === "campanha" ? (
+              {(tab === "pacote" || tab === "campanha") && (
                 <>
-                  <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", v.toUpperCase())} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
-                  <Row2>
-                    <Field label="Saída">
-                      <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} placeholder="Guarulhos" />
+                  <Section title="Destino & Saída">
+                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", v.toUpperCase())} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
+                    <Row2>
+                      <Field label="Saída">
+                        <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} placeholder="Guarulhos" />
+                      </Field>
+                      <Field label="Tipo de voo">
+                        <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
+                      </Field>
+                    </Row2>
+                  </Section>
+
+                  <Section title="Datas">
+                    <Row2>
+                      <Field label="Data ida">
+                        <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
+                      </Field>
+                      <Field label="Data volta">
+                        <DateInput value={values.datavolta || ""} min={hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
+                      </Field>
+                    </Row2>
+                    {values.noites && parseInt(values.noites) > 0 && (
+                      <div className="text-[10px] text-[var(--txt3)]">
+                        Duração: <span className="font-bold text-[var(--txt2)]">{values.noites} noite{parseInt(values.noites) === 1 ? "" : "s"}</span>
+                      </div>
+                    )}
+                    <Field label="Feriado">
+                      <Select value={values.feriado || ""} onChange={(v) => setField("feriado", v)} options={["", ...FERIADOS_FIXOS]} />
                     </Field>
-                    <Field label="Tipo de voo">
-                      <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
-                    </Field>
-                  </Row2>
-                  <Row2>
-                    <Field label="Data ida"><DateInput value={values.dataida || ""} onChange={(v) => setField("dataida", v)} /></Field>
-                    <Field label="Data volta">
-                      <DateInput value={values.datavolta || ""} min={values.dataida} onChange={(v) => setField("datavolta", v)} />
-                    </Field>
-                  </Row2>
-                  <Field label="Feriado">
-                    <Select value={values.feriado || ""} onChange={(v) => setField("feriado", v)} options={["", ...FERIADOS_FIXOS]} />
-                  </Field>
-                  <Combobox label="Hotel" value={values.hotel || ""} onChange={(v) => setField("hotel", v)} onBlur={onHotelBlur} loader={loadHoteis} placeholder="Nome do hotel" />
-                  <ServicosBlock values={values} setField={setField} count={6} />
-                  <div>
-                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Selos</label>
+                  </Section>
+
+                  <Section title="Hotel">
+                    <Combobox label="Nome do hotel" value={values.hotel || ""} onChange={(v) => setField("hotel", v)} onBlur={onHotelBlur} loader={loadHoteis} placeholder="Nome do hotel" />
+                  </Section>
+
+                  <Section title="Serviços inclusos" defaultOpen={false}>
+                    <ServicosBlock values={values} setField={setField} count={6} />
+                  </Section>
+
+                  <Section title="Selos" defaultOpen={false}>
                     <div className="grid grid-cols-3 gap-1.5">
                       <BadgeBtn label="Última chamada" on={!!badges.ultima_chamada_badge} onClick={() => setBadge("ultima_chamada_badge", !badges.ultima_chamada_badge)} />
                       <BadgeBtn label="Últimos lugares" on={!!badges.ultimos_lugares_badge} onClick={() => setBadge("ultimos_lugares_badge", !badges.ultimos_lugares_badge)} />
                       <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
                     </div>
-                  </div>
-                  <Field label="Forma de pagamento">
-                    <Select value={values.formapagamento || ""} onChange={(v) => setField("formapagamento", v)} options={["", ...FORMA_PGTO_OPTS]} />
-                  </Field>
-                  <Row2>
-                    <Field label="Parcelas">
-                      <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
+                  </Section>
+
+                  <Section title="Pagamento">
+                    <Field label="Forma de pagamento">
+                      <Select
+                        value={values.formapagamento || FORMA_PGTO_OPTS[0]}
+                        onChange={(v) => setField("formapagamento", v)}
+                        options={FORMA_PGTO_OPTS}
+                      />
                     </Field>
-                    <Field label="Valor parcela">
-                      <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
-                    </Field>
-                  </Row2>
-                  <Row2>
-                    <Field label="% Desconto">
-                      <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
-                    </Field>
-                    <Field label="Total">
-                      <TextInput value={values.totalduplo || ""} inputMode="decimal" onChange={(v) => setField("totalduplo", v)} placeholder="R$ 0,00" />
-                    </Field>
-                  </Row2>
+                    <Row2>
+                      <Field label="Parcelas">
+                        <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
+                      </Field>
+                      <Field label="Valor parcela">
+                        <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                      </Field>
+                    </Row2>
+                    <Row2>
+                      <Field label="% Desconto">
+                        <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
+                      </Field>
+                      <Field label="Total">
+                        <TextInput value={values.totalduplo || ""} inputMode="decimal" onChange={(v) => setField("totalduplo", v)} placeholder="R$ 0,00" />
+                      </Field>
+                    </Row2>
+                  </Section>
                 </>
-              ) : null}
+              )}
 
               {tab === "passagem" && (
                 <>
-                  <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", v.toUpperCase())} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: LISBOA" />
-                  <Row2>
-                    <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} placeholder="Guarulhos" /></Field>
-                    <Field label="Tipo de voo">
-                      <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
-                    </Field>
-                  </Row2>
-                  <Row2>
-                    <Field label="Data ida"><DateInput value={values.dataida || ""} onChange={(v) => setField("dataida", v)} /></Field>
-                    <Field label="Data volta"><DateInput value={values.datavolta || ""} min={values.dataida} onChange={(v) => setField("datavolta", v)} /></Field>
-                  </Row2>
-                  <ServicosBlock values={values} setField={setField} count={3} />
-                  <Row2>
-                    <Field label="Parcelas">
-                      <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
-                    </Field>
-                    <Field label="Valor parcela">
-                      <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
-                    </Field>
-                  </Row2>
+                  <Section title="Destino & Saída">
+                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", v.toUpperCase())} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: LISBOA" />
+                    <Row2>
+                      <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} placeholder="Guarulhos" /></Field>
+                      <Field label="Tipo de voo">
+                        <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
+                      </Field>
+                    </Row2>
+                  </Section>
+                  <Section title="Datas">
+                    <Row2>
+                      <Field label="Data ida">
+                        <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
+                      </Field>
+                      <Field label="Data volta">
+                        <DateInput value={values.datavolta || ""} min={hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
+                      </Field>
+                    </Row2>
+                  </Section>
+                  <Section title="Serviços inclusos" defaultOpen={false}>
+                    <ServicosBlock values={values} setField={setField} count={3} />
+                  </Section>
+                  <Section title="Pagamento">
+                    <Row2>
+                      <Field label="Parcelas">
+                        <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
+                      </Field>
+                      <Field label="Valor parcela">
+                        <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                      </Field>
+                    </Row2>
+                  </Section>
                 </>
               )}
 
               {tab === "cruzeiro" && (
                 <>
-                  <Combobox label="Navio *" value={values.navio || ""} onChange={(v) => setField("navio", v)} onBlur={onNavioBlur} loader={loadNavios} placeholder="Ex.: COSTA DELICIOZA" />
-                  <Row2>
-                    <Field label="Embarque"><DateInput value={values.dataida || ""} onChange={(v) => setField("dataida", v)} /></Field>
-                    <Field label="Desembarque"><DateInput value={values.datavolta || ""} min={values.dataida} onChange={(v) => setField("datavolta", v)} /></Field>
-                  </Row2>
-                  <Field label="Itinerário">
-                    <TextArea value={values.itinerario || ""} onChange={(v) => setField("itinerario", v)} rows={3} placeholder="Porto de Santos → Rio → Ilhabela..." />
-                  </Field>
-                  <Field label="Incluso (opcional)">
-                    <TextArea value={values.incluso || ""} onChange={(v) => setField("incluso", v)} rows={2} />
-                  </Field>
-                  <Field label="Forma de pagamento">
-                    <Select value={values.formapagamento || ""} onChange={(v) => setField("formapagamento", v)} options={["", ...FORMA_PGTO_OPTS]} />
-                  </Field>
-                  <Row2>
-                    <Field label="Parcelas">
-                      <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
+                  <Section title="Navio">
+                    <Combobox label="Nome do navio *" value={values.navio || ""} onChange={(v) => setField("navio", v)} onBlur={onNavioBlur} loader={loadNavios} placeholder="Ex.: COSTA DELICIOZA" />
+                  </Section>
+                  <Section title="Datas">
+                    <Row2>
+                      <Field label="Embarque">
+                        <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
+                      </Field>
+                      <Field label="Desembarque">
+                        <DateInput value={values.datavolta || ""} min={hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
+                      </Field>
+                    </Row2>
+                    {values.noites && parseInt(values.noites) > 0 && (
+                      <div className="text-[10px] text-[var(--txt3)]">
+                        Duração: <span className="font-bold text-[var(--txt2)]">{values.noites} noite{parseInt(values.noites) === 1 ? "" : "s"}</span>
+                      </div>
+                    )}
+                  </Section>
+                  <Section title="Itinerário">
+                    <Field label="Roteiro">
+                      <TextArea value={values.itinerario || ""} onChange={(v) => setField("itinerario", v)} rows={3} placeholder="Porto de Santos → Rio → Ilhabela..." />
                     </Field>
-                    <Field label="Valor parcela">
-                      <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                    <Field label="Incluso (opcional)">
+                      <TextArea value={values.incluso || ""} onChange={(v) => setField("incluso", v)} rows={2} />
                     </Field>
-                  </Row2>
-                  <Row2>
-                    <Field label="% Desconto">
-                      <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
+                  </Section>
+                  <Section title="Pagamento">
+                    <Field label="Forma de pagamento">
+                      <Select
+                        value={values.formapagamento || FORMA_PGTO_OPTS[0]}
+                        onChange={(v) => setField("formapagamento", v)}
+                        options={FORMA_PGTO_OPTS}
+                      />
                     </Field>
-                    <Field label="Total cruzeiro">
-                      <TextInput value={values.totalcruzeiro || ""} inputMode="decimal" onChange={(v) => setField("totalcruzeiro", v)} placeholder="R$ 0,00" />
-                    </Field>
-                  </Row2>
+                    <Row2>
+                      <Field label="Parcelas">
+                        <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
+                      </Field>
+                      <Field label="Valor parcela">
+                        <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                      </Field>
+                    </Row2>
+                    <Row2>
+                      <Field label="% Desconto">
+                        <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
+                      </Field>
+                      <Field label="Total cruzeiro">
+                        <TextInput value={values.totalcruzeiro || ""} inputMode="decimal" onChange={(v) => setField("totalcruzeiro", v)} placeholder="R$ 0,00" />
+                      </Field>
+                    </Row2>
+                  </Section>
                 </>
               )}
 
               {tab === "anoiteceu" && (
                 <>
-                  <Field label="% Desconto">
-                    <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS.slice(1)} />
-                  </Field>
-                  <Row2>
-                    <Field label="Início">
-                      <input
-                        type="datetime-local" value={values.inicio || ""}
-                        onChange={(e) => setField("inicio", e.target.value)}
-                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
-                      />
+                  <Section title="Promoção">
+                    <Field label="% Desconto">
+                      <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS.slice(1)} />
                     </Field>
-                    <Field label="Fim">
-                      <input
-                        type="datetime-local" value={values.fim || ""}
-                        onChange={(e) => setField("fim", e.target.value)}
-                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
-                      />
+                  </Section>
+                  <Section title="Período da campanha">
+                    <Row2>
+                      <Field label="Início">
+                        <input
+                          type="datetime-local" value={values.inicio || ""}
+                          onChange={(e) => setDateInicio(e.target.value)}
+                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+                        />
+                      </Field>
+                      <Field label="Fim">
+                        <input
+                          type="datetime-local" value={values.fim || ""}
+                          onChange={(e) => setDateFim(e.target.value)}
+                          onBlur={blurDateFim}
+                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+                        />
+                      </Field>
+                    </Row2>
+                    <Field label="Para viagens até">
+                      <DateInput value={values.paraviagens || ""} min={hoje} onChange={(v) => setField("paraviagens", v)} />
                     </Field>
-                  </Row2>
-                  <Field label="Para viagens até">
-                    <DateInput value={values.paraviagens || ""} onChange={(v) => setField("paraviagens", v)} />
-                  </Field>
+                  </Section>
                 </>
               )}
 
@@ -774,37 +1000,85 @@ export default function PublicarPage() {
               )}
 
               {/* Contador diário */}
-              <DailyCounter posts={postsByFormat} limit={planLimits?.max_posts_day ?? null} current={format} />
+              <DailyCounter
+                posts={postsByFormat}
+                limits={formatLimits}
+                visible={formatVisible}
+                current={format}
+              />
             </div>
           )}
         </div>
 
         {/* Footer com ações */}
         <div className="shrink-0 border-t border-[var(--bdr)] bg-[var(--bg1)] p-3">
-          <div className="mb-2 grid grid-cols-2 gap-1.5">
-            <button
-              onClick={limparFormulario}
-              className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.06)] px-3 py-2 text-[11px] font-semibold text-[#EF4444] transition-colors hover:bg-[rgba(239,68,68,0.12)]"
-            >
-              <Trash2 size={11} /> Limpar
-            </button>
-            <button
-              onClick={handleDownload}
-              disabled={busy || !currentTemplate}
-              className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(34,211,153,0.2)] bg-[rgba(34,211,153,0.06)] px-3 py-2 text-[11px] font-semibold text-[#22D399] transition-colors hover:bg-[rgba(34,211,153,0.12)] disabled:opacity-50"
-            >
-              <Download size={11} /> Download
-            </button>
-          </div>
-          <button
-            onClick={handlePublish}
-            disabled={busy || !currentTemplate}
-            className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
-          >
-            {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            {status === "uploading" ? "Enviando..." : status === "publishing" ? "Publicando..." : "Publicar no Instagram"}
-          </button>
+          {(() => {
+            const limiteAtual = formatLimits[format];
+            const usadoAtual = postsByFormat[format] || 0;
+            const limiteAtingido = limiteAtual !== null && limiteAtual > 0 && usadoAtual >= limiteAtual;
+            const canShowPublish = canPublishFeature && format !== "tv";
+            const cols = 2 + (canDriveFeature ? 1 : 0); // Limpar + Download [+ Drive]
+
+            return (
+              <>
+                <div
+                  className="mb-2 grid gap-1.5"
+                  style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+                >
+                  <button
+                    onClick={limparFormulario}
+                    className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.06)] px-3 py-2 text-[11px] font-semibold text-[#EF4444] transition-colors hover:bg-[rgba(239,68,68,0.12)]"
+                  >
+                    <Trash2 size={11} /> Limpar
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    disabled={busy || !currentTemplate}
+                    className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(34,211,153,0.2)] bg-[rgba(34,211,153,0.06)] px-3 py-2 text-[11px] font-semibold text-[#22D399] transition-colors hover:bg-[rgba(34,211,153,0.12)] disabled:opacity-50"
+                  >
+                    <Download size={11} /> Download
+                  </button>
+                  {canDriveFeature && (
+                    <button
+                      disabled
+                      title="Em breve"
+                      className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(59,130,246,0.2)] bg-[rgba(59,130,246,0.06)] px-3 py-2 text-[11px] font-semibold text-[#60A5FA] opacity-60"
+                    >
+                      📁 Drive
+                    </button>
+                  )}
+                </div>
+                {canShowPublish && (
+                  <button
+                    onClick={handlePublish}
+                    disabled={busy || !currentTemplate || limiteAtingido}
+                    title={limiteAtingido ? `Limite diário atingido (${usadoAtual}/${limiteAtual})` : undefined}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                    style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+                  >
+                    {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    {status === "uploading"
+                      ? "Enviando..."
+                      : status === "publishing"
+                        ? "Publicando..."
+                        : limiteAtingido
+                          ? "Limite atingido"
+                          : "Publicar no Instagram"}
+                  </button>
+                )}
+                {!canPublishFeature && (
+                  <div className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-center text-[10px] text-[var(--txt3)]">
+                    Publicação no Instagram não está ativa no seu plano.
+                  </div>
+                )}
+                {canPublishFeature && format === "tv" && (
+                  <div className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-center text-[10px] text-[var(--txt3)]">
+                    Formato TV é apenas para exibição local — não publica no Instagram.
+                  </div>
+                )}
+              </>
+            );
+          })()}
           {status !== "idle" && (
             <div
               className="mt-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-medium"
@@ -895,6 +1169,41 @@ function Row2({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-2 gap-2">{children}</div>;
 }
 
+function Section({
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="overflow-hidden rounded-xl border border-[var(--bdr)] bg-[var(--bg2)]">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-[var(--hover-bg)]"
+      >
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--txt2)]">
+          {title}
+        </span>
+        <ChevronDown
+          size={13}
+          className="text-[var(--txt3)] transition-transform"
+          style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}
+        />
+      </button>
+      {open && (
+        <div className="flex flex-col gap-3 border-t border-[var(--bdr)] p-3">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TextInput({
   value, onChange, placeholder, inputMode, onBlur,
 }: {
@@ -909,7 +1218,7 @@ function TextInput({
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
       placeholder={placeholder}
-      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
     />
   );
 }
@@ -928,14 +1237,22 @@ function TextArea({
   );
 }
 
-function DateInput({ value, onChange, min }: { value: string; onChange: (v: string) => void; min?: string }) {
+function DateInput({
+  value, onChange, min, onBlur,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  min?: string;
+  onBlur?: () => void;
+}) {
   return (
     <input
       type="date"
       value={value}
       min={min}
       onChange={(e) => onChange(e.target.value)}
-      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+      onBlur={onBlur}
+      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
     />
   );
 }
@@ -947,7 +1264,7 @@ function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11.5px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
     >
       {options.map((o) => <option key={o} value={o}>{o || "— nenhum —"}</option>)}
     </select>
@@ -989,7 +1306,7 @@ function ServicosBlock({
                 value={values[key] || ""}
                 onChange={(e) => setField(key, e.target.value)}
                 placeholder={`Serviço ${n}`}
-                className="h-8 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+                className="h-7 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
               />
             </div>
           );
@@ -1000,27 +1317,35 @@ function ServicosBlock({
 }
 
 function DailyCounter({
-  posts, limit, current,
-}: { posts: PostsByFormat; limit: number | null; current: Format }) {
+  posts, limits, visible, current,
+}: {
+  posts: PostsByFormat;
+  limits: FormatLimits;
+  visible: FormatVisibility;
+  current: Format;
+}) {
   const FORMATS: { key: Format; label: string }[] = [
     { key: "stories", label: "Stories" },
     { key: "feed", label: "Feed" },
     { key: "reels", label: "Reels" },
     { key: "tv", label: "TV" },
   ];
+  const visibleFormats = FORMATS.filter((f) => visible[f.key]);
+  if (visibleFormats.length === 0) return null;
+
   return (
     <div className="border-t border-[var(--bdr)] pt-4">
       <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
         Posts de hoje
       </label>
       <div className="flex flex-col gap-1.5">
-        {FORMATS.map(({ key, label }) => {
+        {visibleFormats.map(({ key, label }) => {
           const count = posts[key] || 0;
-          const isStories = key === "stories";
-          const max = isStories ? null : limit;
-          const pct = max && max > 0 ? Math.min(100, (count / max) * 100) : 0;
-          const danger = max && count >= max;
-          const warn = max && count >= max * 0.8;
+          const max = limits[key]; // null = ilimitado, 0 = escondido (já filtrado acima)
+          const unlimited = max === null;
+          const pct = !unlimited && max && max > 0 ? Math.min(100, (count / max) * 100) : 0;
+          const danger = !unlimited && max !== null && count >= max;
+          const warn = !unlimited && max !== null && max > 0 && count >= max * 0.8;
           return (
             <div key={key} className="flex items-center gap-2">
               <span className="w-10 text-[9px] font-bold uppercase text-[var(--txt3)]">{label}</span>
@@ -1028,13 +1353,16 @@ function DailyCounter({
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
-                    width: `${pct}%`,
+                    width: unlimited ? "0%" : `${pct}%`,
                     background: danger ? "#EF4444" : warn ? "#F59E0B" : "#D4A843",
                   }}
                 />
               </div>
-              <span className="w-10 text-right text-[9px] font-bold tabular-nums" style={{ color: danger ? "#EF4444" : "var(--txt3)" }}>
-                {isStories ? `${count}` : `${count}/${max ?? "—"}`}
+              <span
+                className="w-14 text-right text-[9px] font-bold tabular-nums"
+                style={{ color: danger ? "#EF4444" : "var(--txt3)" }}
+              >
+                {unlimited ? `${count} ∞` : `${count}/${max}`}
               </span>
               {key === current && <span className="h-1.5 w-1.5 rounded-full bg-[#FF7A1A]" />}
             </div>
@@ -1060,7 +1388,8 @@ function Combobox({
   const [items, setItems] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(-1);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const [ddPos, setDdPos] = useState<{ top: number; left: number; width: number; openAbove: boolean } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   async function loadOnce() {
     if (items.length > 0) return;
@@ -1070,18 +1399,52 @@ function Combobox({
 
   const filtered = useMemo(() => {
     const q = value.trim().toLowerCase();
-    if (!q) return items.slice(0, 30);
+    if (!q) return items.slice(0, 60);
     return items.filter((i) => {
       const il = i.toLowerCase();
       return il.startsWith(q) || il.split(" ").some((w) => w.startsWith(q));
-    }).slice(0, 30);
+    }).slice(0, 60);
   }, [items, value]);
 
+  const updatePosition = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - r.bottom - 12;
+    const openAbove = spaceBelow < 200 && r.top > 220;
+    setDdPos({
+      top: openAbove ? r.top - 4 : r.bottom + 4,
+      left: r.left,
+      width: Math.max(r.width, 220),
+      openAbove,
+    });
+  }, []);
+
+  // Atualiza posição ao abrir + em scroll/resize
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    const onScroll = () => updatePosition();
+    const onResize = () => updatePosition();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [open, updatePosition]);
+
+  // Click fora fecha
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const el = inputRef.current;
+      if (!el) return;
+      const target = e.target as Node;
+      if (el.contains(target)) return;
+      // Checa se clicou dentro do dropdown (que está em body via position fixed)
+      const dd = document.getElementById("ah-combobox-dd");
+      if (dd && dd.contains(target)) return;
+      setOpen(false);
     }
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -1091,7 +1454,6 @@ function Combobox({
     onChange(v);
     setOpen(false);
     setFocused(-1);
-    // dispara blur async para busca automática
     setTimeout(() => onBlur?.(), 0);
   }
 
@@ -1104,13 +1466,14 @@ function Combobox({
   }
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div className="relative">
       <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
         {label}
       </label>
       <div className="relative">
-        <SearchIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--txt3)]" />
+        <SearchIcon size={12} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--txt3)]" />
         <input
+          ref={inputRef}
           type="text"
           value={value}
           onChange={(e) => { onChange(e.target.value); setOpen(true); loadOnce(); }}
@@ -1118,11 +1481,23 @@ function Combobox({
           onBlur={() => { setTimeout(() => { setOpen(false); onBlur?.(); }, 180); }}
           onKeyDown={onKey}
           placeholder={placeholder}
-          className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-8 pr-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-7 pr-3 text-[11.5px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
         />
       </div>
-      {open && filtered.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[220px] overflow-y-auto rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] shadow-xl">
+      {open && filtered.length > 0 && ddPos && (
+        <div
+          id="ah-combobox-dd"
+          className="overflow-y-auto rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] shadow-2xl"
+          style={{
+            position: "fixed",
+            top: ddPos.openAbove ? "auto" : ddPos.top,
+            bottom: ddPos.openAbove ? window.innerHeight - ddPos.top : "auto",
+            left: ddPos.left,
+            width: ddPos.width,
+            maxHeight: 280,
+            zIndex: 9999,
+          }}
+        >
           {filtered.map((it, i) => (
             <div
               key={it}
