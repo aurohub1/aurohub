@@ -58,6 +58,18 @@ export default function ClientesPage() {
   // Delete confirm
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Wizard de onboarding
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
+  const [wizardSaving, setWizardSaving] = useState(false);
+  const [wizardError, setWizardError] = useState("");
+  const [wizardData, setWizardData] = useState({
+    agency: { name: "", email: "", segment_id: "", plan: "basic", city: "" },
+    stores: [{ name: "", city: "", instagram: "" }] as { name: string; city: string; instagram: string }[],
+    user: { name: "", email: "", password: "" },
+  });
+  const [wizardResult, setWizardResult] = useState<{ licenseeName: string; email: string; password: string; storesCount: number } | null>(null);
+
   /* ── Load ──────────────────────────────────────── */
 
   const loadData = useCallback(async () => {
@@ -184,6 +196,127 @@ export default function ClientesPage() {
   function removeStoreRow(i: number) { setFormStores(formStores.filter((_, idx) => idx !== i)); }
   function updateStoreRow(i: number, field: string, val: string) { setFormStores(formStores.map((s, idx) => idx === i ? { ...s, [field]: val } : s)); }
 
+  /* ── Wizard de onboarding ──────────────────────── */
+
+  function genPassword(): string {
+    return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6).toUpperCase();
+  }
+
+  function openWizard() {
+    setWizardStep(1);
+    setWizardError("");
+    setWizardResult(null);
+    setWizardData({
+      agency: { name: "", email: "", segment_id: "", plan: "basic", city: "" },
+      stores: [{ name: "", city: "", instagram: "" }],
+      user: { name: "", email: "", password: genPassword() },
+    });
+    setWizardOpen(true);
+  }
+
+  function addWizStore() {
+    setWizardData((d) => ({ ...d, stores: [...d.stores, { name: "", city: "", instagram: "" }] }));
+  }
+  function removeWizStore(i: number) {
+    setWizardData((d) => ({ ...d, stores: d.stores.filter((_, idx) => idx !== i) }));
+  }
+  function updateWizStore(i: number, field: "name" | "city" | "instagram", val: string) {
+    setWizardData((d) => ({ ...d, stores: d.stores.map((s, idx) => idx === i ? { ...s, [field]: val } : s) }));
+  }
+
+  function wizardNext() {
+    setWizardError("");
+    if (wizardStep === 1) {
+      if (!wizardData.agency.name.trim()) { setWizardError("Nome da agência obrigatório"); return; }
+      if (!wizardData.agency.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(wizardData.agency.email)) {
+        setWizardError("Email inválido"); return;
+      }
+      setWizardStep(2);
+    } else if (wizardStep === 2) {
+      const valid = wizardData.stores.filter((s) => s.name.trim());
+      if (valid.length === 0) { setWizardError("Adicione pelo menos uma unidade"); return; }
+      setWizardData((d) => ({
+        ...d,
+        user: { ...d.user, email: d.agency.email, name: d.user.name || d.agency.name },
+      }));
+      setWizardStep(3);
+    }
+  }
+
+  function wizardBack() {
+    setWizardError("");
+    if (wizardStep > 1 && wizardStep < 4) setWizardStep((wizardStep - 1) as 1 | 2 | 3);
+  }
+
+  async function handleWizardConfirm() {
+    if (!wizardData.user.name.trim() || !wizardData.user.email.trim() || !wizardData.user.password) {
+      setWizardError("Preencha todos os campos do usuário"); return;
+    }
+    if (wizardData.user.password.length < 6) { setWizardError("Senha mínima de 6 caracteres"); return; }
+
+    setWizardSaving(true); setWizardError("");
+    try {
+      // 1. Criar licensee
+      const { data: lic, error: licErr } = await supabase.from("licensees").insert({
+        name: wizardData.agency.name.trim(),
+        email: wizardData.agency.email.trim().toLowerCase(),
+        plan: wizardData.agency.plan,
+        segment_id: wizardData.agency.segment_id || null,
+        status: "active",
+      }).select("id").single();
+      if (licErr || !lic) throw new Error(licErr?.message.includes("duplicate") ? "Email já cadastrado" : (licErr?.message || "Erro ao criar licensee"));
+      const licenseeId = (lic as { id: string }).id;
+
+      // 2. Criar stores (best-effort com city)
+      const validStores = wizardData.stores.filter((s) => s.name.trim());
+      for (const s of validStores) {
+        const basePayload = {
+          licensee_id: licenseeId,
+          name: s.name.trim(),
+          ig_user_id: s.instagram.trim() || null,
+        };
+        const withCity = { ...basePayload, city: s.city.trim() || null };
+        const tryFull = await supabase.from("stores").insert(withCity);
+        if (tryFull.error) {
+          const fb = await supabase.from("stores").insert(basePayload);
+          if (fb.error) throw new Error(`Erro ao criar loja ${s.name}: ${fb.error.message}`);
+        }
+      }
+
+      // 3. Criar usuário via API admin
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: wizardData.user.email.trim().toLowerCase(),
+          password: wizardData.user.password,
+          profile: {
+            name: wizardData.user.name.trim(),
+            role: "cliente",
+            status: "active",
+            licensee_id: licenseeId,
+            store_id: null,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao criar usuário");
+
+      setWizardResult({
+        licenseeName: wizardData.agency.name,
+        email: wizardData.user.email,
+        password: wizardData.user.password,
+        storesCount: validStores.length,
+      });
+      setWizardStep(4);
+      await loadData();
+    } catch (err) {
+      setWizardError(err instanceof Error ? err.message : "Erro ao confirmar");
+    } finally {
+      setWizardSaving(false);
+    }
+  }
+
   const viewStores = viewStoresId ? storesByLic[viewStoresId] ?? [] : [];
   const viewName = viewStoresId ? licensees.find((l) => l.id === viewStoresId)?.name ?? "" : "";
 
@@ -206,10 +339,15 @@ export default function ClientesPage() {
           <h2 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Clientes</h2>
           <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Gerencie licenciados, lojas e permissões</p>
         </div>
-        <button onClick={openNew} className="flex h-9 items-center gap-2 rounded-lg bg-[var(--txt)] px-4 text-[12px] font-semibold text-[var(--bg)] transition-opacity hover:opacity-90">
-          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-          Novo cliente
-        </button>
+        <div className="flex gap-2">
+          <button onClick={openNew} className="flex h-9 items-center rounded-lg border border-[var(--bdr2)] px-3 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)]">
+            Entrada rápida
+          </button>
+          <button onClick={openWizard} className="flex h-9 items-center gap-2 rounded-lg bg-[var(--txt)] px-4 text-[12px] font-semibold text-[var(--bg)] transition-opacity hover:opacity-90">
+            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            Novo cliente
+          </button>
+        </div>
       </div>
 
       {/* ── Filters ──────────────────────────────── */}
@@ -455,6 +593,260 @@ export default function ClientesPage() {
             <div className="flex justify-end gap-3 border-t border-[var(--bdr)] px-6 py-4 shrink-0">
               <button onClick={() => setModalOpen(false)} className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]">Cancelar</button>
               <button onClick={handleSave} disabled={saving} className="rounded-lg bg-[var(--txt)] px-5 py-2 text-[13px] font-semibold text-[var(--bg)] disabled:opacity-60">{saving ? "Salvando..." : editingId ? "Salvar" : "Criar cliente"}</button>
+            </div>
+          </div>
+        </Overlay>
+      )}
+
+      {/* ── Wizard de onboarding ─────────────────── */}
+      {wizardOpen && (
+        <Overlay onClose={() => !wizardSaving && setWizardOpen(false)}>
+          <div className="mx-4 flex w-full max-w-[640px] max-h-[92vh] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[var(--bdr)] px-6 py-5 shrink-0">
+              <div>
+                <h2 className="text-[16px] font-bold text-[var(--txt)]">
+                  {wizardStep === 4 ? "Cliente criado!" : "Onboarding de novo cliente"}
+                </h2>
+                {wizardStep < 4 && (
+                  <p className="mt-0.5 text-[12px] text-[var(--txt3)]">Etapa {wizardStep} de 3</p>
+                )}
+              </div>
+              <button onClick={() => !wizardSaving && setWizardOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] hover:bg-[var(--bg3)] hover:text-[var(--txt)]">
+                <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              </button>
+            </div>
+
+            {/* Progress bar */}
+            {wizardStep < 4 && (
+              <div className="flex gap-1.5 px-6 pt-4 shrink-0">
+                {[1, 2, 3].map((s) => (
+                  <div
+                    key={s}
+                    className="h-1 flex-1 rounded-full transition-colors"
+                    style={{ background: s <= wizardStep ? "var(--orange)" : "var(--bdr)" }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {/* ── ETAPA 1 ─────────────────── */}
+              {wizardStep === 1 && (
+                <div className="flex flex-col gap-4">
+                  <Field
+                    label="Nome da agência"
+                    value={wizardData.agency.name}
+                    onChange={(v) => setWizardData((d) => ({ ...d, agency: { ...d.agency, name: v } }))}
+                    placeholder="Agência Viaje Bem"
+                  />
+                  <Field
+                    label="Email do responsável"
+                    value={wizardData.agency.email}
+                    onChange={(v) => setWizardData((d) => ({ ...d, agency: { ...d.agency, email: v } }))}
+                    placeholder="contato@agencia.com.br"
+                    type="email"
+                  />
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Segmento</label>
+                    <select
+                      value={wizardData.agency.segment_id}
+                      onChange={(e) => setWizardData((d) => ({ ...d, agency: { ...d.agency, segment_id: e.target.value } }))}
+                      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
+                    >
+                      <option value="">Selecione...</option>
+                      {segments.map((s) => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Plano</label>
+                    <select
+                      value={wizardData.agency.plan}
+                      onChange={(e) => setWizardData((d) => ({ ...d, agency: { ...d.agency, plan: e.target.value } }))}
+                      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
+                    >
+                      {plans.map((p) => (
+                        <option key={p.slug} value={p.slug}>
+                          {p.name} — R${p.price_monthly.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <Field
+                    label="Cidade principal"
+                    value={wizardData.agency.city}
+                    onChange={(v) => setWizardData((d) => ({ ...d, agency: { ...d.agency, city: v } }))}
+                    placeholder="São José do Rio Preto"
+                  />
+                </div>
+              )}
+
+              {/* ── ETAPA 2 ─────────────────── */}
+              {wizardStep === 2 && (
+                <div className="flex flex-col gap-3">
+                  <div className="text-[11px] text-[var(--txt3)]">Mínimo 1 unidade. A primeira não pode ser removida.</div>
+                  {wizardData.stores.map((s, i) => (
+                    <div key={i} className="rounded-lg border border-[var(--bdr)] p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-[var(--txt3)]">Unidade {i + 1}</span>
+                        {i > 0 && (
+                          <button onClick={() => removeWizStore(i)} className="text-[11px] text-[var(--red)] hover:underline">Remover</button>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="text" value={s.name}
+                          onChange={(e) => updateWizStore(i, "name", e.target.value)}
+                          placeholder="Nome da unidade"
+                          className="h-9 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="text" value={s.city}
+                            onChange={(e) => updateWizStore(i, "city", e.target.value)}
+                            placeholder="Cidade"
+                            className="h-9 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]"
+                          />
+                          <input
+                            type="text" value={s.instagram}
+                            onChange={(e) => updateWizStore(i, "instagram", e.target.value)}
+                            placeholder="@instagram"
+                            className="h-9 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button onClick={addWizStore} className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--orange)] hover:underline">
+                    <svg viewBox="0 0 16 16" className="h-3 w-3"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                    Adicionar unidade
+                  </button>
+                </div>
+              )}
+
+              {/* ── ETAPA 3 ─────────────────── */}
+              {wizardStep === 3 && (
+                <div className="flex flex-col gap-4">
+                  <Field
+                    label="Nome do responsável"
+                    value={wizardData.user.name}
+                    onChange={(v) => setWizardData((d) => ({ ...d, user: { ...d.user, name: v } }))}
+                    placeholder="João Silva"
+                  />
+                  <Field
+                    label="Email"
+                    value={wizardData.user.email}
+                    onChange={(v) => setWizardData((d) => ({ ...d, user: { ...d.user, email: v } }))}
+                    type="email"
+                  />
+                  <div>
+                    <div className="mb-1 flex items-center justify-between">
+                      <label className="text-[11px] font-medium text-[var(--txt3)]">Senha (gerada)</label>
+                      <button
+                        type="button"
+                        onClick={() => setWizardData((d) => ({ ...d, user: { ...d.user, password: genPassword() } }))}
+                        className="text-[11px] font-semibold text-[var(--orange)] hover:underline"
+                      >
+                        Gerar nova
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text" value={wizardData.user.password}
+                        onChange={(e) => setWizardData((d) => ({ ...d, user: { ...d.user, password: e.target.value } }))}
+                        className="h-9 flex-1 rounded-lg border border-[var(--bdr)] bg-transparent px-3 font-mono text-[13px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(wizardData.user.password)}
+                        className="rounded-lg border border-[var(--bdr)] px-3 text-[11px] font-medium text-[var(--txt2)] hover:text-[var(--txt)]"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Nível</label>
+                    <div className="flex h-9 items-center rounded-lg border border-[var(--bdr)] px-3 text-[13px] text-[var(--txt)]">Cliente</div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── ETAPA 4 — Sucesso ──────── */}
+              {wizardStep === 4 && wizardResult && (
+                <div className="flex flex-col items-center gap-4 py-6 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--green3)] text-[var(--green)]">
+                    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </div>
+                  <div>
+                    <div className="font-[family-name:var(--font-dm-serif)] text-[20px] font-bold text-[var(--txt)]">
+                      {wizardResult.licenseeName}
+                    </div>
+                    <div className="mt-1 text-[12px] text-[var(--txt3)]">
+                      {wizardResult.storesCount} unidade{wizardResult.storesCount === 1 ? "" : "s"} criada{wizardResult.storesCount === 1 ? "" : "s"} · 1 usuário cliente
+                    </div>
+                  </div>
+                  <div className="w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] p-4 text-left">
+                    <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Credenciais de acesso</div>
+                    <div className="flex items-center justify-between gap-2 py-1 text-[12px]">
+                      <span className="text-[var(--txt3)]">Email</span>
+                      <span className="font-mono text-[var(--txt)]">{wizardResult.email}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 py-1 text-[12px]">
+                      <span className="text-[var(--txt3)]">Senha</span>
+                      <span className="font-mono text-[var(--txt)]">{wizardResult.password}</span>
+                    </div>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(`Email: ${wizardResult.email}\nSenha: ${wizardResult.password}`)}
+                      className="mt-2 w-full rounded-md border border-[var(--bdr2)] py-1.5 text-[11px] font-medium text-[var(--txt2)] hover:text-[var(--txt)]"
+                    >
+                      Copiar tudo
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {wizardError && (
+                <div className="mt-4 rounded-lg bg-[var(--red3)] px-3 py-2 text-center text-[12px] font-medium text-[var(--red)]">
+                  {wizardError}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-between gap-3 border-t border-[var(--bdr)] px-6 py-4 shrink-0">
+              {wizardStep < 4 ? (
+                <>
+                  <button
+                    onClick={wizardBack}
+                    disabled={wizardStep === 1 || wizardSaving}
+                    className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)] disabled:opacity-30"
+                  >
+                    Voltar
+                  </button>
+                  {wizardStep < 3 ? (
+                    <button onClick={wizardNext} className="rounded-lg bg-[var(--txt)] px-5 py-2 text-[13px] font-semibold text-[var(--bg)]">
+                      Próximo
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleWizardConfirm}
+                      disabled={wizardSaving}
+                      className="rounded-lg bg-[var(--green)] px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-60"
+                    >
+                      {wizardSaving ? "Criando..." : "Confirmar"}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={() => setWizardOpen(false)}
+                  className="ml-auto rounded-lg bg-[var(--txt)] px-5 py-2 text-[13px] font-semibold text-[var(--bg)]"
+                >
+                  Concluir
+                </button>
+              )}
             </div>
           </div>
         </Overlay>
