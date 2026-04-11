@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet } from "lucide-react";
 
 interface Props {
   onUndo: () => void; onRedo: () => void;
@@ -8,6 +8,7 @@ interface Props {
   zoom: number; saving?: boolean;
   canUndo: boolean; canRedo: boolean;
   onToggleParamView?: () => void; paramViewActive?: boolean;
+  onToggleSnap?: () => void; snapEnabled?: boolean;
   format?: string; onFormatChange?: (f: string) => void;
   formType?: string; onFormTypeChange?: (f: string) => void;
   qtdDestinos?: number; onQtdDestinosChange?: (n: number) => void;
@@ -65,6 +66,7 @@ export default function Toolbar(p: Props) {
       <Btn icon={<CopyPlus size={14} />} tip="Duplicar" o={p.onDuplicate} />
       <Btn icon={<Trash2 size={14} />} tip="Deletar" o={p.onDelete} danger />
       {p.onSaveComponent && <Btn icon={<Package size={14} />} tip="Salvar como componente" o={p.onSaveComponent} d={!p.canSaveComponent} />}
+      {p.onToggleSnap && <Btn icon={<Magnet size={14} />} tip={p.snapEnabled ? "Smart Guides ativo" : "Smart Guides desativado"} o={p.onToggleSnap} active={p.snapEnabled} />}
       {p.onToggleParamView && <><Sep /><Btn icon={p.paramViewActive ? <EyeOff size={14} /> : <Eye size={14} />} tip="Parameter View (Ctrl+P)" o={p.onToggleParamView} active={p.paramViewActive} /></>}
       {p.onHistory && <Btn icon={<History size={14} />} tip="Histórico" o={p.onHistory} />}
       {p.onPreview && <Btn icon={<Smartphone size={14} />} tip="Preview Instagram" o={p.onPreview} />}

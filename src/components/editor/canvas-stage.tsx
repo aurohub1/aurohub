@@ -10,6 +10,7 @@ interface Props {
   selectedIds: string[];
   stageScale: number;
   playing: boolean; currentTime: number;
+  snapEnabled?: boolean;
   onSelect: (id: string | null) => void;
   onShiftSelect: (id: string) => void;
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
@@ -226,19 +227,20 @@ function RenderElement({ el, playing, animState, onClick, onChange, onRegisterRe
 
 /* ── Main canvas component ───────────────────────── */
 export default function CanvasStage(p: Props) {
-  const { width, height, schema, selectedIds, stageScale, playing, currentTime } = p;
+  const { width, height, schema, selectedIds, stageScale, playing, currentTime, snapEnabled = true } = p;
   const stageRef = useRef<Konva.Stage>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const nodeRefs = useRef<Map<string, Konva.Node>>(new Map());
   const [guides, setGuides] = useState<SnapLine[]>([]);
 
   const handleDragMoveSnap = useCallback((id: string, rawX: number, rawY: number) => {
+    if (!snapEnabled) return { x: rawX, y: rawY };
     const el = schema.elements.find(e => e.id === id);
     if (!el) return { x: rawX, y: rawY };
     const r = calcSnapLines({ id, x: rawX, y: rawY, width: el.width, height: el.height }, schema.elements, width, height);
     setGuides(r.lines);
     return { x: r.x, y: r.y };
-  }, [schema.elements, width, height]);
+  }, [schema.elements, width, height, snapEnabled]);
 
   const handleDragEndClear = useCallback(() => setGuides([]), []);
 
@@ -296,7 +298,7 @@ export default function CanvasStage(p: Props) {
               onDragMoveSnap={handleDragMoveSnap}
               onDragEndClear={handleDragEndClear} />
           ))}
-          {guides.map((g, i) => (
+          {snapEnabled && guides.map((g, i) => (
             <Line key={`g${i}`}
               points={g.orientation === "V"
                 ? [g.position, 0, g.position, height]

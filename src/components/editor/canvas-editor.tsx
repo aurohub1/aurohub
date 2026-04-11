@@ -48,6 +48,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
   const startTimeRef = useRef(0);
   const [propsTab, setPropsTab] = useState<"design" | "animate">("design");
   const [paramView, setParamView] = useState(false);
+  const [snapEnabled, setSnapEnabled] = useState(true);
   const [showAssets, setShowAssets] = useState(false);
   const [showComponents, setShowComponents] = useState(false);
   const [showDestinos, setShowDestinos] = useState(false);
@@ -60,6 +61,21 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
   const lastBadgeCheckRef = useRef<string>("");
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
+
+  // Load snap preference
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const v = localStorage.getItem("ah_snap_enabled");
+    if (v !== null) setSnapEnabled(v === "1");
+  }, []);
+
+  const toggleSnap = useCallback(() => {
+    setSnapEnabled((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("ah_snap_enabled", next ? "1" : "0"); } catch { /* noop */ }
+      return next;
+    });
+  }, []);
 
   const totalDuration = schema.duration || 5;
   const selected = schema.elements.find(el => el.id === selectedId) ?? null;
@@ -337,6 +353,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
         qtdDestinos={qtdDestinos} onQtdDestinosChange={onQtdDestinosChange}
         canUndo={historyIdx > 0} canRedo={historyIdx < history.length - 1}
         onToggleParamView={() => setParamView(!paramView)} paramViewActive={paramView}
+        onToggleSnap={toggleSnap} snapEnabled={snapEnabled}
         onPreview={openPreview}
         onVariants={() => setShowVariants(true)} variantsEnabled={!!variantsEnabled}
         onHistory={templateId ? () => setShowHistory(true) : undefined}
@@ -368,6 +385,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
           width={width} height={height} schema={schema}
           selectedIds={selectedIds} stageScale={stageScale}
           playing={playing} currentTime={currentTime}
+          snapEnabled={snapEnabled}
           onSelect={selectSingle} onShiftSelect={shiftSelect}
           onUpdate={updateElement}
           onStageRef={(r) => { stageRef.current = r; }}
