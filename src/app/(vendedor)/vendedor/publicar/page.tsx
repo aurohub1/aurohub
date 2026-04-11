@@ -217,6 +217,7 @@ export default function PublicarPage() {
   // Publish status
   const [status, setStatus] = useState<PublishStatus>("idle");
   const [statusMsg, setStatusMsg] = useState<string>("");
+  const [debugInfo, setDebugInfo] = useState<string>("");
 
   // Datasets completos (nome + url) — usados por autocomplete E pela busca de imagem
   const destinoDataRef = useRef<{ nome: string; url: string }[] | null>(null);
@@ -265,7 +266,7 @@ export default function PublicarPage() {
         .select("key, value")
         .like("key", "tmpl_%")
         .like("value", p.licensee_id ? `%"licenseeId":"${p.licensee_id}"%` : `%"licenseeId":%`);
-      console.log("[TPL DEBUG]", tplData?.length, tplData?.map(r => r.key));
+      setDebugInfo(`tmpl: ${tplData?.length ?? 0} | licensee: ${p.licensee_id ?? "null"} | keys: ${tplData?.map(r => r.key).join(", ") || "nenhum"}`);
 
       const rows: TemplateRow[] = [];
       for (const r of (tplData ?? []) as { key: string; value: string }[]) {
@@ -1111,6 +1112,11 @@ export default function PublicarPage() {
           </div>
         </div>
         <div className="flex flex-1 items-center justify-center p-5">
+          {debugInfo && (
+            <div className="mb-2 rounded-lg bg-yellow-100 border border-yellow-300 px-3 py-2 text-[11px] font-mono text-yellow-900 break-all">
+              {debugInfo}
+            </div>
+          )}
           {currentTemplate ? (
             <PreviewStage
               key={`${tab}-${format}-${currentTemplate.key}`}
