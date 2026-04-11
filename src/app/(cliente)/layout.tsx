@@ -53,7 +53,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         <main className="flex flex-1 flex-col gap-5 p-6">{children}</main>
         <footer className="flex shrink-0 items-center gap-3 border-t border-[var(--bdr)] bg-[var(--bg1)] px-6 py-3 text-[0.68rem] text-[var(--txt3)]">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--green)]" />
-          <span>Aurohub · Cliente</span>
+          <span>Aurohub online</span>
           <span className="text-[var(--bdr2)]">&middot;</span>
           <span>{profile?.licensee?.name || "—"}</span>
         </footer>

@@ -19,9 +19,13 @@ interface Plan { slug: string; name: string; max_posts_day: number; can_schedule
 type ModalTab = "dados" | "acesso" | "limites";
 
 const ROLE_MAP: Record<string, { label: string; color: string }> = {
-  adm: { label: "ADM Raiz", color: "#D4A843" },
+  adm:      { label: "ADM",       color: "#D4A843" },
+  cliente:  { label: "Cliente",   color: "#3B82F6" },
+  unidade:  { label: "Unidade",   color: "#22C55E" },
+  vendedor: { label: "Vendedor",  color: "#A78BFA" },
+  // Legados
   licensee: { label: "Licenciado", color: "#3B82F6" },
-  client: { label: "Funcionário", color: "#A78BFA" },
+  client:   { label: "Funcionário", color: "#A78BFA" },
 };
 
 const PLAN_LABELS: Record<string, string> = { basic: "Essencial", pro: "Profissional", business: "Franquia", enterprise: "Enterprise" };
@@ -45,7 +49,7 @@ export default function UsuariosPage() {
   const [editTab, setEditTab] = useState<ModalTab>("dados");
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    name: "", email: "", password: "", role: "client", status: "active",
+    name: "", email: "", password: "", role: "cliente", status: "active",
     segment_id: "", licensee_id: "", store_ids: [] as string[],
     landing: "client", ai: false, metrics: false, transmissao: false, avulso: false,
     plan: "", stories_limit: "0", feed_limit: "0", reels_limit: "0", tv_limit: "0",
@@ -121,8 +125,12 @@ export default function UsuariosPage() {
 
   function openNew() {
     setEditId(null);
-    setForm({ name: "", email: "", password: "", role: "client", status: "active", segment_id: "", licensee_id: "", store_ids: [], landing: "client", ai: false, metrics: false, transmissao: false, avulso: false, plan: "", stories_limit: "0", feed_limit: "0", reels_limit: "0", tv_limit: "0", avatar_url: "" });
+    setForm({ name: "", email: "", password: genPassword(), role: "cliente", status: "active", segment_id: "", licensee_id: "", store_ids: [], landing: "client", ai: false, metrics: false, transmissao: false, avulso: false, plan: "", stories_limit: "0", feed_limit: "0", reels_limit: "0", tv_limit: "0", avatar_url: "" });
     setEditTab("dados"); setModalError(""); setEditOpen(true);
+  }
+
+  function genPassword(): string {
+    return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6).toUpperCase();
   }
 
   function openEdit(p: Profile) {
@@ -164,15 +172,24 @@ export default function UsuariosPage() {
     if (!form.name.trim()) { setModalError("Nome obrigatório."); return; }
     setSaving(true); setModalError("");
     try {
+      const profile = {
+        name: form.name.trim(),
+        role: form.role,
+        status: form.status,
+        licensee_id: form.licensee_id || null,
+        store_id: form.store_ids[0] || null,
+        sub_role: form.avulso ? "avulso" : null,
+        avatar_url: form.avatar_url || null,
+      };
+
       if (editId) {
-        const { error } = await supabase.from("profiles").update({
-          name: form.name.trim(), role: form.role, status: form.status,
-          licensee_id: form.licensee_id || null,
-          store_id: form.store_ids[0] || null,
-          sub_role: form.avulso ? "avulso" : null,
-          avatar_url: form.avatar_url || null,
-        }).eq("id", editId);
-        if (error) { setModalError(error.message); return; }
+        const res = await fetch("/api/admin/users", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editId, profile }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setModalError(data.error || "Erro ao atualizar"); return; }
       } else {
         const email = form.email.trim().toLowerCase();
         const password = form.password;
@@ -180,26 +197,16 @@ export default function UsuariosPage() {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setModalError("Email inválido. Use o formato usuario@dominio.com"); setSaving(false); return; }
         if (password.length < 6) { setModalError("Senha deve ter no mínimo 6 caracteres."); setSaving(false); return; }
 
-        console.log("[Novo usuário] signUp iniciando:", email);
-        const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-        console.log("[Novo usuário] signUp resultado:", { user: authData?.user?.id ?? null, error: authError?.message ?? null });
-
-        if (authError) { setModalError(authError.message); return; }
-        if (!authData.user) { setModalError("Erro: usuário não foi criado. Verifique se o email já está cadastrado."); return; }
-
-        const profileData = {
-          id: authData.user.id, name: form.name.trim(), role: form.role, status: form.status,
-          licensee_id: form.licensee_id || null, store_id: form.store_ids[0] || null,
-          sub_role: form.avulso ? "avulso" : null,
-          avatar_url: form.avatar_url || null,
-        };
-        console.log("[Novo usuário] profile upsert:", profileData);
-        const { error } = await supabase.from("profiles").upsert(profileData, { onConflict: "id" });
-        console.log("[Novo usuário] profile resultado:", error?.message ?? "OK");
-        if (error) { setModalError(`Erro ao salvar perfil: ${error.message}`); return; }
+        const res = await fetch("/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, profile }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setModalError(data.error || "Erro ao criar usuário"); return; }
       }
       setEditOpen(false); await loadData();
-    } catch (err) { console.error("[handleSave] erro inesperado:", err); setModalError("Erro ao salvar."); } finally { setSaving(false); }
+    } catch (err) { console.error("[handleSave]", err); setModalError("Erro ao salvar."); } finally { setSaving(false); }
   }
 
   /* ── Config modal ──────────────────────────────── */
@@ -239,7 +246,13 @@ export default function UsuariosPage() {
   }
 
   async function deleteUser(id: string) {
-    await supabase.from("profiles").delete().eq("id", id);
+    try {
+      const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("[deleteUser]", data.error);
+      }
+    } catch (err) { console.error("[deleteUser]", err); }
     setDeleteId(null); await loadData();
   }
 
@@ -406,11 +419,24 @@ export default function UsuariosPage() {
                   </div>
                   <F label="Nome" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="João Silva" />
                   {!editId && <F label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} placeholder="joao@agencia.com" type="email" />}
-                  {!editId && <F label="Senha" value={form.password} onChange={(v) => setForm({ ...form, password: v })} placeholder="Mínimo 6 caracteres" type="password" />}
+                  {!editId && (
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <label className="text-[11px] font-medium text-[var(--txt3)]">Senha</label>
+                        <button type="button" onClick={() => setForm({ ...form, password: genPassword() })} className="text-[11px] font-semibold text-[var(--orange)] hover:underline">
+                          Gerar nova
+                        </button>
+                      </div>
+                      <input type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Mínimo 6 caracteres" className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] font-mono text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
+                    </div>
+                  )}
                   <div>
                     <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Nível</label>
                     <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none">
-                      <option value="adm">ADM Raiz</option><option value="licensee">Licenciado</option><option value="client">Funcionário</option>
+                      <option value="cliente">Cliente</option>
+                      <option value="unidade">Unidade</option>
+                      <option value="vendedor">Vendedor</option>
+                      <option value="adm">ADM</option>
                     </select>
                   </div>
                   <div>
