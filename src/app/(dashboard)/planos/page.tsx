@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 interface Plan {
   id: string; slug: string; name: string; price_monthly: number; price_yearly: number;
   max_feed_reels_day?: number | null; max_stories_day?: number | null;
+  is_internal?: boolean | null;
   price_setup?: number; min_months?: number;
   max_users: number; max_posts_day: number; can_schedule: boolean; can_metrics: boolean;
   can_print: boolean; is_enterprise: boolean; active: boolean; sort_order: number;
@@ -74,6 +75,19 @@ const PLAN_INFO: Record<string, {
       { label: "Métricas Instagram", included: true },
       { label: "IA de legenda", included: true },
       { label: "Transmissão (inclusa)", included: true },
+    ],
+  },
+  interno: {
+    name: "Interno", emoji: "🔒", accent: "var(--purple)", bg: "var(--purple3)", border: "#A78BFA", badge: "Interno",
+    price: "Gratuito", implant: "—", fidelity: "—",
+    profiles: "Ilimitado", logins: "Ilimitado", posts: "Ilimitado", stories: "Ilimitados",
+    features: [
+      { label: "Download ilimitado", included: true },
+      { label: "Publicação Instagram", included: true },
+      { label: "Agendamento", included: true },
+      { label: "Métricas Instagram", included: true },
+      { label: "IA de legenda", included: true },
+      { label: "Uso ADM apenas", included: true },
     ],
   },
 };
@@ -163,6 +177,7 @@ export default function PlanosPage() {
         max_users: String(p.max_users), max_posts_day: String(p.max_posts_day),
         max_feed_reels_day: String(p.max_feed_reels_day ?? 0),
         max_stories_day: String(p.max_stories_day ?? 0),
+        is_internal: !!p.is_internal,
         can_schedule: p.can_schedule, can_metrics: p.can_metrics,
         can_print: p.can_print, is_enterprise: p.is_enterprise,
       };
@@ -184,6 +199,7 @@ export default function PlanosPage() {
           max_posts_day: parseInt(f.max_posts_day as string) || 0,
           max_feed_reels_day: parseInt(f.max_feed_reels_day as string) || 0,
           max_stories_day: parseInt(f.max_stories_day as string) || 0,
+          is_internal: f.is_internal as boolean,
           can_schedule: f.can_schedule as boolean,
           can_metrics: f.can_metrics as boolean,
         }).eq("id", plan.id);
@@ -215,7 +231,8 @@ export default function PlanosPage() {
     setChangingClient(null); await loadData();
   }
 
-  const SLUGS = ["basic", "pro", "business", "enterprise"] as const;
+  const ALL_SLUGS = ["basic", "pro", "business", "enterprise", "interno"] as const;
+  const SLUGS = ALL_SLUGS.filter((slug) => PLAN_INFO[slug] && (slug !== "interno" || planMap[slug])) as readonly string[];
 
   return (
     <>
@@ -477,46 +494,51 @@ export default function PlanosPage() {
                   const pm = parseFloat(f.price_monthly as string) || 0;
 
                   return (
-                    <div key={plan.id} className="rounded-xl border border-[var(--bdr)] p-5" style={{ borderTop: `2px solid ${info.border}` }}>
-                      <div className="mb-4 text-[14px] font-semibold text-[var(--txt)]">{info.name}</div>
+                    <div key={plan.id} className="rounded-xl border border-[var(--bdr)] p-3" style={{ borderTop: `2px solid ${info.border}` }}>
+                      <div className="mb-2 text-[13px] font-semibold text-[var(--txt)]">{info.name}</div>
 
                       {/* Live preview */}
-                      <div className="mb-5 rounded-lg bg-[var(--bg3)] px-4 py-3 text-center">
-                        <span className="font-[family-name:var(--font-dm-serif)] text-[1.25rem] font-bold text-[var(--txt)]">{plan.is_enterprise ? "Sob consulta" : fmt(pm)}</span>
-                        {!plan.is_enterprise && <span className="ml-1 text-[11px] text-[var(--txt3)]">/mês</span>}
+                      <div className="mb-2 rounded-lg bg-[var(--bg3)] px-3 py-1.5 text-center">
+                        <span className="font-[family-name:var(--font-dm-serif)] text-[1.05rem] font-bold text-[var(--txt)]">{plan.is_enterprise ? "Sob consulta" : fmt(pm)}</span>
+                        {!plan.is_enterprise && <span className="ml-1 text-[10px] text-[var(--txt3)]">/mês</span>}
                       </div>
 
-                      <div className="flex flex-col gap-3">
-                        <MF label="Mensal (R$)" value={f.price_monthly as string} onChange={(v) => ef(plan.id, "price_monthly", v)} />
-                        <MF label="Desconto anual (%)" value={f.discount as string} onChange={(v) => ef(plan.id, "discount", v)} hint="default 15%" />
-                        <div>
-                          <div className="mb-1 flex items-baseline justify-between">
-                            <label className="text-[11px] font-medium text-[var(--txt3)]">Anual (R$)</label>
-                            {!f.yearly_auto && (
-                              <button type="button" onClick={() => { ef(plan.id, "yearly_auto", true); ef(plan.id, "discount", f.discount as string); }} className="text-[10px] text-[var(--txt3)] hover:text-[var(--txt)]">↺ Recalcular</button>
-                            )}
-                          </div>
-                          <input type="number" step="0.01" value={f.price_yearly as string} onChange={(e) => ef(plan.id, "price_yearly", e.target.value)} className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none transition-colors focus:border-[var(--txt3)]" />
-                          {(parseFloat(f.price_yearly as string) || 0) > 0 && (
-                            <div className="mt-1 text-[10px] text-[var(--txt3)]">
-                              {fmt(Math.round((parseFloat(f.price_yearly as string) || 0) / 12 * 100) / 100)}/mês cobrado anualmente
-                            </div>
-                          )}
+                      <div className="flex flex-col gap-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <MF label="Mensal (R$)" value={f.price_monthly as string} onChange={(v) => ef(plan.id, "price_monthly", v)} />
+                          <MF label="Desc. anual %" value={f.discount as string} onChange={(v) => ef(plan.id, "discount", v)} />
                         </div>
-                        <MF label="Implantação (R$)" value={f.price_setup as string} onChange={(v) => ef(plan.id, "price_setup", v)} />
-                        <MF label="Fidelidade (meses)" value={f.min_months as string} onChange={(v) => ef(plan.id, "min_months", v)} />
-                        <div className="h-px bg-[var(--bdr)]" />
-                        <MF label="Máx. usuários" value={f.max_users as string} onChange={(v) => ef(plan.id, "max_users", v)} hint="-1 = ilimitado" />
-                        <MF label="Posts/dia" value={f.max_posts_day as string} onChange={(v) => ef(plan.id, "max_posts_day", v)} hint="0 = sem posts" />
-                        <MF label="Feed/Reels por dia" value={f.max_feed_reels_day as string} onChange={(v) => ef(plan.id, "max_feed_reels_day", v)} hint="0 = não permite" />
-                        <MF label="Stories por dia" value={f.max_stories_day as string} onChange={(v) => ef(plan.id, "max_stories_day", v)} hint="99 = ilimitado" />
-                        <div className="h-px bg-[var(--bdr)]" />
-                        <div className="text-[11px] font-medium text-[var(--txt3)]">Autorizações</div>
-                        <div className="flex flex-col gap-2 text-[12px]">
-                          <label className="flex items-center gap-2 text-[var(--txt2)]"><input type="checkbox" checked={f.can_print as boolean} onChange={(e) => ef(plan.id, "can_print", e.target.checked)} className="accent-[var(--green)]" /> Publicação IG</label>
-                          <label className="flex items-center gap-2 text-[var(--txt2)]"><input type="checkbox" checked={f.can_schedule as boolean} onChange={(e) => ef(plan.id, "can_schedule", e.target.checked)} className="accent-[var(--green)]" /> Agendamento</label>
-                          <label className="flex items-center gap-2 text-[var(--txt2)]"><input type="checkbox" checked={f.can_metrics as boolean} onChange={(e) => ef(plan.id, "can_metrics", e.target.checked)} className="accent-[var(--green)]" /> Métricas</label>
-                          <label className="flex items-center gap-2 text-[var(--txt2)]"><input type="checkbox" checked={f.is_enterprise as boolean} onChange={(e) => ef(plan.id, "is_enterprise", e.target.checked)} className="accent-[var(--green)]" /> IA legenda</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <div className="mb-0.5 flex items-baseline justify-between">
+                              <label className="text-[10px] font-medium text-[var(--txt3)]">Anual (R$)</label>
+                              {!f.yearly_auto && (
+                                <button type="button" onClick={() => { ef(plan.id, "yearly_auto", true); ef(plan.id, "discount", f.discount as string); }} className="text-[9px] text-[var(--txt3)] hover:text-[var(--txt)]">↺</button>
+                              )}
+                            </div>
+                            <input type="number" step="0.01" value={f.price_yearly as string} onChange={(e) => ef(plan.id, "price_yearly", e.target.value)} className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]" />
+                          </div>
+                          <MF label="Implantação R$" value={f.price_setup as string} onChange={(v) => ef(plan.id, "price_setup", v)} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <MF label="Fidelidade (m)" value={f.min_months as string} onChange={(v) => ef(plan.id, "min_months", v)} />
+                          <MF label="Máx. usuários" value={f.max_users as string} onChange={(v) => ef(plan.id, "max_users", v)} hint="-1 = ∞" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <MF label="Posts/dia" value={f.max_posts_day as string} onChange={(v) => ef(plan.id, "max_posts_day", v)} />
+                          <MF label="Feed/Reels/dia" value={f.max_feed_reels_day as string} onChange={(v) => ef(plan.id, "max_feed_reels_day", v)} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <MF label="Stories/dia" value={f.max_stories_day as string} onChange={(v) => ef(plan.id, "max_stories_day", v)} hint="99 = ∞" />
+                          <div />
+                        </div>
+                        <div className="my-0.5 h-px bg-[var(--bdr)]" />
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
+                          <label className="flex items-center gap-1.5 text-[var(--txt2)]"><input type="checkbox" checked={f.can_print as boolean} onChange={(e) => ef(plan.id, "can_print", e.target.checked)} className="h-3 w-3 accent-[var(--green)]" /> Publicação IG</label>
+                          <label className="flex items-center gap-1.5 text-[var(--txt2)]"><input type="checkbox" checked={f.can_schedule as boolean} onChange={(e) => ef(plan.id, "can_schedule", e.target.checked)} className="h-3 w-3 accent-[var(--green)]" /> Agendamento</label>
+                          <label className="flex items-center gap-1.5 text-[var(--txt2)]"><input type="checkbox" checked={f.can_metrics as boolean} onChange={(e) => ef(plan.id, "can_metrics", e.target.checked)} className="h-3 w-3 accent-[var(--green)]" /> Métricas</label>
+                          <label className="flex items-center gap-1.5 text-[var(--txt2)]"><input type="checkbox" checked={f.is_enterprise as boolean} onChange={(e) => ef(plan.id, "is_enterprise", e.target.checked)} className="h-3 w-3 accent-[var(--green)]" /> IA legenda</label>
+                          <label className="col-span-2 flex items-center gap-1.5 text-[var(--txt2)]"><input type="checkbox" checked={f.is_internal as boolean} onChange={(e) => ef(plan.id, "is_internal", e.target.checked)} className="h-3 w-3 accent-[var(--gold)]" /> Plano interno (não público)</label>
                         </div>
                       </div>
                     </div>
@@ -551,11 +573,11 @@ function KpiInline({ label, value, accent }: { label: string; value: string; acc
 function MF({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
   return (
     <div>
-      <div className="mb-1 flex items-baseline justify-between">
-        <label className="text-[11px] font-medium text-[var(--txt3)]">{label}</label>
-        {hint && <span className="text-[10px] text-[var(--txt3)] opacity-60">{hint}</span>}
+      <div className="mb-0.5 flex items-baseline justify-between">
+        <label className="text-[10px] font-medium text-[var(--txt3)]">{label}</label>
+        {hint && <span className="text-[9px] text-[var(--txt3)] opacity-60">{hint}</span>}
       </div>
-      <input type="number" step="0.01" value={value} onChange={(e) => onChange(e.target.value)} className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none transition-colors focus:border-[var(--txt3)]" />
+      <input type="number" step="0.01" value={value} onChange={(e) => onChange(e.target.value)} className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]" />
     </div>
   );
 }

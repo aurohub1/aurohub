@@ -12,7 +12,7 @@ interface Licensee {
   logo_url: string | null;
 }
 interface Segment { id: string; name: string; icon: string | null; }
-interface Plan { slug: string; name: string; price_monthly: number; }
+interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; }
 interface Store { id: string; licensee_id: string; name: string; ig_user_id: string | null; }
 interface Profile { id: string; licensee_id: string | null; store_id: string | null; name: string | null; status: string; }
 
@@ -45,7 +45,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "" });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -64,7 +64,7 @@ export default function ClientesPage() {
   const [wizardSaving, setWizardSaving] = useState(false);
   const [wizardError, setWizardError] = useState("");
   const [wizardData, setWizardData] = useState({
-    agency: { name: "", email: "", segment_id: "", plan: "basic", city: "" },
+    agency: { name: "", email: "", segment_id: "", plan: "basic", city: "", expires_at: "" },
     stores: [{ name: "", city: "", instagram: "" }] as { name: string; city: string; instagram: string }[],
     user: { name: "", email: "", password: "" },
   });
@@ -77,7 +77,7 @@ export default function ClientesPage() {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
         supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
-        supabase.from("plans").select("slug, name, price_monthly"),
+        supabase.from("plans").select("slug, name, price_monthly, is_internal"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
         supabase.from("profiles").select("id, licensee_id, store_id, name, status"),
       ]);
@@ -119,14 +119,14 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "" });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "" });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setModalTab("dados"); setModalError(""); setModalOpen(true);
   }
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -136,11 +136,15 @@ export default function ClientesPage() {
     if (!form.name.trim() || !form.email.trim()) { setModalError("Nome e email obrigatórios."); return; }
     setSaving(true); setModalError("");
     try {
-      const payload = {
+      const formPlanIsInternal = !!planMap[form.plan]?.is_internal;
+      const payload: Record<string, unknown> = {
         name: form.name.trim(), email: form.email.trim().toLowerCase(),
         plan: form.plan, segment_id: form.segment_id || null, status: "active",
         logo_url: form.logo_url || null,
       };
+      if (formPlanIsInternal && form.expires_at) {
+        payload.expires_at = form.expires_at;
+      }
 
       if (editingId) {
         const { error } = await supabase.from("licensees").update(payload).eq("id", editingId);
@@ -207,7 +211,7 @@ export default function ClientesPage() {
     setWizardError("");
     setWizardResult(null);
     setWizardData({
-      agency: { name: "", email: "", segment_id: "", plan: "basic", city: "" },
+      agency: { name: "", email: "", segment_id: "", plan: "basic", city: "", expires_at: "" },
       stores: [{ name: "", city: "", instagram: "" }],
       user: { name: "", email: "", password: genPassword() },
     });
@@ -257,13 +261,19 @@ export default function ClientesPage() {
     setWizardSaving(true); setWizardError("");
     try {
       // 1. Criar licensee
-      const { data: lic, error: licErr } = await supabase.from("licensees").insert({
+      const selectedPlanObj = plans.find((p) => p.slug === wizardData.agency.plan);
+      const isInternalPlan = !!selectedPlanObj?.is_internal;
+      const licPayload: Record<string, unknown> = {
         name: wizardData.agency.name.trim(),
         email: wizardData.agency.email.trim().toLowerCase(),
         plan: wizardData.agency.plan,
         segment_id: wizardData.agency.segment_id || null,
         status: "active",
-      }).select("id").single();
+      };
+      if (isInternalPlan && wizardData.agency.expires_at) {
+        licPayload.expires_at = wizardData.agency.expires_at;
+      }
+      const { data: lic, error: licErr } = await supabase.from("licensees").insert(licPayload).select("id").single();
       if (licErr || !lic) throw new Error(licErr?.message.includes("duplicate") ? "Email já cadastrado" : (licErr?.message || "Erro ao criar licensee"));
       const licenseeId = (lic as { id: string }).id;
 
@@ -389,6 +399,8 @@ export default function ClientesPage() {
                 {filtered.map((l) => {
                   const seg = l.segment_id ? segMap[l.segment_id] : null;
                   const pc = PLAN_COLORS[l.plan];
+                  const planData = planMap[l.plan];
+                  const isInternal = !!planData?.is_internal;
                   const storeCount = storesByLic[l.id]?.length ?? 0;
                   const userCount = usersByLic[l.id] ?? 0;
                   const isActive = l.status === "active";
@@ -404,7 +416,14 @@ export default function ClientesPage() {
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--bg3)] text-[11px] font-semibold text-[var(--txt2)]">{l.name.charAt(0).toUpperCase()}</div>
                           )}
                           <div className="min-w-0">
-                            <div className="truncate font-medium text-[var(--txt)]">{l.name}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate font-medium text-[var(--txt)]">{l.name}</span>
+                              {isInternal && (
+                                <span className="shrink-0 rounded-full bg-[var(--purple3)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--purple)]">
+                                  🔒 Interno
+                                </span>
+                              )}
+                            </div>
                             <div className="truncate text-[11px] text-[var(--txt3)]">{l.email}</div>
                           </div>
                         </div>
@@ -552,17 +571,46 @@ export default function ClientesPage() {
                   <div>
                     <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Plano</label>
                     <select value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]">
-                      {Object.entries(PLAN_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                      {plans.filter((p) => p.is_internal).length > 0 && (
+                        <optgroup label="— Uso interno —">
+                          {plans.filter((p) => p.is_internal).map((p) => (
+                            <option key={p.slug} value={p.slug}>🔒 {p.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Planos comerciais">
+                        {plans.filter((p) => !p.is_internal).map((p) => (
+                          <option key={p.slug} value={p.slug}>{p.name}</option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
-                  {form.plan && planMap[form.plan] && (
+                  {form.plan && planMap[form.plan] && !planMap[form.plan].is_internal && (
                     <div className="rounded-lg border border-[var(--bdr)] p-4 text-[12px]">
-                      <div className="mb-1 font-medium text-[var(--txt)]">{PLAN_COLORS[form.plan]?.label}</div>
+                      <div className="mb-1 font-medium text-[var(--txt)]">{PLAN_COLORS[form.plan]?.label || planMap[form.plan].name}</div>
                       <div className="text-[var(--txt3)]">R${planMap[form.plan].price_monthly.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</div>
                     </div>
                   )}
-                  <Field label="Implantação (R$)" value={form.price_setup} onChange={(v) => setForm({ ...form, price_setup: v })} type="number" />
-                  <Field label="Fidelidade (meses)" value={form.min_months} onChange={(v) => setForm({ ...form, min_months: v })} type="number" />
+                  {planMap[form.plan]?.is_internal ? (
+                    <div className="rounded-lg border border-[var(--purple)] bg-[var(--purple3)] p-3">
+                      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold text-[var(--purple)]">
+                        🔒 CONTA INTERNA
+                      </div>
+                      <div className="mb-2 text-[11px] text-[var(--txt3)]">Sem cobrança. Defina quando expira manualmente.</div>
+                      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Vencimento</label>
+                      <input
+                        type="date"
+                        value={form.expires_at}
+                        onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
+                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <Field label="Implantação (R$)" value={form.price_setup} onChange={(v) => setForm({ ...form, price_setup: v })} type="number" />
+                      <Field label="Fidelidade (meses)" value={form.min_months} onChange={(v) => setForm({ ...form, min_months: v })} type="number" />
+                    </>
+                  )}
                 </div>
               )}
 
@@ -666,11 +714,20 @@ export default function ClientesPage() {
                       onChange={(e) => setWizardData((d) => ({ ...d, agency: { ...d.agency, plan: e.target.value } }))}
                       className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
                     >
-                      {plans.map((p) => (
-                        <option key={p.slug} value={p.slug}>
-                          {p.name} — R${p.price_monthly.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
-                        </option>
-                      ))}
+                      {plans.filter((p) => p.is_internal).length > 0 && (
+                        <optgroup label="— Uso interno —">
+                          {plans.filter((p) => p.is_internal).map((p) => (
+                            <option key={p.slug} value={p.slug}>🔒 {p.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Planos comerciais">
+                        {plans.filter((p) => !p.is_internal).map((p) => (
+                          <option key={p.slug} value={p.slug}>
+                            {p.name} — R${p.price_monthly.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
                   <Field
@@ -679,6 +736,22 @@ export default function ClientesPage() {
                     onChange={(v) => setWizardData((d) => ({ ...d, agency: { ...d.agency, city: v } }))}
                     placeholder="São José do Rio Preto"
                   />
+                  {/* Vencimento manual só para planos internos */}
+                  {plans.find((p) => p.slug === wizardData.agency.plan)?.is_internal && (
+                    <div className="rounded-lg border border-[var(--purple)] bg-[var(--purple3)] p-3">
+                      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold text-[var(--purple)]">
+                        <span>🔒 CONTA INTERNA</span>
+                      </div>
+                      <div className="mb-2 text-[11px] text-[var(--txt3)]">Sem cobrança. Defina quando expira manualmente.</div>
+                      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Vencimento</label>
+                      <input
+                        type="date"
+                        value={wizardData.agency.expires_at}
+                        onChange={(e) => setWizardData((d) => ({ ...d, agency: { ...d.agency, expires_at: e.target.value } }))}
+                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

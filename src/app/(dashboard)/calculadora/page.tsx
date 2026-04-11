@@ -10,6 +10,7 @@ interface Plan {
   price_monthly: number; max_users: number; max_posts_day: number;
   max_feed_reels_day?: number | null;
   max_stories_day?: number | null;
+  is_internal?: boolean | null;
 }
 
 type Periodo = "mensal" | "anual";
@@ -85,8 +86,9 @@ export default function CalculadoraPage() {
 
     // Custo mensal por plano com configuração atual
     // Null/undefined nos limites Feed/Stories = não configurado (assume ilimitado).
+    // Exclui planos internos (uso ADM apenas, sem cobrança).
     const costs = plans
-      .filter((p) => PLAN_DISPLAY[p.slug] && p.price_monthly > 0)
+      .filter((p) => PLAN_DISPLAY[p.slug] && p.price_monthly > 0 && !p.is_internal)
       .map((p) => {
         const total = p.price_monthly * lojas * usuarios * desconto + addonMensal;
         const coversUsers = p.max_users === -1 || p.max_users >= usuarios;
