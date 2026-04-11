@@ -265,6 +265,7 @@ export default function PublicarPage() {
         .select("key, value")
         .like("key", "tmpl_%")
         .like("value", p.licensee_id ? `%"licenseeId":"${p.licensee_id}"%` : `%"licenseeId":%`);
+      console.log("[TPL DEBUG]", tplData?.length, tplData?.map(r => r.key));
 
       const rows: TemplateRow[] = [];
       for (const r of (tplData ?? []) as { key: string; value: string }[]) {
