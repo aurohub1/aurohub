@@ -5,6 +5,7 @@ import { Stage, Layer, Rect, Image as KImage, Transformer } from "react-konva";
 import type Konva from "konva";
 import { X, Search, Save, Upload, Heart, Send, MessageCircle, Bookmark, MoreHorizontal, Plus, Pencil, RotateCcw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getProfile } from "@/lib/auth";
 import { EditorElement, EditorSchema, QUICK_START_PRESETS, rescaleSchema, genId } from "./types";
 
 /* ── Shared UI ──────────────────────────────────── */
@@ -525,48 +526,69 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
   const [nome, setNome] = useState(initialName || "");
   const [formType, setFormType] = useState(initialFormType);
   const [format, setFormat] = useState(initialFormat);
-  const [marcas, setMarcas] = useState<MarcaRow[]>([{ id: "aurovista", name: "Aurovista" }]);
-  const [lojas, setLojas] = useState<LojaRow[]>([{ id: "global", name: "Global" }]);
-  const [licenseeId, setLicenseeId] = useState(initialLicenseeId || "aurovista");
-  const [lojaId, setLojaId] = useState(initialLojaId || "global");
+  const [marcas, setMarcas] = useState<MarcaRow[]>([]);
+  const [lojas, setLojas] = useState<LojaRow[]>([]);
+  const [licenseeId, setLicenseeId] = useState(initialLicenseeId || "");
+  const [lojaId, setLojaId] = useState(initialLojaId || "");
   const [saving, setSaving] = useState(false);
 
-  // Carrega marcas — tenta "licensees", depois "marcas", fallback fixo
+  // Carrega marcas (licensees) + profile do usuário logado → pré-seleção
   useEffect(() => {
     (async () => {
-      let rows: MarcaRow[] | null = null;
+      // Profile do usuário para pré-selecionar licensee/store
+      let profileLicenseeId: string | null = null;
+      let profileStoreId: string | null = null;
+      try {
+        const p = await getProfile(supabase);
+        profileLicenseeId = p?.licensee_id ?? null;
+        profileStoreId = p?.store_id ?? null;
+      } catch {}
+
+      // Carrega licensees
+      let rows: MarcaRow[] = [];
       try {
         const r = await supabase.from("licensees").select("id,name").order("name");
-        if (!r.error && r.data && r.data.length > 0) rows = r.data as MarcaRow[];
+        if (!r.error && r.data) rows = r.data as MarcaRow[];
       } catch {}
-      if (!rows) {
-        try {
-          const r = await supabase.from("marcas").select("id,name").order("name");
-          if (!r.error && r.data && r.data.length > 0) rows = r.data as MarcaRow[];
-        } catch {}
+      setMarcas(rows);
+
+      // Pré-seleção: initialLicenseeId > profile.licensee_id > primeiro da lista
+      if (!initialLicenseeId) {
+        if (profileLicenseeId && rows.find(m => m.id === profileLicenseeId)) {
+          setLicenseeId(profileLicenseeId);
+        } else if (rows.length > 0) {
+          setLicenseeId(rows[0].id);
+        }
       }
-      if (rows && rows.length > 0) {
-        setMarcas(rows);
-        if (!rows.find(m => m.id === licenseeId)) setLicenseeId(rows[0].id);
+
+      // Guarda store do profile pra pré-seleção no efeito de lojas
+      if (!initialLojaId && profileStoreId) {
+        pendingStoreRef.current = profileStoreId;
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Carrega lojas por marca — tenta "lojas" com licensee_id
+  // Referência pra pré-seleção da loja do profile após lojas carregarem
+  const pendingStoreRef = useRef<string | null>(null);
+
+  // Carrega stores da marca selecionada
   useEffect(() => {
-    if (!licenseeId) return;
+    if (!licenseeId) { setLojas([]); return; }
     (async () => {
-      let rows: LojaRow[] | null = null;
+      let rows: LojaRow[] = [];
       try {
-        const r = await supabase.from("lojas").select("id,name").eq("licensee_id", licenseeId).order("name");
-        if (!r.error && r.data && r.data.length > 0) rows = r.data as LojaRow[];
+        const r = await supabase.from("stores").select("id,name").eq("licensee_id", licenseeId).order("name");
+        if (!r.error && r.data) rows = r.data as LojaRow[];
       } catch {}
-      if (rows && rows.length > 0) {
-        setLojas(rows);
-        if (!rows.find(l => l.id === lojaId)) setLojaId(rows[0].id);
-      } else {
-        setLojas([{ id: "global", name: "Global" }]);
-        setLojaId("global");
+      setLojas(rows);
+
+      // Pré-seleção da loja: mantém se existir, senão usa profile.store_id, senão primeira
+      const pending = pendingStoreRef.current;
+      if (pending && rows.find(l => l.id === pending)) {
+        setLojaId(pending);
+        pendingStoreRef.current = null;
+      } else if (!rows.find(l => l.id === lojaId)) {
+        setLojaId(rows[0]?.id ?? "");
       }
     })();
   }, [licenseeId]); // eslint-disable-line react-hooks/exhaustive-deps

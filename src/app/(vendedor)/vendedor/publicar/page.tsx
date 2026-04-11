@@ -35,6 +35,26 @@ interface BindField {
 
 type PublishStatus = "idle" | "generating" | "uploading" | "publishing" | "success" | "error";
 
+interface StoreOption {
+  id: string;
+  name: string;
+}
+
+/* ── Regras de publicação multi-store (AZV) ─────── */
+const RIO_PRETO_STORE_ID = "efab2a24-3c34-4d2b-82ee-5fef8018c589";
+const RIO_PRETO_GROUP_MATCHERS = ["rio preto", "barretos", "damha"];
+
+function canPublishToAllAZV(storeId: string | null | undefined): boolean {
+  return storeId === RIO_PRETO_STORE_ID;
+}
+
+function filterAZVGroup(stores: StoreOption[]): StoreOption[] {
+  return stores.filter((s) => {
+    const n = s.name.toLowerCase();
+    return RIO_PRETO_GROUP_MATCHERS.some((m) => n.includes(m));
+  });
+}
+
 /* ── Helpers ─────────────────────────────────────── */
 
 const FORMAT_DIMS: Record<string, [number, number]> = {
@@ -139,6 +159,9 @@ export default function PublicarPage() {
   const [status, setStatus] = useState<PublishStatus>("idle");
   const [statusMsg, setStatusMsg] = useState<string>("");
 
+  const [publishTargets, setPublishTargets] = useState<StoreOption[]>([]);
+  const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
+
   const stageRef = useRef<Konva.Stage | null>(null);
 
   /* ── Load profile + templates ─────────────────── */
@@ -178,6 +201,29 @@ export default function PublicarPage() {
         } catch { /* skip */ }
       }
       setTemplates(rows);
+
+      // Destinos de publicação (stores onde o vendedor pode postar)
+      const { data: storesData } = await supabase
+        .from("stores")
+        .select("id, name")
+        .eq("licensee_id", p.licensee_id)
+        .order("name");
+      const allStores = (storesData ?? []) as StoreOption[];
+
+      let targets: StoreOption[] = [];
+      if (canPublishToAllAZV(p.store_id)) {
+        targets = filterAZVGroup(allStores);
+        if (targets.length === 0) {
+          // fallback: se o filtro por nome não casar, usa todas do licensee
+          targets = allStores;
+        }
+      } else if (p.store_id) {
+        const own = allStores.find((s) => s.id === p.store_id);
+        targets = own ? [own] : [];
+      }
+      setPublishTargets(targets);
+      setSelectedTargetIds(targets.length > 0 ? [targets[0].id] : []);
+
       setLoadingTpl(false);
     })();
   }, []);
@@ -278,6 +324,7 @@ export default function PublicarPage() {
 
   async function handlePublishInstagram() {
     if (!profile?.licensee_id) { setStatus("error"); setStatusMsg("Sem licensee"); return; }
+    if (selectedTargetIds.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
     try {
       setStatus("generating");
       setStatusMsg("Gerando imagem...");
@@ -297,32 +344,60 @@ export default function PublicarPage() {
       }
 
       setStatus("publishing");
-      setStatusMsg("Publicando no Instagram...");
-      const pubRes = await fetch("/api/instagram/post", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          licensee_id: profile.licensee_id,
-          store_id: profile.store_id,
-          image_url: upData.secure_url,
-          caption,
-        }),
-      });
-      const pubData = await pubRes.json();
-      if (!pubRes.ok || !pubData.success) {
-        throw new Error(pubData.error || "Publicação falhou");
+
+      // Publica sequencialmente em cada store selecionada
+      const targetsToPublish = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
+      const resultados: { store: StoreOption; ok: boolean; error?: string }[] = [];
+      for (const target of targetsToPublish) {
+        setStatusMsg(`Publicando em ${target.name}...`);
+        try {
+          const pubRes = await fetch("/api/instagram/post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              licensee_id: profile.licensee_id,
+              store_id: target.id,
+              image_url: upData.secure_url,
+              caption,
+            }),
+          });
+          const pubData = await pubRes.json();
+          if (!pubRes.ok || !pubData.success) {
+            resultados.push({ store: target, ok: false, error: pubData.error || "Falhou" });
+          } else {
+            resultados.push({ store: target, ok: true });
+          }
+        } catch (err) {
+          resultados.push({ store: target, ok: false, error: err instanceof Error ? err.message : "Erro" });
+        }
+      }
+
+      const okCount = resultados.filter((r) => r.ok).length;
+      const falhas = resultados.filter((r) => !r.ok);
+      if (okCount === 0) {
+        throw new Error(`Nenhuma publicação concluída. ${falhas[0]?.error ?? ""}`);
       }
 
       setStatus("success");
-      setStatusMsg("Publicado no Instagram!");
+      if (falhas.length === 0) {
+        setStatusMsg(`Publicado em ${okCount} loja${okCount === 1 ? "" : "s"}!`);
+      } else {
+        setStatusMsg(`${okCount} ok · ${falhas.length} falha${falhas.length === 1 ? "" : "s"}: ${falhas.map((f) => f.store.name).join(", ")}`);
+      }
       setTimeout(() => {
         reset();
-      }, 2500);
+      }, 3000);
     } catch (err) {
       console.error("[Publicar IG]", err);
       setStatus("error");
       setStatusMsg(err instanceof Error ? err.message : "Erro desconhecido");
     }
+  }
+
+  function toggleTarget(id: string) {
+    setSelectedTargetIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   }
 
   /* ── Render ───────────────────────────────────── */
@@ -486,6 +561,43 @@ export default function PublicarPage() {
                 className="resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
               />
             </div>
+
+            {/* Destinos de publicação */}
+            {publishTargets.length > 0 && (
+              <div className="mt-2 flex flex-col gap-2 border-t border-[var(--bdr)] pt-4">
+                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">
+                  Publicar em {publishTargets.length > 1 ? "(selecione uma ou mais)" : ""}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {publishTargets.map((t) => {
+                    const active = selectedTargetIds.includes(t.id);
+                    const single = publishTargets.length === 1;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => !single && toggleTarget(t.id)}
+                        disabled={single}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                          active
+                            ? "border-[var(--orange)] bg-[rgba(255,122,26,0.12)] text-[#FF7A1A]"
+                            : "border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
+                        } ${single ? "cursor-default" : ""}`}
+                      >
+                        <span
+                          className={`flex h-4 w-4 items-center justify-center rounded border ${
+                            active ? "border-[var(--orange)] bg-[var(--orange)] text-white" : "border-[var(--bdr2)]"
+                          }`}
+                        >
+                          {active && <Check size={10} />}
+                        </span>
+                        {t.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Ações */}
             <div className="mt-2 grid grid-cols-1 gap-2 border-t border-[var(--bdr)] pt-4 sm:grid-cols-3">
