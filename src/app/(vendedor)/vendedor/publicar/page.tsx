@@ -275,7 +275,6 @@ export default function PublicarPage() {
 
   // Daily counter
   const [postsByFormat, setPostsByFormat] = useState<PostsByFormat>({ stories: 0, feed: 0, reels: 0, tv: 0 });
-  const [noticias, setNoticias] = useState<{ title: string; url: string; source: string }[]>([]);
   const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
   const [features, setFeatures] = useState<Set<string>>(new Set());
 
@@ -443,29 +442,7 @@ export default function PublicarPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadDailyCount]);
 
-  async function fetchNoticias() {
-    try {
-      const res = await fetch(
-        "https://gnews.io/api/v4/search?q=turismo+viagens+brasil&lang=pt&country=br&max=5&token=FREE_TOKEN"
-      );
-      // GNews tem plano gratuito limitado — usa RSS do G1 Turismo como alternativa gratuita
-      // Usa proxy público de RSS para JSON
-      void res; // não usamos a resposta — GNews precisa de token pago
-      const rss = await fetch(
-        "https://api.rss2json.com/v1/api.json?rss_url=https://feeds.feedburner.com/g1turismo&count=5"
-      );
-      const data = await rss.json();
-      if (data.items) {
-        setNoticias(data.items.slice(0, 5).map((i: { title: string; link: string; pubDate: string }) => ({
-          title: i.title,
-          url: i.link,
-          source: "G1 Turismo",
-        })));
-      }
-    } catch { /* silencioso — notícias são opcionais */ }
-  }
-
-  useEffect(() => { loadData(); fetchNoticias(); }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   /* ── Dataset loaders (completos nome+url, cacheados) ── */
 
@@ -1149,28 +1126,6 @@ export default function PublicarPage() {
                 visible={formatVisible}
                 current={format}
               />
-
-              {/* Notícias do setor */}
-              {noticias.length > 0 && (
-                <div className="border-t border-[var(--bdr)] pt-4">
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-                    Notícias do Setor
-                  </label>
-                  <div className="flex flex-col gap-2">
-                    {noticias.map((n, i) => (
-                      <a
-                        key={i}
-                        href={n.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="line-clamp-2 text-[10px] leading-tight text-[var(--txt2)] transition-colors hover:text-[#FF7A1A]"
-                      >
-                        {n.title}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>

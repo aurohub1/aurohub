@@ -49,18 +49,13 @@ const AUGUSTO_CURY = [
 ];
 
 /**
- * Mistura o pool de frases: 70% do segmento + 30% Augusto Cury.
- * Se o segmento não tem frases, cai pra Augusto Cury puro.
- * Retorna uma frase aleatória do pool misturado.
+ * Frase do dia determinística — mesma frase durante o mesmo dia,
+ * pega por índice baseado em `Math.floor(Date.now() / 86400000)`.
  */
-function pickQuote(segmentQuotes: string[] | null): string {
-  if (!segmentQuotes || segmentQuotes.length === 0) {
-    return AUGUSTO_CURY[Math.floor(Math.random() * AUGUSTO_CURY.length)];
-  }
-  // 70% → segmento, 30% → Cury
-  const pickFromSegment = Math.random() < 0.7;
-  const pool = pickFromSegment ? segmentQuotes : AUGUSTO_CURY;
-  return pool[Math.floor(Math.random() * pool.length)];
+function pickQuoteOfDay(segmentQuotes: string[] | null): string {
+  const pool = [...(segmentQuotes ?? []), ...AUGUSTO_CURY];
+  const dayIndex = Math.floor(Date.now() / 86400000);
+  return pool[dayIndex % pool.length];
 }
 
 // Calendário do turismo 2026 — feriados, vésperas e alta temporada relevantes
@@ -140,6 +135,8 @@ export default function VendedorInicioPage() {
   const [novaData, setNovaData] = useState("");
   const [novaNota, setNovaNota] = useState("");
 
+  const [noticias, setNoticias] = useState<{ title: string; url: string }[]>([]);
+
   /* ── Load profile, posts, quote, weather ─────── */
   const loadData = useCallback(async () => {
     try {
@@ -172,7 +169,7 @@ export default function VendedorInicioPage() {
         const arr = (seg as { vendor_quotes?: unknown } | null)?.vendor_quotes;
         if (Array.isArray(arr) && arr.length > 0) segmentQuotes = arr as string[];
       }
-      setQuote(pickQuote(segmentQuotes));
+      setQuote(pickQuoteOfDay(segmentQuotes));
 
       // Cidade da store (best-effort — coluna pode não existir)
       let cidade: string | null = null;
@@ -202,6 +199,22 @@ export default function VendedorInicioPage() {
         const d = await w.json();
         if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code });
       }
+
+      // Notícias do setor — RSS do Panrotas via proxy rss2json
+      try {
+        const rss = await fetch(
+          "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.panrotas.com.br%2Ffeed%2F&count=5"
+        );
+        if (rss.ok) {
+          const rd = await rss.json();
+          if (rd.items?.length) {
+            setNoticias(rd.items.slice(0, 5).map((i: { title: string; link: string }) => ({
+              title: i.title,
+              url: i.link,
+            })));
+          }
+        }
+      } catch { /* silencioso */ }
     } catch (err) {
       console.error("[VendedorInicio] load:", err);
     } finally {
@@ -387,8 +400,8 @@ export default function VendedorInicioPage() {
         </div>
       </div>
 
-      {/* ═══ Lembretes + Calendário ════════════════ */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      {/* ═══ Lembretes + Calendário + Notícias ════ */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* ── Lembretes ─────────────────────────── */}
         <div className="card-glass flex flex-col">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
@@ -509,6 +522,39 @@ export default function VendedorInicioPage() {
                   );
                 })}
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Notícias do Setor ─────────────────── */}
+        <div className="card-glass flex flex-col">
+          <div className="flex items-center gap-2 border-b border-[var(--bdr)] px-5 py-4">
+            <Plane size={15} className="text-[#FF7A1A]" />
+            <h3 className="text-[14px] font-bold text-[var(--txt)]">Notícias do setor</h3>
+          </div>
+          <div className="flex flex-col gap-3 p-5">
+            {noticias.length === 0 ? (
+              <div className="py-6 text-center text-[12px] text-[var(--txt3)]">
+                Carregando notícias...
+              </div>
+            ) : (
+              noticias.map((n, i) => (
+                <a
+                  key={i}
+                  href={n.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[12px] leading-snug text-[var(--txt2)] transition-colors hover:text-[#FF7A1A]"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {n.title}
+                </a>
+              ))
             )}
           </div>
         </div>
