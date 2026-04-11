@@ -3,62 +3,47 @@
 /**
  * migrate-images.js
  * ------------------------------------------------------------
- * Migra as tabelas `imgfundo` e `imghotel` do Aurohub Estável (v1)
- * para o Aurohub Next (v2).
+ * Migra as tabelas de recursos do Aurohub Estável (v1) → Next (v2).
  *
  * Uso:
- *   node --env-file=.env.local scripts/migrate-images.js           # executa
+ *   node --env-file=.env.local scripts/migrate-images.js           # executa tudo
  *   node --env-file=.env.local scripts/migrate-images.js --dry     # só conta / inspeciona
+ *   node --env-file=.env.local scripts/migrate-images.js --force   # ignora dedup (tabela já populada)
  *   node --env-file=.env.local scripts/migrate-images.js --table=imghotel  # só uma tabela
  *
  * Requisitos:
  *   - Node 20+ (pelo flag --env-file)
- *   - @supabase/supabase-js já instalado no projeto
- *   - SUPABASE_SERVICE_ROLE_KEY preenchido no .env.local (senão RLS pode bloquear os inserts)
+ *   - @supabase/supabase-js instalado
+ *   - SUPABASE_SERVICE_ROLE_KEY no .env.local (write bypass RLS)
+ *   - Tabelas criadas no V2 via `database/imagens.sql` — se alguma faltar,
+ *     o script avisa e pula (não tenta DDL porque PostgREST não expõe).
  *
  * V1 (origem):
- *   https://wwwpuqjdpecnixvbqigq.supabase.co
- *   Anon key está hardcoded abaixo (é a mesma pública do client.js do Estável).
+ *   https://wwwpuqjdpecnixvbqigq.supabase.co  (anon key pública já do Estável)
  *
  * V2 (destino):
  *   Lido de process.env.NEXT_PUBLIC_SUPABASE_URL
- *   Write key: SUPABASE_SERVICE_ROLE_KEY (preferido) ou NEXT_PUBLIC_SUPABASE_ANON_KEY
+ *   Write key: SUPABASE_SERVICE_ROLE_KEY (preferido) ou anon
  *
- * Schema esperado em V2 (crie se não existir):
- *
- *   CREATE TABLE IF NOT EXISTS imgfundo (
- *     id          bigserial PRIMARY KEY,
- *     nome        text NOT NULL,
- *     url         text NOT NULL,
- *     created_at  timestamptz DEFAULT now()
- *   );
- *   CREATE INDEX IF NOT EXISTS idx_imgfundo_nome ON imgfundo(nome);
- *
- *   CREATE TABLE IF NOT EXISTS imghotel (
- *     id          bigserial PRIMARY KEY,
- *     nome        text NOT NULL,
- *     url         text NOT NULL,
- *     created_at  timestamptz DEFAULT now()
- *   );
- *   CREATE INDEX IF NOT EXISTS idx_imghotel_nome ON imghotel(nome);
- *
- * Estratégia:
- *   - Pagina o V1 em batches de 1000 (limite default do PostgREST)
- *   - Insere no V2 em batches de 500 — `id` é regenerado pelo destino
- *   - Não tenta dedup: se rodar 2×, duplica. Rode após TRUNCATE se necessário.
- *   - Em `--dry`, só conta origem e destino e imprime as 3 primeiras linhas da V1.
+ * Tabelas migradas (ver `TABLES` abaixo):
+ *   imgfundo   { nome, url }
+ *   imghotel   { nome, url }
+ *   imgaviao   { url }                    -- sem nome
+ *   imgcruise  { nome, url, cia }
+ *   icocruise  { nome, url }
+ *   badges     { nome, url }
+ *   simbol     { nome, url }
+ *   feriados   { nome, url, loja }
  * ------------------------------------------------------------ */
 
 const { createClient } = require("@supabase/supabase-js");
 
 /* ── Config ─────────────────────────────────────── */
 
-// V1 — Aurohub Estável (hardcoded; é a anon key pública já exposta em client.js)
 const V1_URL = "https://wwwpuqjdpecnixvbqigq.supabase.co";
 const V1_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3d3B1cWpkcGVjbml4dmJxaWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMDc3MDMsImV4cCI6MjA4OTU4MzcwM30.EutACGyKh2pe7ixv2WFuT8ZFEflUaTS1Whe4LBCz--g";
 
-// V2 — Aurohub Next (do .env.local)
 const V2_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const V2_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -76,12 +61,40 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   );
 }
 
+/**
+ * Definição das tabelas a migrar.
+ * `columns` = colunas a ler do V1 e re-inserir no V2 (sem id, que é regenerado).
+ * `preserveCreatedAt` = preserva timestamp original se a coluna existir.
+ */
+const TABLES = [
+  { name: "imgfundo",  columns: ["nome", "url"] },
+  { name: "imghotel",  columns: ["nome", "url"] },
+  { name: "imgaviao",  columns: ["url"] },
+  { name: "imgcruise", columns: ["nome", "url", "cia"] },
+  { name: "icocruise", columns: ["nome", "url"] },
+  { name: "badges",    columns: ["nome", "url"] },
+  { name: "simbol",    columns: ["nome", "url"] },
+  // feriados: coluna `loja` não existe no V1 (apesar do schema do migration_v1_tables.sql)
+  { name: "feriados",  columns: ["nome", "url"] },
+];
+
 const argv = process.argv.slice(2);
 const DRY = argv.includes("--dry");
+const FORCE = argv.includes("--force");
 const tableArg = argv.find((a) => a.startsWith("--table="));
 const ONLY_TABLE = tableArg ? tableArg.split("=")[1] : null;
 
-const TABLES = ONLY_TABLE ? [ONLY_TABLE] : ["imgfundo", "imghotel"];
+const RUN_TABLES = ONLY_TABLE
+  ? TABLES.filter((t) => t.name === ONLY_TABLE)
+  : TABLES;
+
+if (ONLY_TABLE && RUN_TABLES.length === 0) {
+  console.error(
+    `[migrate-images] tabela "${ONLY_TABLE}" não está no array. Opções: ${TABLES.map((t) => t.name).join(", ")}`
+  );
+  process.exit(1);
+}
+
 const PAGE_SIZE = 1000;
 const INSERT_BATCH = 500;
 
@@ -96,22 +109,31 @@ const v2 = createClient(V2_URL, V2_KEY, {
 
 /* ── Helpers ────────────────────────────────────── */
 
+/**
+ * Conta linhas. Retorna null se a tabela não existe no destino (code 42P01).
+ */
 async function countRows(client, table) {
   const { count, error } = await client
     .from(table)
     .select("*", { count: "exact", head: true });
-  if (error) throw new Error(`count ${table}: ${error.message}`);
+  if (error) {
+    if (error.code === "42P01" || /does not exist/i.test(error.message)) {
+      return null; // tabela ausente
+    }
+    throw new Error(`count ${table}: ${error.message}`);
+  }
   return count ?? 0;
 }
 
-async function fetchAll(table) {
+async function fetchAll(table, columns) {
+  const selectCols = ["id", ...columns, "created_at"].join(", ");
   const rows = [];
   let from = 0;
   for (;;) {
     const to = from + PAGE_SIZE - 1;
     const { data, error } = await v1
       .from(table)
-      .select("id, nome, url, created_at")
+      .select(selectCols)
       .order("id", { ascending: true })
       .range(from, to);
     if (error) throw new Error(`fetch ${table} [${from}-${to}]: ${error.message}`);
@@ -126,15 +148,16 @@ async function fetchAll(table) {
   return rows;
 }
 
-async function insertBatches(table, rows) {
+async function insertBatches(table, columns, rows) {
   let inserted = 0;
   for (let i = 0; i < rows.length; i += INSERT_BATCH) {
-    const slice = rows.slice(i, i + INSERT_BATCH).map((r) => ({
-      // id é regenerado pelo destino — NÃO preservar
-      nome: r.nome,
-      url: r.url,
-      created_at: r.created_at, // preserva timestamp original
-    }));
+    const slice = rows.slice(i, i + INSERT_BATCH).map((r) => {
+      const out = {};
+      for (const col of columns) out[col] = r[col];
+      // Preserva timestamp original
+      if (r.created_at) out.created_at = r.created_at;
+      return out;
+    });
     const { error } = await v2.from(table).insert(slice);
     if (error) throw new Error(`insert ${table} batch ${i}: ${error.message}`);
     inserted += slice.length;
@@ -145,52 +168,97 @@ async function insertBatches(table, rows) {
   return inserted;
 }
 
+function summarizeAmostra(rows, columns) {
+  return rows.slice(0, 3).map((r) => {
+    const o = {};
+    for (const col of columns) {
+      const v = r[col];
+      if (typeof v === "string" && v.length > 60) o[col] = v.slice(0, 60) + "...";
+      else o[col] = v;
+    }
+    return o;
+  });
+}
+
 /* ── Main ───────────────────────────────────────── */
 
 (async () => {
   console.log(`\n══ Aurohub · migrate-images ${DRY ? "(DRY RUN)" : ""} ══`);
-  console.log(`V1 origem: ${V1_URL}`);
+  console.log(`V1 origem:  ${V1_URL}`);
   console.log(`V2 destino: ${V2_URL}`);
-  console.log(`Tabelas:   ${TABLES.join(", ")}\n`);
+  console.log(`Tabelas:    ${RUN_TABLES.map((t) => t.name).join(", ")}\n`);
 
-  for (const table of TABLES) {
-    console.log(`── ${table} ────────────────────────────`);
+  const missing = [];
+  const summary = [];
+
+  for (const { name, columns } of RUN_TABLES) {
+    console.log(`── ${name} ────────────────────────────`);
     try {
-      const [cV1, cV2] = await Promise.all([
-        countRows(v1, table),
-        countRows(v2, table),
-      ]);
+      const cV1 = await countRows(v1, name);
+      if (cV1 === null) {
+        console.log(`  ✗ ${name} não existe no V1.\n`);
+        summary.push({ table: name, v1: "—", v2: "—", status: "não existe V1" });
+        continue;
+      }
+      const cV2 = await countRows(v2, name);
+      if (cV2 === null) {
+        console.log(
+          `  ⚠  ${name} NÃO EXISTE no V2. Rode database/imagens.sql antes de migrar.`
+        );
+        missing.push(name);
+        summary.push({ table: name, v1: cV1, v2: "—", status: "V2 ausente" });
+        console.log();
+        continue;
+      }
+
       console.log(`  V1: ${cV1} registros`);
       console.log(`  V2: ${cV2} registros (antes)`);
 
       if (cV1 === 0) {
         console.log(`  ⚠  V1 vazio — nada a migrar.\n`);
+        summary.push({ table: name, v1: 0, v2: cV2, status: "V1 vazio" });
         continue;
       }
 
-      const rows = await fetchAll(table);
+      // Guard de dedup: se V2 já tem algo, pula (a menos que --force)
+      if (cV2 > 0 && !FORCE) {
+        console.log(
+          `  ⚠  V2 já tem ${cV2} registros — pulando pra evitar duplicação. Use --force pra sobrescrever.\n`
+        );
+        summary.push({ table: name, v1: cV1, v2: cV2, status: "já populado (skip)" });
+        continue;
+      }
+
+      const rows = await fetchAll(name, columns);
       console.log(`  Carregados da V1: ${rows.length} linhas`);
-      console.log(
-        `  Amostra:`,
-        rows.slice(0, 3).map((r) => ({
-          nome: r.nome,
-          url: r.url?.slice(0, 60) + "...",
-        }))
-      );
+      console.log(`  Amostra:`, summarizeAmostra(rows, columns));
 
       if (DRY) {
         console.log(`  (dry) pularia o insert de ${rows.length} linhas.\n`);
+        summary.push({ table: name, v1: cV1, v2: cV2, status: `dry (+${rows.length})` });
         continue;
       }
 
-      const inserted = await insertBatches(table, rows);
-      const cV2After = await countRows(v2, table);
+      const inserted = await insertBatches(name, columns, rows);
+      const cV2After = await countRows(v2, name);
       console.log(`  ✓ Inseridos: ${inserted}`);
       console.log(`  V2: ${cV2After} registros (depois)`);
-      console.log(`  Delta: +${cV2After - cV2}\n`);
+      console.log(`  Delta: +${(cV2After ?? 0) - cV2}\n`);
+      summary.push({ table: name, v1: cV1, v2: cV2After, status: `migrado (+${inserted})` });
     } catch (err) {
-      console.error(`  ✗ Erro em ${table}:`, err.message, "\n");
+      console.error(`  ✗ Erro em ${name}:`, err.message, "\n");
+      summary.push({ table: name, v1: "?", v2: "?", status: `erro: ${err.message}` });
     }
+  }
+
+  console.log("══ Resumo ══");
+  console.table(summary);
+
+  if (missing.length > 0) {
+    console.log(
+      `\n⚠  Tabelas ausentes no V2: ${missing.join(", ")}\n` +
+        `   Rode o SQL em database/imagens.sql no Supabase Dashboard → SQL Editor.\n`
+    );
   }
 
   console.log("══ Fim ══\n");

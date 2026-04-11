@@ -1,7 +1,10 @@
 -- ============================================================
--- Biblioteca de Imagens — tabelas do ADM
+-- Biblioteca de Recursos — tabelas do ADM
 -- Schema compatível com migration_v1_tables.sql do Aurohub Estável
+-- Rodar no Supabase SQL editor (service_role)
 -- ============================================================
+
+/* ── Imagens de referência ────────────────────────────────── */
 
 create table if not exists public.imgfundo (
   id         bigserial primary key,
@@ -34,16 +37,60 @@ create table if not exists public.imgcruise (
 );
 create index if not exists idx_imgcruise_nome on public.imgcruise(nome);
 
--- RLS — só ADM escreve; qualquer autenticado lê
+create table if not exists public.icocruise (
+  id         bigserial primary key,
+  nome       text not null,
+  url        text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_icocruise_nome on public.icocruise(nome);
+
+/* ── Badges, símbolos e feriados ──────────────────────────── */
+
+create table if not exists public.badges (
+  id         bigserial primary key,
+  nome       text not null,
+  url        text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_badges_nome on public.badges(nome);
+
+create table if not exists public.simbol (
+  id         bigserial primary key,
+  nome       text not null,
+  url        text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_simbol_nome on public.simbol(nome);
+
+create table if not exists public.feriados (
+  id         bigserial primary key,
+  nome       text not null,
+  url        text not null,
+  loja       text,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_feriados_nome on public.feriados(nome);
+create index if not exists idx_feriados_loja on public.feriados(loja);
+
+/* ── RLS: leitura autenticada, escrita só ADM ─────────────── */
+
 alter table public.imgfundo  enable row level security;
 alter table public.imghotel  enable row level security;
 alter table public.imgaviao  enable row level security;
 alter table public.imgcruise enable row level security;
+alter table public.icocruise enable row level security;
+alter table public.badges    enable row level security;
+alter table public.simbol    enable row level security;
+alter table public.feriados  enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['imgfundo','imghotel','imgaviao','imgcruise'] loop
+  foreach t in array array[
+    'imgfundo','imghotel','imgaviao','imgcruise','icocruise',
+    'badges','simbol','feriados'
+  ] loop
     execute format('drop policy if exists %I_read on public.%I', t, t);
     execute format($p$
       create policy %I_read on public.%I
