@@ -301,9 +301,10 @@ export default function CanvasStage(p: Props) {
               points={g.orientation === "V"
                 ? [g.position, 0, g.position, height]
                 : [0, g.position, width, g.position]}
-              stroke={g.kind === "edge" ? "#3B82F6" : "#FF3B7A"}
+              stroke={g.kind === "edge" ? "#4444FF" : "#FF4444"}
               strokeWidth={1 / stageScale}
-              dash={[4 / stageScale, 3 / stageScale]}
+              dash={[4 / stageScale, 4 / stageScale]}
+              opacity={0.8}
               listening={false} />
           ))}
           <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} boundBoxFunc={(_, nw) => nw} />
