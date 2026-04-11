@@ -14,7 +14,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
-    if (saved) document.documentElement.setAttribute("data-theme", saved);
+    document.documentElement.setAttribute("data-theme", saved || "light");
   }, []);
 
   useEffect(() => {

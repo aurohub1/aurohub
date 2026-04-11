@@ -35,7 +35,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex bg-[var(--bg)] text-[var(--txt)] font-[family-name:var(--font-dm-sans)]">
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex bg-[var(--bg)] text-[var(--txt)] font-[family-name:var(--font-dm-sans)]"
+      >
         {children}
       </body>
     </html>
