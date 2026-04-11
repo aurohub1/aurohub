@@ -187,11 +187,23 @@ export default function ClientesPage() {
       }
       // Salva overrides de features
       if (persistedId) {
-        try { await saveLicenseeOverrides(supabase, persistedId, featureOverrides); }
-        catch (err) { console.error("[features overrides save]", err); }
+        console.log("[handleSave] salvando overrides para", persistedId, featureOverrides);
+        try {
+          await saveLicenseeOverrides(supabase, persistedId, featureOverrides);
+          console.log("[handleSave] overrides salvas com sucesso");
+        } catch (err) {
+          console.error("[handleSave] erro ao salvar overrides:", err);
+          setModalError(`Erro ao salvar features: ${err instanceof Error ? err.message : "desconhecido"}`);
+          return;
+        }
+      } else {
+        console.warn("[handleSave] sem persistedId — overrides não salvas");
       }
       setModalOpen(false); await loadData();
-    } catch { setModalError("Erro ao salvar."); } finally { setSaving(false); }
+    } catch (err) {
+      console.error("[handleSave] erro genérico:", err);
+      setModalError(err instanceof Error ? err.message : "Erro ao salvar.");
+    } finally { setSaving(false); }
   }
 
   async function toggleStatus(id: string, current: string) {

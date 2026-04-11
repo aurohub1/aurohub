@@ -69,12 +69,12 @@ export async function getFeatures(
 
   const { data } = await sb
     .from("licensee_feature_overrides")
-    .select("feature, enabled")
+    .select("feature_key, enabled")
     .eq("licensee_id", profile.licensee_id);
 
-  for (const row of (data ?? []) as { feature: string; enabled: boolean }[]) {
-    if (!(ALL_FEATURES as readonly string[]).includes(row.feature)) continue;
-    const f = row.feature as Feature;
+  for (const row of (data ?? []) as { feature_key: string; enabled: boolean }[]) {
+    if (!(ALL_FEATURES as readonly string[]).includes(row.feature_key)) continue;
+    const f = row.feature_key as Feature;
     if (row.enabled) set.add(f);
     else set.delete(f);
   }
@@ -91,12 +91,12 @@ export async function getLicenseeOverrides(
 ): Promise<Partial<Record<Feature, boolean>>> {
   const { data } = await sb
     .from("licensee_feature_overrides")
-    .select("feature, enabled")
+    .select("feature_key, enabled")
     .eq("licensee_id", licenseeId);
   const map: Partial<Record<Feature, boolean>> = {};
-  for (const row of (data ?? []) as { feature: string; enabled: boolean }[]) {
-    if (!(ALL_FEATURES as readonly string[]).includes(row.feature)) continue;
-    map[row.feature as Feature] = row.enabled;
+  for (const row of (data ?? []) as { feature_key: string; enabled: boolean }[]) {
+    if (!(ALL_FEATURES as readonly string[]).includes(row.feature_key)) continue;
+    map[row.feature_key as Feature] = row.enabled;
   }
   return map;
 }
@@ -111,24 +111,35 @@ export async function saveLicenseeOverrides(
   licenseeId: string,
   desired: Partial<Record<Feature, boolean>>
 ): Promise<void> {
-  const toUpsert: { licensee_id: string; feature: string; enabled: boolean }[] = [];
+  const toUpsert: { licensee_id: string; feature_key: string; enabled: boolean }[] = [];
   const toDelete: string[] = [];
   for (const f of ALL_FEATURES) {
     const v = desired[f];
     if (v === undefined) toDelete.push(f);
-    else toUpsert.push({ licensee_id: licenseeId, feature: f, enabled: v });
+    else toUpsert.push({ licensee_id: licenseeId, feature_key: f, enabled: v });
   }
 
+  console.log("[saveLicenseeOverrides] licenseeId:", licenseeId);
+  console.log("[saveLicenseeOverrides] desired:", desired);
+  console.log("[saveLicenseeOverrides] toUpsert:", toUpsert);
+  console.log("[saveLicenseeOverrides] toDelete:", toDelete);
+
   if (toUpsert.length > 0) {
-    await sb
+    const { data, error } = await sb
       .from("licensee_feature_overrides")
-      .upsert(toUpsert, { onConflict: "licensee_id,feature" });
+      .upsert(toUpsert, { onConflict: "licensee_id,feature_key" })
+      .select();
+    console.log("[saveLicenseeOverrides] upsert result:", { data, error });
+    if (error) throw new Error(`upsert features: ${error.message}`);
   }
   if (toDelete.length > 0) {
-    await sb
+    const { data, error } = await sb
       .from("licensee_feature_overrides")
       .delete()
       .eq("licensee_id", licenseeId)
-      .in("feature", toDelete);
+      .in("feature_key", toDelete)
+      .select();
+    console.log("[saveLicenseeOverrides] delete result:", { data, error });
+    if (error) throw new Error(`delete features: ${error.message}`);
   }
 }
