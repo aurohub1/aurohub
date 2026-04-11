@@ -1,193 +1,222 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type Konva from "konva";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
-import type { EditorSchema, EditorElement } from "@/components/editor/types";
+import type { EditorSchema } from "@/components/editor/types";
 import {
-  Sparkles, Download, Send, ArrowLeft, Image as ImageIcon, Check, X, Loader2,
+  Sparkles, Download, Send, Check, X, Loader2, Trash2,
+  Image as ImageIcon, Search as SearchIcon,
 } from "lucide-react";
 
 const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
 
 /* ── Tipos ───────────────────────────────────────── */
 
+type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu";
+type Format = "stories" | "feed" | "reels" | "tv";
+type PublishStatus = "idle" | "generating" | "uploading" | "publishing" | "success" | "error";
+
 interface TemplateRow {
   key: string;
   id: string;
   nome: string;
-  format: string;
-  formType: string;
+  format: Format;
+  formType: FormType | string;
   width: number;
   height: number;
   schema: EditorSchema;
 }
 
-type BindType = "text" | "image" | "date" | "number";
+interface StoreOption { id: string; name: string; }
 
-interface BindField {
-  name: string;
-  label: string;
-  type: BindType;
+interface PlanLimits {
+  slug: string;
+  max_posts_day: number;
+  can_schedule: boolean;
+  can_ia_legenda: boolean;
 }
 
-type PublishStatus = "idle" | "generating" | "uploading" | "publishing" | "success" | "error";
+interface PostsByFormat { stories: number; feed: number; reels: number; tv: number; }
 
-interface StoreOption {
-  id: string;
-  name: string;
-}
+/* ── Constantes ──────────────────────────────────── */
 
-/* ── Regras de publicação multi-store (AZV) ─────── */
 const RIO_PRETO_STORE_ID = "efab2a24-3c34-4d2b-82ee-5fef8018c589";
-const RIO_PRETO_GROUP_MATCHERS = ["rio preto", "barretos", "damha"];
+const RIO_PRETO_MATCHERS = ["rio preto", "barretos", "damha"];
 
-function canPublishToAllAZV(storeId: string | null | undefined): boolean {
-  return storeId === RIO_PRETO_STORE_ID;
-}
-
-function filterAZVGroup(stores: StoreOption[]): StoreOption[] {
-  return stores.filter((s) => {
-    const n = s.name.toLowerCase();
-    return RIO_PRETO_GROUP_MATCHERS.some((m) => n.includes(m));
-  });
-}
-
-/* ── Helpers ─────────────────────────────────────── */
-
-const FORMAT_DIMS: Record<string, [number, number]> = {
+const FORMAT_DIMS: Record<Format, [number, number]> = {
   stories: [1080, 1920],
   reels:   [1080, 1920],
   feed:    [1080, 1350],
   tv:      [1920, 1080],
 };
 
-const FORMAT_LABELS: Record<string, string> = {
-  stories: "Stories",
-  reels: "Reels",
-  feed: "Feed",
-  tv: "TV",
+const FORMAT_LABELS: Record<Format, string> = {
+  stories: "Stories", reels: "Reels", feed: "Feed", tv: "TV",
 };
 
-const BIND_LABELS: Record<string, string> = {
-  imgfundo: "Imagem de fundo",
-  imgdestino: "Imagem do destino",
-  imghotel: "Imagem do hotel",
-  imgaviao: "Imagem do avião",
-  imgciamaritima: "Imagem da cia marítima",
-  imgloja: "Imagem da loja",
-  destino: "Destino",
-  saida: "Saída",
-  tipovoo: "Tipo de voo",
-  dataida: "Data de ida",
-  datavolta: "Data de volta",
-  noites: "Noites",
-  feriado: "Feriado",
-  hotel: "Hotel",
-  navio: "Navio",
-  categoria: "Categoria",
-  itinerario: "Itinerário",
-  incluso: "Incluso",
-  servico1: "Serviço 1",
-  servico2: "Serviço 2",
-  servico3: "Serviço 3",
-  servico4: "Serviço 4",
-  servico5: "Serviço 5",
-  servico6: "Serviço 6",
-  preco: "Preço",
-  parcelas: "Parcelas",
-  valorparcela: "Valor da parcela",
-  desconto: "Desconto",
-  formapagamento: "Forma de pagamento",
-  totalduplo: "Total duplo",
-  totalcruzeiro: "Total cruzeiro",
-  loja: "Loja",
-  agente: "Agente",
-  fone: "Telefone",
-  titulo: "Título",
-  subtitulo: "Subtítulo",
-  texto1: "Texto 1",
-  texto2: "Texto 2",
-  texto3: "Texto 3",
+const FORM_LABELS: Record<FormType, string> = {
+  pacote: "Pacote", campanha: "Campanha", passagem: "Passagem",
+  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu",
 };
 
-function classifyBind(name: string, elType: string): BindType {
-  if (elType === "image" || name.startsWith("img")) return "image";
-  if (name === "dataida" || name === "datavolta" || name === "inicio" || name === "fim") return "date";
-  if (["preco", "valorparcela", "desconto", "noites", "totalduplo", "totalcruzeiro"].includes(name)) return "number";
-  return "text";
+const FORM_ORDER: FormType[] = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu"];
+
+const FERIADOS_FIXOS = [
+  "Carnaval", "Páscoa", "Tiradentes", "Trabalho", "Corpus Christi",
+  "Independência", "Nossa Senhora", "Finados", "República", "Natal", "Réveillon",
+];
+
+const FORMA_PGTO_OPTS = [
+  "No Cartão de Crédito Sem Juros",
+  "Boleto com Entrada",
+  "No Débito",
+];
+const PARCELAS_OPTS = Array.from({ length: 36 }, (_, i) => `${i + 1}x`);
+const DESCONTO_OPTS = ["", "5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
+
+/** Normaliza string para matching: lowercase + remove acentos */
+function normalizar(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
-function collectBindFields(elements: EditorElement[]): BindField[] {
-  const seen = new Set<string>();
-  const fields: BindField[] = [];
-  for (const el of elements) {
-    if (!el.bindParam || seen.has(el.bindParam)) continue;
-    seen.add(el.bindParam);
-    fields.push({
-      name: el.bindParam,
-      label: BIND_LABELS[el.bindParam] ?? el.bindParam,
-      type: classifyBind(el.bindParam, el.type),
-    });
-  }
-  return fields;
-}
+/* ── Helpers ─────────────────────────────────────── */
 
-function fileToDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    r.readAsDataURL(file);
+function canPublishToAllAZV(storeId: string | null | undefined): boolean {
+  return storeId === RIO_PRETO_STORE_ID;
+}
+function filterAZVGroup(stores: StoreOption[]): StoreOption[] {
+  return stores.filter((s) => {
+    const n = s.name.toLowerCase();
+    return RIO_PRETO_MATCHERS.some((m) => n.includes(m));
   });
 }
 
-/* ── Component ──────────────────────────────────── */
+/** Fila rotativa persistida em localStorage — retorna próxima URL de um pool. */
+function proximaImagem(chave: string, urls: string[]): string | null {
+  if (!urls || urls.length === 0) return null;
+  if (urls.length === 1) return urls[0];
+  const storageKey = `aurohub_imgfila_${chave}`;
+  try {
+    const idx = parseInt(localStorage.getItem(storageKey) || "0", 10) % urls.length;
+    localStorage.setItem(storageKey, String((idx + 1) % urls.length));
+    return urls[idx];
+  } catch {
+    return urls[0];
+  }
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().trim().replace(/\s+/g, "_");
+}
+
+/* ── Component principal ─────────────────────────── */
 
 export default function PublicarPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
-  const [loadingTpl, setLoadingTpl] = useState(true);
-  const [selected, setSelected] = useState<TemplateRow | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [values, setValues] = useState<Record<string, string>>({});
+  // Estado por aba
+  const [tab, setTab] = useState<FormType>("pacote");
+  const [format, setFormat] = useState<Format>("stories");
+
+  // Cache de dados por aba (preserva ao trocar)
+  const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>({
+    pacote: {}, campanha: {}, passagem: {}, cruzeiro: {}, anoiteceu: {},
+  });
+  const [badgeCache, setBadgeCache] = useState<Record<FormType, Record<string, boolean>>>({
+    pacote: {}, campanha: {}, passagem: {}, cruzeiro: {}, anoiteceu: {},
+  });
+
+  const values = formCache[tab];
+  const badges = badgeCache[tab];
+
+  // Template atual — match estrito por formType + format (sem fallback)
+  // Se não existir template pra (tab, format), o preview mostra placeholder
+  const currentTemplate = useMemo(() => {
+    return templates.find((t) => t.formType === tab && t.format === format) ?? null;
+  }, [templates, tab, format]);
+
+  // Legenda
   const [caption, setCaption] = useState<string>("");
   const [generatingCaption, setGeneratingCaption] = useState(false);
 
-  const [status, setStatus] = useState<PublishStatus>("idle");
-  const [statusMsg, setStatusMsg] = useState<string>("");
-
+  // Stores / publish targets
   const [publishTargets, setPublishTargets] = useState<StoreOption[]>([]);
   const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
 
+  // Daily counter
+  const [postsByFormat, setPostsByFormat] = useState<PostsByFormat>({ stories: 0, feed: 0, reels: 0, tv: 0 });
+  const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
+
+  // Publish status
+  const [status, setStatus] = useState<PublishStatus>("idle");
+  const [statusMsg, setStatusMsg] = useState<string>("");
+
+  // Datasets completos (nome + url) — usados por autocomplete E pela busca de imagem
+  const destinoDataRef = useRef<{ nome: string; url: string }[] | null>(null);
+  const hotelDataRef = useRef<{ nome: string; url: string }[] | null>(null);
+  const navioDataRef = useRef<{ nome: string; url: string }[] | null>(null);
+
   const stageRef = useRef<Konva.Stage | null>(null);
 
-  /* ── Load profile + templates ─────────────────── */
-  useEffect(() => {
-    (async () => {
+  /* ── Load inicial ──────────────────────────────── */
+
+  const loadDailyCount = useCallback(async (storeId: string) => {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const { data } = await supabase
+      .from("activity_logs")
+      .select("metadata, created_at")
+      .gte("created_at", start.toISOString())
+      .eq("event_type", "post_instagram")
+      .limit(500);
+    const counts: PostsByFormat = { stories: 0, feed: 0, reels: 0, tv: 0 };
+    for (const row of (data ?? []) as { metadata: Record<string, unknown> | null }[]) {
+      const m = row.metadata ?? {};
+      if (m.store_id !== storeId) continue;
+      // Prioriza `format` explícito (salvo pelo publicar do vendedor);
+      // fallback pro `media_type` (STORIES/REELS/IMAGE) da API do IG.
+      let f = (m.format as string) || "";
+      if (!f) {
+        const mt = (m.media_type as string) || "";
+        if (mt === "STORIES") f = "stories";
+        else if (mt === "REELS") f = "reels";
+        else f = "feed"; // IMAGE vira feed por padrão
+      }
+      if (f === "stories" || f === "feed" || f === "reels" || f === "tv") counts[f]++;
+    }
+    setPostsByFormat(counts);
+  }, []);
+
+  const loadData = useCallback(async () => {
+    try {
       const p = await getProfile(supabase);
       setProfile(p);
-      if (!p?.licensee_id) { setLoadingTpl(false); return; }
-      const { data } = await supabase
+      if (!p?.licensee_id) { setLoading(false); return; }
+
+      // Templates do licensee
+      const { data: tplData } = await supabase
         .from("system_config")
         .select("key, value")
         .like("key", "tmpl_%")
         .like("value", `%"licenseeId":"${p.licensee_id}"%`);
+
       const rows: TemplateRow[] = [];
-      for (const r of (data ?? []) as { key: string; value: string }[]) {
+      for (const r of (tplData ?? []) as { key: string; value: string }[]) {
         try {
           const parsed = JSON.parse(r.value);
           const schemaElements = parsed.elements ?? parsed.schema?.elements;
           if (!schemaElements) continue;
-          const format = parsed.format || parsed.schema?.format || "stories";
-          const [defW, defH] = FORMAT_DIMS[format] || [1080, 1920];
+          const fmt = (parsed.format || parsed.schema?.format || "stories") as Format;
+          const [defW, defH] = FORMAT_DIMS[fmt] || [1080, 1920];
           rows.push({
             key: r.key,
             id: r.key.replace(/^tmpl_/, ""),
             nome: parsed.nome || r.key.replace(/^tmpl_/, ""),
-            format,
+            format: fmt,
             formType: parsed.formType || parsed.schema?.formType || "pacote",
             width: parsed.width || parsed.schema?.width || defW,
             height: parsed.height || parsed.schema?.height || defH,
@@ -202,7 +231,7 @@ export default function PublicarPage() {
       }
       setTemplates(rows);
 
-      // Destinos de publicação (stores onde o vendedor pode postar)
+      // Stores / publish targets
       const { data: storesData } = await supabase
         .from("stores")
         .select("id, name")
@@ -213,10 +242,7 @@ export default function PublicarPage() {
       let targets: StoreOption[] = [];
       if (canPublishToAllAZV(p.store_id)) {
         targets = filterAZVGroup(allStores);
-        if (targets.length === 0) {
-          // fallback: se o filtro por nome não casar, usa todas do licensee
-          targets = allStores;
-        }
+        if (targets.length === 0) targets = allStores;
       } else if (p.store_id) {
         const own = allStores.find((s) => s.id === p.store_id);
         targets = own ? [own] : [];
@@ -224,55 +250,162 @@ export default function PublicarPage() {
       setPublishTargets(targets);
       setSelectedTargetIds(targets.length > 0 ? [targets[0].id] : []);
 
-      setLoadingTpl(false);
-    })();
-  }, []);
+      // Plano
+      const slug = p.plan?.slug || p.licensee?.plan_slug || p.licensee?.plan;
+      if (slug) {
+        const { data: plan } = await supabase
+          .from("plans")
+          .select("slug, max_posts_day, can_schedule, can_ia_legenda")
+          .eq("slug", slug)
+          .single();
+        if (plan) setPlanLimits(plan as PlanLimits);
+      }
 
-  const bindFields = useMemo(
-    () => (selected ? collectBindFields(selected.schema.elements) : []),
-    [selected]
-  );
+      // Daily counter (via primeira store selecionada)
+      if (targets[0]) await loadDailyCount(targets[0].id);
 
-  /* ── Handlers ─────────────────────────────────── */
+      // Avião inicial pra passagem
+      if (!formCache.passagem.imgaviao) {
+        const { data: aviao } = await supabase.from("imgaviao").select("url").limit(50);
+        const urls = ((aviao ?? []) as { url: string }[]).map((r) => r.url);
+        if (urls.length > 0) {
+          const pick = urls[Math.floor(Math.random() * urls.length)];
+          setFormCache((c) => ({ ...c, passagem: { ...c.passagem, imgaviao: pick } }));
+        }
+      }
+    } catch (err) {
+      console.error("[Publicar] load:", err);
+    } finally {
+      setLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadDailyCount]);
 
-  function pickTemplate(t: TemplateRow) {
-    setSelected(t);
-    setValues({});
-    setCaption("");
-    setStatus("idle");
-    setStatusMsg("");
+  useEffect(() => { loadData(); }, [loadData]);
+
+  /* ── Dataset loaders (completos nome+url, cacheados) ── */
+
+  async function loadDestinoData(): Promise<{ nome: string; url: string }[]> {
+    if (destinoDataRef.current) return destinoDataRef.current;
+    const { data } = await supabase.from("imgfundo").select("nome, url").limit(1000);
+    const rows = ((data ?? []) as { nome: string; url: string }[]);
+    destinoDataRef.current = rows;
+    return rows;
+  }
+  async function loadHotelData(): Promise<{ nome: string; url: string }[]> {
+    if (hotelDataRef.current) return hotelDataRef.current;
+    const { data } = await supabase.from("imghotel").select("nome, url").limit(1000);
+    const rows = ((data ?? []) as { nome: string; url: string }[]);
+    hotelDataRef.current = rows;
+    return rows;
+  }
+  async function loadNavioData(): Promise<{ nome: string; url: string }[]> {
+    if (navioDataRef.current) return navioDataRef.current;
+    const { data } = await supabase.from("imgcruise").select("nome, url").limit(1000);
+    const rows = ((data ?? []) as { nome: string; url: string }[]);
+    navioDataRef.current = rows;
+    return rows;
   }
 
-  function reset() {
-    setSelected(null);
-    setValues({});
-    setCaption("");
-    setStatus("idle");
-    setStatusMsg("");
+  // Autocomplete apenas com nomes únicos, derivado do dataset completo
+  async function loadDestinos(): Promise<string[]> {
+    const rows = await loadDestinoData();
+    const seen = new Set<string>();
+    return rows.map((r) => r.nome).filter((n) => { const k = normalizar(n); if (seen.has(k)) return false; seen.add(k); return true; }).sort();
   }
+  async function loadHoteis(): Promise<string[]> {
+    const rows = await loadHotelData();
+    const seen = new Set<string>();
+    return rows.map((r) => r.nome).filter((n) => { const k = normalizar(n); if (seen.has(k)) return false; seen.add(k); return true; }).sort();
+  }
+  async function loadNavios(): Promise<string[]> {
+    const rows = await loadNavioData();
+    const seen = new Set<string>();
+    return rows.map((r) => r.nome).filter((n) => { const k = normalizar(n); if (seen.has(k)) return false; seen.add(k); return true; }).sort();
+  }
+
+  /* ── Busca de imagem automática (client-side filter) ── */
+
+  async function fetchImgFundo(destino: string): Promise<string | null> {
+    const rows = await loadDestinoData();
+    const target = normalizar(destino);
+    const matches = rows.filter((r) => normalizar(r.nome) === target);
+    if (matches.length === 0) return null;
+    return proximaImagem("dest_" + slugify(destino), matches.map((r) => r.url));
+  }
+  async function fetchImgHotel(hotel: string): Promise<string | null> {
+    const rows = await loadHotelData();
+    const target = normalizar(hotel);
+    const matches = rows.filter((r) => normalizar(r.nome) === target);
+    if (matches.length === 0) return null;
+    return proximaImagem("hotel_" + slugify(hotel), matches.map((r) => r.url));
+  }
+  async function fetchImgCruise(navio: string): Promise<string | null> {
+    const rows = await loadNavioData();
+    const target = normalizar(navio);
+    const matches = rows.filter((r) => normalizar(r.nome) === target);
+    if (matches.length === 0) return null;
+    return proximaImagem("navio_" + slugify(navio), matches.map((r) => r.url));
+  }
+
+  /* ── Handlers de campo ─────────────────────────── */
 
   function setField(name: string, v: string) {
-    setValues((prev) => ({ ...prev, [name]: v }));
+    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], [name]: v } }));
+  }
+  function setBadge(name: string, v: boolean) {
+    setBadgeCache((c) => ({ ...c, [tab]: { ...c[tab], [name]: v } }));
   }
 
-  async function onFileChange(name: string, file: File | null) {
-    if (!file) return;
-    const dataUrl = await fileToDataURL(file);
-    setField(name, dataUrl);
+  async function onDestinoBlur() {
+    const destino = values.destino?.trim();
+    if (!destino) return;
+    // Hotel tem prioridade — se já existe, usar hotel
+    const hotel = values.hotel?.trim();
+    if (hotel) {
+      const hUrl = await fetchImgHotel(hotel);
+      if (hUrl) { setField("imgfundo", hUrl); return; }
+    }
+    const url = await fetchImgFundo(destino);
+    if (url) setField("imgfundo", url);
   }
+  async function onHotelBlur() {
+    const hotel = values.hotel?.trim();
+    if (!hotel) return;
+    const hUrl = await fetchImgHotel(hotel);
+    if (hUrl) { setField("imgfundo", hUrl); return; }
+    // Fallback: buscar pelo destino se hotel não tem imagem
+    const destino = values.destino?.trim();
+    if (destino) {
+      const dUrl = await fetchImgFundo(destino);
+      if (dUrl) setField("imgfundo", dUrl);
+    }
+  }
+  async function onNavioBlur() {
+    const navio = values.navio?.trim();
+    if (!navio) return;
+    const url = await fetchImgCruise(navio);
+    if (url) setField("imgfundo", url);
+  }
+
+  /* ── Legenda IA ─────────────────────────────────── */
 
   async function generateCaption() {
+    if (!planLimits?.can_ia_legenda && profile?.role !== "adm") {
+      alert("Seu plano não inclui geração de legenda por IA.");
+      return;
+    }
     setGeneratingCaption(true);
     try {
-      const payload = {
-        destino: values.destino || selected?.nome || "seu destino",
+      const payload: Record<string, unknown> = {
+        destino: values.destino || currentTemplate?.nome || "seu destino",
         hotel: values.hotel,
         servicos: [values.servico1, values.servico2, values.servico3].filter(Boolean).join(", "),
-        preco: values.preco,
+        preco: values.preco || values.valorparcela,
         parcelas: values.parcelas,
         datas: values.dataida && values.datavolta ? `${values.dataida} a ${values.datavolta}` : undefined,
         noites: values.noites,
-        tipo: selected?.formType,
+        tipo: tab,
       };
       const res = await fetch("/api/ai/legenda", {
         method: "POST",
@@ -290,6 +423,8 @@ export default function PublicarPage() {
     }
   }
 
+  /* ── Publish flow ──────────────────────────────── */
+
   function getPNGDataURL(): string | null {
     const stage = stageRef.current;
     if (!stage) return null;
@@ -303,52 +438,48 @@ export default function PublicarPage() {
     if (!dataUrl) { setStatus("error"); setStatusMsg("Falha ao gerar imagem"); return; }
     const a = document.createElement("a");
     a.href = dataUrl;
-    a.download = `${selected?.nome || "arte"}_${Date.now()}.png`;
+    a.download = `${currentTemplate?.nome || "arte"}_${Date.now()}.png`;
     a.click();
-    setStatus("success");
-    setStatusMsg("Imagem baixada");
+    setStatus("success"); setStatusMsg("Imagem baixada");
     setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
   }
 
-  async function handleGenerate() {
-    setStatus("generating");
-    const dataUrl = getPNGDataURL();
-    if (!dataUrl) { setStatus("error"); setStatusMsg("Falha ao gerar imagem"); return; }
-    // Preview numa nova aba
-    const w = window.open();
-    if (w) w.document.write(`<img src="${dataUrl}" style="max-width:100%"/>`);
-    setStatus("success");
-    setStatusMsg("Arte gerada");
-    setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
+  function limparFormulario() {
+    setFormCache((c) => ({ ...c, [tab]: {} }));
+    setBadgeCache((c) => ({ ...c, [tab]: {} }));
+    setCaption("");
   }
 
-  async function handlePublishInstagram() {
+  async function handlePublish() {
     if (!profile?.licensee_id) { setStatus("error"); setStatusMsg("Sem licensee"); return; }
     if (selectedTargetIds.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
+    // Checa limite diário
+    const limiteFormat = planLimits?.max_posts_day ?? 0;
+    const usado = postsByFormat[format] || 0;
+    if (limiteFormat > 0 && usado >= limiteFormat && format !== "stories") {
+      setStatus("error");
+      setStatusMsg(`Limite diário de ${format} atingido (${usado}/${limiteFormat})`);
+      return;
+    }
+
     try {
-      setStatus("generating");
-      setStatusMsg("Gerando imagem...");
+      setStatus("generating"); setStatusMsg("Gerando imagem...");
       const dataUrl = getPNGDataURL();
       if (!dataUrl) throw new Error("Falha ao gerar imagem");
 
-      setStatus("uploading");
-      setStatusMsg("Enviando para Cloudinary...");
+      setStatus("uploading"); setStatusMsg("Enviando para Cloudinary...");
       const upRes = await fetch("/api/cloudinary/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dataUrl, folder: `aurohubv2/publicacoes/${profile.licensee_id}` }),
       });
       const upData = await upRes.json();
-      if (!upRes.ok || !upData.secure_url) {
-        throw new Error(upData.error || "Upload falhou");
-      }
+      if (!upRes.ok || !upData.secure_url) throw new Error(upData.error || "Upload falhou");
 
       setStatus("publishing");
-
-      // Publica sequencialmente em cada store selecionada
-      const targetsToPublish = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
+      const targets = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
       const resultados: { store: StoreOption; ok: boolean; error?: string }[] = [];
-      for (const target of targetsToPublish) {
+      for (const target of targets) {
         setStatusMsg(`Publicando em ${target.name}...`);
         try {
           const pubRes = await fetch("/api/instagram/post", {
@@ -359,6 +490,8 @@ export default function PublicarPage() {
               store_id: target.id,
               image_url: upData.secure_url,
               caption,
+              media_type: format === "stories" ? "STORIES" : "IMAGE",
+              format, // stories | feed | reels | tv — lido pelo contador diário
             }),
           });
           const pubData = await pubRes.json();
@@ -374,293 +507,638 @@ export default function PublicarPage() {
 
       const okCount = resultados.filter((r) => r.ok).length;
       const falhas = resultados.filter((r) => !r.ok);
-      if (okCount === 0) {
-        throw new Error(`Nenhuma publicação concluída. ${falhas[0]?.error ?? ""}`);
-      }
+      if (okCount === 0) throw new Error(`Nenhuma publicação concluída. ${falhas[0]?.error ?? ""}`);
 
       setStatus("success");
-      if (falhas.length === 0) {
-        setStatusMsg(`Publicado em ${okCount} loja${okCount === 1 ? "" : "s"}!`);
-      } else {
-        setStatusMsg(`${okCount} ok · ${falhas.length} falha${falhas.length === 1 ? "" : "s"}: ${falhas.map((f) => f.store.name).join(", ")}`);
-      }
-      setTimeout(() => {
-        reset();
-      }, 3000);
+      setStatusMsg(falhas.length === 0
+        ? `Publicado em ${okCount} loja${okCount === 1 ? "" : "s"}!`
+        : `${okCount} ok · ${falhas.length} falha${falhas.length === 1 ? "" : "s"}`);
+      // Recarrega contador
+      if (targets[0]) await loadDailyCount(targets[0].id);
+      setTimeout(() => { limparFormulario(); setStatus("idle"); setStatusMsg(""); }, 4000);
     } catch (err) {
-      console.error("[Publicar IG]", err);
+      console.error("[Publicar]", err);
       setStatus("error");
       setStatusMsg(err instanceof Error ? err.message : "Erro desconhecido");
     }
   }
 
   function toggleTarget(id: string) {
-    setSelectedTargetIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedTargetIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   }
 
-  /* ── Render ───────────────────────────────────── */
+  /* ── Render ────────────────────────────────────── */
 
   const busy = status === "generating" || status === "uploading" || status === "publishing";
+  const [defW, defH] = FORMAT_DIMS[format];
+  const width = currentTemplate?.width ?? defW;
+  const height = currentTemplate?.height ?? defH;
+  const schema: EditorSchema = currentTemplate?.schema ?? { elements: [], background: "#0E1520", duration: 5 };
 
-  if (loadingTpl) return <div className="text-[13px] text-[var(--txt3)]">Carregando templates...</div>;
+  if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
-  // Etapa 1: selecionar template
-  if (!selected) {
-    return (
-      <>
-        <div className="card-glass relative overflow-hidden px-8 py-6">
-          <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }} />
-          <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">Publicar</p>
-            <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-tight text-[var(--txt)]">
-              Escolha um template
-            </h1>
-            <p className="mt-1 text-[12px] text-[var(--txt3)]">{templates.length} disponíve{templates.length === 1 ? "l" : "is"} para {profile?.licensee?.name || "sua agência"}</p>
-          </div>
-        </div>
-
-        {templates.length === 0 ? (
-          <div className="card-glass flex flex-col items-center gap-3 px-6 py-10 text-center">
-            <ImageIcon size={28} className="text-[var(--txt3)]" />
-            <div className="text-[13px] text-[var(--txt2)]">Nenhum template disponível para sua agência ainda.</div>
-            <div className="text-[11px] text-[var(--txt3)]">Entre em contato com o administrador.</div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {templates.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => pickTemplate(t)}
-                className="card-glass group flex flex-col gap-3 p-4 text-left transition-transform hover:scale-[1.02]"
-              >
-                <div
-                  className="flex aspect-[3/4] w-full items-center justify-center rounded-lg border border-[var(--bdr)]"
-                  style={{ background: t.schema.background || "#f5f5f5" }}
-                >
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-                    {FORMAT_LABELS[t.format] || t.format}
-                  </div>
-                </div>
-                <div>
-                  <div className="truncate text-[13px] font-semibold text-[var(--txt)]">{t.nome}</div>
-                  <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--txt3)]">
-                    <span>{FORMAT_LABELS[t.format] || t.format}</span>
-                    <span>·</span>
-                    <span className="capitalize">{t.formType}</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </>
-    );
-  }
-
-  // Etapa 2: formulário + preview
   return (
-    <>
-      <div className="card-glass flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={reset}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
-          >
-            <ArrowLeft size={14} />
-          </button>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">Template</div>
-            <div className="text-[14px] font-bold text-[var(--txt)]">{selected.nome}</div>
-          </div>
-        </div>
-        <div className="text-[11px] text-[var(--txt3)]">
-          {FORMAT_LABELS[selected.format]} · {selected.width}×{selected.height}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_auto]">
-        {/* ── Formulário ─────────────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="border-b border-[var(--bdr)] px-5 py-4">
-            <h3 className="text-[14px] font-bold text-[var(--txt)]">Preencher dados</h3>
-          </div>
-          <div className="flex flex-col gap-3 p-5">
-            {bindFields.length === 0 ? (
-              <div className="py-4 text-center text-[12px] text-[var(--txt3)]">
-                Este template não tem campos dinâmicos.
-              </div>
-            ) : (
-              bindFields.map((f) => (
-                <div key={f.name} className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">
-                    {f.label}
-                  </label>
-                  {f.type === "image" ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => onFileChange(f.name, e.target.files?.[0] ?? null)}
-                        className="text-[11px] text-[var(--txt2)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--bg2)] file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-[var(--txt)]"
-                      />
-                      {values[f.name] && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={values[f.name]} alt="" className="h-10 w-10 rounded border border-[var(--bdr)] object-cover" />
-                      )}
-                    </div>
-                  ) : f.type === "date" ? (
-                    <input
-                      type="date"
-                      value={values[f.name] || ""}
-                      onChange={(e) => setField(f.name, e.target.value)}
-                      className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
-                    />
-                  ) : f.type === "number" ? (
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={values[f.name] || ""}
-                      onChange={(e) => setField(f.name, e.target.value)}
-                      placeholder={f.name === "preco" || f.name === "valorparcela" ? "R$ 0,00" : "0"}
-                      className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      value={values[f.name] || ""}
-                      onChange={(e) => setField(f.name, e.target.value)}
-                      className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
-                    />
-                  )}
-                </div>
-              ))
-            )}
-
-            {/* Legenda */}
-            <div className="mt-2 flex flex-col gap-1 border-t border-[var(--bdr)] pt-4">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">
-                  Legenda (Instagram)
-                </label>
-                <button
-                  onClick={generateCaption}
-                  disabled={generatingCaption}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-[var(--orange)] hover:underline disabled:opacity-50"
-                >
-                  {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                  Gerar com IA
-                </button>
-              </div>
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                rows={4}
-                placeholder="Digite ou gere a legenda com IA..."
-                className="resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
-              />
-            </div>
-
-            {/* Destinos de publicação */}
-            {publishTargets.length > 0 && (
-              <div className="mt-2 flex flex-col gap-2 border-t border-[var(--bdr)] pt-4">
-                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">
-                  Publicar em {publishTargets.length > 1 ? "(selecione uma ou mais)" : ""}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {publishTargets.map((t) => {
-                    const active = selectedTargetIds.includes(t.id);
-                    const single = publishTargets.length === 1;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => !single && toggleTarget(t.id)}
-                        disabled={single}
-                        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                          active
-                            ? "border-[var(--orange)] bg-[rgba(255,122,26,0.12)] text-[#FF7A1A]"
-                            : "border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
-                        } ${single ? "cursor-default" : ""}`}
-                      >
-                        <span
-                          className={`flex h-4 w-4 items-center justify-center rounded border ${
-                            active ? "border-[var(--orange)] bg-[var(--orange)] text-white" : "border-[var(--bdr2)]"
-                          }`}
-                        >
-                          {active && <Check size={10} />}
-                        </span>
-                        {t.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Ações */}
-            <div className="mt-2 grid grid-cols-1 gap-2 border-t border-[var(--bdr)] pt-4 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
+      {/* ═══ COLUNA ESQUERDA — FORM ═══ */}
+      <div className="card-glass flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden">
+        {/* Tabs */}
+        <div className="flex shrink-0 flex-wrap border-b border-[var(--bdr)] px-3 pt-3">
+          {FORM_ORDER.map((f) => {
+            const active = tab === f;
+            return (
               <button
-                onClick={handleGenerate}
-                disabled={busy}
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--bdr2)] px-3 py-2.5 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--hover-bg)] disabled:opacity-50"
-              >
-                <Sparkles size={13} /> Gerar arte
-              </button>
-              <button
-                onClick={handleDownload}
-                disabled={busy}
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--bdr2)] px-3 py-2.5 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--hover-bg)] disabled:opacity-50"
-              >
-                <Download size={13} /> Download
-              </button>
-              <button
-                onClick={handlePublishInstagram}
-                disabled={busy}
-                className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white shadow-lg disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
-              >
-                <Send size={13} /> Publicar
-              </button>
-            </div>
-
-            {/* Status */}
-            {status !== "idle" && (
-              <div
-                className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+                key={f}
+                onClick={() => setTab(f)}
+                className="px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors"
                 style={
-                  status === "success"
-                    ? { background: "var(--green3)", color: "var(--green)" }
-                    : status === "error"
-                      ? { background: "var(--red3)", color: "var(--red)" }
-                      : { background: "var(--blue3)", color: "var(--blue)" }
+                  active
+                    ? { color: "#D4A843", borderBottom: "2px solid #D4A843" }
+                    : { color: "var(--txt3)", borderBottom: "2px solid transparent" }
                 }
               >
-                {status === "success" ? <Check size={13} /> : status === "error" ? <X size={13} /> : <Loader2 size={13} className="animate-spin" />}
-                <span>{statusMsg}</span>
-              </div>
-            )}
-          </div>
+                {FORM_LABELS[f]}
+              </button>
+            );
+          })}
         </div>
 
-        {/* ── Preview ──────────────────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="border-b border-[var(--bdr)] px-5 py-4">
-            <h3 className="text-[14px] font-bold text-[var(--txt)]">Preview ao vivo</h3>
+        {/* Scroll dos campos */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {!currentTemplate && (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <ImageIcon size={24} className="text-[var(--txt3)]" />
+              <div className="text-[12px] text-[var(--txt3)]">
+                Nenhum template de <strong>{FORM_LABELS[tab]}</strong> para <strong>{FORMAT_LABELS[format]}</strong>.
+              </div>
+            </div>
+          )}
+
+          {currentTemplate && (
+            <div className="flex flex-col gap-4">
+              {tab === "pacote" || tab === "campanha" ? (
+                <>
+                  <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", v.toUpperCase())} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
+                  <Row2>
+                    <Field label="Saída">
+                      <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} placeholder="Guarulhos" />
+                    </Field>
+                    <Field label="Tipo de voo">
+                      <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
+                    </Field>
+                  </Row2>
+                  <Row2>
+                    <Field label="Data ida"><DateInput value={values.dataida || ""} onChange={(v) => setField("dataida", v)} /></Field>
+                    <Field label="Data volta">
+                      <DateInput value={values.datavolta || ""} min={values.dataida} onChange={(v) => setField("datavolta", v)} />
+                    </Field>
+                  </Row2>
+                  <Field label="Feriado">
+                    <Select value={values.feriado || ""} onChange={(v) => setField("feriado", v)} options={["", ...FERIADOS_FIXOS]} />
+                  </Field>
+                  <Combobox label="Hotel" value={values.hotel || ""} onChange={(v) => setField("hotel", v)} onBlur={onHotelBlur} loader={loadHoteis} placeholder="Nome do hotel" />
+                  <ServicosBlock values={values} setField={setField} count={6} />
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Selos</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <BadgeBtn label="Última chamada" on={!!badges.ultima_chamada_badge} onClick={() => setBadge("ultima_chamada_badge", !badges.ultima_chamada_badge)} />
+                      <BadgeBtn label="Últimos lugares" on={!!badges.ultimos_lugares_badge} onClick={() => setBadge("ultimos_lugares_badge", !badges.ultimos_lugares_badge)} />
+                      <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
+                    </div>
+                  </div>
+                  <Field label="Forma de pagamento">
+                    <Select value={values.formapagamento || ""} onChange={(v) => setField("formapagamento", v)} options={["", ...FORMA_PGTO_OPTS]} />
+                  </Field>
+                  <Row2>
+                    <Field label="Parcelas">
+                      <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
+                    </Field>
+                    <Field label="Valor parcela">
+                      <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                    </Field>
+                  </Row2>
+                  <Row2>
+                    <Field label="% Desconto">
+                      <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
+                    </Field>
+                    <Field label="Total">
+                      <TextInput value={values.totalduplo || ""} inputMode="decimal" onChange={(v) => setField("totalduplo", v)} placeholder="R$ 0,00" />
+                    </Field>
+                  </Row2>
+                </>
+              ) : null}
+
+              {tab === "passagem" && (
+                <>
+                  <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", v.toUpperCase())} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: LISBOA" />
+                  <Row2>
+                    <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} placeholder="Guarulhos" /></Field>
+                    <Field label="Tipo de voo">
+                      <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
+                    </Field>
+                  </Row2>
+                  <Row2>
+                    <Field label="Data ida"><DateInput value={values.dataida || ""} onChange={(v) => setField("dataida", v)} /></Field>
+                    <Field label="Data volta"><DateInput value={values.datavolta || ""} min={values.dataida} onChange={(v) => setField("datavolta", v)} /></Field>
+                  </Row2>
+                  <ServicosBlock values={values} setField={setField} count={3} />
+                  <Row2>
+                    <Field label="Parcelas">
+                      <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
+                    </Field>
+                    <Field label="Valor parcela">
+                      <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                    </Field>
+                  </Row2>
+                </>
+              )}
+
+              {tab === "cruzeiro" && (
+                <>
+                  <Combobox label="Navio *" value={values.navio || ""} onChange={(v) => setField("navio", v)} onBlur={onNavioBlur} loader={loadNavios} placeholder="Ex.: COSTA DELICIOZA" />
+                  <Row2>
+                    <Field label="Embarque"><DateInput value={values.dataida || ""} onChange={(v) => setField("dataida", v)} /></Field>
+                    <Field label="Desembarque"><DateInput value={values.datavolta || ""} min={values.dataida} onChange={(v) => setField("datavolta", v)} /></Field>
+                  </Row2>
+                  <Field label="Itinerário">
+                    <TextArea value={values.itinerario || ""} onChange={(v) => setField("itinerario", v)} rows={3} placeholder="Porto de Santos → Rio → Ilhabela..." />
+                  </Field>
+                  <Field label="Incluso (opcional)">
+                    <TextArea value={values.incluso || ""} onChange={(v) => setField("incluso", v)} rows={2} />
+                  </Field>
+                  <Field label="Forma de pagamento">
+                    <Select value={values.formapagamento || ""} onChange={(v) => setField("formapagamento", v)} options={["", ...FORMA_PGTO_OPTS]} />
+                  </Field>
+                  <Row2>
+                    <Field label="Parcelas">
+                      <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
+                    </Field>
+                    <Field label="Valor parcela">
+                      <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                    </Field>
+                  </Row2>
+                  <Row2>
+                    <Field label="% Desconto">
+                      <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
+                    </Field>
+                    <Field label="Total cruzeiro">
+                      <TextInput value={values.totalcruzeiro || ""} inputMode="decimal" onChange={(v) => setField("totalcruzeiro", v)} placeholder="R$ 0,00" />
+                    </Field>
+                  </Row2>
+                </>
+              )}
+
+              {tab === "anoiteceu" && (
+                <>
+                  <Field label="% Desconto">
+                    <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS.slice(1)} />
+                  </Field>
+                  <Row2>
+                    <Field label="Início">
+                      <input
+                        type="datetime-local" value={values.inicio || ""}
+                        onChange={(e) => setField("inicio", e.target.value)}
+                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+                      />
+                    </Field>
+                    <Field label="Fim">
+                      <input
+                        type="datetime-local" value={values.fim || ""}
+                        onChange={(e) => setField("fim", e.target.value)}
+                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+                      />
+                    </Field>
+                  </Row2>
+                  <Field label="Para viagens até">
+                    <DateInput value={values.paraviagens || ""} onChange={(v) => setField("paraviagens", v)} />
+                  </Field>
+                </>
+              )}
+
+              {/* Legenda — só em Reels e Feed */}
+              {(format === "reels" || format === "feed") && (
+                <div className="border-t border-[var(--bdr)] pt-4">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
+                      Legenda Instagram
+                    </label>
+                    <button
+                      onClick={generateCaption}
+                      disabled={generatingCaption}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-[#FF7A1A] hover:underline disabled:opacity-50"
+                    >
+                      {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                      Gerar IA
+                    </button>
+                  </div>
+                  <TextArea value={caption} onChange={setCaption} rows={4} placeholder="Legenda do post..." />
+                  <div className="mt-1 text-right text-[9px] text-[var(--txt3)] tabular-nums">
+                    {caption.length} / 2200
+                  </div>
+                </div>
+              )}
+
+              {/* Lojas */}
+              {publishTargets.length > 0 && (
+                <div className="border-t border-[var(--bdr)] pt-4">
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
+                    Publicar em
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {publishTargets.map((t) => {
+                      const active = selectedTargetIds.includes(t.id);
+                      const single = publishTargets.length === 1;
+                      return (
+                        <button
+                          key={t.id} type="button"
+                          onClick={() => !single && toggleTarget(t.id)}
+                          disabled={single}
+                          className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors"
+                          style={
+                            active
+                              ? { borderColor: "#FF7A1A", background: "rgba(255,122,26,0.12)", color: "#FF7A1A" }
+                              : { borderColor: "var(--bdr)", color: "var(--txt3)" }
+                          }
+                        >
+                          <span
+                            className="flex h-3 w-3 items-center justify-center rounded border"
+                            style={active ? { borderColor: "#FF7A1A", background: "#FF7A1A" } : { borderColor: "var(--bdr2)" }}
+                          >
+                            {active && <Check size={8} />}
+                          </span>
+                          {t.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Contador diário */}
+              <DailyCounter posts={postsByFormat} limit={planLimits?.max_posts_day ?? null} current={format} />
+            </div>
+          )}
+        </div>
+
+        {/* Footer com ações */}
+        <div className="shrink-0 border-t border-[var(--bdr)] bg-[var(--bg1)] p-3">
+          <div className="mb-2 grid grid-cols-2 gap-1.5">
+            <button
+              onClick={limparFormulario}
+              className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.06)] px-3 py-2 text-[11px] font-semibold text-[#EF4444] transition-colors hover:bg-[rgba(239,68,68,0.12)]"
+            >
+              <Trash2 size={11} /> Limpar
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={busy || !currentTemplate}
+              className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(34,211,153,0.2)] bg-[rgba(34,211,153,0.06)] px-3 py-2 text-[11px] font-semibold text-[#22D399] transition-colors hover:bg-[rgba(34,211,153,0.12)] disabled:opacity-50"
+            >
+              <Download size={11} /> Download
+            </button>
           </div>
-          <div className="flex flex-1 items-center justify-center p-5">
+          <button
+            onClick={handlePublish}
+            disabled={busy || !currentTemplate}
+            className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+          >
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            {status === "uploading" ? "Enviando..." : status === "publishing" ? "Publicando..." : "Publicar no Instagram"}
+          </button>
+          {status !== "idle" && (
+            <div
+              className="mt-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-medium"
+              style={
+                status === "success"
+                  ? { background: "var(--green3)", color: "var(--green)" }
+                  : status === "error"
+                    ? { background: "var(--red3)", color: "var(--red)" }
+                    : { background: "var(--blue3)", color: "var(--blue)" }
+              }
+            >
+              {status === "success" ? <Check size={11} /> : status === "error" ? <X size={11} /> : <Loader2 size={11} className="animate-spin" />}
+              <span className="truncate">{statusMsg}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══ COLUNA DIREITA — PREVIEW ═══ */}
+      <div className="card-glass relative flex flex-col overflow-hidden">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
+          <h3 className="text-[14px] font-bold text-[var(--txt)]">Preview ao vivo</h3>
+          <div className="text-[10px] text-[var(--txt3)] tabular-nums">
+            {width}×{height}
+          </div>
+        </div>
+        <div className="flex flex-1 items-center justify-center p-5">
+          {currentTemplate ? (
             <PreviewStage
-              schema={selected.schema}
-              width={selected.width}
-              height={selected.height}
+              key={`${tab}-${format}-${currentTemplate.key}`}
+              schema={schema}
+              width={width}
+              height={height}
               values={values}
-              maxDisplay={480}
+              maxDisplay={560}
               onReady={(s) => { stageRef.current = s; }}
             />
+          ) : (
+            <div className="flex flex-col items-center gap-2 text-center">
+              <ImageIcon size={32} className="text-[var(--txt3)]" />
+              <div className="text-[12px] text-[var(--txt3)]">
+                Sem template {FORM_LABELS[tab]} / {FORMAT_LABELS[format]}
+              </div>
+            </div>
+          )}
+        </div>
+        {/* Format pills flutuantes */}
+        <div className="pointer-events-none absolute bottom-5 left-0 right-0 flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg1)] p-1 shadow-xl">
+            {(Object.keys(FORMAT_LABELS) as Format[]).map((f) => {
+              const active = format === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFormat(f)}
+                  className="rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                  style={
+                    active
+                      ? { background: "#D4A843", color: "#060B16" }
+                      : { color: "var(--txt3)" }
+                  }
+                >
+                  {FORMAT_LABELS[f]}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
-    </>
+    </div>
+  );
+}
+
+/* ── Sub-components ──────────────────────────────── */
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function Row2({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-2 gap-2">{children}</div>;
+}
+
+function TextInput({
+  value, onChange, placeholder, inputMode, onBlur,
+}: {
+  value: string; onChange: (v: string) => void;
+  placeholder?: string; inputMode?: "text" | "numeric" | "decimal"; onBlur?: () => void;
+}) {
+  return (
+    <input
+      type="text"
+      inputMode={inputMode}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+    />
+  );
+}
+
+function TextArea({
+  value, onChange, rows = 3, placeholder,
+}: { value: string; onChange: (v: string) => void; rows?: number; placeholder?: string }) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={rows}
+      placeholder={placeholder}
+      className="w-full resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+    />
+  );
+}
+
+function DateInput({ value, onChange, min }: { value: string; onChange: (v: string) => void; min?: string }) {
+  return (
+    <input
+      type="date"
+      value={value}
+      min={min}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+    />
+  );
+}
+
+function Select({
+  value, onChange, options,
+}: { value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+    >
+      {options.map((o) => <option key={o} value={o}>{o || "— nenhum —"}</option>)}
+    </select>
+  );
+}
+
+function BadgeBtn({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button" onClick={onClick}
+      className="rounded-md border px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors"
+      style={
+        on
+          ? { borderColor: "#D4A843", background: "rgba(212,168,67,0.12)", color: "#D4A843" }
+          : { borderColor: "var(--bdr)", color: "var(--txt3)" }
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
+function ServicosBlock({
+  values, setField, count,
+}: { values: Record<string, string>; setField: (k: string, v: string) => void; count: number }) {
+  return (
+    <div>
+      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
+        Serviços inclusos
+      </label>
+      <div className="flex flex-col gap-1">
+        {Array.from({ length: count }, (_, i) => i + 1).map((n) => {
+          const key = `servico${n}`;
+          return (
+            <div key={key} className="flex items-center gap-2">
+              <span className="w-4 text-[9px] font-bold tabular-nums text-[var(--txt3)]">{n}.</span>
+              <input
+                type="text"
+                value={values[key] || ""}
+                onChange={(e) => setField(key, e.target.value)}
+                placeholder={`Serviço ${n}`}
+                className="h-8 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DailyCounter({
+  posts, limit, current,
+}: { posts: PostsByFormat; limit: number | null; current: Format }) {
+  const FORMATS: { key: Format; label: string }[] = [
+    { key: "stories", label: "Stories" },
+    { key: "feed", label: "Feed" },
+    { key: "reels", label: "Reels" },
+    { key: "tv", label: "TV" },
+  ];
+  return (
+    <div className="border-t border-[var(--bdr)] pt-4">
+      <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
+        Posts de hoje
+      </label>
+      <div className="flex flex-col gap-1.5">
+        {FORMATS.map(({ key, label }) => {
+          const count = posts[key] || 0;
+          const isStories = key === "stories";
+          const max = isStories ? null : limit;
+          const pct = max && max > 0 ? Math.min(100, (count / max) * 100) : 0;
+          const danger = max && count >= max;
+          const warn = max && count >= max * 0.8;
+          return (
+            <div key={key} className="flex items-center gap-2">
+              <span className="w-10 text-[9px] font-bold uppercase text-[var(--txt3)]">{label}</span>
+              <div className="flex-1 h-[3px] overflow-hidden rounded-full bg-[var(--bg2)]">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${pct}%`,
+                    background: danger ? "#EF4444" : warn ? "#F59E0B" : "#D4A843",
+                  }}
+                />
+              </div>
+              <span className="w-10 text-right text-[9px] font-bold tabular-nums" style={{ color: danger ? "#EF4444" : "var(--txt3)" }}>
+                {isStories ? `${count}` : `${count}/${max ?? "—"}`}
+              </span>
+              {key === current && <span className="h-1.5 w-1.5 rounded-full bg-[#FF7A1A]" />}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Combobox (autocomplete) ─────────────────────── */
+
+function Combobox({
+  label, value, onChange, onBlur, loader, placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onBlur?: () => void;
+  loader: () => Promise<string[]>;
+  placeholder?: string;
+}) {
+  const [items, setItems] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(-1);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  async function loadOnce() {
+    if (items.length > 0) return;
+    const list = await loader();
+    setItems(list);
+  }
+
+  const filtered = useMemo(() => {
+    const q = value.trim().toLowerCase();
+    if (!q) return items.slice(0, 30);
+    return items.filter((i) => {
+      const il = i.toLowerCase();
+      return il.startsWith(q) || il.split(" ").some((w) => w.startsWith(q));
+    }).slice(0, 30);
+  }, [items, value]);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  function select(v: string) {
+    onChange(v);
+    setOpen(false);
+    setFocused(-1);
+    // dispara blur async para busca automática
+    setTimeout(() => onBlur?.(), 0);
+  }
+
+  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!open) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setFocused((f) => Math.min(f + 1, filtered.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setFocused((f) => Math.max(f - 1, 0)); }
+    else if (e.key === "Enter" && focused >= 0) { e.preventDefault(); select(filtered[focused]); }
+    else if (e.key === "Escape") setOpen(false);
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
+        {label}
+      </label>
+      <div className="relative">
+        <SearchIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--txt3)]" />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setOpen(true); loadOnce(); }}
+          onFocus={() => { loadOnce(); setOpen(true); }}
+          onBlur={() => { setTimeout(() => { setOpen(false); onBlur?.(); }, 180); }}
+          onKeyDown={onKey}
+          placeholder={placeholder}
+          className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-8 pr-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+        />
+      </div>
+      {open && filtered.length > 0 && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[220px] overflow-y-auto rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] shadow-xl">
+          {filtered.map((it, i) => (
+            <div
+              key={it}
+              onMouseDown={(e) => { e.preventDefault(); select(it); }}
+              className="cursor-pointer truncate px-3 py-1.5 text-[12px] transition-colors"
+              style={
+                focused === i
+                  ? { background: "rgba(255,122,26,0.12)", color: "#FF7A1A" }
+                  : { color: "var(--txt2)" }
+              }
+            >
+              {it}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -12,13 +12,14 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { licensee_id, image_url, video_url, caption, store_id, media_type } = body as {
+    const { licensee_id, image_url, video_url, caption, store_id, media_type, format } = body as {
       licensee_id: string;
       image_url?: string;
       video_url?: string;
       caption?: string;
       store_id?: string;
       media_type?: "IMAGE" | "REELS" | "STORIES";
+      format?: "stories" | "feed" | "reels" | "tv";
     };
     if (!licensee_id || (!image_url && !video_url)) {
       return NextResponse.json({ error: "licensee_id and image_url or video_url required" }, { status: 400 });
@@ -106,6 +107,7 @@ export async function POST(req: NextRequest) {
           image_url: image_url ?? null,
           video_url: video_url ?? null,
           media_type: mediaType,
+          format: format ?? null,
           ig_post_id: igPostId,
           caption: caption ?? "",
           source: "central",
