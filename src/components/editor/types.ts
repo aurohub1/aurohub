@@ -56,7 +56,7 @@ export const BIND_GROUPS = [
   { group: "Período", fields: ["dataida","datavolta","noites","feriado"] },
   { group: "Hotel / Navio", fields: ["hotel","navio","categoria","itinerario","incluso"] },
   { group: "Serviços", fields: ["servico1","servico2","servico3","servico4","servico5","servico6"] },
-  { group: "Pagamento", fields: ["formapagamento","parcelas","valorparcela","desconto"] },
+  { group: "Pagamento", fields: ["formapagamento","entrada","parcelas","valorparcela","desconto"] },
   { group: "Total", fields: ["totalduplo","totalcruzeiro"] },
   { group: "Anoiteceu", fields: ["inicio","fim","paraviagens"] },
   { group: "Loja", fields: ["loja","agente","fone"] },

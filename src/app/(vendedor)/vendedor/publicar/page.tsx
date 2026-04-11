@@ -88,7 +88,7 @@ const FORMA_PGTO_OPTS = [
   "Boleto com Entrada",
   "No Débito",
 ];
-const PARCELAS_OPTS = Array.from({ length: 36 }, (_, i) => `${i + 1}x`);
+const PARCELAS_OPTS = Array.from({ length: 25 }, (_, i) => `${i + 2}x`);
 const DESCONTO_OPTS = ["", "5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
 
 /** Normaliza string para matching: lowercase + remove acentos */
@@ -133,6 +133,32 @@ function todayISO(): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+/** Dicionário de normalização de serviços — aplica no blur (espelho do v1 Dict.applyServico). */
+function applyServico(v: string): string {
+  const s = v.trim();
+  if (!s) return s;
+  const map: [RegExp, string][] = [
+    [/\btraslado\b/gi, "Transfer"],
+    [/\btranslado\b/gi, "Transfer"],
+    [/\bcafe\s*da\s*manha\b/gi, "Café da Manhã"],
+    [/\bcafé\s*da\s*manhã\b/gi, "Café da Manhã"],
+    [/\balmoco\b/gi, "Almoço"],
+    [/\bjantar\b/gi, "Jantar"],
+    [/\bmeia\s*pensao\b/gi, "Meia Pensão"],
+    [/\bmeia\s*pensão\b/gi, "Meia Pensão"],
+    [/\bpensao\s*completa\b/gi, "Pensão Completa"],
+    [/\bpensão\s*completa\b/gi, "Pensão Completa"],
+    [/\ball\s*inclusive\b/gi, "All Inclusive"],
+  ];
+  let r = s;
+  for (const [re, rep] of map) r = r.replace(re, rep);
+  return r.charAt(0).toUpperCase() + r.slice(1);
+}
+
+function isAllInclusive(v: string): boolean {
+  return /all\s*inclusive/i.test(v);
 }
 
 /** Calcula noites entre 2 datas YYYY-MM-DD (Volta - Ida). */
@@ -217,7 +243,6 @@ export default function PublicarPage() {
   // Publish status
   const [status, setStatus] = useState<PublishStatus>("idle");
   const [statusMsg, setStatusMsg] = useState<string>("");
-  const [debugInfo, setDebugInfo] = useState<string>("");
 
   // Datasets completos (nome + url) — usados por autocomplete E pela busca de imagem
   const destinoDataRef = useRef<{ nome: string; url: string }[] | null>(null);
@@ -266,7 +291,6 @@ export default function PublicarPage() {
         .select("key, value")
         .like("key", "tmpl_%")
         .like("value", p.licensee_id ? `%"licenseeId":"${p.licensee_id}"%` : `%"licenseeId":%`);
-      setDebugInfo(`tmpl: ${tplData?.length ?? 0} | licensee: ${p.licensee_id ?? "null"} | keys: ${tplData?.map(r => r.key).join(", ") || "nenhum"}`);
 
       const rows: TemplateRow[] = [];
       for (const r of (tplData ?? []) as { key: string; value: string }[]) {
@@ -782,7 +806,7 @@ export default function PublicarPage() {
                   </Section>
 
                   <Section title="Serviços inclusos" defaultOpen={false}>
-                    <ServicosBlock values={values} setField={setField} count={6} />
+                    <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={6} />
                   </Section>
 
                   <Section title="Selos" defaultOpen={false}>
@@ -801,6 +825,16 @@ export default function PublicarPage() {
                         options={FORMA_PGTO_OPTS}
                       />
                     </Field>
+                    {values.formapagamento === "Boleto com Entrada" && (
+                      <Field label="Valor de entrada">
+                        <TextInput
+                          value={values.entrada || ""}
+                          inputMode="decimal"
+                          onChange={(v) => setField("entrada", v)}
+                          placeholder="R$ 0,00"
+                        />
+                      </Field>
+                    )}
                     <Row2>
                       <Field label="Parcelas">
                         <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
@@ -843,7 +877,7 @@ export default function PublicarPage() {
                     </Row2>
                   </Section>
                   <Section title="Serviços inclusos" defaultOpen={false}>
-                    <ServicosBlock values={values} setField={setField} count={3} />
+                    <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={3} />
                   </Section>
                   <Section title="Pagamento">
                     <Row2>
@@ -894,6 +928,16 @@ export default function PublicarPage() {
                         options={FORMA_PGTO_OPTS}
                       />
                     </Field>
+                    {values.formapagamento === "Boleto com Entrada" && (
+                      <Field label="Valor de entrada">
+                        <TextInput
+                          value={values.entrada || ""}
+                          inputMode="decimal"
+                          onChange={(v) => setField("entrada", v)}
+                          placeholder="R$ 0,00"
+                        />
+                      </Field>
+                    )}
                     <Row2>
                       <Field label="Parcelas">
                         <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
@@ -1111,12 +1155,7 @@ export default function PublicarPage() {
             {width}×{height}
           </div>
         </div>
-        <div className="flex flex-1 items-center justify-center p-5">
-          {debugInfo && (
-            <div className="mb-2 rounded-lg bg-yellow-100 border border-yellow-300 px-3 py-2 text-[11px] font-mono text-yellow-900 break-all">
-              {debugInfo}
-            </div>
-          )}
+        <div className="h-full flex flex-1 items-center justify-center p-5">
           {currentTemplate ? (
             <PreviewStage
               key={`${tab}-${format}-${currentTemplate.key}`}
@@ -1124,7 +1163,7 @@ export default function PublicarPage() {
               width={width}
               height={height}
               values={values}
-              maxDisplay={560}
+              maxDisplay={Math.round((typeof window !== "undefined" ? window.innerHeight : 900) * 0.82)}
               onReady={(s) => { stageRef.current = s; }}
             />
           ) : (
@@ -1299,8 +1338,13 @@ function BadgeBtn({ label, on, onClick }: { label: string; on: boolean; onClick:
 }
 
 function ServicosBlock({
-  values, setField, count,
-}: { values: Record<string, string>; setField: (k: string, v: string) => void; count: number }) {
+  values, setField, setBadge, count,
+}: {
+  values: Record<string, string>;
+  setField: (k: string, v: string) => void;
+  setBadge: (k: string, v: boolean) => void;
+  count: number;
+}) {
   return (
     <div>
       <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
@@ -1316,6 +1360,11 @@ function ServicosBlock({
                 type="text"
                 value={values[key] || ""}
                 onChange={(e) => setField(key, e.target.value)}
+                onBlur={(e) => {
+                  const v = applyServico(e.target.value);
+                  setField(key, v);
+                  if (isAllInclusive(v)) setBadge("all_inclusive_badge", true);
+                }}
                 placeholder={`Serviço ${n}`}
                 className="h-7 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
               />
