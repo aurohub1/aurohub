@@ -5,21 +5,26 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * Publica uma imagem no Instagram via Graph API.
- * POST { licensee_id, image_url, caption, store_id? }
+ * Publica mídia no Instagram via Graph API.
+ * POST { licensee_id, image_url | video_url, caption, store_id?, media_type? }
+ *   media_type: "IMAGE" (default) | "REELS" | "STORIES"
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { licensee_id, image_url, caption, store_id } = body as {
+    const { licensee_id, image_url, video_url, caption, store_id, media_type } = body as {
       licensee_id: string;
-      image_url: string;
+      image_url?: string;
+      video_url?: string;
       caption?: string;
       store_id?: string;
+      media_type?: "IMAGE" | "REELS" | "STORIES";
     };
-    if (!licensee_id || !image_url) {
-      return NextResponse.json({ error: "licensee_id and image_url required" }, { status: 400 });
+    if (!licensee_id || (!image_url && !video_url)) {
+      return NextResponse.json({ error: "licensee_id and image_url or video_url required" }, { status: 400 });
     }
+
+    const mediaType = media_type ?? (video_url ? "REELS" : "IMAGE");
 
     const sb = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,11 +55,22 @@ export async function POST(req: NextRequest) {
 
     // 1. Criar media container
     const createUrl = `https://graph.instagram.com/v23.0/${ig.ig_user_id}/media`;
-    const createParams = new URLSearchParams({
-      image_url,
-      caption: caption || "",
-      access_token: ig.access_token,
-    });
+    const createParams = new URLSearchParams();
+    createParams.set("access_token", ig.access_token);
+    createParams.set("caption", caption || "");
+    if (mediaType === "IMAGE" && image_url) {
+      createParams.set("image_url", image_url);
+    } else if (mediaType === "REELS" && video_url) {
+      createParams.set("media_type", "REELS");
+      createParams.set("video_url", video_url);
+    } else if (mediaType === "STORIES") {
+      createParams.set("media_type", "STORIES");
+      if (video_url) createParams.set("video_url", video_url);
+      else if (image_url) createParams.set("image_url", image_url);
+    } else {
+      return NextResponse.json({ error: "Combinação media_type/url inválida" }, { status: 400 });
+    }
+
     const createRes = await fetch(`${createUrl}?${createParams}`, { method: "POST" });
     if (!createRes.ok) {
       const detail = await createRes.text();
@@ -84,7 +100,16 @@ export async function POST(req: NextRequest) {
     try {
       await sb.from("activity_logs").insert({
         event_type: "post_instagram",
-        metadata: { licensee_id, store_id, image_url, ig_post_id: igPostId },
+        metadata: {
+          licensee_id,
+          store_id,
+          image_url: image_url ?? null,
+          video_url: video_url ?? null,
+          media_type: mediaType,
+          ig_post_id: igPostId,
+          caption: caption ?? "",
+          source: "central",
+        },
       });
     } catch { /* silent */ }
 

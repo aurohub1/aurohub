@@ -6,8 +6,8 @@ export const maxDuration = 60;
 
 /**
  * Upload assinado para Cloudinary.
- * POST { dataUrl: string, folder?: string }
- * Retorna: { secure_url, public_id }
+ * POST { dataUrl: string, folder?: string, resourceType?: "image" | "video" }
+ * Retorna: { secure_url, public_id, resource_type }
  */
 export async function POST(req: NextRequest) {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const dataUrl: string | undefined = body?.dataUrl;
     const folder: string = body?.folder || "aurohubv2/publicacoes";
+    const resourceType: "image" | "video" = body?.resourceType === "video" ? "video" : "image";
     if (!dataUrl) return NextResponse.json({ error: "dataUrl required" }, { status: 400 });
 
     const timestamp = Math.floor(Date.now() / 1000);
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     fd.append("folder", folder);
     fd.append("signature", signature);
 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/${resourceType}/upload`, {
       method: "POST",
       body: fd,
     });
@@ -43,7 +44,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Upload failed", detail }, { status: res.status });
     }
     const data = await res.json();
-    return NextResponse.json({ secure_url: data.secure_url, public_id: data.public_id });
+    return NextResponse.json({
+      secure_url: data.secure_url,
+      public_id: data.public_id,
+      resource_type: data.resource_type,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "unknown";
     return NextResponse.json({ error: msg }, { status: 500 });
