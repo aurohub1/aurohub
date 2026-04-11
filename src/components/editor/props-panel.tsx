@@ -5,6 +5,7 @@ import { EditorElement, FONTS, BIND_GROUPS, BLEND_MODES, BlendMode, TextCase } f
 interface Props {
   selected: EditorElement | null;
   canvasW: number; canvasH: number;
+  allElements: EditorElement[];
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
   onAlign: (a: string) => void;
   activeTab: "design" | "animate";
@@ -13,7 +14,7 @@ interface Props {
   onOpenCrop?: () => void;
 }
 
-export default function PropsPanel({ selected: s, canvasW, canvasH, onUpdate, onAlign, activeTab, onTabChange, selectedCount, onOpenCrop }: Props) {
+export default function PropsPanel({ selected: s, canvasW, canvasH, allElements, onUpdate, onAlign, activeTab, onTabChange, selectedCount, onOpenCrop }: Props) {
   if (!s) return (
     <div style={{ width: 232, background: "var(--ed-surface)", borderLeft: "1px solid var(--ed-bdr)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>Selecione um elemento</span>
@@ -35,7 +36,7 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, onUpdate, on
         </div>
       )}
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
-        {activeTab === "design" ? <DesignTab s={s} u={u} onAlign={onAlign} onOpenCrop={onOpenCrop} /> : <AnimateTab s={s} u={u} />}
+        {activeTab === "design" ? <DesignTab s={s} u={u} allElements={allElements} onAlign={onAlign} onOpenCrop={onOpenCrop} /> : <AnimateTab s={s} u={u} />}
       </div>
     </div>
   );
@@ -47,7 +48,7 @@ function isLine(el: EditorElement): boolean {
 }
 
 /* ══ DESIGN TAB ═══════════════════════════════════ */
-function DesignTab({ s, u, onAlign, onOpenCrop }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; onAlign: (a: string) => void; onOpenCrop?: () => void }) {
+function DesignTab({ s, u, allElements, onAlign, onOpenCrop }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; allElements: EditorElement[]; onAlign: (a: string) => void; onOpenCrop?: () => void }) {
   return (
     <>
       {/* Align 3x3 SVG grid */}
@@ -133,6 +134,14 @@ function DesignTab({ s, u, onAlign, onOpenCrop }: { s: EditorElement; u: (up: Pa
             <F l="↙ BL"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[3] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[3] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
             <F l="↘ BR"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[2] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[2] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
           </div>
+          <F l="Seguir texto">
+            <select value={s.autoHeightRef || ""} onChange={e => u({ autoHeightRef: e.target.value || undefined })} style={selS}>
+              <option value="">— nenhum —</option>
+              {allElements.filter(e => e.type === "text" && e.id !== s.id).map(e => (
+                <option key={e.id} value={e.id}>{e.name || e.id}</option>
+              ))}
+            </select>
+          </F>
         </Sec>
       )}
 
@@ -183,6 +192,9 @@ function DesignTab({ s, u, onAlign, onOpenCrop }: { s: EditorElement; u: (up: Pa
             ))}
           </div>
           <G2><F l="Letter"><Num v={s.letterSpacing || 0} c={v => u({ letterSpacing: v })} /></F><F l="Line H"><Num v={s.lineHeight || 1.2} c={v => u({ lineHeight: v })} step={0.1} /></F></G2>
+          <F l="Linhas">
+            <Num v={s.linhas || 0} min={0} max={20} c={v => u({ linhas: v || undefined })} />
+          </F>
           <G2>
             <F l="Stroke cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
             <F l="Stroke W"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} /></F>
@@ -373,7 +385,7 @@ function Sec({ t, children }: { t: string; children: React.ReactNode }) {
 }
 
 function F({ l, children }: { l: string; children: React.ReactNode }) { return <div><div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2 }}>{l}</div>{children}</div>; }
-function Num({ v, c, step }: { v: number; c: (v: number) => void; step?: number }) { return <input type="number" value={v} onChange={e => c(+e.target.value)} step={step} style={inpS} />; }
+function Num({ v, c, step, min, max }: { v: number; c: (v: number) => void; step?: number; min?: number; max?: number }) { return <input type="number" value={v} onChange={e => c(+e.target.value)} step={step} min={min} max={max} style={inpS} />; }
 function Inp({ v, c }: { v: string; c: (v: string) => void }) { return <input type="text" value={v} onChange={e => c(e.target.value)} style={inpS} />; }
 function G2({ children }: { children: React.ReactNode }) { return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>{children}</div>; }
 

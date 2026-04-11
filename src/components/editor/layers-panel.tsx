@@ -7,6 +7,7 @@ interface Props {
   elements: EditorElement[];
   selectedIds: string[];
   onSelect: (id: string) => void;
+  onShiftSelect?: (id: string) => void;
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
 }
 
@@ -21,7 +22,7 @@ function TypeIcon({ el }: { el: EditorElement }) {
   return null;
 }
 
-export default function LayersPanel({ elements, selectedIds, onSelect, onUpdate }: Props) {
+export default function LayersPanel({ elements, selectedIds, onSelect, onShiftSelect, onUpdate }: Props) {
   const reversed = [...elements].reverse();
   return (
     <div style={{ width: 160, display: "flex", flexDirection: "column", background: "var(--ed-surface)", borderRight: "1px solid var(--ed-bdr)", flexShrink: 0, overflow: "hidden" }}>
@@ -41,7 +42,7 @@ export default function LayersPanel({ elements, selectedIds, onSelect, onUpdate 
           return (
             <div
               key={el.id}
-              onClick={() => onSelect(el.id)}
+              onClick={(e) => (e.shiftKey && onShiftSelect ? onShiftSelect(el.id) : onSelect(el.id))}
               className="ah-layer-row"
               style={{
                 display: "flex", alignItems: "center", gap: 6,

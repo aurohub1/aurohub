@@ -378,6 +378,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
           elements={schema.elements}
           selectedIds={selectedIds}
           onSelect={selectSingle}
+          onShiftSelect={shiftSelect}
           onUpdate={updateElement}
         />
 
@@ -396,7 +397,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
           <ParameterView schema={schema} onUpdate={updateElement} onExport={onExport ? handleExport : undefined} />
         ) : (
           <PropsPanel
-            selected={selected} canvasW={width} canvasH={height}
+            selected={selected} canvasW={width} canvasH={height} allElements={schema.elements}
             onUpdate={updateElement} onAlign={alignSelected}
             activeTab={propsTab} onTabChange={setPropsTab}
             selectedCount={selectedIds.length}

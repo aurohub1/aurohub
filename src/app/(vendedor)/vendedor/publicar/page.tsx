@@ -83,11 +83,7 @@ const FERIADOS_FIXOS = [
   "Independência", "Nossa Senhora", "Finados", "República", "Natal", "Réveillon",
 ];
 
-const FORMA_PGTO_OPTS = [
-  "No Cartão de Crédito Sem Juros",
-  "Boleto com Entrada",
-  "No Débito",
-];
+const FORMA_PGTO_OPTS = ["Cartão de Crédito", "Boleto"];
 const PARCELAS_OPTS = Array.from({ length: 25 }, (_, i) => `${i + 2}x`);
 const DESCONTO_OPTS = ["", "5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
 
@@ -135,30 +131,101 @@ function todayISO(): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Dicionário de normalização de serviços — aplica no blur (espelho do v1 Dict.applyServico). */
+/** Formata string de dígitos como moeda pt-BR (salva só números, exibe "1.234,56"). */
+function formatMoeda(raw: string): string {
+  const nums = raw.replace(/\D/g, "");
+  if (!nums) return "";
+  const cents = parseInt(nums, 10);
+  const reais = Math.floor(cents / 100);
+  const centavos = cents % 100;
+  return reais.toLocaleString("pt-BR") + "," + String(centavos).padStart(2, "0");
+}
+
+/** Dicionário de substituição completa de frases de serviço (v1 Dict.servicos). */
+const DICT_SERVICOS: [RegExp, string][] = [
+  [/^traslado(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
+  [/^translado(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
+  [/^transfer(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
+  [/^café\s+da\s+manhã\s+e\s+(almoço|jantar)$/i, "Meia Pensão"],
+  [/^meia\s+pensão$/i, "Meia Pensão"],
+  [/^(café\s+da\s+manhã,?\s+almoço\s+e\s+jantar|pensão\s+completa)$/i, "Pensão Completa"],
+  [/^café\s+da\s+manhã$/i, "Café da Manhã"],
+  [/^all\s+inclusive$/i, "All Inclusive"],
+  [/^tudo\s+incluído$/i, "All Inclusive"],
+];
+
+/** Correções ortográficas inline (v1 Dict.ortho). */
+const DICT_ORTHO: [RegExp, string][] = [
+  [/\bcafe\b/gi, "Café"],
+  [/\bmanha\b/gi, "Manhã"],
+  [/\balmoco\b/gi, "Almoço"],
+  [/\bpensao\b/gi, "Pensão"],
+  [/\binclusao\b/gi, "Inclusão"],
+  [/\bexcursao\b/gi, "Excursão"],
+  [/\bnavegacao\b/gi, "Navegação"],
+  [/\baeroporo\b/gi, "Aeroporto"],
+  [/\bpassagen\b/gi, "Passagem"],
+  [/\bbagagen\b/gi, "Bagagem"],
+  [/\bconexao\b/gi, "Conexão"],
+  [/\bSao\b/g, "São"],
+  [/\bSAO\b/g, "SÃO"],
+];
+
+/** Preposições que devem permanecer minúsculas na capitalização (v1 Fmt.PREPS). */
+const PREPS = new Set([
+  "da","de","di","do","dos","das","em","a","e","o","os","as",
+  "na","no","nas","nos","ao","à","às","aos","por","para","com",
+  "sem","sob","sobre","entre","até","num","numa","du",
+]);
+
+/** Abreviações automáticas de destino (v1 Fmt._abrevDest). */
+const ABREV: [RegExp, string][] = [
+  [/\bSanto\b/g, "Sto."],
+  [/\bSanta\b/g, "Sta."],
+  [/\bSão\b/g, "S."],
+  [/\bNossa\s+Senhora\b/g, "N. Sra."],
+  [/\bDoutor\b/g, "Dr."],
+  [/\bDoutora\b/g, "Dra."],
+  [/\bGovernador\b/g, "Gov."],
+  [/\bPresidente\b/g, "Pres."],
+  [/\bMarechal\b/g, "Mal."],
+];
+
 function applyServico(v: string): string {
   const s = v.trim();
   if (!s) return s;
-  const map: [RegExp, string][] = [
-    [/\btraslado\b/gi, "Transfer"],
-    [/\btranslado\b/gi, "Transfer"],
-    [/\bcafe\s*da\s*manha\b/gi, "Café da Manhã"],
-    [/\bcafé\s*da\s*manhã\b/gi, "Café da Manhã"],
-    [/\balmoco\b/gi, "Almoço"],
-    [/\bjantar\b/gi, "Jantar"],
-    [/\bmeia\s*pensao\b/gi, "Meia Pensão"],
-    [/\bmeia\s*pensão\b/gi, "Meia Pensão"],
-    [/\bpensao\s*completa\b/gi, "Pensão Completa"],
-    [/\bpensão\s*completa\b/gi, "Pensão Completa"],
-    [/\ball\s*inclusive\b/gi, "All Inclusive"],
-  ];
+  // Primeiro tenta match exato de frase completa
+  for (const [re, rep] of DICT_SERVICOS) {
+    if (re.test(s)) return rep;
+  }
+  // Senão aplica só correções ortográficas inline
   let r = s;
-  for (const [re, rep] of map) r = r.replace(re, rep);
+  for (const [re, rep] of DICT_ORTHO) r = r.replace(re, rep);
   return r.charAt(0).toUpperCase() + r.slice(1);
 }
 
 function isAllInclusive(v: string): boolean {
-  return /all\s*inclusive/i.test(v);
+  return /all\s*inclusive|tudo\s*inclu[ií]do/i.test(v);
+}
+
+/** Capitaliza cada palavra, mantendo preposições minúsculas (v1 Fmt.capitalize). */
+function capitalizeBR(s: string): string {
+  if (!s) return "";
+  return s.trim().split(/\s+/).map((w, i) =>
+    i > 0 && PREPS.has(w.toLowerCase())
+      ? w.toLowerCase()
+      : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+  ).join(" ");
+}
+
+/** Destino TUDO MAIÚSCULO + abreviações + preposições minúsculas (v1 Fmt.destino). */
+function destinoUpper(s: string): string {
+  if (!s) return "";
+  let d = s;
+  for (const [re, rep] of ABREV) d = d.replace(re, rep);
+  return d.split(/\s+/).map(w =>
+    PREPS.has(w.toLowerCase()) ? w.toLowerCase() : w.toUpperCase()
+  ).join(" ");
 }
 
 /** Calcula noites entre 2 datas YYYY-MM-DD (Volta - Ida). */
@@ -208,6 +275,7 @@ export default function PublicarPage() {
 
   // Daily counter
   const [postsByFormat, setPostsByFormat] = useState<PostsByFormat>({ stories: 0, feed: 0, reels: 0, tv: 0 });
+  const [noticias, setNoticias] = useState<{ title: string; url: string; source: string }[]>([]);
   const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
   const [features, setFeatures] = useState<Set<string>>(new Set());
 
@@ -375,7 +443,29 @@ export default function PublicarPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadDailyCount]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  async function fetchNoticias() {
+    try {
+      const res = await fetch(
+        "https://gnews.io/api/v4/search?q=turismo+viagens+brasil&lang=pt&country=br&max=5&token=FREE_TOKEN"
+      );
+      // GNews tem plano gratuito limitado — usa RSS do G1 Turismo como alternativa gratuita
+      // Usa proxy público de RSS para JSON
+      void res; // não usamos a resposta — GNews precisa de token pago
+      const rss = await fetch(
+        "https://api.rss2json.com/v1/api.json?rss_url=https://feeds.feedburner.com/g1turismo&count=5"
+      );
+      const data = await rss.json();
+      if (data.items) {
+        setNoticias(data.items.slice(0, 5).map((i: { title: string; link: string; pubDate: string }) => ({
+          title: i.title,
+          url: i.link,
+          source: "G1 Turismo",
+        })));
+      }
+    } catch { /* silencioso — notícias são opcionais */ }
+  }
+
+  useEffect(() => { loadData(); fetchNoticias(); }, [loadData]);
 
   /* ── Dataset loaders (completos nome+url, cacheados) ── */
 
@@ -521,21 +611,22 @@ export default function PublicarPage() {
   async function onDestinoBlur(override?: string) {
     const destino = (override ?? values.destino)?.trim();
     if (!destino) return;
-    // Hotel tem prioridade — se já existe, usar hotel
-    const hotel = values.hotel?.trim();
-    if (hotel) {
-      const hUrl = await fetchImgHotel(hotel);
-      if (hUrl) { setField("imgfundo", hUrl); return; }
-    }
+    // Não sobrescreve se já tem imagem (ex.: usuário subiu manual ou hotel já resolveu)
+    if (values.imgfundo) return;
     const url = await fetchImgFundo(destino);
     if (url) setField("imgfundo", url);
   }
   async function onHotelBlur(override?: string) {
     const hotel = (override ?? values.hotel)?.trim();
     if (!hotel) return;
+    // Capitaliza antes de salvar (com preposições minúsculas)
+    const hotelCap = capitalizeBR(hotel);
+    if (hotelCap !== values.hotel) setField("hotel", hotelCap);
+    // Hotel SEMPRE sobrescreve quando acha imagem própria
     const hUrl = await fetchImgHotel(hotel);
     if (hUrl) { setField("imgfundo", hUrl); return; }
-    // Fallback: buscar pelo destino se hotel não tem imagem
+    // Fallback pro destino só se ainda não há imagem
+    if (values.imgfundo) return;
     const destino = values.destino?.trim();
     if (destino) {
       const dUrl = await fetchImgFundo(destino);
@@ -771,10 +862,10 @@ export default function PublicarPage() {
               {(tab === "pacote" || tab === "campanha") && (
                 <>
                   <Section title="Destino & Saída">
-                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", v.toUpperCase())} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
+                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
                     <Row2>
                       <Field label="Saída">
-                        <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} placeholder="Guarulhos" />
+                        <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" />
                       </Field>
                       <Field label="Tipo de voo">
                         <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
@@ -788,7 +879,7 @@ export default function PublicarPage() {
                         <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
                       </Field>
                       <Field label="Data volta">
-                        <DateInput value={values.datavolta || ""} min={hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
+                        <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
                       </Field>
                     </Row2>
                     {values.noites && parseInt(values.noites) > 0 && (
@@ -813,7 +904,9 @@ export default function PublicarPage() {
                     <div className="grid grid-cols-3 gap-1.5">
                       <BadgeBtn label="Última chamada" on={!!badges.ultima_chamada_badge} onClick={() => setBadge("ultima_chamada_badge", !badges.ultima_chamada_badge)} />
                       <BadgeBtn label="Últimos lugares" on={!!badges.ultimos_lugares_badge} onClick={() => setBadge("ultimos_lugares_badge", !badges.ultimos_lugares_badge)} />
-                      <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
+                      {tab === "campanha" && (
+                        <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
+                      )}
                     </div>
                   </Section>
 
@@ -825,12 +918,12 @@ export default function PublicarPage() {
                         options={FORMA_PGTO_OPTS}
                       />
                     </Field>
-                    {values.formapagamento === "Boleto com Entrada" && (
+                    {values.formapagamento === "Boleto" && (
                       <Field label="Valor de entrada">
                         <TextInput
-                          value={values.entrada || ""}
+                          value={formatMoeda(values.entrada || "")}
                           inputMode="decimal"
-                          onChange={(v) => setField("entrada", v)}
+                          onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
                           placeholder="R$ 0,00"
                         />
                       </Field>
@@ -840,7 +933,7 @@ export default function PublicarPage() {
                         <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
                       </Field>
                       <Field label="Valor parcela">
-                        <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
                       </Field>
                     </Row2>
                     <Row2>
@@ -848,7 +941,7 @@ export default function PublicarPage() {
                         <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
                       </Field>
                       <Field label="Total">
-                        <TextInput value={values.totalduplo || ""} inputMode="decimal" onChange={(v) => setField("totalduplo", v)} placeholder="R$ 0,00" />
+                        <TextInput value={formatMoeda(values.totalduplo || "")} inputMode="decimal" onChange={(v) => setField("totalduplo", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
                       </Field>
                     </Row2>
                   </Section>
@@ -858,9 +951,9 @@ export default function PublicarPage() {
               {tab === "passagem" && (
                 <>
                   <Section title="Destino & Saída">
-                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", v.toUpperCase())} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: LISBOA" />
+                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: LISBOA" />
                     <Row2>
-                      <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} placeholder="Guarulhos" /></Field>
+                      <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" /></Field>
                       <Field label="Tipo de voo">
                         <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
                       </Field>
@@ -872,7 +965,7 @@ export default function PublicarPage() {
                         <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
                       </Field>
                       <Field label="Data volta">
-                        <DateInput value={values.datavolta || ""} min={hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
+                        <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
                       </Field>
                     </Row2>
                   </Section>
@@ -885,7 +978,7 @@ export default function PublicarPage() {
                         <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
                       </Field>
                       <Field label="Valor parcela">
-                        <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
                       </Field>
                     </Row2>
                   </Section>
@@ -903,7 +996,7 @@ export default function PublicarPage() {
                         <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
                       </Field>
                       <Field label="Desembarque">
-                        <DateInput value={values.datavolta || ""} min={hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
+                        <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
                       </Field>
                     </Row2>
                     {values.noites && parseInt(values.noites) > 0 && (
@@ -928,12 +1021,12 @@ export default function PublicarPage() {
                         options={FORMA_PGTO_OPTS}
                       />
                     </Field>
-                    {values.formapagamento === "Boleto com Entrada" && (
+                    {values.formapagamento === "Boleto" && (
                       <Field label="Valor de entrada">
                         <TextInput
-                          value={values.entrada || ""}
+                          value={formatMoeda(values.entrada || "")}
                           inputMode="decimal"
-                          onChange={(v) => setField("entrada", v)}
+                          onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
                           placeholder="R$ 0,00"
                         />
                       </Field>
@@ -943,7 +1036,7 @@ export default function PublicarPage() {
                         <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
                       </Field>
                       <Field label="Valor parcela">
-                        <TextInput value={values.valorparcela || ""} inputMode="decimal" onChange={(v) => setField("valorparcela", v)} placeholder="R$ 0,00" />
+                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
                       </Field>
                     </Row2>
                     <Row2>
@@ -951,7 +1044,7 @@ export default function PublicarPage() {
                         <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
                       </Field>
                       <Field label="Total cruzeiro">
-                        <TextInput value={values.totalcruzeiro || ""} inputMode="decimal" onChange={(v) => setField("totalcruzeiro", v)} placeholder="R$ 0,00" />
+                        <TextInput value={formatMoeda(values.totalcruzeiro || "")} inputMode="decimal" onChange={(v) => setField("totalcruzeiro", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
                       </Field>
                     </Row2>
                   </Section>
@@ -1056,6 +1149,28 @@ export default function PublicarPage() {
                 visible={formatVisible}
                 current={format}
               />
+
+              {/* Notícias do setor */}
+              {noticias.length > 0 && (
+                <div className="border-t border-[var(--bdr)] pt-4">
+                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
+                    Notícias do Setor
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    {noticias.map((n, i) => (
+                      <a
+                        key={i}
+                        href={n.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="line-clamp-2 text-[10px] leading-tight text-[var(--txt2)] transition-colors hover:text-[#FF7A1A]"
+                      >
+                        {n.title}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

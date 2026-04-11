@@ -18,6 +18,7 @@ export interface EditorElement {
   text?: string; fontSize?: number; fontFamily?: string; fontStyle?: string;
   fill?: string; align?: string; verticalAlign?: string;
   letterSpacing?: number; lineHeight?: number;
+  linhas?: number;  // número fixo de linhas — limita altura do texto (0/undefined = livre)
   textDecoration?: string; textTransform?: TextCase;
   // Image
   src?: string; imageFit?: ImageFit;
@@ -28,6 +29,7 @@ export interface EditorElement {
   qrUrl?: string; qrFg?: string; qrBg?: string;
   // Shape
   cornerRadius?: number; stroke?: string; strokeWidth?: number;
+  autoHeightRef?: string;  // ID do elemento texto que este shape acompanha
   strokeDashArray?: number[];
   // Effects
   shadow?: ShadowConfig; blendMode?: BlendMode;
@@ -56,8 +58,7 @@ export const BIND_GROUPS = [
   { group: "Período", fields: ["dataida","datavolta","noites","feriado"] },
   { group: "Hotel / Navio", fields: ["hotel","navio","categoria","itinerario","incluso"] },
   { group: "Serviços", fields: ["servico1","servico2","servico3","servico4","servico5","servico6"] },
-  { group: "Pagamento", fields: ["formapagamento","entrada","parcelas","valorparcela","desconto"] },
-  { group: "Total", fields: ["totalduplo","totalcruzeiro"] },
+  { group: "Pagamento", fields: ["formapagamento","entrada","parcelas","valorparcela","desconto","totalduplo","totalcruzeiro"] },
   { group: "Anoiteceu", fields: ["inicio","fim","paraviagens"] },
   { group: "Loja", fields: ["loja","agente","fone"] },
   { group: "Genérico", fields: ["titulo","subtitulo","texto1","texto2","texto3"] },

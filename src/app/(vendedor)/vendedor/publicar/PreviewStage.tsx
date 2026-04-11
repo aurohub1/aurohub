@@ -25,6 +25,39 @@ function resolveText(el: EditorElement, values: Record<string, string>): string 
   return el.text ?? "";
 }
 
+/** Reduz fontSize até que o texto caiba em `maxLines` linhas dentro de `maxWidth`. */
+function fitFontSize(
+  text: string,
+  maxWidth: number,
+  maxLines: number,
+  fontFamily: string,
+  fontStyle: string,
+  startSize: number
+): number {
+  if (typeof document === "undefined") return startSize;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+  let size = startSize;
+  while (size > 8) {
+    ctx.font = `${fontStyle} ${size}px ${fontFamily}`;
+    const words = text.split(" ");
+    let lines = 1;
+    let line = "";
+    for (const word of words) {
+      const test = line ? line + " " + word : word;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines++;
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    if (lines <= maxLines) return size;
+    size -= 1;
+  }
+  return 8;
+}
+
 function resolveImage(el: EditorElement, values: Record<string, string>): string | undefined {
   if (el.bindParam && values[el.bindParam]) return values[el.bindParam];
   return el.src;
@@ -65,12 +98,27 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
 
   if (el.type === "text") {
     const txt = resolveText(el, values);
+    const baseFont = el.fontSize ?? 24;
+    const fSize = el.linhas
+      ? fitFontSize(
+          txt,
+          el.width,
+          el.linhas,
+          el.fontFamily ?? "DM Sans",
+          el.fontStyle ?? "normal",
+          baseFont
+        )
+      : baseFont;
     return (
       <KText
-        x={el.x} y={el.y} width={el.width} height={el.height}
+        x={el.x} y={el.y}
+        width={el.width}
+        height={el.linhas ? Math.ceil(fSize * (el.lineHeight ?? 1.2) * el.linhas) : undefined}
+        wrap="word"
+        ellipsis={!!el.linhas}
         rotation={el.rotation ?? 0}
         text={txt}
-        fontSize={el.fontSize ?? 24}
+        fontSize={fSize}
         fontFamily={el.fontFamily ?? "DM Sans"}
         fontStyle={el.fontStyle ?? "normal"}
         fill={el.fill || "#000"}

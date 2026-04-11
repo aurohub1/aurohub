@@ -43,6 +43,39 @@ function useQrImage(url: string, fg: string, bg: string, size: number): HTMLImag
   return img;
 }
 
+/* ── Fit-font helper ─────────────────────────────── */
+function fitFontSize(
+  text: string,
+  maxWidth: number,
+  maxLines: number,
+  fontFamily: string,
+  fontStyle: string,
+  startSize: number,
+  _lineHeight: number
+): number {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+  let size = startSize;
+  while (size > 8) {
+    ctx.font = `${fontStyle} ${size}px ${fontFamily}`;
+    const words = text.split(" ");
+    let lines = 1;
+    let line = "";
+    for (const word of words) {
+      const test = line ? line + " " + word : word;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines++;
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    if (lines <= maxLines) return size;
+    size -= 1;
+  }
+  return 8;
+}
+
 /* ── Animation ───────────────────────────────────── */
 function easeOut(t: number) { return 1 - Math.pow(1 - t, 3); }
 function easeOutBounce(t: number) { if (t < 1/2.75) return 7.5625*t*t; if (t < 2/2.75) return 7.5625*(t-=1.5/2.75)*t+0.75; if (t < 2.5/2.75) return 7.5625*(t-=2.25/2.75)*t+0.9375; return 7.5625*(t-=2.625/2.75)*t+0.984375; }
@@ -75,8 +108,11 @@ function getAnimState(el: EditorElement, time: number): AnimState {
 }
 
 /* ── Per-element renderer (NO Transformer inside) ── */
-function RenderElement({ el, playing, animState, onClick, onChange, onRegisterRef, onDragMoveSnap, onDragEndClear }: {
-  el: EditorElement; playing: boolean; animState: AnimState;
+function RenderElement({ el, allElements, playing, animState, onClick, onChange, onRegisterRef, onDragMoveSnap, onDragEndClear }: {
+  el: EditorElement;
+  allElements: EditorElement[];
+  playing: boolean;
+  animState: AnimState;
   onClick: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   onChange: (u: Partial<EditorElement>) => void;
   onRegisterRef: (id: string, node: Konva.Node | null) => void;
@@ -134,15 +170,37 @@ function RenderElement({ el, playing, animState, onClick, onChange, onRegisterRe
   const displayText = animState.textClip !== undefined ? (el.text || "").slice(0, animState.textClip) : (el.text || "");
 
   if (el.type === "text") {
+    const baseFont = el.fontSize || 32;
+    const fSize = el.linhas && typeof window !== "undefined"
+      ? fitFontSize(
+          displayText || el.text || "",
+          el.width,
+          el.linhas,
+          el.fontFamily || "DM Sans",
+          el.fontStyle || "normal",
+          baseFont,
+          el.lineHeight || 1.2
+        )
+      : baseFont;
     return <Text ref={shapeRef as React.RefObject<Konva.Text>}
       x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
       shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled}
       onDragMove={common.onDragMove} onDragEnd={common.onDragEnd} onTransformEnd={common.onTransformEnd}
       onClick={(e) => onClick(e)} onDblClick={() => { if (!playing && !el.locked) { const t = prompt("Editar texto:", el.text || ""); if (t !== null) onChange({ text: t }); } }}
-      width={el.width} text={displayText} fontSize={el.fontSize || 32} fontFamily={el.fontFamily || "DM Sans"} fontStyle={el.fontStyle || "normal"} fill={el.fill || "#FFF"} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+      width={el.width}
+      height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
+      wrap="word"
+      ellipsis={!!el.linhas}
+      text={displayText} fontSize={fSize} fontFamily={el.fontFamily || "DM Sans"} fontStyle={el.fontStyle || "normal"} fill={el.fill || "#FFF"} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "rect") {
-    return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={el.height} fill={el.fill} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+    const linkedText = el.autoHeightRef
+      ? allElements.find(e => e.id === el.autoHeightRef && e.type === "text")
+      : null;
+    const rectHeight = linkedText?.linhas
+      ? Math.ceil((linkedText.fontSize || 32) * (linkedText.lineHeight || 1.2) * linkedText.linhas)
+      : el.height;
+    return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={rectHeight} fill={el.fill} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "circle") {
     return <Circle {...common} ref={shapeRef as React.RefObject<Konva.Circle>} onClick={(e) => onClick(e)} radius={Math.min(el.width, el.height) / 2} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
@@ -290,7 +348,7 @@ export default function CanvasStage(p: Props) {
         <Layer>
           <Rect x={0} y={0} width={width} height={height} fill={schema.background} listening={false} />
           {schema.elements.map(el => (
-            <RenderElement key={el.id} el={el} playing={playing}
+            <RenderElement key={el.id} el={el} allElements={schema.elements} playing={playing}
               animState={playing || currentTime > 0 ? getAnimState(el, currentTime) : getAnimState(el, 999)}
               onClick={(e) => handleElementClick(el.id, e)}
               onChange={attrs => p.onUpdate(el.id, attrs)}
