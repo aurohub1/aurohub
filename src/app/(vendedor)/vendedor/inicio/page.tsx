@@ -275,7 +275,7 @@ export default function VendedorInicioPage() {
     return CALENDARIO_TURISMO
       .filter((d) => d.tipo === "feriado" && daysUntil(d.data) >= 0)
       .sort((a, b) => a.data.localeCompare(b.data))
-      .slice(0, 3);
+      .slice(0, 5);
   }, []);
 
   const calendarioProximos = useMemo(() => {
@@ -569,7 +569,7 @@ export default function VendedorInicioPage() {
                   {n.image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={n.image} alt=""
-                      className="w-full h-36 object-cover"
+                      className="w-full h-36 max-h-36 object-cover"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   )}
