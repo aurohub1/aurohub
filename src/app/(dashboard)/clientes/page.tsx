@@ -18,6 +18,8 @@ interface Licensee {
   id: string; name: string; email: string; plan: string; status: string;
   segment_id: string | null; expires_at: string | null; created_at: string;
   logo_url: string | null;
+  splash_effect?: string; splash_logo_orientation?: string;
+  cor_primaria?: string; cor_secundaria?: string; cor_acento?: string; cor_fundo?: string;
 }
 interface Segment { id: string; name: string; icon: string | null; }
 interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; }
@@ -25,7 +27,7 @@ interface Store { id: string; licensee_id: string; name: string; ig_user_id: str
 interface Profile { id: string; licensee_id: string | null; store_id: string | null; name: string | null; status: string; }
 
 type TabFilter = "" | "active" | "inactive";
-type ModalTab = "dados" | "plano" | "lojas" | "features";
+type ModalTab = "dados" | "plano" | "lojas" | "features" | "senha";
 
 const PLAN_COLORS: Record<string, { color: string; label: string }> = {
   basic: { color: "#64748b", label: "Essencial" },
@@ -53,7 +55,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "#FF7A1A", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520" });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -67,6 +69,11 @@ export default function ClientesPage() {
 
   // Delete confirm
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Reset password
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState("");
 
   // Wizard de onboarding
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -85,7 +92,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, cor_primaria, cor_secundaria, cor_acento, cor_fundo").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -129,7 +136,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "" });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "#FF7A1A", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520" });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -137,7 +144,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", cor_primaria: l.cor_primaria ?? "#FF7A1A", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -154,6 +161,12 @@ export default function ClientesPage() {
         name: form.name.trim(), email: form.email.trim().toLowerCase(),
         plan: form.plan, segment_id: form.segment_id || null, status: "active",
         logo_url: form.logo_url || null,
+        splash_effect: form.splash_effect || null,
+        splash_logo_orientation: form.splash_logo_orientation || "horizontal",
+        cor_primaria: form.cor_primaria || null,
+        cor_secundaria: form.cor_secundaria || null,
+        cor_acento: form.cor_acento || null,
+        cor_fundo: form.cor_fundo || null,
       };
       if (formPlanIsInternal && form.expires_at) {
         payload.expires_at = form.expires_at;
@@ -204,6 +217,33 @@ export default function ClientesPage() {
       console.error("[handleSave] erro genérico:", err);
       setModalError(err instanceof Error ? err.message : "Erro ao salvar.");
     } finally { setSaving(false); }
+  }
+
+  async function resetPassword() {
+    if (!editingId || !newPassword || newPassword.length < 6) {
+      setPasswordMsg("Mínimo 6 caracteres");
+      return;
+    }
+    setPasswordSaving(true);
+    setPasswordMsg("");
+    try {
+      const res = await fetch("/api/admin/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ licensee_id: editingId, password: newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordMsg("\u2705 Senha alterada com sucesso");
+        setNewPassword("");
+      } else {
+        setPasswordMsg(`\u274C ${data.error || "Erro ao alterar senha"}`);
+      }
+    } catch {
+      setPasswordMsg("\u274C Erro de conexão");
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   async function toggleStatus(id: string, current: string) {
@@ -553,9 +593,9 @@ export default function ClientesPage() {
 
             {/* Tabs */}
             <div className="flex border-b border-[var(--bdr)] px-6">
-              {(["dados", "plano", "lojas", "features"] as ModalTab[]).map((t) => (
+              {(["dados", "plano", "lojas", "features", "senha"] as ModalTab[]).map((t) => (
                 <button key={t} onClick={() => setModalTab(t)} className={`border-b-2 px-4 py-2.5 text-[12px] font-medium transition-colors ${modalTab === t ? "border-[var(--txt)] text-[var(--txt)]" : "border-transparent text-[var(--txt3)] hover:text-[var(--txt2)]"}`}>
-                  {t === "dados" ? "Dados" : t === "plano" ? "Plano" : t === "lojas" ? "Lojas" : "Features"}
+                  {t === "dados" ? "Dados" : t === "plano" ? "Plano" : t === "lojas" ? "Lojas" : t === "features" ? "Features" : "Senha"}
                 </button>
               ))}
             </div>
@@ -586,6 +626,57 @@ export default function ClientesPage() {
                       </div>
                     </div>
                   </div>
+                  {/* Splash Screen */}
+                  <div className="border-t border-[var(--bdr)] pt-4 mt-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)] mb-3">Splash Screen</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] text-[var(--txt3)] mb-1">Efeito</label>
+                        <select value={form.splash_effect || "random"} onChange={e => setForm(f => ({...f, splash_effect: e.target.value}))} className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11px] text-[var(--txt)] focus:outline-none focus:border-[#D4A843]">
+                          <option value="random">🎲 Aleatório</option>
+                          <option value="particles">Partículas</option>
+                          <option value="cinematic">Cinemático</option>
+                          <option value="slideup">Slide Up</option>
+                          <option value="scalefade">Scale Fade</option>
+                          <option value="fadesuave">Fade Suave</option>
+                          <option value="ondas">Ondas</option>
+                          <option value="flutuacao">Flutuação</option>
+                          <option value="scanner">Scanner</option>
+                          <option value="holofote">Holofote</option>
+                          <option value="chuvapontos">Chuva de Pontos</option>
+                          <option value="gradiente">Gradiente</option>
+                          <option value="dissolve">Dissolve</option>
+                          <option value="bigbang">Big Bang</option>
+                          <option value="aurora">Aurora Boreal</option>
+                          <option value="tinta">Tinta</option>
+                          <option value="vagalumes">Vagalumes</option>
+                          <option value="aurora_espacial">Aurora Espacial</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-[var(--txt3)] mb-1">Logo</label>
+                        <select value={form.splash_logo_orientation || "horizontal"} onChange={e => setForm(f => ({...f, splash_logo_orientation: e.target.value}))} className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11px] text-[var(--txt)] focus:outline-none focus:border-[#D4A843]">
+                          <option value="horizontal">↔ Horizontal</option>
+                          <option value="vertical">↕ Vertical</option>
+                          <option value="quadrado">□ Quadrado</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      {[
+                        {key:"cor_primaria", label:"Cor primária"},
+                        {key:"cor_secundaria", label:"Cor secundária"},
+                        {key:"cor_acento", label:"Cor acento"},
+                        {key:"cor_fundo", label:"Cor fundo"},
+                      ].map(({key, label}) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <input type="color" value={(form as Record<string,string>)[key] || "#000000"} onChange={e => setForm(f => ({...f, [key]: e.target.value}))} className="h-7 w-10 rounded cursor-pointer border border-[var(--bdr)]" />
+                          <label className="text-[10px] text-[var(--txt3)]">{label}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <Field label="Nome da empresa" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Agência Viaje Bem" />
                   <Field label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} placeholder="contato@agencia.com.br" type="email" />
                   <Field label="Telefone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} placeholder="(17) 99999-0000" />
@@ -672,6 +763,27 @@ export default function ClientesPage() {
                   <button onClick={addStoreRow} className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)]">
                     <svg viewBox="0 0 16 16" className="h-3 w-3"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
                     Adicionar loja
+                  </button>
+                </div>
+              )}
+
+              {modalTab === "senha" && (
+                <div className="flex flex-col gap-4">
+                  <p className="text-[12px] text-[var(--txt3)]">
+                    Altera a senha de acesso do cliente ao sistema.
+                  </p>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)] mb-1">Nova senha</label>
+                    <div className="flex gap-2">
+                      <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className="h-9 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:outline-none focus:border-[#D4A843]" />
+                      <button onClick={() => setNewPassword(Math.random().toString(36).slice(2,10))} className="h-9 px-3 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] text-[11px] text-[var(--txt2)] hover:bg-[var(--bg1)]">🎲 Gerar</button>
+                    </div>
+                  </div>
+                  {passwordMsg && (
+                    <p className="text-[11px]" style={{color: passwordMsg.includes("\u2705") ? "var(--green)" : "var(--red)"}}>{passwordMsg}</p>
+                  )}
+                  <button onClick={resetPassword} disabled={passwordSaving || !newPassword} className="h-9 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50" style={{background: "linear-gradient(135deg, #FF7A1A, #D4A843)"}}>
+                    {passwordSaving ? "Salvando..." : "Alterar senha"}
                   </button>
                 </div>
               )}

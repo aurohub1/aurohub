@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { LayoutTemplate } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole } from "@/lib/auth";
+import SplashScreen, { type SplashEffect } from "@/components/splash/SplashScreen";
 
 /* ── Particle system ─────────────────────────────── */
 
@@ -99,75 +99,6 @@ function useParticles(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   }, [canvasRef]);
 }
 
-/* ── Splash screen (pós-login) ───────────────────── */
-
-function SplashScreen({ name, onDone }: { name: string; onDone: () => void }) {
-  const [fadingOut, setFadingOut] = useState(false);
-  useEffect(() => {
-    const fadeT = setTimeout(() => setFadingOut(true), 1600);
-    const doneT = setTimeout(() => onDone(), 1900);
-    return () => { clearTimeout(fadeT); clearTimeout(doneT); };
-  }, [onDone]);
-
-  return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 99999,
-      background: "#0d1117",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      opacity: fadingOut ? 0 : 1,
-      transition: "opacity 0.3s ease-out",
-    }}>
-      <style>{`
-        @keyframes ah-splash-logo {
-          from { opacity: 0; transform: scale(0.8); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        @keyframes ah-splash-fade {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes ah-splash-progress {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
-      `}</style>
-      <div style={{
-        animation: "ah-splash-logo 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) forwards",
-        marginBottom: 28,
-        filter: "drop-shadow(0 8px 32px rgba(255,122,26,0.35))",
-      }}>
-        <LayoutTemplate size={96} color="#FF7A1A" strokeWidth={1.5} />
-      </div>
-      <h1 style={{
-        fontSize: 32, fontWeight: 800, color: "#FFFFFF", margin: 0,
-        letterSpacing: "-0.02em",
-        opacity: 0,
-        animation: "ah-splash-fade 0.3s ease-out 0.4s forwards",
-      }}>
-        Aurohub
-      </h1>
-      <p style={{
-        fontSize: 15, color: "#D4A843", margin: "10px 0 0 0", fontWeight: 500,
-        opacity: 0,
-        animation: "ah-splash-fade 0.3s ease-out 0.6s forwards",
-      }}>
-        Bem-vindo, {name.charAt(0).toUpperCase() + name.slice(1)}
-      </p>
-      <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0,
-        height: 3, background: "rgba(255,255,255,0.06)",
-      }}>
-        <div style={{
-          height: "100%",
-          background: "linear-gradient(90deg, #FF7A1A, #D4A843)",
-          width: 0,
-          animation: "ah-splash-progress 1.2s linear forwards",
-        }} />
-      </div>
-    </div>
-  );
-}
-
 /* ── Login page ──────────────────────────────────── */
 
 export default function LoginPage() {
@@ -179,7 +110,11 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [splash, setSplash] = useState<{ name: string; home: string } | null>(null);
+  const [splash, setSplash] = useState<{
+    name: string; home: string;
+    logoUrl?: string; effect?: string; logoOrientation?: string;
+    cor1?: string; cor2?: string; cor3?: string; corFundo?: string;
+  } | null>(null);
 
   useParticles(canvasRef);
 
@@ -231,8 +166,29 @@ export default function LoginPage() {
           || "você";
         const home = homeForRole(profile?.role ?? null);
         console.log("[Login] Showing splash → will redirect to:", home);
+
+        let splashConfig: Record<string, string | undefined> = {};
+        if (profile?.licensee_id) {
+          const { data: lic } = await supabase
+            .from("licensees")
+            .select("logo_url,splash_effect,splash_logo_orientation,cor_primaria,cor_secundaria,cor_acento,cor_fundo")
+            .eq("id", profile.licensee_id)
+            .single();
+          if (lic) {
+            splashConfig = {
+              logoUrl: lic.logo_url || undefined,
+              effect: lic.splash_effect || "random",
+              logoOrientation: lic.splash_logo_orientation || "horizontal",
+              cor1: lic.cor_primaria || "#FF7A1A",
+              cor2: lic.cor_secundaria || "#D4A843",
+              cor3: lic.cor_acento || "#1E3A6E",
+              corFundo: lic.cor_fundo || "#0E1520",
+            };
+          }
+        }
+
         setLoading(false);
-        setSplash({ name, home });
+        setSplash({ name, home, ...splashConfig });
         return;
       } catch (err) {
         console.error("[Login] signIn exception:", err);
@@ -261,7 +217,18 @@ export default function LoginPage() {
   const inputColor = dk ? "#fff" : "#0D1628";
 
   if (splash) {
-    return <SplashScreen name={splash.name} onDone={() => router.push(splash.home)} />;
+    return (
+      <SplashScreen
+        logoUrl={splash.logoUrl || "https://res.cloudinary.com/dxgj4bcch/image/upload/page/page/logo_aurovista.png"}
+        logoOrientation={(splash.logoOrientation as "horizontal"|"vertical"|"quadrado") || "horizontal"}
+        effect={(splash.effect as SplashEffect) || "random"}
+        cor1={splash.cor1 || "#FF7A1A"}
+        cor2={splash.cor2 || "#D4A843"}
+        cor3={splash.cor3 || "#1E3A6E"}
+        corFundo={splash.corFundo || "#0E1520"}
+        onDone={() => router.push(splash.home)}
+      />
+    );
   }
 
   return (

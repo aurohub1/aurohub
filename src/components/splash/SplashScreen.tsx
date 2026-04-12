@@ -5,7 +5,7 @@ export type SplashEffect =
   | "particles" | "cinematic" | "slideup" | "scalefade" | "fadesuave"
   | "ondas" | "flutuacao" | "scanner" | "holofote" | "chuvapontos"
   | "gradiente" | "dissolve" | "bigbang" | "aurora" | "tinta" | "vagalumes"
-  | "eclipse" | "aurora_espacial" | "nascer_sol";
+  | "aurora_espacial";
 
 interface Props {
   logoUrl: string;
@@ -22,7 +22,7 @@ const EFFECTS: SplashEffect[] = [
   "particles","cinematic","slideup","scalefade","fadesuave",
   "ondas","flutuacao","scanner","holofote","chuvapontos",
   "gradiente","dissolve","bigbang","aurora","tinta","vagalumes",
-  "eclipse","aurora_espacial","nascer_sol",
+  "aurora_espacial",
 ];
 
 export default function SplashScreen({
@@ -93,12 +93,6 @@ export default function SplashScreen({
             ctx.arc(x,y,size*3,0,Math.PI*2);
             ctx.fill();
           }
-          const ringGlow=ctx.createRadialGradient(W/2,H/2,H*0.15,W/2,H/2,H*0.2);
-          ringGlow.addColorStop(0,`rgba(${c2.r},${c2.g},${c2.b},0)`);
-          ringGlow.addColorStop(0.5,`rgba(${c2.r},${c2.g},${c2.b},0.3)`);
-          ringGlow.addColorStop(1,`rgba(${c2.r},${c2.g},${c2.b},0)`);
-          ctx.fillStyle=ringGlow;
-          ctx.fillRect(0,0,W,H);
           break;
         }
 
@@ -271,45 +265,28 @@ export default function SplashScreen({
 
         case "holofote": {
           for(let i=0;i<3;i++){
-            const spotX=W*(0.2+i*0.3)+Math.sin(t*0.4+i)*W*0.1;
-            const spotY=H*0.85;
-            const targetX=W/2+Math.cos(t*0.3+i)*W*0.15;
-            const targetY=H*0.4;
-            const spot=ctx.createLinearGradient(spotX,spotY,targetX,targetY);
+            const spotX=W/2+Math.sin(t*0.8+i*1.2)*W*0.2;
+            const spotY=H/2+Math.cos(t*0.6+i*1.2)*H*0.15;
+            const spot=ctx.createRadialGradient(spotX,spotY,0,spotX,spotY,H*0.35);
             const col=i===0?c1:i===1?c2:c3;
-            spot.addColorStop(0,`rgba(${col.r},${col.g},${col.b},0)`);
-            spot.addColorStop(0.3,`rgba(${col.r},${col.g},${col.b},0.12)`);
-            spot.addColorStop(1,`rgba(${col.r},${col.g},${col.b},0.35)`);
-            ctx.beginPath();
-            ctx.moveTo(spotX-20,spotY);
-            ctx.lineTo(targetX-60,targetY);
-            ctx.lineTo(targetX+60,targetY);
-            ctx.lineTo(spotX+20,spotY);
-            ctx.closePath();
+            spot.addColorStop(0,`rgba(${col.r},${col.g},${col.b},0.25)`);
+            spot.addColorStop(0.5,`rgba(${col.r},${col.g},${col.b},0.08)`);
+            spot.addColorStop(1,"rgba(0,0,0,0)");
             ctx.fillStyle=spot;
-            ctx.fill();
+            ctx.fillRect(0,0,W,H);
           }
-          const topGlow=ctx.createLinearGradient(0,H*0.35,0,H*0.55);
-          topGlow.addColorStop(0,"rgba(255,255,255,0.05)");
-          topGlow.addColorStop(1,"rgba(0,0,0,0)");
-          ctx.fillStyle=topGlow;
-          ctx.fillRect(0,H*0.35,W,H*0.2);
           break;
         }
 
         case "chuvapontos": {
-          for(let i=0;i<60;i++){
-            const x=(i*(W/60));
-            const speed=50+i%7*20;
-            const y=(t*speed+i*137)%(H+40)-20;
+          for(let i=0;i<100;i++){
+            const x=(i*137.5)%W;
+            const y=((i*50+t*150)%(H+20))-10;
             const col=i%3===0?c1:i%3===1?c2:c3;
-            for(let j=0;j<8;j++){
-              const ty=y-j*18;
-              const alpha=Math.max(0,(1-j/8)*0.6);
-              ctx.fillStyle=`rgba(${col.r},${col.g},${col.b},${alpha})`;
-              ctx.font="12px monospace";
-              ctx.fillText(String.fromCharCode(0x30A0+Math.floor((t*10+i+j)%96)),x,ty);
-            }
+            ctx.beginPath();
+            ctx.arc(x,y,1.5,0,Math.PI*2);
+            ctx.fillStyle=`rgba(${col.r},${col.g},${col.b},0.5)`;
+            ctx.fill();
           }
           break;
         }
@@ -332,12 +309,14 @@ export default function SplashScreen({
 
         case "dissolve": {
           const density=Math.min(1,t/1.5);
-          for(let i=0;i<300*density;i++){
-            const x=(Math.sin(i*127.1+t)*0.5+0.5)*W;
-            const y=(Math.cos(i*311.7+t*0.7)*0.5+0.5)*H;
-            const size=1+Math.sin(i+t*3)*1;
+          for(let i=0;i<200;i++){
+            const x=(Math.sin(i*127.1)*0.5+0.5)*W;
+            const y=(Math.cos(i*311.7)*0.5+0.5)*H;
+            const size=2+Math.sin(i+t*2)*1.5;
             const col=i%3===0?c1:i%3===1?c2:c3;
-            const alpha=0.3+Math.sin(i*0.5+t*2)*0.2;
+            const appearing=i<200*density;
+            if(!appearing)continue;
+            const alpha=(0.3+Math.sin(i*0.5+t)*0.2)*Math.min(1,(density-i/200)*5);
             ctx.fillStyle=`rgba(${col.r},${col.g},${col.b},${alpha})`;
             ctx.fillRect(x,y,size,size);
           }
@@ -404,107 +383,42 @@ export default function SplashScreen({
         }
 
         case "tinta": {
-          for(let i=0;i<10;i++){
-            const progress=Math.min(1,Math.max(0,(t*0.8-i*0.08)));
-            if(progress<=0)continue;
-            const eased=1-Math.pow(1-progress,3);
-            const cx=W*(0.15+i*0.07+Math.sin(i*1.3)*0.05);
-            const cy=H*(0.3+Math.cos(i*0.9)*0.25);
-            const r=eased*H*(0.25+i%3*0.08);
+          const drops=8;
+          for(let i=0;i<drops;i++){
+            const progress=Math.min(1,Math.max(0,t-i*0.15));
+            const x=W*(0.1+(i/drops)*0.8);
+            const radius=progress*H*0.6;
             const col=i%3===0?c1:i%3===1?c3:c2;
-            const ink=ctx.createRadialGradient(cx,cy,0,cx,cy,r);
-            ink.addColorStop(0,`rgba(${col.r},${col.g},${col.b},${0.5*eased})`);
-            ink.addColorStop(0.5,`rgba(${col.r},${col.g},${col.b},${0.2*eased})`);
-            ink.addColorStop(1,"rgba(0,0,0,0)");
-            ctx.save();
-            ctx.translate(cx,cy);
+            const grad=ctx.createRadialGradient(x,-20,0,x,-20,radius);
+            grad.addColorStop(0,`rgba(${col.r},${col.g},${col.b},${0.4*progress})`);
+            grad.addColorStop(1,"rgba(0,0,0,0)");
+            ctx.fillStyle=grad;
             ctx.beginPath();
-            for(let a=0;a<=Math.PI*2;a+=0.1){
-              const wobble=1+Math.sin(a*4+t*2+i)*0.15*eased;
-              const rx=Math.cos(a)*r*wobble;
-              const ry=Math.sin(a)*r*wobble*0.8;
-              a===0?ctx.moveTo(rx,ry):ctx.lineTo(rx,ry);
-            }
-            ctx.closePath();
-            ctx.fillStyle=ink;
+            ctx.arc(x,-20,radius,0,Math.PI*2);
             ctx.fill();
-            ctx.restore();
           }
           break;
         }
 
         case "vagalumes": {
-          const totalFade=Math.max(0,1-(t-1.8)/0.7);
-          for(let i=0;i<60;i++){
-            const pathX=W*0.1+((i*W*0.8/60)+(Math.sin(t*0.3+i*0.4)*W*0.08))%W*0.8;
-            const pathY=H*(0.2+Math.sin(i*0.7+t*0.4)*0.5+Math.cos(i*0.3+t*0.2)*0.15);
-            const blink=Math.pow(Math.max(0,Math.sin(t*(2+i%4*0.3)+i*1.1)),3);
+          const totalFade=Math.max(0,1-(t-1.8)/0.6);
+          for(let i=0;i<40;i++){
+            const x=W/2+Math.sin(i*1.7+t*0.8)*W*0.4;
+            const y=H/2+Math.cos(i*2.3+t*0.6)*H*0.35;
+            const blink=Math.pow(Math.max(0,Math.sin(t*3+i*1.1)),3);
             const col=i%2===0?c1:c2;
-            const glowR=6+blink*8;
-            const glow=ctx.createRadialGradient(pathX,pathY,0,pathX,pathY,glowR);
+            const glowR=4+blink*8;
+            const glow=ctx.createRadialGradient(x,y,0,x,y,glowR);
             glow.addColorStop(0,`rgba(255,255,220,${blink*totalFade*0.9})`);
             glow.addColorStop(0.3,`rgba(${col.r},${col.g},${col.b},${blink*totalFade*0.5})`);
             glow.addColorStop(1,"rgba(0,0,0,0)");
             ctx.fillStyle=glow;
-            ctx.fillRect(pathX-glowR,pathY-glowR,glowR*2,glowR*2);
-            if(blink>0.3){
-              ctx.beginPath();
-              ctx.arc(pathX,pathY,1.5,0,Math.PI*2);
-              ctx.fillStyle=`rgba(255,255,200,${blink*totalFade})`;
-              ctx.fill();
-            }
-          }
-          break;
-        }
-
-        case "eclipse": {
-          for(let i=0;i<150;i++){
-            const sx=(i*173.7)%W,sy=(i*97.3)%H;
-            const br=0.5+Math.sin(i*0.7+t*1.5)*0.3;
+            ctx.fillRect(x-glowR,y-glowR,glowR*2,glowR*2);
             ctx.beginPath();
-            ctx.arc(sx,sy,0.7,0,Math.PI*2);
-            ctx.fillStyle=`rgba(255,255,255,${br})`;
+            ctx.arc(x,y,1.5,0,Math.PI*2);
+            ctx.fillStyle=`rgba(255,255,200,${blink*totalFade})`;
             ctx.fill();
           }
-          const moonOffsetX=Math.max(0,(1-t*0.6))*W*0.3;
-          const moonX=W/2-moonOffsetX,moonY=H/2;
-          const R=Math.min(W,H)*0.2;
-          for(let i=0;i<32;i++){
-            const angle=(i/32)*Math.PI*2+t*0.08;
-            const inner=R*1.02;
-            const outer=R*(1.5+Math.sin(i*2.1+t*2)*0.3+Math.cos(i*3.7+t)*0.2);
-            const wid=0.025;
-            ctx.beginPath();
-            ctx.moveTo(moonX+Math.cos(angle-wid)*inner,moonY+Math.sin(angle-wid)*inner);
-            ctx.lineTo(moonX+Math.cos(angle)*outer*1.8,moonY+Math.sin(angle)*outer*1.8);
-            ctx.lineTo(moonX+Math.cos(angle+wid)*inner,moonY+Math.sin(angle+wid)*inner);
-            ctx.closePath();
-            const rayGrad=ctx.createLinearGradient(
-              moonX+Math.cos(angle)*inner,moonY+Math.sin(angle)*inner,
-              moonX+Math.cos(angle)*outer*2,moonY+Math.sin(angle)*outer*2
-            );
-            rayGrad.addColorStop(0,`rgba(${c2.r},${c2.g},${c2.b},0.85)`);
-            rayGrad.addColorStop(0.4,`rgba(${c1.r},${c1.g},${c1.b},0.35)`);
-            rayGrad.addColorStop(1,"rgba(0,0,0,0)");
-            ctx.fillStyle=rayGrad;
-            ctx.fill();
-          }
-          const corona=ctx.createRadialGradient(moonX,moonY,R,moonX,moonY,R*4);
-          corona.addColorStop(0,`rgba(${c2.r},${c2.g},${c2.b},0.5)`);
-          corona.addColorStop(0.3,`rgba(${c1.r},${c1.g},${c1.b},0.2)`);
-          corona.addColorStop(0.6,`rgba(${c3.r},${c3.g},${c3.b},0.08)`);
-          corona.addColorStop(1,"rgba(0,0,0,0)");
-          ctx.fillStyle=corona;
-          ctx.fillRect(0,0,W,H);
-          ctx.beginPath();
-          ctx.arc(moonX,moonY,R,0,Math.PI*2);
-          ctx.fillStyle="#00000A";
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(moonX,moonY,R*1.015,0,Math.PI*2);
-          ctx.arc(moonX,moonY,R*0.96,0,Math.PI*2,true);
-          ctx.fillStyle=`rgba(${c2.r},${c2.g},${c2.b},0.95)`;
-          ctx.fill();
           break;
         }
 
@@ -539,88 +453,6 @@ export default function SplashScreen({
           earthGrad.addColorStop(1,`rgba(${Math.floor(c3.r*0.4)},${Math.floor(c3.g*0.4)},${Math.floor(c3.b*0.6)},0.9)`);
           ctx.fillStyle=earthGrad;
           ctx.fill();
-          break;
-        }
-
-        case "nascer_sol": {
-          const spaceGrad=ctx.createLinearGradient(0,0,0,H);
-          spaceGrad.addColorStop(0,"#000005");
-          spaceGrad.addColorStop(0.6,`rgb(${Math.floor(c3.r*0.3)},${Math.floor(c3.g*0.15)},${Math.floor(c3.b*0.5)})`);
-          spaceGrad.addColorStop(1,`rgb(${c3.r},${c3.g},${c3.b})`);
-          ctx.fillStyle=spaceGrad;
-          ctx.fillRect(0,0,W,H);
-          for(let i=0;i<200;i++){
-            const sx=(i*173.7)%W,sy=(i*97.3)%(H*0.7);
-            const br=Math.max(0,1-(sy/(H*0.5)))*(0.4+Math.sin(i*0.7+t*2)*0.35);
-            if(br<0.05)continue;
-            const starSize=br>0.6?1.2:0.7;
-            ctx.beginPath();
-            ctx.arc(sx,sy,starSize,0,Math.PI*2);
-            ctx.fillStyle=`rgba(255,255,255,${br})`;
-            ctx.fill();
-          }
-          const horizY=H*0.7;
-          const pR=W*1.15;
-          ctx.save();
-          const clipPath=new Path2D();
-          clipPath.ellipse(W/2,horizY+pR*0.8,pR,pR,0,0,Math.PI*2);
-          ctx.clip(clipPath);
-          const planetGrad=ctx.createRadialGradient(W/2,horizY+pR*0.2,pR*0.1,W/2,horizY+pR*0.8,pR);
-          planetGrad.addColorStop(0,`rgb(${Math.min(255,c3.r+30)},${Math.min(255,c3.g+30)},${Math.min(255,c3.b+60)})`);
-          planetGrad.addColorStop(0.3,`rgb(${c3.r},${c3.g},${c3.b})`);
-          planetGrad.addColorStop(0.7,`rgb(${Math.floor(c3.r*0.6)},${Math.floor(c3.g*0.6)},${Math.floor(c3.b*0.7)})`);
-          planetGrad.addColorStop(1,`rgb(${Math.floor(c3.r*0.3)},${Math.floor(c3.g*0.3)},${Math.floor(c3.b*0.5)})`);
-          ctx.fillStyle=planetGrad;
-          ctx.fillRect(0,0,W,H);
-          ctx.restore();
-          const atmGrad=ctx.createLinearGradient(0,horizY-40,0,horizY+60);
-          atmGrad.addColorStop(0,"rgba(0,0,0,0)");
-          atmGrad.addColorStop(0.3,`rgba(${c1.r},${c1.g},${c1.b},0.7)`);
-          atmGrad.addColorStop(0.6,`rgba(${c2.r},${c2.g},${c2.b},0.5)`);
-          atmGrad.addColorStop(1,"rgba(0,0,0,0)");
-          ctx.fillStyle=atmGrad;
-          ctx.fillRect(0,horizY-40,W,100);
-          const sunP=Math.min(1,t/2);
-          const sunEase=1-Math.pow(1-sunP,4);
-          const sunY=horizY+30-sunEase*H*0.4;
-          const sunR2=Math.min(W,H)*0.075;
-          if(sunP>0.1){
-            const hGlow=ctx.createRadialGradient(W/2,horizY,0,W/2,horizY,W*0.9);
-            hGlow.addColorStop(0,`rgba(${c2.r},${c2.g},${c2.b},${sunEase*0.8})`);
-            hGlow.addColorStop(0.15,`rgba(${c1.r},${c1.g},${c1.b},${sunEase*0.5})`);
-            hGlow.addColorStop(0.4,`rgba(${c3.r},${Math.floor(c3.g*0.5)},0,${sunEase*0.25})`);
-            hGlow.addColorStop(1,"rgba(0,0,0,0)");
-            ctx.fillStyle=hGlow;
-            ctx.fillRect(0,0,W,H);
-          }
-          if(sunY<horizY+sunR2){
-            if(sunP>0.4){
-              for(let i=0;i<20;i++){
-                const angle=(i/20)*Math.PI*2+t*0.1;
-                const len=sunR2*(2+Math.sin(i*1.9+t*2)*0.4);
-                ctx.beginPath();
-                ctx.moveTo(W/2+Math.cos(angle-0.02)*sunR2,sunY+Math.sin(angle-0.02)*sunR2);
-                ctx.lineTo(W/2+Math.cos(angle)*len*3,sunY+Math.sin(angle)*len*3);
-                ctx.lineTo(W/2+Math.cos(angle+0.02)*sunR2,sunY+Math.sin(angle+0.02)*sunR2);
-                ctx.closePath();
-                ctx.fillStyle=`rgba(${c2.r},${c2.g},${c2.b},${(sunP-0.4)/0.6*0.25})`;
-                ctx.fill();
-              }
-            }
-            const sGrad=ctx.createRadialGradient(W/2,sunY,0,W/2,sunY,sunR2*2);
-            sGrad.addColorStop(0,"#ffffff");
-            sGrad.addColorStop(0.15,`rgb(${c2.r},${c2.g},${Math.floor(c2.b*0.3)})`);
-            sGrad.addColorStop(0.4,`rgba(${c1.r},${c1.g},${c1.b},0.8)`);
-            sGrad.addColorStop(1,"rgba(0,0,0,0)");
-            ctx.fillStyle=sGrad;
-            ctx.beginPath();
-            ctx.arc(W/2,sunY,sunR2*2,0,Math.PI*2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(W/2,sunY,sunR2,0,Math.PI*2);
-            ctx.fillStyle="#fffef0";
-            ctx.fill();
-          }
           break;
         }
 
