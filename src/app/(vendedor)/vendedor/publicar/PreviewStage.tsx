@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer, Rect, Circle, Text as KText, Image as KImage } from "react-konva";
+import { Stage, Layer, Rect, Circle, Text as KText, Image as KImage, Group } from "react-konva";
 import type Konva from "konva";
 import type { EditorElement, EditorSchema } from "@/components/editor/types";
 
@@ -195,6 +195,37 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
           baseFont
         )
       : baseFont;
+
+    // Price display: inteiro grande + centavos pequenos
+    if (el.priceDisplay && el.bindParam && ["valorparcela","valorint"].includes(el.bindParam)) {
+      const intPart = resolveBindParam("valorint", values);
+      const decPart = resolveBindParam("valdec", values);
+      const decSize = Math.round(fSize * 0.38);
+      return (
+        <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1}>
+          <KText
+            text={intPart}
+            fontSize={fSize}
+            fontFamily={el.fontFamily ?? "DM Sans"}
+            fontStyle={el.fontStyle ?? "normal"}
+            fill={el.fill || "#000"}
+            align={el.align ?? "left"}
+            letterSpacing={el.letterSpacing ?? 0}
+            lineHeight={el.lineHeight ?? 1.2}
+          />
+          <KText
+            x={intPart.length * fSize * 0.6}
+            text={`,${decPart}`}
+            fontSize={decSize}
+            fontFamily={el.fontFamily ?? "DM Sans"}
+            fontStyle={el.fontStyle ?? "normal"}
+            fill={el.fill || "#000"}
+            letterSpacing={el.letterSpacing ?? 0}
+          />
+        </Group>
+      );
+    }
+
     return (
       <KText
         x={el.x} y={el.y}

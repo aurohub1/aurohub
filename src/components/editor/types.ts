@@ -15,7 +15,7 @@ export interface EditorElement {
   x: number; y: number; width: number; height: number;
   rotation?: number; opacity?: number;
   // Text
-  text?: string; fontSize?: number; fontFamily?: string; fontStyle?: string;
+  text?: string; fontSize?: number; fontFamily?: string; fontStyle?: string; priceDisplay?: boolean;
   fill?: string; align?: string; verticalAlign?: string;
   letterSpacing?: number; lineHeight?: number;
   linhas?: number;  // número fixo de linhas — limita altura do texto (0/undefined = livre)

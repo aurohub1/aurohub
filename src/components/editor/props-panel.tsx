@@ -179,6 +179,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
             <F l="Peso"><select value={(s.fontStyle || "normal").includes("bold") ? "bold" : "normal"} onChange={e => u({ fontStyle: e.target.value })} style={selS}><option value="normal">Normal</option><option value="bold">Bold</option></select></F>
           </G2>
           <F l="Cor texto"><ColorField value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
+          <F l="Split R$"><input type="checkbox" checked={!!s.priceDisplay} onChange={e => u({ priceDisplay: e.target.checked })} /></F>
           <div style={{ display: "flex", gap: 3 }}>
             <AlBtn active={s.fontStyle === "bold"} onClick={() => u({ fontStyle: s.fontStyle === "bold" ? "normal" : "bold" })}>B</AlBtn>
             <AlBtn active={s.fontStyle === "italic"} onClick={() => u({ fontStyle: s.fontStyle === "italic" ? "normal" : "italic" })} italic>I</AlBtn>

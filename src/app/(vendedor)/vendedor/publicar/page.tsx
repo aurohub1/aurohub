@@ -1228,6 +1228,7 @@ export default function PublicarPage() {
         </div>
         <div className="h-full flex flex-1 items-center justify-center p-5">
           {currentTemplate ? (
+            <div style={{ filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.18)) drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}>
             <PreviewStage
               key={`${tab}-${format}-${currentTemplate.key}`}
               schema={schema}
@@ -1237,6 +1238,7 @@ export default function PublicarPage() {
               maxDisplay={Math.round((typeof window !== "undefined" ? window.innerHeight : 900) * 0.82)}
               onReady={(s) => { stageRef.current = s; }}
             />
+            </div>
           ) : (
             <div className="flex flex-col items-center gap-2 text-center">
               <ImageIcon size={32} className="text-[var(--txt3)]" />
