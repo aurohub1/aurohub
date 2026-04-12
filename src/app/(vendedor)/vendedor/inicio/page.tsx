@@ -202,7 +202,17 @@ export default function VendedorInicioPage() {
 
       // Notícias do setor — API interna que tenta múltiplos feeds com cache
       try {
-        const res = await fetch("/api/noticias");
+        const segmentName: string = ({
+          "7dd6759b-ba23-4d33-b898-c7a00cdf7b80": "turismo",
+          "741c1469-9552-449a-835e-c79966680e68": "imobiliaria",
+          "3b5aacc8-c0f0-483d-a282-0cda7520fdcb": "moda",
+          "0deb6f4d-91a8-4ee8-b6d3-081caae6ccf0": "beleza",
+          "7071c508-3e6b-4a91-b5f4-dfcc070798d1": "educacao",
+          "eeb1f1b9-eac1-4c5b-afb5-59af3c1b8e6f": "restaurante",
+          "2b068193-9cb9-47e9-8796-ff3abc7318e0": "saude",
+        } as Record<string, string>)[segmentId ?? ""] ?? "default";
+
+        const res = await fetch(`/api/noticias?segment=${segmentName}`);
         if (res.ok) {
           const items = await res.json();
           if (items.length) setNoticias(items);
