@@ -406,6 +406,28 @@ export default function PublicarPage() {
       setPublishTargets(targets);
       setSelectedTargetIds(targets.length > 0 ? [targets[0].id] : []);
 
+      // Auto-load imgloja
+      if (p?.store_id) {
+        try {
+          const { data: storeData } = await supabase
+            .from("stores")
+            .select("logo_url")
+            .eq("id", p.store_id)
+            .single();
+          const logoUrl = (storeData as { logo_url?: string } | null)?.logo_url;
+          if (logoUrl) {
+            setFormCache(c => ({
+              ...c,
+              pacote: { ...c.pacote, imgloja: logoUrl },
+              campanha: { ...c.campanha, imgloja: logoUrl },
+              passagem: { ...c.passagem, imgloja: logoUrl },
+              cruzeiro: { ...c.cruzeiro, imgloja: logoUrl },
+              anoiteceu: { ...c.anoiteceu, imgloja: logoUrl },
+            }));
+          }
+        } catch { /* silent */ }
+      }
+
       // Plano completo (limites por formato)
       const slug = p.plan?.slug || p.licensee?.plan_slug || p.licensee?.plan;
       if (slug) {
@@ -745,7 +767,12 @@ export default function PublicarPage() {
         : `${okCount} ok · ${falhas.length} falha${falhas.length === 1 ? "" : "s"}`);
       // Recarrega contador
       if (targets[0]) await loadDailyCount(targets[0].id);
-      setTimeout(() => { limparFormulario(); setStatus("idle"); setStatusMsg(""); }, 4000);
+      setTimeout(() => {
+        limparFormulario();
+        setStatus("idle");
+        setStatusMsg("");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 3000);
     } catch (err) {
       console.error("[Publicar]", err);
       setStatus("error");
