@@ -50,6 +50,7 @@ export interface EditorSchema {
   background: string;
   duration?: number;
   qtdDestinos?: number;
+  formType?: string;
 }
 
 export const BIND_GROUPS = [
@@ -63,6 +64,57 @@ export const BIND_GROUPS = [
   { group: "Loja", fields: ["loja","agente","fone"] },
   { group: "Genérico", fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
 ];
+
+export const BIND_GROUPS_BY_FORM: Record<string, typeof BIND_GROUPS> = {
+  pacote: [
+    { group: "Imagens",    fields: ["imgfundo", "imghotel", "imgloja"] },
+    { group: "Destino",    fields: ["destino", "saida", "tipovoo"] },
+    { group: "Período",    fields: ["dataida", "datavolta", "dataperiodo", "noites", "feriado"] },
+    { group: "Hotel",      fields: ["hotel"] },
+    { group: "Serviços",   fields: ["servico1","servico2","servico3","servico4","servico5","servico6","servicoslista"] },
+    { group: "Pagamento",  fields: ["formapagamento","entrada","parcelas","valorint","valdec","valorparcela","desconto","totalduplo","valortotalfmt"] },
+    { group: "Loja",       fields: ["imgloja","loja","agente","fone"] },
+    { group: "Genérico",   fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
+  ],
+  campanha: [
+    { group: "Imagens",    fields: ["imgfundo", "imghotel", "imgloja"] },
+    { group: "Destino",    fields: ["destino", "saida", "tipovoo"] },
+    { group: "Período",    fields: ["dataida", "datavolta", "dataperiodo", "noites", "feriado"] },
+    { group: "Hotel",      fields: ["hotel"] },
+    { group: "Serviços",   fields: ["servico1","servico2","servico3","servico4","servico5","servico6","servicoslista"] },
+    { group: "Pagamento",  fields: ["formapagamento","entrada","parcelas","valorint","valdec","valorparcela","desconto","totalduplo","valortotalfmt"] },
+    { group: "Loja",       fields: ["imgloja","loja","agente","fone"] },
+    { group: "Genérico",   fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
+  ],
+  passagem: [
+    { group: "Imagens",    fields: ["imgaviao","imgloja"] },
+    { group: "Destino",    fields: ["destino","saida","tipovoo"] },
+    { group: "Período",    fields: ["dataida","datavolta","dataperiodo","noites"] },
+    { group: "Pagamento",  fields: ["formapagamento","parcelaspassagem","valorint","valdec","valorparcela","desconto","totalduplo","valortotalfmt"] },
+    { group: "Loja",       fields: ["imgloja","loja","agente","fone"] },
+    { group: "Genérico",   fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
+  ],
+  cruzeiro: [
+    { group: "Imagens",    fields: ["imgfundo","imgciamaritima","imgloja"] },
+    { group: "Navio",      fields: ["navio","categoria","itinerario","incluso"] },
+    { group: "Período",    fields: ["dataida","datavolta","dataperiodo","noites"] },
+    { group: "Pagamento",  fields: ["formapagamento","entrada","parcelas","valorint","valdec","valorparcela","desconto","totalcruzeiro","valortotalfmt"] },
+    { group: "Loja",       fields: ["imgloja","loja","agente","fone"] },
+    { group: "Genérico",   fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
+  ],
+  anoiteceu: [
+    { group: "Imagens",    fields: ["imgfundo","imgloja"] },
+    { group: "Destino",    fields: ["destino"] },
+    { group: "Evento",     fields: ["inicio","fim","dataperiodo","paraviagens"] },
+    { group: "Loja",       fields: ["imgloja","loja","agente","fone"] },
+    { group: "Genérico",   fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
+  ],
+};
+
+export function getBindGroups(formType?: string): typeof BIND_GROUPS {
+  if (!formType) return BIND_GROUPS;
+  return BIND_GROUPS_BY_FORM[formType] ?? BIND_GROUPS;
+}
 
 export const FONTS = [
   "DM Sans","DM Serif Display","Helvetica Neue","Arial","Inter","Montserrat",

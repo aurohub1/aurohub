@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { HexColorPicker } from "react-colorful";
-import { EditorElement, FONTS, BIND_GROUPS, BLEND_MODES, BlendMode, TextCase } from "./types";
+import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups } from "./types";
 
 interface Props {
   selected: EditorElement | null;
@@ -12,9 +12,10 @@ interface Props {
   onTabChange: (t: "design" | "animate") => void;
   selectedCount?: number;
   onOpenCrop?: () => void;
+  formType?: string;
 }
 
-export default function PropsPanel({ selected: s, canvasW, canvasH, allElements, onUpdate, onAlign, activeTab, onTabChange, selectedCount, onOpenCrop }: Props) {
+export default function PropsPanel({ selected: s, canvasW, canvasH, allElements, onUpdate, onAlign, activeTab, onTabChange, selectedCount, onOpenCrop, formType }: Props) {
   if (!s) return (
     <div style={{ width: 232, background: "var(--ed-surface)", borderLeft: "1px solid var(--ed-bdr)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>Selecione um elemento</span>
@@ -36,7 +37,7 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, allElements,
         </div>
       )}
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
-        {activeTab === "design" ? <DesignTab s={s} u={u} allElements={allElements} onAlign={onAlign} onOpenCrop={onOpenCrop} /> : <AnimateTab s={s} u={u} />}
+        {activeTab === "design" ? <DesignTab s={s} u={u} allElements={allElements} onAlign={onAlign} onOpenCrop={onOpenCrop} formType={formType} /> : <AnimateTab s={s} u={u} />}
       </div>
     </div>
   );
@@ -48,7 +49,7 @@ function isLine(el: EditorElement): boolean {
 }
 
 /* ══ DESIGN TAB ═══════════════════════════════════ */
-function DesignTab({ s, u, allElements, onAlign, onOpenCrop }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; allElements: EditorElement[]; onAlign: (a: string) => void; onOpenCrop?: () => void }) {
+function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; allElements: EditorElement[]; onAlign: (a: string) => void; onOpenCrop?: () => void; formType?: string }) {
   return (
     <>
       {/* Align 3x3 SVG grid */}
@@ -275,6 +276,9 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop }: { s: EditorElemen
 
       {/* Bind */}
       <Sec t="Campo Bind">
+        <div style={{fontSize:9,color:"red",marginBottom:4}}>
+          formType: {formType ?? "UNDEFINED"}
+        </div>
         {s.bindParam && <div style={{ borderRadius: 6, background: "rgba(212,168,67,0.1)", padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "var(--ed-bind)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>⬡ {s.bindParam}</div>}
         <select value={s.bindParam || ""} onChange={e => {
           const bp = e.target.value;
@@ -283,7 +287,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop }: { s: EditorElemen
           u(up);
         }} style={selS}>
           <option value="">Nenhum</option>
-          {BIND_GROUPS.map(g => <optgroup key={g.group} label={g.group}>{g.fields.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>)}
+          {getBindGroups(formType).map(g => <optgroup key={g.group} label={g.group}>{g.fields.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>)}
         </select>
       </Sec>
     </>

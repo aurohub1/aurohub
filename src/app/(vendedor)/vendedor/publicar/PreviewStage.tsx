@@ -20,9 +20,87 @@ function useImage(src?: string): HTMLImageElement | null {
   return img;
 }
 
+function resolveBindParam(bindParam: string, values: Record<string, string>): string {
+  switch (bindParam) {
+
+    // Período formatado: "07 a 13/06/2026" com regra de virada de mês/ano
+    case "dataperiodo": {
+      const ida = values.dataida || "";
+      const volta = values.datavolta || "";
+      if (!ida || !volta) return "";
+      const [iy, im, id] = ida.split("-").map(Number);
+      const [vy, vm, vd] = volta.split("-").map(Number);
+      const dId = String(id).padStart(2, "0");
+      const dVd = String(vd).padStart(2, "0");
+      const dIm = String(im).padStart(2, "0");
+      const dVm = String(vm).padStart(2, "0");
+      if (iy === vy && im === vm) return `${dId} a ${dVd}/${dIm}/${iy}`;
+      if (iy === vy) return `${dId}/${dIm} a ${dVd}/${dVm}/${vy}`;
+      return `${dId}/${dIm}/${iy} a ${dVd}/${dVm}/${vy}`;
+    }
+
+    // Parte inteira do valor parcela
+    case "valorint": {
+      const raw = values.valorparcela || values.totalduplo || values.totalcruzeiro || "";
+      const nums = raw.replace(/\D/g, "");
+      if (!nums) return "";
+      return Math.floor(parseInt(nums, 10) / 100).toLocaleString("pt-BR");
+    }
+
+    // Parte decimal do valor parcela
+    case "valdec": {
+      const raw = values.valorparcela || values.totalduplo || values.totalcruzeiro || "";
+      const nums = raw.replace(/\D/g, "");
+      if (!nums) return "";
+      return String(parseInt(nums, 10) % 100).padStart(2, "0");
+    }
+
+    // Valor total formatado: "ou R$ X.XXX,XX por pessoa apto. duplo"
+    case "valortotalfmt": {
+      const raw = values.totalduplo || values.totalcruzeiro || "";
+      const nums = raw.replace(/\D/g, "");
+      if (!nums) return "";
+      const n = parseInt(nums, 10);
+      const fmt = Math.floor(n / 100).toLocaleString("pt-BR") + "," + String(n % 100).padStart(2, "0");
+      const sufixo = values.totalcruzeiro ? "por pessoa" : "por pessoa apto. duplo";
+      return `ou R$ ${fmt} ${sufixo}`;
+    }
+
+    // Lista de serviços com bullets
+    case "servicoslista": {
+      return [1,2,3,4,5,6]
+        .map(i => values[`servico${i}`])
+        .filter(Boolean)
+        .map(s => `• ${s}`)
+        .join("\n");
+    }
+
+    // Texto de pagamento derivado
+    case "textopagamento": {
+      const forma = values.formapagamento || "";
+      const entrada = values.entrada || "";
+      if (forma === "Boleto" && entrada) {
+        const nums = entrada.replace(/\D/g, "");
+        const fmt = nums ? Math.floor(parseInt(nums,10)/100).toLocaleString("pt-BR") + "," + String(parseInt(nums,10)%100).padStart(2,"0") : "";
+        return `Entrada de R$ ${fmt} +`;
+      }
+      if (forma === "Cartão de Crédito") return "No Cartão de Crédito Sem Juros";
+      return forma;
+    }
+
+    // Parcelas passagem
+    case "parcelaspassagem":
+      return values.parcelaspassagem || values.parcelas || "";
+
+    default:
+      return values[bindParam] ?? "";
+  }
+}
+
 function resolveText(el: EditorElement, values: Record<string, string>): string {
-  if (el.bindParam && values[el.bindParam]) return values[el.bindParam];
-  return el.text ?? "";
+  if (!el.bindParam) return el.text ?? "";
+  const resolved = resolveBindParam(el.bindParam, values);
+  return resolved || (el.text ?? "");
 }
 
 /** Reduz fontSize até que o texto caiba em `maxLines` linhas dentro de `maxWidth`. */

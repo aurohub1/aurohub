@@ -402,6 +402,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
             activeTab={propsTab} onTabChange={setPropsTab}
             selectedCount={selectedIds.length}
             onOpenCrop={selected?.type === "image" && selected.src ? () => setCropElementId(selected.id) : undefined}
+            formType={formType || schema.formType}
           />
         )}
       </div>

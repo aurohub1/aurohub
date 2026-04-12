@@ -380,6 +380,7 @@ export default function PublicarPage() {
               background: parsed.bgColor || parsed.background || parsed.schema?.background || "#FFFFFF",
               duration: parsed.duration || 5,
               qtdDestinos: parsed.qtdDestinos,
+              formType: parsed.formType || parsed.schema?.formType || "pacote",
             },
           });
         } catch { /* skip */ }
