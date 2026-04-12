@@ -19,6 +19,8 @@ interface Lembrete {
   feito: boolean;
 }
 
+interface Noticia { title: string; url: string; image?: string | null; source?: string; }
+
 interface DataTurismo {
   nome: string;
   data: string; // YYYY-MM-DD (ano 2026)
@@ -135,7 +137,8 @@ export default function VendedorInicioPage() {
   const [novaData, setNovaData] = useState("");
   const [novaNota, setNovaNota] = useState("");
 
-  const [noticias, setNoticias] = useState<{ title: string; url: string; image?: string; source?: string }[]>([]);
+  const [noticias, setNoticias] = useState<Noticia[]>([]);
+  const [noticiaIdx, setNoticiaIdx] = useState(0);
 
   /* ── Load profile, posts, quote, weather ─────── */
   const loadData = useCallback(async () => {
@@ -234,6 +237,14 @@ export default function VendedorInicioPage() {
       if (raw) setLembretes(JSON.parse(raw));
     } catch { /* silent */ }
   }, []);
+
+  useEffect(() => {
+    if (noticias.length <= 1) return;
+    const t = setInterval(() => {
+      setNoticiaIdx(i => (i + 1) % noticias.length);
+    }, 6000);
+    return () => clearInterval(t);
+  }, [noticias.length]);
 
   function persistLembretes(next: Lembrete[]) {
     setLembretes(next);
@@ -406,7 +417,7 @@ export default function VendedorInicioPage() {
       {/* ═══ Lembretes + Calendário + Notícias ════ */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* ── Lembretes ─────────────────────────── */}
-        <div className="card-glass flex flex-col">
+        <div className="card-glass flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <div className="flex items-center gap-2">
               <Bell size={15} className="text-[#FF7A1A]" />
@@ -486,7 +497,7 @@ export default function VendedorInicioPage() {
         </div>
 
         {/* ── Calendário do turismo ─────────────── */}
-        <div className="card-glass flex flex-col">
+        <div className="card-glass flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <div className="flex items-center gap-2">
               <Plane size={15} className="text-[#FF7A1A]" />
@@ -529,36 +540,53 @@ export default function VendedorInicioPage() {
           </div>
         </div>
 
-        {/* ── Notícias do Setor ─────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="flex items-center gap-2 border-b border-[var(--bdr)] px-5 py-4">
-            <Plane size={15} className="text-[#FF7A1A]" />
-            <h3 className="text-[14px] font-bold text-[var(--txt)]">Notícias do setor</h3>
-          </div>
-          <div className="flex flex-col gap-3 p-5">
-            {noticias.length === 0 ? (
-              <div className="py-6 text-center text-[12px] text-[var(--txt3)]">
-                Carregando notícias...
+        {/* ── Notícias do Setor — slideshow ──────── */}
+        <div className="card-glass flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
+            <div className="flex items-center gap-2">
+              <Plane size={15} className="text-[#FF7A1A]" />
+              <h3 className="text-[14px] font-bold text-[var(--txt)]">Notícias do setor</h3>
+            </div>
+            {noticias.length > 0 && (
+              <div className="flex gap-1">
+                {noticias.map((_, i) => (
+                  <button key={i} onClick={() => setNoticiaIdx(i)}
+                    className="h-1.5 rounded-full transition-all"
+                    style={{ width: i === noticiaIdx ? 16 : 6, background: i === noticiaIdx ? "#FF7A1A" : "var(--bdr2)" }}
+                  />
+                ))}
               </div>
-            ) : (
-              noticias.map((n, i) => (
-                <a
-                  key={i}
-                  href={n.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[12px] leading-snug text-[var(--txt2)] transition-colors hover:text-[#FF7A1A]"
-                  style={{
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                >
-                  {n.title}
-                </a>
-              ))
             )}
+          </div>
+          <div className="relative flex-1 overflow-hidden">
+            {noticias.length === 0 ? (
+              <div className="py-8 text-center text-[12px] text-[var(--txt3)]">Carregando notícias...</div>
+            ) : (() => {
+              const n = noticias[noticiaIdx];
+              return (
+                <a href={n.url} target="_blank" rel="noopener noreferrer"
+                  className="block hover:opacity-90 transition-opacity">
+                  {n.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={n.image} alt=""
+                      className="w-full h-36 object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  )}
+                  <div className="px-5 py-4">
+                    <p className="text-[13px] font-semibold leading-snug text-[var(--txt)]"
+                      style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {n.title}
+                    </p>
+                    {n.source && (
+                      <span className="mt-2 block text-[10px] font-bold uppercase tracking-wide text-[#FF7A1A]">
+                        {n.source}
+                      </span>
+                    )}
+                  </div>
+                </a>
+              );
+            })()}
           </div>
         </div>
       </div>

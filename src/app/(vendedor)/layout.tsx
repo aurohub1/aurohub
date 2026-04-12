@@ -16,12 +16,22 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(true);
+  const [tickerItems, setTickerItems] = useState<string[]>([]);
 
   useContentProtection();
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
     document.documentElement.setAttribute("data-theme", saved || "light");
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/noticias?segment=turismo")
+      .then(r => r.json())
+      .then((items: {title: string}[]) => {
+        if (items?.length) setTickerItems(items.map(i => i.title));
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -69,6 +79,18 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
           <span>{profile?.name || "—"}</span>
         </footer>
       </div>
+      {tickerItems.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden border-t border-[var(--bdr)] py-1.5"
+          style={{ background: "var(--bg1)", height: 28 }}>
+          <style>{`@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
+          <div className="flex whitespace-nowrap text-[10px] text-[var(--txt3)]"
+            style={{ animation: "ticker 40s linear infinite" }}>
+            {[...tickerItems, ...tickerItems].map((t, i) => (
+              <span key={i} className="shrink-0 px-8">{"\uD83D\uDCF0"} {t}</span>
+            ))}
+          </div>
+        </div>
+      )}
       <WelcomeTour role="vendedor" />
     </>
   );
