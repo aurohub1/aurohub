@@ -276,9 +276,6 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
 
       {/* Bind */}
       <Sec t="Campo Bind">
-        <div style={{fontSize:9,color:"red",marginBottom:4}}>
-          formType: {formType ?? "UNDEFINED"}
-        </div>
         {s.bindParam && <div style={{ borderRadius: 6, background: "rgba(212,168,67,0.1)", padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "var(--ed-bind)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>⬡ {s.bindParam}</div>}
         <select value={s.bindParam || ""} onChange={e => {
           const bp = e.target.value;

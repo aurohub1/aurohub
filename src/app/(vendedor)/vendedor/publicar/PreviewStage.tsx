@@ -92,8 +92,16 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     case "parcelaspassagem":
       return values.parcelaspassagem || values.parcelas || "";
 
-    default:
-      return values[bindParam] ?? "";
+    default: {
+      const raw = values[bindParam] ?? "";
+      if (["valorparcela","totalduplo","totalcruzeiro","entrada"].includes(bindParam)) {
+        const nums = raw.replace(/\D/g, "");
+        if (!nums) return "";
+        const n = parseInt(nums, 10);
+        return Math.floor(n/100).toLocaleString("pt-BR") + "," + String(n%100).padStart(2,"0");
+      }
+      return raw;
+    }
   }
 }
 
