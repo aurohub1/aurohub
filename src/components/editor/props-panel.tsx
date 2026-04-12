@@ -180,6 +180,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           </G2>
           <F l="Cor texto"><ColorField value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
           <F l="Split R$"><input type="checkbox" checked={!!s.priceDisplay} onChange={e => u({ priceDisplay: e.target.checked })} /></F>
+          <F l="Ocultar vazio"><input type="checkbox" checked={!!s.hideIfEmpty} onChange={e => u({ hideIfEmpty: e.target.checked })} /></F>
           <div style={{ display: "flex", gap: 3 }}>
             <AlBtn active={s.fontStyle === "bold"} onClick={() => u({ fontStyle: s.fontStyle === "bold" ? "normal" : "bold" })}>B</AlBtn>
             <AlBtn active={s.fontStyle === "italic"} onClick={() => u({ fontStyle: s.fontStyle === "italic" ? "normal" : "italic" })} italic>I</AlBtn>

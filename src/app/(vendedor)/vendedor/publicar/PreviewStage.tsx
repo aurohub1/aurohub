@@ -92,6 +92,21 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     case "parcelaspassagem":
       return values.parcelaspassagem || values.parcelas || "";
 
+    case "formapagamento": {
+      const forma = values.formapagamento || "";
+      const entrada = values.entrada || "";
+      if (forma === "Boleto" && entrada) {
+        const nums = entrada.replace(/\D/g, "");
+        if (nums) {
+          const n = parseInt(nums, 10);
+          const fmt = Math.floor(n/100).toLocaleString("pt-BR") + "," + String(n%100).padStart(2,"0");
+          return `Entrada de R$ ${fmt} +`;
+        }
+      }
+      if (forma === "Cartão de Crédito") return "No Cartão de Crédito Sem Juros";
+      return forma;
+    }
+
     default: {
       const raw = values[bindParam] ?? "";
       if (["valorparcela","totalduplo","totalcruzeiro","entrada"].includes(bindParam)) {
@@ -153,6 +168,7 @@ function resolveImage(el: EditorElement, values: Record<string, string>): string
 
 function RenderEl({ el, values }: { el: EditorElement; values: Record<string, string> }) {
   if (el.visible === false) return null;
+  if (el.hideIfEmpty && el.bindParam && !values[el.bindParam]) return null;
 
   if (el.type === "rect") {
     return (

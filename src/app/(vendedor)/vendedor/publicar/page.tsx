@@ -1226,7 +1226,7 @@ export default function PublicarPage() {
             {width}×{height}
           </div>
         </div>
-        <div className="h-full flex flex-1 items-center justify-center p-5">
+        <div className="h-full flex flex-1 items-center justify-center p-5 overflow-hidden">
           {currentTemplate ? (
             <div style={{ filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.18)) drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}>
             <PreviewStage
