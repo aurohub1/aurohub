@@ -187,6 +187,21 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
             <AlBtn active={s.textDecoration === "underline"} onClick={() => u({ textDecoration: s.textDecoration === "underline" ? "none" : "underline" })}>U</AlBtn>
             <AlBtn active={s.textDecoration === "line-through"} onClick={() => u({ textDecoration: s.textDecoration === "line-through" ? "none" : "line-through" })}>S</AlBtn>
           </div>
+          <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
+            {(["none","uppercase","lowercase","capitalize"] as const).map(tc => (
+              <button key={tc}
+                onClick={() => u({ textTransform: tc })}
+                style={{
+                  flex: 1, height: 24, fontSize: 9, fontWeight: 700,
+                  borderRadius: 4, border: "1px solid var(--ed-bdr)",
+                  background: s.textTransform === tc ? "var(--ed-accent)" : "var(--ed-surface2)",
+                  color: s.textTransform === tc ? "#fff" : "var(--ed-txt2)",
+                  cursor: "pointer",
+                }}>
+                {tc === "none" ? "Aa" : tc === "uppercase" ? "AA" : tc === "lowercase" ? "aa" : "Ab"}
+              </button>
+            ))}
+          </div>
           <div style={{ display: "flex", gap: 3 }}>
             {(["left","center","right","justify"] as const).map(a => (
               <AlBtn key={a} active={s.align === a} onClick={() => u({ align: a })}>

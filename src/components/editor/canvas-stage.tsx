@@ -167,7 +167,15 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     },
   };
 
-  const displayText = animState.textClip !== undefined ? (el.text || "").slice(0, animState.textClip) : (el.text || "");
+  const rawText = animState.textClip !== undefined ? (el.text || "").slice(0, animState.textClip) : (el.text || "");
+  const displayText = (() => {
+    switch (el.textTransform) {
+      case "uppercase": return rawText.toUpperCase();
+      case "lowercase": return rawText.toLowerCase();
+      case "capitalize": return rawText.replace(/\b\w/g, c => c.toUpperCase());
+      default: return rawText;
+    }
+  })();
 
   if (el.type === "text") {
     const baseFont = el.fontSize || 32;

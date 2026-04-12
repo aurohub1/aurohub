@@ -120,10 +120,23 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
   }
 }
 
+function applyTextTransform(text: string, transform?: string): string {
+  switch (transform) {
+    case "uppercase": return text.toUpperCase();
+    case "lowercase": return text.toLowerCase();
+    case "capitalize": return text.replace(/\b\w/g, c => c.toUpperCase());
+    default: return text;
+  }
+}
+
 function resolveText(el: EditorElement, values: Record<string, string>): string {
-  if (!el.bindParam) return el.text ?? "";
+  if (!el.bindParam) return applyTextTransform(el.text ?? "", el.textTransform);
   const resolved = resolveBindParam(el.bindParam, values);
-  return resolved || (el.text ?? "");
+  if (resolved) return applyTextTransform(resolved, el.textTransform);
+  // Se o texto é placeholder do editor ([destino], [parcelas] etc), esconde
+  const txt = el.text ?? "";
+  if (txt.includes("[") && txt.includes("]")) return "";
+  return applyTextTransform(txt, el.textTransform);
 }
 
 /** Reduz fontSize até que o texto caiba em `maxLines` linhas dentro de `maxWidth`. */
