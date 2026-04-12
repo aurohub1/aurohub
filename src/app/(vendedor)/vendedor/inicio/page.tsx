@@ -135,7 +135,7 @@ export default function VendedorInicioPage() {
   const [novaData, setNovaData] = useState("");
   const [novaNota, setNovaNota] = useState("");
 
-  const [noticias, setNoticias] = useState<{ title: string; url: string }[]>([]);
+  const [noticias, setNoticias] = useState<{ title: string; url: string; image?: string; source?: string }[]>([]);
 
   /* ── Load profile, posts, quote, weather ─────── */
   const loadData = useCallback(async () => {

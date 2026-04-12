@@ -321,6 +321,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
   const label = brandLabel ?? "Central ADM";
   const initial = user.name.charAt(0).toUpperCase();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [tickerNews, setTickerNews] = useState<string[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -340,11 +341,21 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
     return () => { observer.disconnect(); window.removeEventListener("theme-change", onThemeChange); };
   }, []);
 
+  useEffect(() => {
+    fetch("/api/noticias?segment=turismo")
+      .then(r => r.json())
+      .then((items: {title: string}[]) => {
+        if (items?.length) setTickerNews(items.map(i => i.title));
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <aside
       className="fixed left-0 top-0 z-50 flex h-dvh w-[220px] flex-col border-r border-[var(--bdr)] bg-[var(--sidebar-bg)] backdrop-blur-[24px]"
       style={{ WebkitBackdropFilter: "blur(24px)" }}
     >
+      <style>{`@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }`}</style>
       {/* ── Brand ───────────────────────────────── */}
       <div className="flex items-center gap-2.5 border-b border-[var(--bdr)] px-4 pb-3 pt-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -470,6 +481,23 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
             </svg>
           </button>
         </div>
+
+        {tickerNews.length > 0 && (
+          <div className="overflow-hidden border-t border-[var(--bdr)] py-1.5 mt-2"
+            style={{ background: "var(--bg2)" }}>
+            <div
+              className="flex whitespace-nowrap text-[9px] text-[var(--txt3)]"
+              style={{
+                animation: "ticker 30s linear infinite",
+                gap: "2rem",
+              }}
+            >
+              {[...tickerNews, ...tickerNews].map((t, i) => (
+                <span key={i} className="shrink-0">{"\uD83D\uDCF0"} {t}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );

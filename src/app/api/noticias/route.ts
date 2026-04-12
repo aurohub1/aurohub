@@ -16,21 +16,29 @@ export async function GET(request: Request) {
   const segment = searchParams.get("segment") || "default";
   const query = SEGMENT_QUERIES[segment] || SEGMENT_QUERIES.default;
 
-  try {
-    const res = await fetch(
-      `https://gnews.io/api/v4/search?q=${query}&lang=pt&country=br&max=5&apikey=pub_free`,
-      { next: { revalidate: 3600 } }
-    );
-    const data = await res.json();
-    if (data.articles?.length) {
-      return NextResponse.json(
-        data.articles.map((a: { title: string; url: string }) => ({
-          title: a.title,
-          url: a.url,
-        }))
+  const apiKey = process.env.NEWS_API_KEY;
+  if (apiKey) {
+    try {
+      const res = await fetch(
+        `https://newsapi.org/v2/everything?q=${query}&language=pt&pageSize=5&sortBy=publishedAt&apiKey=${apiKey}`,
+        { next: { revalidate: 3600 } }
       );
-    }
-  } catch { /* silent */ }
+      const data = await res.json();
+      if (data.articles?.length) {
+        return NextResponse.json(
+          data.articles
+            .filter((a: { title: string }) => a.title !== "[Removed]")
+            .slice(0, 5)
+            .map((a: { title: string; url: string; urlToImage: string; source: { name: string } }) => ({
+              title: a.title,
+              url: a.url,
+              image: a.urlToImage || null,
+              source: a.source?.name || "",
+            }))
+        );
+      }
+    } catch { /* fallback */ }
+  }
 
   // Fallback — notícias hardcoded por segmento (sempre funciona)
   const fallback: Record<string, { title: string; url: string }[]> = {
