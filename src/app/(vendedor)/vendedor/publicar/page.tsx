@@ -57,7 +57,7 @@ interface PostsByFormat { stories: number; feed: number; reels: number; tv: numb
 
 /* ── Constantes ──────────────────────────────────── */
 
-const RIO_PRETO_STORE_ID = "efab2a24-3c34-4d2b-82ee-5fef8018c589";
+const RIO_PRETO_STORE_ID = "168ed5a3-bf45-43b2-a91d-93887239efd7";
 const RIO_PRETO_MATCHERS = ["rio preto", "barretos", "damha"];
 
 const FORMAT_DIMS: Record<Format, [number, number]> = {
