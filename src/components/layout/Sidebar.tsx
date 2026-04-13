@@ -165,6 +165,16 @@ const ADM_SECTIONS: NavSection[] = [
           </svg>
         ),
       },
+      {
+        label: "Músicas",
+        href: "/musicas",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M8 17a3 3 0 100-6 3 3 0 000 6zM8 11V3l8-1v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="16" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        ),
+      },
     ],
   },
   {
