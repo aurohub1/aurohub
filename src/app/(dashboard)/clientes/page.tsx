@@ -174,8 +174,13 @@ export default function ClientesPage() {
 
       let persistedId: string | null = null;
       if (editingId) {
-        const { error } = await supabase.from("licensees").update(payload).eq("id", editingId);
-        if (error) { setModalError(error.message); return; }
+        const res = await fetch("/api/admin/update-licensee", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingId, ...payload }),
+        });
+        const resData = await res.json();
+        if (!res.ok) throw new Error(resData.error || "Falha ao salvar");
         // Update stores
         for (const fs of formStores) {
           if (fs.name.trim()) {
@@ -200,21 +205,17 @@ export default function ClientesPage() {
       }
       // Salva overrides de features
       if (persistedId) {
-        console.log("[handleSave] salvando overrides para", persistedId, featureOverrides);
         try {
           await saveLicenseeOverrides(supabase, persistedId, featureOverrides);
-          console.log("[handleSave] overrides salvas com sucesso");
         } catch (err) {
-          console.error("[handleSave] erro ao salvar overrides:", err);
           setModalError(`Erro ao salvar features: ${err instanceof Error ? err.message : "desconhecido"}`);
           return;
         }
       } else {
-        console.warn("[handleSave] sem persistedId — overrides não salvas");
+        // sem persistedId — overrides não salvas
       }
       setModalOpen(false); await loadData();
     } catch (err) {
-      console.error("[handleSave] erro genérico:", err);
       setModalError(err instanceof Error ? err.message : "Erro ao salvar.");
     } finally { setSaving(false); }
   }
