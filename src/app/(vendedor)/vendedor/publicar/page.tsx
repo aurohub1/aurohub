@@ -1477,14 +1477,21 @@ function DailyCounter({
   visible: FormatVisibility;
   current: Format;
 }) {
-  const FORMATS: { key: Format; label: string }[] = [
-    { key: "stories", label: "Stories" },
-    { key: "feed", label: "Feed" },
-    { key: "reels", label: "Reels" },
-    { key: "tv", label: "TV" },
-  ];
-  const visibleFormats = FORMATS.filter((f) => visible[f.key]);
-  if (visibleFormats.length === 0) return null;
+  // Combina feed+reels em uma única barra
+  type Row = { label: string; count: number; max: number | null; keys: Format[] };
+  const rows: Row[] = [];
+
+  if (visible.stories) rows.push({ label: "Stories", count: posts.stories || 0, max: limits.stories, keys: ["stories"] });
+  if (visible.feed || visible.reels) {
+    const feedReelsCount = (posts.feed || 0) + (posts.reels || 0);
+    const feedMax = limits.feed;
+    const reelsMax = limits.reels;
+    const combinedMax = feedMax !== null && reelsMax !== null ? feedMax + reelsMax : feedMax ?? reelsMax;
+    rows.push({ label: "Feed/Reels", count: feedReelsCount, max: combinedMax, keys: ["feed", "reels"] });
+  }
+  if (visible.tv) rows.push({ label: "TV", count: posts.tv || 0, max: limits.tv, keys: ["tv"] });
+
+  if (rows.length === 0) return null;
 
   return (
     <div className="border-t border-[var(--bdr)] pt-4">
@@ -1492,32 +1499,31 @@ function DailyCounter({
         Posts de hoje
       </label>
       <div className="flex flex-col gap-1.5">
-        {visibleFormats.map(({ key, label }) => {
-          const count = posts[key] || 0;
-          const max = limits[key]; // null = ilimitado, 0 = escondido (já filtrado acima)
+        {rows.map(({ label, count, max, keys }) => {
           const unlimited = max === null;
           const pct = !unlimited && max && max > 0 ? Math.min(100, (count / max) * 100) : 0;
           const danger = !unlimited && max !== null && count >= max;
           const warn = !unlimited && max !== null && max > 0 && count >= max * 0.8;
+          const isActive = keys.includes(current);
           return (
-            <div key={key} className="flex items-center gap-2">
-              <span className="w-10 text-[9px] font-bold uppercase text-[var(--txt3)]">{label}</span>
+            <div key={label} className="flex items-center gap-2">
+              <span className="w-16 text-[9px] font-bold uppercase text-[var(--txt3)]">{label}</span>
               <div className="flex-1 h-[3px] overflow-hidden rounded-full bg-[var(--bg2)]">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
                     width: unlimited ? "0%" : `${pct}%`,
-                    background: danger ? "#EF4444" : warn ? "#F59E0B" : "#D4A843",
+                    background: danger ? "var(--red)" : warn ? "#F59E0B" : "var(--gold)",
                   }}
                 />
               </div>
               <span
                 className="w-14 text-right text-[9px] font-bold tabular-nums"
-                style={{ color: danger ? "#EF4444" : "var(--txt3)" }}
+                style={{ color: danger ? "var(--red)" : "var(--txt3)" }}
               >
                 {unlimited ? `${count} ∞` : `${count}/${max}`}
               </span>
-              {key === current && <span className="h-1.5 w-1.5 rounded-full bg-[var(--orange)]" />}
+              {isActive && <span className="h-1.5 w-1.5 rounded-full bg-[var(--orange)]" />}
             </div>
           );
         })}

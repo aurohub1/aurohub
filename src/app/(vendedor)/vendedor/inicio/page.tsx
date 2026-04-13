@@ -55,9 +55,19 @@ const AUGUSTO_CURY = [
  * pega por índice baseado em `Math.floor(Date.now() / 86400000)`.
  */
 function pickQuoteOfDay(segmentQuotes: string[] | null): string {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const storageKey = "ah_frase_do_dia";
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    if (saved.date === today && saved.quote) return saved.quote;
+  } catch { /* ignore */ }
+
   const pool = [...(segmentQuotes ?? []), ...AUGUSTO_CURY];
   const dayIndex = Math.floor(Date.now() / 86400000);
-  return pool[dayIndex % pool.length];
+  const quote = pool[dayIndex % pool.length];
+
+  try { localStorage.setItem(storageKey, JSON.stringify({ date: today, quote })); } catch { /* ignore */ }
+  return quote;
 }
 
 // Calendário do turismo 2026 — feriados, vésperas e alta temporada relevantes
