@@ -27,41 +27,43 @@ interface BrandColors {
 }
 
 function applyBrandTheme(colors: BrandColors) {
-  const el = document.documentElement;
   const dark = (localStorage.getItem("ah_theme") || "light") === "dark";
-
-  // Accent
-  if (colors.cor_primaria) {
-    el.style.setProperty("--brand-orange", colors.cor_primaria);
-    el.style.setProperty("--brand-orange2", colors.cor_secundaria || colors.cor_primaria);
-    el.style.setProperty("--brand-orange3", colors.cor_primaria + "1f");
-  }
-
-  // Backgrounds
+  const accent = colors.cor_primaria;
+  const accent2 = colors.cor_secundaria || accent;
   const bg = dark ? colors.tema_fundo_escuro : colors.tema_fundo_claro;
-  if (bg) {
-    el.style.setProperty("--brand-bg", bg);
-    el.style.setProperty("--brand-bg1", lighten(bg, dark ? 8 : -4));
-    el.style.setProperty("--brand-bg2", lighten(bg, dark ? 16 : -8));
-    el.style.setProperty("--brand-bg3", lighten(bg, dark ? 30 : -16));
-    el.style.setProperty("--brand-card-bg", dark ? `${bg}b8` : `${bg}e8`);
-    el.style.setProperty("--brand-sidebar-bg", dark ? `${bg}eb` : `${lighten(bg, -4)}eb`);
-    el.style.setProperty("--brand-topbar-bg", dark ? `${bg}e6` : `${lighten(bg, -4)}e6`);
-  }
-
-  // Text
   const txt = dark ? colors.tema_texto_escuro : colors.tema_texto_claro;
-  if (txt) {
-    el.style.setProperty("--brand-txt", txt);
-    el.style.setProperty("--brand-txt2", lighten(txt, dark ? -30 : 30));
-    el.style.setProperty("--brand-txt3", lighten(txt, dark ? -60 : 60));
-  }
 
-  // Borders from accent
-  if (colors.cor_primaria) {
-    el.style.setProperty("--brand-bdr", colors.cor_primaria + "26");
-    el.style.setProperty("--brand-bdr2", colors.cor_primaria + "40");
+  const vars: string[] = [];
+  if (accent) {
+    vars.push(`--brand-orange: ${accent}`);
+    vars.push(`--brand-orange2: ${accent2}`);
+    vars.push(`--brand-orange3: ${accent}1f`);
+    vars.push(`--brand-bdr: ${accent}26`);
+    vars.push(`--brand-bdr2: ${accent}40`);
   }
+  if (bg) {
+    vars.push(`--brand-bg: ${bg}`);
+    vars.push(`--brand-bg1: ${lighten(bg, dark ? 8 : -4)}`);
+    vars.push(`--brand-bg2: ${lighten(bg, dark ? 16 : -8)}`);
+    vars.push(`--brand-bg3: ${lighten(bg, dark ? 30 : -16)}`);
+    vars.push(`--brand-card-bg: ${dark ? `${bg}b8` : `${bg}e8`}`);
+    vars.push(`--brand-sidebar-bg: ${dark ? `${bg}eb` : `${lighten(bg, -4)}eb`}`);
+    vars.push(`--brand-topbar-bg: ${dark ? `${bg}e6` : `${lighten(bg, -4)}e6`}`);
+  }
+  if (txt) {
+    vars.push(`--brand-txt: ${txt}`);
+    vars.push(`--brand-txt2: ${lighten(txt, dark ? -30 : 30)}`);
+    vars.push(`--brand-txt3: ${lighten(txt, dark ? -60 : 60)}`);
+  }
+  if (!vars.length) return;
+
+  let styleEl = document.getElementById("brand-theme") as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "brand-theme";
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `[data-theme] { ${vars.map(v => v + ";").join(" ")} }`;
 }
 
 export default function VendedorLayout({ children }: { children: React.ReactNode }) {
