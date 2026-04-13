@@ -57,9 +57,6 @@ interface PostsByFormat { stories: number; feed: number; reels: number; tv: numb
 
 /* ── Constantes ──────────────────────────────────── */
 
-const RIO_PRETO_STORE_ID = "168ed5a3-bf45-43b2-a91d-93887239efd7";
-const RIO_PRETO_MATCHERS = ["rio preto", "barretos", "damha"];
-
 const FORMAT_DIMS: Record<Format, [number, number]> = {
   stories: [1080, 1920],
   reels:   [1080, 1920],
@@ -93,16 +90,6 @@ function normalizar(s: string): string {
 }
 
 /* ── Helpers ─────────────────────────────────────── */
-
-function canPublishToAllAZV(storeId: string | null | undefined): boolean {
-  return storeId === RIO_PRETO_STORE_ID;
-}
-function filterAZVGroup(stores: StoreOption[]): StoreOption[] {
-  return stores.filter((s) => {
-    const n = s.name.toLowerCase();
-    return RIO_PRETO_MATCHERS.some((m) => n.includes(m));
-  });
-}
 
 /** Fila rotativa persistida em localStorage — retorna próxima URL de um pool. */
 function proximaImagem(chave: string, urls: string[]): string | null {
@@ -394,17 +381,8 @@ export default function PublicarPage() {
         .eq("licensee_id", p.licensee_id)
         .order("name");
       const allStores = (storesData ?? []) as StoreOption[];
-
-      let targets: StoreOption[] = [];
-      if (canPublishToAllAZV(p.store_id)) {
-        targets = filterAZVGroup(allStores);
-        if (targets.length === 0) targets = allStores;
-      } else if (p.store_id) {
-        const own = allStores.find((s) => s.id === p.store_id);
-        targets = own ? [own] : [];
-      }
-      setPublishTargets(targets);
-      setSelectedTargetIds(targets.length > 0 ? [targets[0].id] : []);
+      setPublishTargets(allStores);
+      setSelectedTargetIds(allStores.length > 0 ? [allStores[0].id] : []);
 
       // Auto-load imgloja
       if (p?.store_id) {
@@ -446,7 +424,7 @@ export default function PublicarPage() {
       } catch { /* noop */ }
 
       // Daily counter (via primeira store selecionada)
-      if (targets[0]) await loadDailyCount(targets[0].id);
+      if (allStores[0]) await loadDailyCount(allStores[0].id);
 
       // Avião inicial pra passagem
       if (!formCache.passagem.imgaviao) {
