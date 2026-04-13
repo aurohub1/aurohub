@@ -270,7 +270,7 @@ export default function ClienteUsuariosPage() {
                             onClick={() => !isReadOnly && toggleStatus(u)}
                             disabled={isReadOnly}
                             title={isReadOnly ? "Sem permissão" : active ? "Desativar" : "Ativar"}
-                            className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(239,68,68,0.3)] hover:bg-[rgba(239,68,68,0.12)] hover:text-[#EF4444] disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(239,68,68,0.3)] hover:bg-[rgba(239,68,68,0.12)] hover:text-[var(--red)] disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <Power size={12} />
                           </button>
@@ -397,7 +397,7 @@ function ModalShell({
           </h3>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(239,68,68,0.3)] hover:bg-[rgba(239,68,68,0.12)] hover:text-[#EF4444]"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(239,68,68,0.3)] hover:bg-[rgba(239,68,68,0.12)] hover:text-[var(--red)]"
           >
             <X size={14} />
           </button>

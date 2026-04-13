@@ -383,19 +383,19 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
                     href={item.href}
                     className={`group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
                       active
-                        ? "bg-[rgba(255,122,26,0.12)] text-[#FF7A1A]"
+                        ? "bg-[var(--orange3)] text-[var(--orange)]"
                         : "text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
                     }`}
                   >
                     {/* Active indicator */}
                     {active && (
-                      <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-[#FF7A1A]" />
+                      <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-[var(--orange)]" />
                     )}
 
                     {/* Icon */}
                     <span
                       className={`flex h-4 w-4 shrink-0 items-center justify-center ${
-                        active ? "text-[#FF7A1A]" : "text-[var(--txt3)] group-hover:text-[var(--txt2)]"
+                        active ? "text-[var(--orange)]" : "text-[var(--txt3)] group-hover:text-[var(--txt2)]"
                       }`}
                     >
                       {item.icon}
@@ -422,7 +422,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
         {/* User row */}
         <div className="flex items-center gap-2.5">
           {/* Avatar */}
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1E3A6E] to-[#3B82F6] text-[12px] font-bold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--navy)] to-[var(--blue)] text-[12px] font-bold text-white">
             {initial}
           </div>
 
@@ -431,7 +431,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
             <div className="truncate text-[13px] font-semibold text-[var(--txt)]">
               {user.name}
             </div>
-            <span className="inline-block rounded-full bg-[rgba(212,168,67,0.15)] px-2 py-px text-[9px] font-bold uppercase tracking-wider text-[#D4A843]">
+            <span className="inline-block rounded-full bg-[var(--gold3)] px-2 py-px text-[9px] font-bold uppercase tracking-wider text-[var(--gold)]">
               {roleBadgeLabel(user.role)}
             </span>
           </div>
@@ -446,7 +446,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
               window.dispatchEvent(new CustomEvent("theme-change", { detail: next }));
             }}
             title={theme === "dark" ? "Tema claro" : "Tema escuro"}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:bg-[rgba(255,122,26,0.12)] hover:text-[#FF7A1A]"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[var(--orange3)] hover:bg-[var(--orange3)] hover:text-[var(--orange)]"
           >
             {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
           </button>
@@ -455,7 +455,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
           <button
             onClick={onLogout}
             title="Sair"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(239,68,68,0.3)] hover:bg-[rgba(239,68,68,0.12)] hover:text-[#EF4444]"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[var(--red3)] hover:bg-[var(--red3)] hover:text-[var(--red)]"
           >
             <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
               <path
