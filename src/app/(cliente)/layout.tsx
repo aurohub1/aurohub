@@ -71,6 +71,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(true);
+  const [brandColors, setBrandColors] = useState<BrandColors | null>(null);
 
   // useContentProtection();
 
@@ -78,6 +79,14 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
     document.documentElement.setAttribute("data-theme", saved || "light");
   }, []);
+
+  // Re-aplica brand theme quando tema muda
+  useEffect(() => {
+    if (!brandColors) return;
+    const handler = () => applyBrandTheme(brandColors);
+    window.addEventListener("theme-change", handler);
+    return () => window.removeEventListener("theme-change", handler);
+  }, [brandColors]);
 
   useEffect(() => {
     (async () => {
@@ -100,7 +109,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
           .eq("id", p.licensee_id)
           .single();
         console.log("[Brand]", lic);
-        if (lic) applyBrandTheme(lic);
+        if (lic) { setBrandColors(lic); applyBrandTheme(lic); }
       }
 
       setChecking(false);
