@@ -226,6 +226,7 @@ export default function LoginPage() {
         cor2={splash.cor2 || "#D4A843"}
         cor3={splash.cor3 || "#1E3A6E"}
         corFundo={splash.corFundo || "#0E1520"}
+        userName={splash.name}
         onDone={() => router.push(splash.home)}
       />
     );
@@ -239,13 +240,13 @@ export default function LoginPage() {
       <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',padding:'0 6rem',position:'relative',zIndex:1}}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="https://res.cloudinary.com/dxgj4bcch/image/upload/v1774115445/Logo_com_fundo_trans22_1_wujniv.png" alt="" style={{width:64,height:64,objectFit:'contain',marginBottom:'2.5rem',mixBlendMode:dk?'normal':'multiply',filter:dk?'none':'brightness(0) saturate(100%) invert(52%) sepia(98%) saturate(1000%) hue-rotate(0deg) brightness(100%)'}} />
-        <h1 style={{fontFamily:'var(--font-dm-serif)',fontSize:'5rem',lineHeight:1.05,margin:0}}>
-          <span style={{display:'block',color:heroHeadColor}}>Crie.</span>
-          <span style={{display:'block',color:'#D4A843'}}>Publique.</span>
-          <span style={{display:'block',color:'#FF7A1A'}}>Escale.</span>
+        <h1 style={{fontFamily:'var(--font-dm-serif)',fontSize:'3rem',lineHeight:1.05,margin:0}}>
+          <span style={{display:'block',color:heroHeadColor}}>Templates profissionais.</span>
+          <span style={{display:'block',color:'#FF7A1A'}}>Sua equipe publica sozinha.</span>
         </h1>
         <p style={{marginTop:'1.5rem',color:heroSubColor,fontSize:'1rem',lineHeight:1.6,maxWidth:420}}>
-          A plataforma de criação de artes para negócios que querem crescer no Instagram.
+          Identidade visual configurada. Instagram conectado.<br />
+          Pronto para usar.
         </p>
         <div style={{marginTop:'2.5rem',display:'flex',gap:'2.5rem'}}>
           <div>

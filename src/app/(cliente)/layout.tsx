@@ -9,6 +9,14 @@ import Sidebar, { CLIENTE_SECTIONS } from "@/components/layout/Sidebar";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 
+function applyBrandAccent(cor1: string | null | undefined, cor2: string | null | undefined) {
+  if (!cor1) return;
+  const el = document.documentElement;
+  el.style.setProperty("--brand-orange", cor1);
+  el.style.setProperty("--brand-orange2", cor2 || cor1);
+  el.style.setProperty("--brand-orange3", cor1 + "1f");
+}
+
 export default function ClienteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -16,7 +24,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(true);
 
-  useContentProtection();
+  // useContentProtection();
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -35,6 +43,17 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       setProfile(p);
       const feats = await getFeatures(supabase, p);
       setFeatures(feats);
+
+      // Aplica cores accent do licenciado
+      if (p.licensee_id) {
+        const { data: lic } = await supabase
+          .from("licensees")
+          .select("cor_primaria,cor_secundaria")
+          .eq("id", p.licensee_id)
+          .single();
+        if (lic) applyBrandAccent(lic.cor_primaria, lic.cor_secundaria);
+      }
+
       setChecking(false);
     })();
   }, [router]);

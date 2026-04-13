@@ -78,6 +78,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "container sem id", detail: createData }, { status: 500 });
     }
 
+    // Aguarda container ficar pronto antes de publicar
+    await new Promise(r => setTimeout(r, 4000));
+
     // 2. Publicar
     const pubUrl = `https://graph.instagram.com/v23.0/${ig.ig_user_id}/media_publish`;
     const pubParams = new URLSearchParams({

@@ -10,6 +10,14 @@ import VendorPublishPanel from "@/components/layout/VendorPublishPanel";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 
+function applyBrandAccent(cor1: string | null | undefined, cor2: string | null | undefined) {
+  if (!cor1) return;
+  const el = document.documentElement;
+  el.style.setProperty("--brand-orange", cor1);
+  el.style.setProperty("--brand-orange2", cor2 || cor1);
+  el.style.setProperty("--brand-orange3", cor1 + "1f");
+}
+
 export default function VendedorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -18,7 +26,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
   const [checking, setChecking] = useState(true);
   const [tickerItems, setTickerItems] = useState<string[]>([]);
 
-  useContentProtection();
+  // useContentProtection();
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -46,6 +54,17 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
       setProfile(p);
       const feats = await getFeatures(supabase, p);
       setFeatures(feats);
+
+      // Aplica cores accent do licenciado
+      if (p.licensee_id) {
+        const { data: lic } = await supabase
+          .from("licensees")
+          .select("cor_primaria,cor_secundaria")
+          .eq("id", p.licensee_id)
+          .single();
+        if (lic) applyBrandAccent(lic.cor_primaria, lic.cor_secundaria);
+      }
+
       setChecking(false);
     })();
   }, [router]);
@@ -70,9 +89,9 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
         brandLabel="Painel do Vendedor"
         extraPanel={pathname === "/vendedor/publicar" ? <VendorPublishPanel /> : undefined}
       />
-      <div className="ml-[220px] flex min-h-dvh flex-1 flex-col overflow-x-hidden pb-10">
+      <div className="ml-[220px] flex min-h-dvh flex-1 flex-col overflow-x-hidden">
         <main className="flex flex-1 flex-col gap-5 p-6">{children}</main>
-        <footer className="flex shrink-0 items-center gap-3 border-t border-[var(--bdr)] bg-[var(--bg1)] px-6 py-3 text-[0.68rem] text-[var(--txt3)] overflow-hidden">
+        <footer className="flex shrink-0 items-center gap-3 border-t border-[var(--bdr)] bg-[var(--bg1)] px-6 py-3 mb-0 text-[0.68rem] text-[var(--txt3)] overflow-hidden">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--green)]" />
           <span>Aurohub online</span>
           <span className="text-[var(--bdr2)]">&middot;</span>

@@ -659,7 +659,7 @@ export default function PublicarPage() {
     const stage = stageRef.current;
     if (!stage) return null;
     const scale = stage.scaleX() || 1;
-    return stage.toDataURL({ pixelRatio: 1 / scale, mimeType: "image/png" });
+    return stage.toDataURL({ pixelRatio: 1 / scale, mimeType: "image/jpeg", quality: 0.92 });
   }
 
   async function handleDownload() {
@@ -698,13 +698,28 @@ export default function PublicarPage() {
       if (!dataUrl) throw new Error("Falha ao gerar imagem");
 
       setStatus("uploading"); setStatusMsg("Enviando para Cloudinary...");
-      const upRes = await fetch("/api/cloudinary/upload", {
+      const folder = `aurohubv2/publicacoes/${profile.licensee_id}`;
+      const signRes = await fetch("/api/cloudinary/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataUrl, folder: `aurohubv2/publicacoes/${profile.licensee_id}` }),
+        body: JSON.stringify({ folder }),
+      });
+      const signData = await signRes.json();
+      if (!signRes.ok || !signData.signature) throw new Error(signData.error || "Falha ao assinar upload");
+
+      const fd = new FormData();
+      fd.append("file", dataUrl);
+      fd.append("api_key", signData.api_key);
+      fd.append("timestamp", String(signData.timestamp));
+      fd.append("folder", signData.folder);
+      fd.append("signature", signData.signature);
+
+      const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/image/upload`, {
+        method: "POST",
+        body: fd,
       });
       const upData = await upRes.json();
-      if (!upRes.ok || !upData.secure_url) throw new Error(upData.error || "Upload falhou");
+      if (!upRes.ok || !upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
 
       setStatus("publishing");
       const targets = publishTargets.filter((t) => selectedTargetIds.includes(t.id));

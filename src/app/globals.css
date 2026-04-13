@@ -17,9 +17,9 @@
   --gold: #D4A843;
   --gold2: #E2BC68;
   --gold3: rgba(212, 168, 67, 0.12);
-  --orange: #FF7A1A;
-  --orange2: #FF9A3C;
-  --orange3: rgba(255, 122, 26, 0.12);
+  --orange: var(--brand-orange, #FF7A1A);
+  --orange2: var(--brand-orange2, #FF9A3C);
+  --orange3: var(--brand-orange3, rgba(255, 122, 26, 0.12));
 
   --green: #22C55E;
   --green3: rgba(34, 197, 94, 0.12);

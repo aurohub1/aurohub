@@ -16,7 +16,7 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(true);
 
-  useContentProtection();
+  // useContentProtection();
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;

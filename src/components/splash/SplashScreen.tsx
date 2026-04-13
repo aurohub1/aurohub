@@ -15,6 +15,7 @@ interface Props {
   cor2?: string;
   cor3?: string;
   corFundo?: string;
+  userName?: string;
   onDone?: () => void;
 }
 
@@ -28,11 +29,20 @@ const EFFECTS: SplashEffect[] = [
 export default function SplashScreen({
   logoUrl, logoOrientation = "horizontal",
   effect = "random", cor1 = "#FF7A1A", cor2 = "#D4A843", cor3 = "#1E3A6E",
-  corFundo = "#0E1520", onDone,
+  corFundo = "#0E1520", userName, onDone,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [visible, setVisible] = useState(true);
   const [logoVisible, setLogoVisible] = useState(false);
+  const [greetVisible, setGreetVisible] = useState(false);
+
+  function getGreeting() {
+    const h = new Date().getHours();
+    console.log("[SplashScreen] getHours():", h);
+    if (h >= 5 && h < 12) return "Bom dia";
+    if (h >= 12 && h < 18) return "Boa tarde";
+    return "Boa noite";
+  }
 
   const activeEffect: SplashEffect = effect === "random"
     ? EFFECTS[Math.floor(Math.random() * EFFECTS.length)]
@@ -58,12 +68,15 @@ export default function SplashScreen({
 
     const W = canvas.width, H = canvas.height;
 
-    // Mostra logo após 400ms, some tudo após 2800ms
-    const logoTimer = setTimeout(() => setLogoVisible(true), 400);
+    // Sequência: logo in (400ms) → logo out (3400ms) → greet in (3900ms) → greet out (5900ms) → done (6300ms)
+    const logoInTimer = setTimeout(() => setLogoVisible(true), 400);
+    const logoOutTimer = setTimeout(() => setLogoVisible(false), 3400);
+    const greetInTimer = setTimeout(() => setGreetVisible(true), 3900);
+    const greetOutTimer = setTimeout(() => setGreetVisible(false), 5900);
     const doneTimer = setTimeout(() => {
       setVisible(false);
       onDone?.();
-    }, 2800);
+    }, 6300);
 
     function draw(now: number) {
       const t = (now - startTime) / 1000;
@@ -472,12 +485,13 @@ export default function SplashScreen({
     animId = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(animId);
-      clearTimeout(logoTimer);
+      clearTimeout(logoInTimer);
+      clearTimeout(logoOutTimer);
+      clearTimeout(greetInTimer);
+      clearTimeout(greetOutTimer);
       clearTimeout(doneTimer);
     };
   }, [activeEffect, cor1, cor2, cor3, corFundo]);
-
-  if (!visible) return null;
 
   const logoDims = {
     horizontal: { width: 220, height: 80 },
@@ -485,18 +499,36 @@ export default function SplashScreen({
     quadrado:   { width: 140, height: 140 },
   }[logoOrientation];
 
+  if (!visible) return null;
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center"
       style={{ background: corFundo }}>
       <canvas ref={canvasRef} className="absolute inset-0" />
-      <div className="relative z-10 flex flex-col items-center"
-        style={{
-          opacity: logoVisible ? 1 : 0,
-          transform: logoVisible ? "scale(1)" : "scale(0.85)",
-          transition: "opacity 0.6s ease, transform 0.6s ease",
-        }}>
+      <div className="relative z-10 flex items-center justify-center"
+        style={{ position: "relative", width: logoDims.width, height: logoDims.height + 40 }}>
         <img src={logoUrl} alt="Logo"
-          style={{ width: logoDims.width, height: logoDims.height, objectFit: "contain" }} />
+          style={{
+            position: "absolute",
+            width: logoDims.width, height: logoDims.height, objectFit: "contain",
+            opacity: logoVisible ? 1 : 0,
+            transform: logoVisible ? "scale(1)" : "scale(0.85)",
+            transition: "opacity 0.5s ease, transform 0.5s ease",
+          }} />
+        {userName && (
+          <p style={{
+            position: "absolute",
+            opacity: greetVisible ? 1 : 0,
+            transition: "opacity 0.4s ease",
+            fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+            fontSize: 18,
+            fontWeight: 500,
+            color: "rgba(255,255,255,0.85)",
+            whiteSpace: "nowrap",
+          }}>
+            {getGreeting()}, {userName}!
+          </p>
+        )}
       </div>
     </div>
   );
