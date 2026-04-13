@@ -179,7 +179,7 @@ export default function LoginPage() {
               logoUrl: lic.logo_url || undefined,
               effect: lic.splash_effect || "random",
               logoOrientation: lic.splash_logo_orientation || "horizontal",
-              cor1: lic.cor_primaria || "#FF7A1A",
+              cor1: lic.cor_primaria || "var(--orange)",
               cor2: lic.cor_secundaria || "#D4A843",
               cor3: lic.cor_acento || "#1E3A6E",
               corFundo: lic.cor_fundo || "#0E1520",
@@ -222,7 +222,7 @@ export default function LoginPage() {
         logoUrl={splash.logoUrl || "https://res.cloudinary.com/dxgj4bcch/image/upload/page/page/logo_aurovista.png"}
         logoOrientation={(splash.logoOrientation as "horizontal"|"vertical"|"quadrado") || "horizontal"}
         effect={(splash.effect as SplashEffect) || "random"}
-        cor1={splash.cor1 || "#FF7A1A"}
+        cor1={splash.cor1 || "var(--orange)"}
         cor2={splash.cor2 || "#D4A843"}
         cor3={splash.cor3 || "#1E3A6E"}
         corFundo={splash.corFundo || "#0E1520"}
@@ -242,7 +242,7 @@ export default function LoginPage() {
         <img src="https://res.cloudinary.com/dxgj4bcch/image/upload/v1774115445/Logo_com_fundo_trans22_1_wujniv.png" alt="" style={{width:64,height:64,objectFit:'contain',marginBottom:'2.5rem',mixBlendMode:dk?'normal':'multiply',filter:dk?'none':'brightness(0) saturate(100%) invert(52%) sepia(98%) saturate(1000%) hue-rotate(0deg) brightness(100%)'}} />
         <h1 style={{fontFamily:'var(--font-dm-serif)',fontSize:'3rem',lineHeight:1.05,margin:0}}>
           <span style={{display:'block',color:heroHeadColor}}>Templates profissionais.</span>
-          <span style={{display:'block',color:'#FF7A1A'}}>Sua equipe publica sozinha.</span>
+          <span style={{display:'block',color:'var(--orange)'}}>Sua equipe publica sozinha.</span>
         </h1>
         <p style={{marginTop:'1.5rem',color:heroSubColor,fontSize:'1rem',lineHeight:1.6,maxWidth:420}}>
           Identidade visual configurada. Instagram conectado.<br />
@@ -254,7 +254,7 @@ export default function LoginPage() {
             <div style={{fontSize:'0.72rem',color:'#8A9BBF',marginTop:2}}>Formatos</div>
           </div>
           <div>
-            <div style={{fontSize:'1.5rem',fontWeight:800,color:'#FF7A1A',fontFamily:"'Cormorant Garamond', serif"}}>∞</div>
+            <div style={{fontSize:'1.5rem',fontWeight:800,color:'var(--orange)',fontFamily:"'Cormorant Garamond', serif"}}>∞</div>
             <div style={{fontSize:'0.72rem',color:'#8A9BBF',marginTop:2}}>Downloads</div>
           </div>
           <div>
@@ -279,7 +279,7 @@ export default function LoginPage() {
             <input type={showPw?'text':'password'} required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" style={{width:'100%',height:42,padding:'0 3rem 0 1rem',background:inputBg,border:inputBorder,borderRadius:12,color:inputColor,fontSize:'0.9rem',outline:'none',boxSizing:'border-box'}} />
             <button type="button" onClick={()=>setShowPw(v=>!v)} style={{position:'absolute',right:12,bottom:14,background:'none',border:'none',color:'#4A5878',cursor:'pointer',fontSize:16}}>{showPw?'🙈':'👁'}</button>
           </div>
-          <button type="submit" disabled={loading} style={{width:'100%',height:44,borderRadius:14,border:'none',background:'linear-gradient(135deg,#FF7A1A,#D4A843)',color:'#fff',fontWeight:800,fontSize:'0.95rem',cursor:'pointer',letterSpacing:'0.02em'}}>
+          <button type="submit" disabled={loading} style={{width:'100%',height:44,borderRadius:14,border:'none',background:'linear-gradient(135deg,var(--orange),#D4A843)',color:'#fff',fontWeight:800,fontSize:'0.95rem',cursor:'pointer',letterSpacing:'0.02em'}}>
             {loading?'Entrando...':'Entrar →'}
           </button>
           {error&&<div style={{marginTop:'1rem',padding:'0.75rem',borderRadius:10,background:'rgba(239,68,68,0.1)',color:'#EF4444',fontSize:'0.8rem',textAlign:'center'}}>{error}</div>}

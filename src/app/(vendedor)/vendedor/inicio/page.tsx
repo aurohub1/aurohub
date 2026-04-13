@@ -110,7 +110,7 @@ function uid(): string {
 }
 
 function WeatherIcon({ code, size = 22 }: { code: number | null; size?: number }) {
-  const color = "#FF7A1A";
+  const color = "var(--orange)";
   if (code === null) return <Cloud size={size} color={color} />;
   if (code === 0) return <Sun size={size} color={color} />;
   if (code <= 3) return <CloudSun size={size} color={color} />;
@@ -297,11 +297,11 @@ export default function VendedorInicioPage() {
       <div className="card-glass relative overflow-hidden px-8 py-7">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }}
+          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
         />
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Painel do Vendedor · {greeting()}
             </p>
             <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
@@ -350,11 +350,11 @@ export default function VendedorInicioPage() {
         >
           <div
             className="pointer-events-none absolute inset-0 opacity-20 transition-opacity group-hover:opacity-30"
-            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
           />
           <div
             className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg"
-            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
           >
             <Sparkles size={22} />
           </div>
@@ -370,7 +370,7 @@ export default function VendedorInicioPage() {
         {/* Posts de hoje */}
         <div className="card-glass flex items-center gap-4 px-5 py-5">
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[#FF7A1A]"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -420,7 +420,7 @@ export default function VendedorInicioPage() {
         <div className="card-glass flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <div className="flex items-center gap-2">
-              <Bell size={15} className="text-[#FF7A1A]" />
+              <Bell size={15} className="text-[var(--orange)]" />
               <h3 className="text-[14px] font-bold text-[var(--txt)]">Lembretes</h3>
             </div>
             <span className="text-[11px] text-[var(--txt3)]">{lembretes.filter(l => !l.feito).length} pendentes</span>
@@ -446,7 +446,7 @@ export default function VendedorInicioPage() {
                 onClick={addLembrete}
                 disabled={!novoCliente.trim() || !novaData}
                 className="flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-[12px] font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+                style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
               >
                 <Plus size={14} /> Add
               </button>
@@ -500,7 +500,7 @@ export default function VendedorInicioPage() {
         <div className="card-glass flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <div className="flex items-center gap-2">
-              <Plane size={15} className="text-[#FF7A1A]" />
+              <Plane size={15} className="text-[var(--orange)]" />
               <h3 className="text-[14px] font-bold text-[var(--txt)]">Calendário do turismo</h3>
             </div>
             <span className="text-[11px] text-[var(--txt3)]">Próximos 60 dias</span>
@@ -544,7 +544,7 @@ export default function VendedorInicioPage() {
         <div className="card-glass flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <div className="flex items-center gap-2">
-              <Plane size={15} className="text-[#FF7A1A]" />
+              <Plane size={15} className="text-[var(--orange)]" />
               <h3 className="text-[14px] font-bold text-[var(--txt)]">Notícias do setor</h3>
             </div>
             {noticias.length > 0 && (
@@ -552,7 +552,7 @@ export default function VendedorInicioPage() {
                 {noticias.map((_, i) => (
                   <button key={i} onClick={() => setNoticiaIdx(i)}
                     className="h-1.5 rounded-full transition-all"
-                    style={{ width: i === noticiaIdx ? 16 : 6, background: i === noticiaIdx ? "#FF7A1A" : "var(--bdr2)" }}
+                    style={{ width: i === noticiaIdx ? 16 : 6, background: i === noticiaIdx ? "var(--orange)" : "var(--bdr2)" }}
                   />
                 ))}
               </div>
@@ -579,7 +579,7 @@ export default function VendedorInicioPage() {
                       {n.title}
                     </p>
                     {n.source && (
-                      <span className="mt-2 block text-[10px] font-bold uppercase tracking-wide text-[#FF7A1A]">
+                      <span className="mt-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--orange)]">
                         {n.source}
                       </span>
                     )}

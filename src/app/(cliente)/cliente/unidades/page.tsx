@@ -104,11 +104,11 @@ export default function ClienteUnidadesPage() {
       <div className="card-glass relative overflow-hidden px-7 py-6">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }}
+          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
         />
         <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Central do Cliente · Rede
             </p>
             <h1 className="mt-1.5 flex items-center gap-3 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
@@ -125,7 +125,7 @@ export default function ClienteUnidadesPage() {
           <button
             onClick={() => setCreating(true)}
             className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
           >
             <Plus size={15} /> Nova unidade
           </button>
@@ -136,7 +136,7 @@ export default function ClienteUnidadesPage() {
       {stores.length === 0 ? (
         <div className="card-glass flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
           <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl text-[#FF7A1A]"
+            className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -153,7 +153,7 @@ export default function ClienteUnidadesPage() {
           <button
             onClick={() => setCreating(true)}
             className="mt-2 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
           >
             <Plus size={13} /> Nova unidade
           </button>
@@ -258,7 +258,7 @@ function StoreCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[#FF7A1A]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -304,14 +304,14 @@ function StoreCard({
       <div className="flex items-center gap-2">
         <button
           onClick={onViewVendors}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[11px] font-semibold text-[var(--txt2)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:text-[#FF7A1A]"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[11px] font-semibold text-[var(--txt2)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:text-[var(--orange)]"
         >
           <Users size={12} /> Ver vendedores
         </button>
         <button
           onClick={onEdit}
           className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-semibold text-white transition-transform hover:scale-[1.02]"
-          style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+          style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
         >
           <Pencil size={12} /> Editar
         </button>
@@ -397,7 +397,7 @@ function StoreFormModal({
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="Ex.: Loja Centro"
-            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
           />
         </Field>
 
@@ -406,12 +406,12 @@ function StoreFormModal({
             value={form.city}
             onChange={(e) => setForm({ ...form, city: e.target.value })}
             placeholder="Ex.: São Paulo"
-            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
           />
         </Field>
 
         <Field label="Instagram">
-          <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 focus-within:border-[#FF7A1A]">
+          <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 focus-within:border-[var(--orange)]">
             <span className="text-[12px] text-[var(--txt3)]">@</span>
             <input
               value={form.instagram.replace(/^@/, "")}
@@ -457,7 +457,7 @@ function StoreFormModal({
           onClick={save}
           disabled={!valid || saving}
           className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-          style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+          style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
         >
           <Check size={13} /> {saving ? "Salvando..." : "Salvar"}
         </button>

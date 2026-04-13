@@ -10,12 +10,40 @@ import VendorPublishPanel from "@/components/layout/VendorPublishPanel";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 
-function applyBrandAccent(cor1: string | null | undefined, cor2: string | null | undefined) {
-  if (!cor1) return;
+function lighten(hex: string, amount = 20): string {
+  const r = Math.min(255, parseInt(hex.slice(1, 3), 16) + amount);
+  const g = Math.min(255, parseInt(hex.slice(3, 5), 16) + amount);
+  const b = Math.min(255, parseInt(hex.slice(5, 7), 16) + amount);
+  return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
+}
+
+interface BrandColors {
+  cor_primaria?: string | null;
+  cor_secundaria?: string | null;
+  tema_fundo_escuro?: string | null;
+  tema_fundo_claro?: string | null;
+}
+
+function applyBrandTheme(colors: BrandColors) {
   const el = document.documentElement;
-  el.style.setProperty("--brand-orange", cor1);
-  el.style.setProperty("--brand-orange2", cor2 || cor1);
-  el.style.setProperty("--brand-orange3", cor1 + "1f");
+  const theme = localStorage.getItem("ah_theme") || "light";
+
+  if (colors.cor_primaria) {
+    el.style.setProperty("--brand-orange", colors.cor_primaria);
+    el.style.setProperty("--brand-orange2", colors.cor_secundaria || colors.cor_primaria);
+    el.style.setProperty("--brand-orange3", colors.cor_primaria + "1f");
+  }
+
+  const bg = theme === "dark" ? colors.tema_fundo_escuro : colors.tema_fundo_claro;
+  if (bg) {
+    el.style.setProperty("--bg", bg);
+    el.style.setProperty("--bg1", lighten(bg, theme === "dark" ? 8 : -4));
+    el.style.setProperty("--bg2", lighten(bg, theme === "dark" ? 16 : -8));
+    el.style.setProperty("--bg3", lighten(bg, theme === "dark" ? 30 : -16));
+    el.style.setProperty("--card-bg", theme === "dark" ? `${bg}b8` : bg);
+    el.style.setProperty("--sidebar-bg", theme === "dark" ? `${bg}eb` : bg);
+    el.style.setProperty("--topbar-bg", theme === "dark" ? `${bg}e6` : bg);
+  }
 }
 
 export default function VendedorLayout({ children }: { children: React.ReactNode }) {
@@ -59,10 +87,10 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
       if (p.licensee_id) {
         const { data: lic } = await supabase
           .from("licensees")
-          .select("cor_primaria,cor_secundaria")
+          .select("cor_primaria,cor_secundaria,tema_fundo_escuro,tema_fundo_claro")
           .eq("id", p.licensee_id)
           .single();
-        if (lic) applyBrandAccent(lic.cor_primaria, lic.cor_secundaria);
+        if (lic) applyBrandTheme(lic);
       }
 
       setChecking(false);

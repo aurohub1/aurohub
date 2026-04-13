@@ -172,11 +172,11 @@ export default function UnidadeInicioPage() {
       <div className="card-glass relative overflow-hidden px-8 py-7">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }}
+          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
         />
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Painel da Unidade · {greeting()}
             </p>
             <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
@@ -191,7 +191,7 @@ export default function UnidadeInicioPage() {
           <Link
             href="/unidade/publicar"
             className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
           >
             <Sparkles size={15} /> Publicar agora
           </Link>
@@ -203,7 +203,7 @@ export default function UnidadeInicioPage() {
         {/* Posts hoje */}
         <div className="card-glass flex items-center gap-4 px-5 py-5">
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[#FF7A1A]"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -266,7 +266,7 @@ export default function UnidadeInicioPage() {
                     ? "var(--red)"
                     : limitePct > 70
                       ? "var(--orange)"
-                      : "linear-gradient(90deg, #FF7A1A, #D4A843)",
+                      : "linear-gradient(90deg, var(--orange), #D4A843)",
                 }}
               />
             </div>
@@ -280,7 +280,7 @@ export default function UnidadeInicioPage() {
         <div className="card-glass flex flex-col">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <div className="flex items-center gap-2">
-              <Users size={15} className="text-[#FF7A1A]" />
+              <Users size={15} className="text-[var(--orange)]" />
               <h3 className="text-[14px] font-bold text-[var(--txt)]">Vendedores</h3>
               <span className="rounded-full bg-[var(--green3)] px-2 py-0.5 text-[0.55rem] font-bold text-[var(--green)]">
                 {vendedores.length} {vendedores.length === 1 ? "ativo" : "ativos"}
@@ -312,7 +312,7 @@ export default function UnidadeInicioPage() {
         <div className="card-glass flex flex-col">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <div className="flex items-center gap-2">
-              <ImageIcon size={15} className="text-[#FF7A1A]" />
+              <ImageIcon size={15} className="text-[var(--orange)]" />
               <h3 className="text-[14px] font-bold text-[var(--txt)]">Últimas publicações</h3>
             </div>
             <Link

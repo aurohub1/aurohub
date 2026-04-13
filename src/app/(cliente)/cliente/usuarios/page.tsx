@@ -151,11 +151,11 @@ export default function ClienteUsuariosPage() {
       <div className="card-glass relative overflow-hidden px-7 py-6">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }}
+          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
         />
         <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Central do Cliente · Equipe
             </p>
             <h1 className="mt-1.5 flex items-center gap-3 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
@@ -175,7 +175,7 @@ export default function ClienteUsuariosPage() {
             disabled={limitReached}
             title={limitReached ? "Limite do plano atingido" : "Criar novo usuário"}
             className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
           >
             <Plus size={15} /> Novo usuário
           </button>
@@ -186,7 +186,7 @@ export default function ClienteUsuariosPage() {
       {users.length === 0 ? (
         <div className="card-glass flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
           <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl text-[#FF7A1A]"
+            className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -262,7 +262,7 @@ export default function ClienteUsuariosPage() {
                             onClick={() => !isReadOnly && setEditing(u)}
                             disabled={isReadOnly}
                             title={isReadOnly ? "Sem permissão" : "Editar"}
-                            className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:bg-[rgba(255,122,26,0.12)] hover:text-[#FF7A1A] disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:bg-[rgba(255,122,26,0.12)] hover:text-[var(--orange)] disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <Pencil size={12} />
                           </button>
@@ -456,7 +456,7 @@ function UserFormModal({
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="Ex.: João Silva"
-            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
           />
         </Field>
 
@@ -467,7 +467,7 @@ function UserFormModal({
             disabled={!showPassword}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="usuario@dominio.com"
-            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none disabled:opacity-60"
+            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none disabled:opacity-60"
           />
         </Field>
 
@@ -477,13 +477,13 @@ function UserFormModal({
               <input
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="h-9 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 font-mono text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+                className="h-9 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 font-mono text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={copyPassword}
                 title="Copiar senha"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--bdr)] text-[var(--txt3)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:text-[#FF7A1A]"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--bdr)] text-[var(--txt3)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:text-[var(--orange)]"
               >
                 <Copy size={13} />
               </button>
@@ -491,7 +491,7 @@ function UserFormModal({
                 type="button"
                 onClick={() => setForm({ ...form, password: genPassword() })}
                 title="Gerar nova senha"
-                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--bdr)] px-2.5 text-[11px] font-semibold text-[var(--txt2)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:text-[#FF7A1A]"
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--bdr)] px-2.5 text-[11px] font-semibold text-[var(--txt2)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:text-[var(--orange)]"
               >
                 <RefreshCw size={12} /> Gerar
               </button>
@@ -520,7 +520,7 @@ function UserFormModal({
           <select
             value={form.store_id}
             onChange={(e) => setForm({ ...form, store_id: e.target.value })}
-            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+            className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
           >
             <option value="">— Sem unidade —</option>
             {stores.map((s) => (
@@ -564,7 +564,7 @@ function UserFormModal({
           onClick={save}
           disabled={!valid || saving}
           className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-          style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+          style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
         >
           <Check size={13} /> {saving ? "Salvando..." : "Salvar"}
         </button>

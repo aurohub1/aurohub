@@ -575,7 +575,7 @@ export default function UsuariosPage() {
                   <button onClick={() => editId && resetPassword(editId)}
                     disabled={passwordSaving || !newPassword}
                     className="h-9 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50"
-                    style={{background: "linear-gradient(135deg, #FF7A1A, #D4A843)"}}>
+                    style={{background: "linear-gradient(135deg, var(--orange), #D4A843)"}}>
                     {passwordSaving ? "Salvando..." : "Alterar senha"}
                   </button>
                 </div>
@@ -623,7 +623,7 @@ export default function UsuariosPage() {
                       </select>
                       <div className="flex gap-1">
                         {(["ai", "metrics", "forms"] as const).map((badge) => (
-                          <button key={badge} onClick={() => toggleCfgBadge(i, badge)} className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${u[badge] ? "bg-[rgba(255,122,26,0.15)] text-[#FF7A1A]" : "bg-[var(--bg3)] text-[var(--txt3)]"}`}>
+                          <button key={badge} onClick={() => toggleCfgBadge(i, badge)} className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${u[badge] ? "bg-[rgba(255,122,26,0.15)] text-[var(--orange)]" : "bg-[var(--bg3)] text-[var(--txt3)]"}`}>
                             {badge === "ai" ? "IA" : badge === "metrics" ? "MET" : "FORMS"}
                           </button>
                         ))}

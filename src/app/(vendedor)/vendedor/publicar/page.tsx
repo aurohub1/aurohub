@@ -802,7 +802,7 @@ export default function PublicarPage() {
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span
               className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em]"
-              style={{ background: "rgba(255,122,26,0.14)", color: "#FF7A1A" }}
+              style={{ background: "rgba(255,122,26,0.14)", color: "var(--orange)" }}
             >
               {FORMAT_LABELS[format]}
             </span>
@@ -827,7 +827,7 @@ export default function PublicarPage() {
                   className="flex h-7 flex-1 items-center justify-center whitespace-nowrap rounded-full px-2 text-[10px] font-semibold transition-all"
                   style={
                     active
-                      ? { background: "#FF7A1A", color: "#FFFFFF", boxShadow: "0 2px 6px rgba(255,122,26,0.35)" }
+                      ? { background: "var(--orange)", color: "#FFFFFF", boxShadow: "0 2px 6px rgba(255,122,26,0.35)" }
                       : { background: "transparent", color: "var(--txt2)" }
                   }
                   onMouseEnter={(e) => {
@@ -1062,7 +1062,7 @@ export default function PublicarPage() {
                         <input
                           type="datetime-local" value={values.inicio || ""}
                           onChange={(e) => setDateInicio(e.target.value)}
-                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
                         />
                       </Field>
                       <Field label="Fim">
@@ -1070,7 +1070,7 @@ export default function PublicarPage() {
                           type="datetime-local" value={values.fim || ""}
                           onChange={(e) => setDateFim(e.target.value)}
                           onBlur={blurDateFim}
-                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
                         />
                       </Field>
                     </Row2>
@@ -1091,7 +1091,7 @@ export default function PublicarPage() {
                     <button
                       onClick={generateCaption}
                       disabled={generatingCaption}
-                      className="flex items-center gap-1 text-[11px] font-semibold text-[#FF7A1A] hover:underline disabled:opacity-50"
+                      className="flex items-center gap-1 text-[11px] font-semibold text-[var(--orange)] hover:underline disabled:opacity-50"
                     >
                       {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
                       Gerar IA
@@ -1122,13 +1122,13 @@ export default function PublicarPage() {
                           className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors"
                           style={
                             active
-                              ? { borderColor: "#FF7A1A", background: "rgba(255,122,26,0.12)", color: "#FF7A1A" }
+                              ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.12)", color: "var(--orange)" }
                               : { borderColor: "var(--bdr)", color: "var(--txt3)" }
                           }
                         >
                           <span
                             className="flex h-3 w-3 items-center justify-center rounded border"
-                            style={active ? { borderColor: "#FF7A1A", background: "#FF7A1A" } : { borderColor: "var(--bdr2)" }}
+                            style={active ? { borderColor: "var(--orange)", background: "var(--orange)" } : { borderColor: "var(--bdr2)" }}
                           >
                             {active && <Check size={8} />}
                           </span>
@@ -1195,7 +1195,7 @@ export default function PublicarPage() {
                     disabled={busy || !currentTemplate || limiteAtingido}
                     title={limiteAtingido ? `Limite diário atingido (${usadoAtual}/${limiteAtual})` : undefined}
                     className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                    style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+                    style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
                   >
                     {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     {status === "uploading"
@@ -1361,7 +1361,7 @@ function TextInput({
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
       placeholder={placeholder}
-      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
     />
   );
 }
@@ -1375,7 +1375,7 @@ function TextArea({
       onChange={(e) => onChange(e.target.value)}
       rows={rows}
       placeholder={placeholder}
-      className="w-full resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+      className="w-full resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
     />
   );
 }
@@ -1395,7 +1395,7 @@ function DateInput({
       min={min}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
-      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
     />
   );
 }
@@ -1407,7 +1407,7 @@ function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11.5px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
     >
       {options.map((o) => <option key={o} value={o}>{o || "— nenhum —"}</option>)}
     </select>
@@ -1459,7 +1459,7 @@ function ServicosBlock({
                   if (isAllInclusive(v)) setBadge("all_inclusive_badge", true);
                 }}
                 placeholder={`Serviço ${n}`}
-                className="h-7 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+                className="h-7 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
               />
             </div>
           );
@@ -1517,7 +1517,7 @@ function DailyCounter({
               >
                 {unlimited ? `${count} ∞` : `${count}/${max}`}
               </span>
-              {key === current && <span className="h-1.5 w-1.5 rounded-full bg-[#FF7A1A]" />}
+              {key === current && <span className="h-1.5 w-1.5 rounded-full bg-[var(--orange)]" />}
             </div>
           );
         })}
@@ -1636,7 +1636,7 @@ function Combobox({
           onBlur={() => { setTimeout(() => { setOpen(false); onBlur?.(); }, 180); }}
           onKeyDown={onKey}
           placeholder={placeholder}
-          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-7 pr-3 text-[11.5px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-7 pr-3 text-[11.5px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
         />
       </div>
       {open && filtered.length > 0 && ddPos && (
@@ -1660,7 +1660,7 @@ function Combobox({
               className="cursor-pointer truncate px-3 py-1.5 text-[12px] transition-colors"
               style={
                 focused === i
-                  ? { background: "rgba(255,122,26,0.12)", color: "#FF7A1A" }
+                  ? { background: "rgba(255,122,26,0.12)", color: "var(--orange)" }
                   : { color: "var(--txt2)" }
               }
             >

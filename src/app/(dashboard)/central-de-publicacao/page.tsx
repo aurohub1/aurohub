@@ -41,7 +41,7 @@ interface HistoryLog {
 
 const FORMAT_META: Record<FormatType, { label: string; aspect: string; color: string }> = {
   stories: { label: "Stories", aspect: "9:16", color: "#A78BFA" },
-  feed:    { label: "Feed",    aspect: "4:5",  color: "#FF7A1A" },
+  feed:    { label: "Feed",    aspect: "4:5",  color: "var(--orange)" },
   reels:   { label: "Reels",   aspect: "9:16", color: "#EC4899" },
   tv:      { label: "TV",      aspect: "16:9", color: "#3B82F6" },
 };
@@ -352,10 +352,10 @@ export default function CentralPublicacaoPage() {
       <div className="card-glass relative overflow-hidden px-7 py-6">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }}
+          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
         />
         <div className="relative z-10">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
             Central ADM
           </p>
           <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
@@ -381,7 +381,7 @@ export default function CentralPublicacaoPage() {
                   value={selectedLicenseeId}
                   onChange={(e) => onLicenseeChange(e.target.value)}
                   disabled={loading}
-                  className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none"
+                  className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
                 >
                   <option value="">— Selecione —</option>
                   {licensees.map((l) => (
@@ -395,7 +395,7 @@ export default function CentralPublicacaoPage() {
                   value={selectedStoreId}
                   onChange={(e) => onStoreChange(e.target.value)}
                   disabled={!selectedLicenseeId}
-                  className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[#FF7A1A] focus:outline-none disabled:opacity-50"
+                  className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none disabled:opacity-50"
                 >
                   <option value="">— Selecione —</option>
                   {storesForLic.map((s) => (
@@ -406,7 +406,7 @@ export default function CentralPublicacaoPage() {
 
               <Field label="Instagram">
                 <div className="flex h-9 w-full items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3">
-                  <AtSign size={13} className="shrink-0 text-[#FF7A1A]" />
+                  <AtSign size={13} className="shrink-0 text-[var(--orange)]" />
                   <span className="truncate text-[12px] font-semibold text-[var(--txt)]">
                     {igHandle ? `@${igHandle}` : <span className="text-[var(--txt3)]">— Sem conta vinculada —</span>}
                   </span>
@@ -441,12 +441,12 @@ export default function CentralPublicacaoPage() {
                   onDrop={onDrop}
                   className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-14 text-center transition-colors ${
                     dragOver
-                      ? "border-[#FF7A1A] bg-[rgba(255,122,26,0.06)]"
-                      : "border-[var(--bdr2)] hover:border-[#FF7A1A]"
+                      ? "border-[var(--orange)] bg-[rgba(255,122,26,0.06)]"
+                      : "border-[var(--bdr2)] hover:border-[var(--orange)]"
                   }`}
                 >
                   <div
-                    className="flex h-14 w-14 items-center justify-center rounded-2xl text-[#FF7A1A]"
+                    className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
                     style={{
                       background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
                       border: "1px solid rgba(255,255,255,0.08)",
@@ -537,7 +537,7 @@ export default function CentralPublicacaoPage() {
               <button
                 onClick={generateCaption}
                 disabled={generatingCaption || !selectedLicenseeId}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FF7A1A] hover:underline disabled:opacity-50"
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--orange)] hover:underline disabled:opacity-50"
               >
                 {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
                 Gerar com IA
@@ -549,7 +549,7 @@ export default function CentralPublicacaoPage() {
                 onChange={(e) => setCaption(e.target.value)}
                 rows={5}
                 placeholder="Digite a legenda ou gere com IA..."
-                className="w-full resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] p-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+                className="w-full resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] p-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
               />
               <div className="mt-1 text-right text-[10px] text-[var(--txt3)] tabular-nums">
                 {caption.length} caracteres
@@ -563,7 +563,7 @@ export default function CentralPublicacaoPage() {
               onClick={handlePublish}
               disabled={!canPublish}
               className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14px] font-bold text-white shadow-lg transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-              style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+              style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
             >
               {busy ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
               {status === "uploading" ? "Enviando..." : status === "publishing" ? "Publicando..." : "Publicar agora"}
@@ -591,7 +591,7 @@ export default function CentralPublicacaoPage() {
         <div className="card-glass flex flex-col">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <h3 className="flex items-center gap-2 text-[14px] font-bold text-[var(--txt)]">
-              <Clock size={14} className="text-[#FF7A1A]" />
+              <Clock size={14} className="text-[var(--orange)]" />
               Histórico
             </h3>
             <span className="rounded-full bg-[var(--bg2)] px-2 py-0.5 text-[10px] font-semibold text-[var(--txt3)]">

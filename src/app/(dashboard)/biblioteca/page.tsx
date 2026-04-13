@@ -128,15 +128,15 @@ export default function BibliotecaPage() {
       <div className="card-glass relative overflow-hidden px-7 py-6">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }}
+          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
         />
         <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Central ADM · Recursos
             </p>
             <h1 className="mt-1.5 flex items-center gap-3 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
-              <Images size={22} className="text-[#FF7A1A]" />
+              <Images size={22} className="text-[var(--orange)]" />
               Biblioteca de Imagens
             </h1>
             <p className="mt-1 text-[12px] text-[var(--txt3)]">
@@ -147,7 +147,7 @@ export default function BibliotecaPage() {
           <button
             onClick={() => setUploadOpen(true)}
             className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
           >
             <Plus size={15} /> Nova imagem
           </button>
@@ -164,7 +164,7 @@ export default function BibliotecaPage() {
               className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors"
               style={
                 tab === t.key
-                  ? { background: "rgba(255,122,26,0.14)", color: "#FF7A1A" }
+                  ? { background: "rgba(255,122,26,0.14)", color: "var(--orange)" }
                   : { color: "var(--txt3)" }
               }
             >
@@ -174,7 +174,7 @@ export default function BibliotecaPage() {
                 className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums"
                 style={
                   tab === t.key
-                    ? { background: "rgba(255,122,26,0.22)", color: "#FF7A1A" }
+                    ? { background: "rgba(255,122,26,0.22)", color: "var(--orange)" }
                     : { background: "var(--bg2)", color: "var(--txt3)" }
                 }
               >
@@ -191,7 +191,7 @@ export default function BibliotecaPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={tab === "cruzeiros" ? "Buscar navio ou CIA..." : "Buscar por nome..."}
-              className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-9 pr-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+              className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-9 pr-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
             />
           </div>
         )}
@@ -203,7 +203,7 @@ export default function BibliotecaPage() {
       ) : items.length === 0 ? (
         <div className="card-glass flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
           <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl text-[#FF7A1A]"
+            className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -377,7 +377,7 @@ function UploadModal({
             onClick={() => inputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={onDrop}
-            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--bdr2)] px-6 py-8 text-center transition-colors hover:border-[#FF7A1A]"
+            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--bdr2)] px-6 py-8 text-center transition-colors hover:border-[var(--orange)]"
           >
             {preview ? (
               <div className="w-full">
@@ -388,7 +388,7 @@ function UploadModal({
             ) : (
               <>
                 <div
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl text-[#FF7A1A]"
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl text-[var(--orange)]"
                   style={{
                     background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
                     border: "1px solid rgba(255,255,255,0.08)",
@@ -412,7 +412,7 @@ function UploadModal({
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder={tab === "destinos" ? "Ex.: Fernando de Noronha" : tab === "hoteis" ? "Ex.: Tivoli Mofarrej" : "Ex.: Splendida"}
-                className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+                className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
               />
             </Field>
           )}
@@ -440,7 +440,7 @@ function UploadModal({
                 value={cia}
                 onChange={(e) => setCia(e.target.value)}
                 placeholder="Ou digite livremente..."
-                className="mt-2 h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+                className="mt-2 h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
               />
             </Field>
           )}
@@ -469,7 +469,7 @@ function UploadModal({
             onClick={save}
             disabled={!valid || saving}
             className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-            style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
           >
             {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
             {saving ? "Salvando..." : "Salvar"}

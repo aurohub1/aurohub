@@ -20,6 +20,7 @@ interface Licensee {
   logo_url: string | null;
   splash_effect?: string; splash_logo_orientation?: string;
   cor_primaria?: string; cor_secundaria?: string; cor_acento?: string; cor_fundo?: string;
+  tema_fundo_escuro?: string; tema_fundo_claro?: string; tema_texto_escuro?: string; tema_texto_claro?: string;
 }
 interface Segment { id: string; name: string; icon: string | null; }
 interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; }
@@ -27,12 +28,12 @@ interface Store { id: string; licensee_id: string; name: string; ig_user_id: str
 interface Profile { id: string; licensee_id: string | null; store_id: string | null; name: string | null; status: string; }
 
 type TabFilter = "" | "active" | "inactive";
-type ModalTab = "dados" | "plano" | "lojas" | "features" | "senha";
+type ModalTab = "dados" | "tema" | "plano" | "lojas" | "features" | "senha";
 
 const PLAN_COLORS: Record<string, { color: string; label: string }> = {
   basic: { color: "#64748b", label: "Essencial" },
   pro: { color: "#3B82F6", label: "Profissional" },
-  business: { color: "#FF7A1A", label: "Franquia" },
+  business: { color: "var(--orange)", label: "Franquia" },
   enterprise: { color: "#D4A843", label: "Enterprise" },
 };
 
@@ -55,7 +56,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "#FF7A1A", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -92,7 +93,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, cor_primaria, cor_secundaria, cor_acento, cor_fundo").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, cor_primaria, cor_secundaria, cor_acento, cor_fundo, tema_fundo_escuro, tema_fundo_claro, tema_texto_escuro, tema_texto_claro").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -136,7 +137,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "#FF7A1A", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520" });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -144,7 +145,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", cor_primaria: l.cor_primaria ?? "#FF7A1A", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -167,6 +168,10 @@ export default function ClientesPage() {
         cor_secundaria: form.cor_secundaria || null,
         cor_acento: form.cor_acento || null,
         cor_fundo: form.cor_fundo || null,
+        tema_fundo_escuro: form.tema_fundo_escuro || null,
+        tema_fundo_claro: form.tema_fundo_claro || null,
+        tema_texto_escuro: form.tema_texto_escuro || null,
+        tema_texto_claro: form.tema_texto_claro || null,
       };
       if (formPlanIsInternal && form.expires_at) {
         payload.expires_at = form.expires_at;
@@ -594,9 +599,9 @@ export default function ClientesPage() {
 
             {/* Tabs */}
             <div className="flex border-b border-[var(--bdr)] px-6">
-              {(["dados", "plano", "lojas", "features", "senha"] as ModalTab[]).map((t) => (
+              {(["dados", "tema", "plano", "lojas", "features", "senha"] as ModalTab[]).map((t) => (
                 <button key={t} onClick={() => setModalTab(t)} className={`border-b-2 px-4 py-2.5 text-[12px] font-medium transition-colors ${modalTab === t ? "border-[var(--txt)] text-[var(--txt)]" : "border-transparent text-[var(--txt3)] hover:text-[var(--txt2)]"}`}>
-                  {t === "dados" ? "Dados" : t === "plano" ? "Plano" : t === "lojas" ? "Lojas" : t === "features" ? "Features" : "Senha"}
+                  {t === "dados" ? "Dados" : t === "tema" ? "Tema" : t === "plano" ? "Plano" : t === "lojas" ? "Lojas" : t === "features" ? "Features" : "Senha"}
                 </button>
               ))}
             </div>
@@ -691,6 +696,120 @@ export default function ClientesPage() {
                 </div>
               )}
 
+              {modalTab === "tema" && (() => {
+                const hex2hsl = (hex: string) => {
+                  let r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+                  const max = Math.max(r,g,b), min = Math.min(r,g,b), l = (max+min)/2;
+                  let h = 0, s = 0;
+                  if (max !== min) {
+                    const d = max - min;
+                    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+                    if (max === r) h = ((g-b)/d + (g<b?6:0))/6;
+                    else if (max === g) h = ((b-r)/d+2)/6;
+                    else h = ((r-g)/d+4)/6;
+                  }
+                  return [Math.round(h*360), Math.round(s*100), Math.round(l*100)] as const;
+                };
+                const hsl2hex = (h: number, s: number, l: number) => {
+                  const _h = h/360, _s = s/100, _l = l/100;
+                  const hue2rgb = (p: number, q: number, t: number) => { if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p; };
+                  let r, g, b2;
+                  if (_s === 0) { r = g = b2 = _l; } else {
+                    const q = _l<0.5?_l*(1+_s):_l+_s-_l*_s, p = 2*_l-q;
+                    r = hue2rgb(p,q,_h+1/3); g = hue2rgb(p,q,_h); b2 = hue2rgb(p,q,_h-1/3);
+                  }
+                  return `#${[r,g,b2].map(v=>Math.round(v*255).toString(16).padStart(2,"0")).join("")}`;
+                };
+                const suggestTheme = () => {
+                  const [h, s] = hex2hsl(form.cor_primaria || "#FF7A1A");
+                  setForm(f => ({
+                    ...f,
+                    cor_secundaria: hsl2hex(h, Math.min(100, s + 10), 55),
+                    tema_fundo_escuro: hsl2hex(h, Math.min(40, s), 8),
+                    tema_fundo_claro: hsl2hex(h, Math.max(10, s - 30), 97),
+                    tema_texto_escuro: hsl2hex(h, Math.min(20, s), 15),
+                    tema_texto_claro: hsl2hex(h, Math.min(15, s), 93),
+                  }));
+                };
+                const p = {
+                  accent: form.cor_primaria || "#FF7A1A",
+                  accent2: form.cor_secundaria || "#D4A843",
+                  bgDark: form.tema_fundo_escuro || "#0A1020",
+                  bgLight: form.tema_fundo_claro || "#ffffff",
+                  txtDark: form.tema_texto_escuro || "#0f172a",
+                  txtLight: form.tema_texto_claro || "#EEF2FF",
+                };
+                return (
+                <div className="flex flex-col gap-5">
+                  <p className="text-[11px] text-[var(--txt3)]">Cores da marca aplicadas no painel do cliente/vendedor.</p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { key: "cor_primaria", label: "Cor Principal (accent)" },
+                      { key: "cor_secundaria", label: "Cor Secundária" },
+                      { key: "tema_fundo_escuro", label: "Fundo (tema escuro)" },
+                      { key: "tema_fundo_claro", label: "Fundo (tema claro)" },
+                      { key: "tema_texto_escuro", label: "Texto (tema escuro)" },
+                      { key: "tema_texto_claro", label: "Texto (tema claro)" },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="flex items-center gap-3">
+                        <input type="color" value={(form as Record<string, string>)[key] || "#000000"} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} className="h-8 w-12 rounded cursor-pointer border border-[var(--bdr)]" />
+                        <label className="text-[11px] text-[var(--txt2)]">{label}</label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button type="button" onClick={suggestTheme} className="self-start rounded-lg border border-[var(--bdr)] px-4 py-2 text-[11px] font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)] transition-colors">
+                    Sugerir tema a partir da cor principal
+                  </button>
+
+                  {/* Preview */}
+                  <div className="grid grid-cols-2 gap-3 mt-1">
+                    {/* Dark preview */}
+                    <div className="rounded-xl overflow-hidden border border-[var(--bdr)]" style={{ background: p.bgDark }}>
+                      <div className="text-[9px] font-semibold px-2 py-1 text-center" style={{ background: `${p.bgDark}ee`, color: p.txtLight, borderBottom: `1px solid ${p.accent}33` }}>Escuro</div>
+                      <div className="flex h-[100px]">
+                        <div className="w-[52px] shrink-0 flex flex-col gap-1.5 p-1.5" style={{ background: `${p.bgDark}ee`, borderRight: `1px solid ${p.accent}22` }}>
+                          <div className="h-1.5 rounded-full" style={{ background: p.accent, width: "80%" }} />
+                          <div className="h-1.5 rounded-full" style={{ background: `${p.txtLight}33`, width: "60%" }} />
+                          <div className="h-1.5 rounded-full" style={{ background: `${p.txtLight}33`, width: "70%" }} />
+                          <div className="mt-auto h-4 w-4 rounded-full mx-auto" style={{ background: p.accent2, opacity: 0.6 }} />
+                        </div>
+                        <div className="flex-1 p-2 flex flex-col gap-1.5">
+                          <div className="text-[8px] font-bold" style={{ color: p.txtLight }}>Dashboard</div>
+                          <div className="flex-1 rounded-md p-1.5" style={{ background: `${p.txtLight}08`, border: `1px solid ${p.txtLight}11` }}>
+                            <div className="h-1 rounded-full mb-1" style={{ background: p.txtLight, width: "50%", opacity: 0.7 }} />
+                            <div className="h-1 rounded-full" style={{ background: p.txtLight, width: "35%", opacity: 0.3 }} />
+                          </div>
+                          <div className="h-5 rounded-md flex items-center justify-center text-[7px] font-semibold" style={{ background: p.accent, color: "#fff" }}>Publicar</div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Light preview */}
+                    <div className="rounded-xl overflow-hidden border border-[var(--bdr)]" style={{ background: p.bgLight }}>
+                      <div className="text-[9px] font-semibold px-2 py-1 text-center" style={{ background: `${p.bgLight}`, color: p.txtDark, borderBottom: `1px solid ${p.accent}33` }}>Claro</div>
+                      <div className="flex h-[100px]">
+                        <div className="w-[52px] shrink-0 flex flex-col gap-1.5 p-1.5" style={{ background: p.bgLight, borderRight: `1px solid ${p.accent}22` }}>
+                          <div className="h-1.5 rounded-full" style={{ background: p.accent, width: "80%" }} />
+                          <div className="h-1.5 rounded-full" style={{ background: `${p.txtDark}22`, width: "60%" }} />
+                          <div className="h-1.5 rounded-full" style={{ background: `${p.txtDark}22`, width: "70%" }} />
+                          <div className="mt-auto h-4 w-4 rounded-full mx-auto" style={{ background: p.accent2, opacity: 0.6 }} />
+                        </div>
+                        <div className="flex-1 p-2 flex flex-col gap-1.5">
+                          <div className="text-[8px] font-bold" style={{ color: p.txtDark }}>Dashboard</div>
+                          <div className="flex-1 rounded-md p-1.5" style={{ background: `${p.txtDark}06`, border: `1px solid ${p.txtDark}11` }}>
+                            <div className="h-1 rounded-full mb-1" style={{ background: p.txtDark, width: "50%", opacity: 0.7 }} />
+                            <div className="h-1 rounded-full" style={{ background: p.txtDark, width: "35%", opacity: 0.3 }} />
+                          </div>
+                          <div className="h-5 rounded-md flex items-center justify-center text-[7px] font-semibold" style={{ background: p.accent, color: "#fff" }}>Publicar</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                );
+              })()}
+
               {modalTab === "plano" && (
                 <div className="flex flex-col gap-4">
                   <div>
@@ -783,7 +902,7 @@ export default function ClientesPage() {
                   {passwordMsg && (
                     <p className="text-[11px]" style={{color: passwordMsg.includes("\u2705") ? "var(--green)" : "var(--red)"}}>{passwordMsg}</p>
                   )}
-                  <button onClick={resetPassword} disabled={passwordSaving || !newPassword} className="h-9 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50" style={{background: "linear-gradient(135deg, #FF7A1A, #D4A843)"}}>
+                  <button onClick={resetPassword} disabled={passwordSaving || !newPassword} className="h-9 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50" style={{background: "linear-gradient(135deg, var(--orange), #D4A843)"}}>
                     {passwordSaving ? "Salvando..." : "Alterar senha"}
                   </button>
                 </div>

@@ -52,7 +52,7 @@ const PLAN_INFO: Record<string, {
     ],
   },
   business: {
-    name: "Franquia", emoji: "🏢", accent: "var(--orange)", bg: "var(--orange3)", border: "#FF7A1A", badge: "Melhor custo-benefício",
+    name: "Franquia", emoji: "🏢", accent: "var(--orange)", bg: "var(--orange3)", border: "var(--orange)", badge: "Melhor custo-benefício",
     price: "R$1.797", implant: "R$4.500", fidelity: "12 meses",
     profiles: "Até 3 perfis", logins: "6 logins", posts: "20 posts/dia por perfil", stories: "20 Stories/dia",
     features: [

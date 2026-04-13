@@ -410,9 +410,9 @@ export default function UnidadePublicarPage() {
     return (
       <>
         <div className="card-glass relative overflow-hidden px-8 py-6">
-          <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }} />
+          <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }} />
           <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">Central da Unidade</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">Central da Unidade</p>
             <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-tight text-[var(--txt)]">
               Publicar — {unidadeLabel}
             </h1>
@@ -472,7 +472,7 @@ export default function UnidadePublicarPage() {
             <ArrowLeft size={14} />
           </button>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">
+            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Publicar — {unidadeLabel}
             </div>
             <div className="text-[14px] font-bold text-[var(--txt)]">{selected.nome}</div>
@@ -583,7 +583,7 @@ export default function UnidadePublicarPage() {
                         disabled={single}
                         className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
                           active
-                            ? "border-[var(--orange)] bg-[rgba(255,122,26,0.12)] text-[#FF7A1A]"
+                            ? "border-[var(--orange)] bg-[rgba(255,122,26,0.12)] text-[var(--orange)]"
                             : "border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
                         } ${single ? "cursor-default" : ""}`}
                       >
@@ -622,7 +622,7 @@ export default function UnidadePublicarPage() {
                 onClick={handlePublishInstagram}
                 disabled={busy}
                 className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white shadow-lg disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+                style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
               >
                 <Send size={13} /> Publicar
               </button>

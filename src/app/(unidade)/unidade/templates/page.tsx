@@ -25,7 +25,7 @@ interface TemplateRow {
 /* ── Helpers ─────────────────────────────────────── */
 
 const TYPE_META: Record<string, { label: string; color: string }> = {
-  pacote:    { label: "Pacote",    color: "#FF7A1A" },
+  pacote:    { label: "Pacote",    color: "var(--orange)" },
   campanha:  { label: "Campanha",  color: "#D4A843" },
   passagem:  { label: "Passagem",  color: "#3B82F6" },
   cruzeiro:  { label: "Cruzeiro",  color: "#06B6D4" },
@@ -134,11 +134,11 @@ export default function UnidadeTemplatesPage() {
       <div className="card-glass relative overflow-hidden px-7 py-6">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }}
+          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
         />
         <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Central da Unidade · Biblioteca
             </p>
             <h1 className="mt-1.5 flex items-center gap-3 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
@@ -163,7 +163,7 @@ export default function UnidadeTemplatesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome..."
-              className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-9 pr-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[#FF7A1A] focus:outline-none"
+              className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-9 pr-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
             />
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function UnidadeTemplatesPage() {
       {filtered.length === 0 ? (
         <div className="card-glass flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
           <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl text-[#FF7A1A]"
+            className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -248,7 +248,7 @@ function FilterPill({
       onClick={onClick}
       className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
         active
-          ? "bg-[rgba(255,122,26,0.14)] text-[#FF7A1A]"
+          ? "bg-[rgba(255,122,26,0.14)] text-[var(--orange)]"
           : "text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt2)]"
       }`}
       style={active && color ? { color, background: `${color}22` } : undefined}
@@ -321,7 +321,7 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
         <button
           onClick={onUse}
           className="mt-auto flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
-          style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}
+          style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
         >
           <Sparkles size={13} /> Usar
         </button>

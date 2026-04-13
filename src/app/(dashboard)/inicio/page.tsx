@@ -59,7 +59,7 @@ function pickRandom<T>(arr: T[]): T {
 
 /* ── Weather (open-meteo) ────────────────────────── */
 function WeatherIcon({ code, size = 28 }: { code: number | null; size?: number }) {
-  const color = "#FF7A1A";
+  const color = "var(--orange)";
   if (code === null) return <Cloud size={size} color={color} />;
   if (code === 0) return <Sun size={size} color={color} />;
   if (code <= 3) return <CloudSun size={size} color={color} />;
@@ -306,10 +306,10 @@ export default function InicioPage() {
     <>
       {/* ═══ HERO — quote + weather ═════════════════ */}
       <div className="card-glass relative overflow-hidden px-8 py-7">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #FF7A1A 50%, #D4A843 100%)" }} />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }} />
         <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF7A1A]">Aurohub · {greeting()}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">Aurohub · {greeting()}</p>
             <h2 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-[1.25] text-[var(--txt)] max-w-[560px] min-h-[28px]">
               {quote}
             </h2>
@@ -344,7 +344,7 @@ export default function InicioPage() {
             </div>
 
             {/* Actions */}
-            <Link href="/editor-de-templates" className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]" style={{ background: "linear-gradient(135deg, #FF7A1A, #D4A843)" }}>
+            <Link href="/editor-de-templates" className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]" style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}>
               <Sparkles size={15} />Criar arte
             </Link>
             <Link href="/central-de-publicacao" className="flex items-center gap-2 rounded-xl border border-[var(--bdr2)] px-4 py-2.5 text-[13px] font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]">
@@ -539,7 +539,7 @@ function Tip({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-2.5 rounded-lg border border-[var(--bdr)] px-3 py-2 hover:bg-[var(--hover-bg)]">
       <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[#FF7A1A]"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--orange)]"
         style={{ background: "linear-gradient(135deg, rgba(255,122,26,0.14), rgba(30,58,110,0.10))" }}
       >
         {icon}
@@ -553,7 +553,7 @@ function Empty({ icon, text, action }: { icon: React.ReactNode; text: string; ac
   return (
     <div className="flex flex-col items-center gap-3 py-8">
       <div
-        className="flex h-14 w-14 items-center justify-center rounded-2xl text-[#FF7A1A]"
+        className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
         style={{
           background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
           border: "1px solid rgba(255,255,255,0.08)",
