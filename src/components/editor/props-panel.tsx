@@ -354,13 +354,35 @@ function AnimateTab({ s, u }: { s: EditorElement; u: (up: Partial<EditorElement>
 }
 
 /* ══ COLOR COMPONENTS ════════════════════════════ */
+function DropperBtn({ onChange }: { onChange: (v: string) => void }) {
+  if (typeof window === "undefined" || !("EyeDropper" in window)) return null;
+  return (
+    <button
+      title="Conta-gotas"
+      onClick={async () => {
+        try {
+          const dropper = new (window as unknown as { EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper();
+          const result = await dropper.open();
+          onChange(result.sRGBHex);
+        } catch { /* cancelado */ }
+      }}
+      style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-surface2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}
+    >
+      🩸
+    </button>
+  );
+}
+
 function ColorField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   return (
     <div>
-      <div style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer" }} onClick={() => setOpen(!open)}>
-        <div style={{ width: 28, height: 28, borderRadius: 6, background: value, border: "1px solid var(--ed-bdr)", flexShrink: 0 }} />
-        <input type="text" value={value} onChange={e => onChange(e.target.value)} onClick={e => e.stopPropagation()} style={{ ...inpS, flex: 1 }} />
+      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", flex: 1 }} onClick={() => setOpen(!open)}>
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: value, border: "1px solid var(--ed-bdr)", flexShrink: 0 }} />
+          <input type="text" value={value} onChange={e => onChange(e.target.value)} onClick={e => e.stopPropagation()} style={{ ...inpS, flex: 1 }} />
+        </div>
+        <DropperBtn onChange={onChange} />
       </div>
       {open && (
         <div style={{ marginTop: 6 }}>
@@ -382,6 +404,7 @@ function ColorSwatch({ value, onChange, label }: { value: string; onChange: (v: 
       <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
         <div onClick={() => setOpen(!open)} style={{ width: 28, height: 28, borderRadius: 6, background: value, border: "1px solid var(--ed-bdr)", cursor: "pointer", flexShrink: 0 }} />
         <input type="text" value={value} onChange={e => onChange(e.target.value)} style={{ ...inpS, flex: 1 }} />
+        <DropperBtn onChange={onChange} />
       </div>
       {open && <div style={{ marginTop: 4 }}><HexColorPicker color={value.startsWith("rgba") ? "#000" : value} onChange={onChange} /></div>}
     </div>
