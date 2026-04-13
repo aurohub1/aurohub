@@ -122,6 +122,26 @@ export default function LoginPage() {
     const saved = (localStorage.getItem("ah_theme") as "dark" | "light") || "dark";
     setTheme(saved);
     document.documentElement.setAttribute("data-theme", saved);
+
+    // Login usa tema Aurovista laranja
+    let s = document.getElementById("login-theme") as HTMLStyleElement | null;
+    if (!s) { s = document.createElement("style"); s.id = "login-theme"; document.head.appendChild(s); }
+    s.textContent = `
+      html[data-theme="dark"] {
+        --orange: #FF7A1A; --orange2: #FF9A3C; --orange3: rgba(255,122,26,0.12);
+        --bg: #060B16; --bg1: #0A1020; --bg2: #0C1428; --bg3: #182844;
+        --txt: #EEF2FF; --txt2: #8A9BBF; --txt3: #4A5878;
+        --bdr: rgba(255,255,255,0.055); --bdr2: rgba(255,255,255,0.10);
+        --card-bg: rgba(12,20,40,0.72); --sidebar-bg: rgba(8,14,28,0.92);
+      }
+      html[data-theme="light"] {
+        --orange: #FF7A1A; --orange2: #FF9A3C; --orange3: rgba(255,122,26,0.12);
+        --bg: #F8FAFC; --bg1: #FFFFFF; --bg2: #F1F5F9; --bg3: #E2E8F0;
+        --txt: #0F172A; --txt2: #334155; --txt3: #64748B;
+        --bdr: #E2E8F0; --bdr2: #CBD5E1;
+        --card-bg: #ffffff; --sidebar-bg: #ffffff;
+      }`;
+    return () => { s?.remove(); };
   }, []);
 
   const toggleTheme = () => {
