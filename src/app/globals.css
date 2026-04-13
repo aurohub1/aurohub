@@ -77,46 +77,6 @@
   --overlay-bg: rgba(0, 0, 0, 0.4);
 }
 
-/* ── Empresa (white-label) ──────────────────────── */
-[data-theme="empresa"] {
-  /* Base — herda do light */
-  --bg: #f8fafc;
-  --bg1: #ffffff;
-  --bg2: #f1f5f9;
-  --bg3: #e2e8f0;
-  --txt: #0f172a;
-  --txt2: #334155;
-  --txt3: #64748b;
-  --bdr: #e2e8f0;
-  --bdr2: #cbd5e1;
-  --sh: 0 2px 12px rgba(13, 22, 40, 0.08);
-  --sh2: 0 8px 32px rgba(13, 22, 40, 0.12);
-  --card-bg: #ffffff;
-  --sidebar-bg: #ffffff;
-  --topbar-bg: #ffffff;
-  --hover-bg: rgba(13, 22, 40, 0.06);
-  --input-bg: rgba(13, 22, 40, 0.06);
-  --overlay-bg: rgba(0, 0, 0, 0.4);
-  /* Cores da empresa — sobrescritas dinamicamente via JS */
-  --empresa-primary: #FF7A1A;
-  --empresa-secondary: #D4A843;
-  --empresa-accent: #1E3A6E;
-  --empresa-bg: #0E1520;
-  /* Mapeia cores do sistema para cores da empresa */
-  --orange: var(--empresa-primary);
-  --orange2: var(--empresa-primary);
-  --orange3: color-mix(in srgb, var(--empresa-primary) 12%, transparent);
-  --gold: var(--empresa-secondary);
-  --gold2: var(--empresa-secondary);
-  --gold3: color-mix(in srgb, var(--empresa-secondary) 12%, transparent);
-  --navy: var(--empresa-accent);
-  --blue: var(--empresa-accent);
-  --blue3: color-mix(in srgb, var(--empresa-accent) 12%, transparent);
-  --r: 10px;
-  --r2: 16px;
-  --r3: 22px;
-}
-
 *, *::before, *::after {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }

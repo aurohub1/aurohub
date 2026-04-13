@@ -320,20 +320,20 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
     : rawSections;
   const label = brandLabel ?? "Central ADM";
   const initial = user.name.charAt(0).toUpperCase();
-  const [theme, setTheme] = useState<"dark" | "light" | "empresa">("light");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
-    const saved = localStorage.getItem("ah_theme") as "dark" | "light" | "empresa" | null;
+    const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
     if (saved) setTheme(saved);
 
     const onThemeChange = (e: Event) => {
-      const t = (e as CustomEvent).detail as "dark" | "light" | "empresa";
+      const t = (e as CustomEvent).detail as "dark" | "light";
       setTheme(t);
     };
     window.addEventListener("theme-change", onThemeChange);
 
     const observer = new MutationObserver(() => {
-      const t = document.documentElement.getAttribute("data-theme") as "dark" | "light" | "empresa";
+      const t = document.documentElement.getAttribute("data-theme") as "dark" | "light";
       if (t) setTheme(t);
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
@@ -365,7 +365,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
           <div className="truncate text-[15px] font-bold leading-tight text-[var(--txt)]">
             Aurohub
           </div>
-          <div className="max-w-[140px] truncate font-bold uppercase tracking-[0.1em] text-[#D4A843]" style={{ fontSize: label.length > 20 ? 8 : 10 }}>
+          <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#D4A843]">
             {label}
           </div>
         </div>
@@ -443,18 +443,16 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
           {/* Theme toggle */}
           <button
             onClick={() => {
-              const order: ("light" | "dark" | "empresa")[] = ["light", "dark", "empresa"];
-              const idx = order.indexOf(theme as "light" | "dark" | "empresa");
-              const next = order[(idx + 1) % order.length];
+              const next = theme === "dark" ? "light" : "dark";
               setTheme(next);
               localStorage.setItem("ah_theme", next);
               document.documentElement.setAttribute("data-theme", next);
               window.dispatchEvent(new CustomEvent("theme-change", { detail: next }));
             }}
-            title={theme === "dark" ? "Tema claro" : theme === "light" ? "Tema empresa" : "Tema escuro"}
+            title={theme === "dark" ? "Tema claro" : "Tema escuro"}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:bg-[rgba(255,122,26,0.12)] hover:text-[#FF7A1A]"
           >
-            {theme === "dark" ? <Sun size={14} /> : theme === "light" ? <span style={{ fontSize: 11 }}>🎨</span> : <Moon size={14} />}
+            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
           </button>
 
           {/* Logout */}
