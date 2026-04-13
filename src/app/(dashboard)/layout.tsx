@@ -1,5 +1,6 @@
 "use client";
 
+import "./theme-override.css";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";

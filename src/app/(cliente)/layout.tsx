@@ -9,88 +9,12 @@ import Sidebar, { CLIENTE_SECTIONS } from "@/components/layout/Sidebar";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 
-function lighten(hex: string, amount = 20): string {
-  const r = Math.min(255, Math.max(0, parseInt(hex.slice(1, 3), 16) + amount));
-  const g = Math.min(255, Math.max(0, parseInt(hex.slice(3, 5), 16) + amount));
-  const b = Math.min(255, Math.max(0, parseInt(hex.slice(5, 7), 16) + amount));
-  return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
-}
-
-interface BrandColors {
-  cor_primaria?: string | null;
-  cor_secundaria?: string | null;
-  tema_fundo_escuro?: string | null;
-  tema_fundo_claro?: string | null;
-  tema_texto_escuro?: string | null;
-  tema_texto_claro?: string | null;
-}
-
-function applyBrandTheme(colors: BrandColors) {
-  const dark = (localStorage.getItem("ah_theme") || "light") === "dark";
-  const accent = colors.cor_primaria;
-  const accent2 = colors.cor_secundaria || accent;
-
-  const vars: string[] = [];
-
-  // Accent sempre do banco
-  if (accent) {
-    vars.push(`--brand-orange: ${accent}`);
-    vars.push(`--brand-orange2: ${accent2}`);
-    vars.push(`--brand-orange3: ${accent}1f`);
-    vars.push(`--brand-bdr: ${accent}26`);
-    vars.push(`--brand-bdr2: ${accent}40`);
-  }
-
-  if (dark) {
-    // Dark: bg/txt hardcoded (padrão Aurovista)
-    vars.push(`--brand-bg: #060B16`);
-    vars.push(`--brand-bg1: #0A1020`);
-    vars.push(`--brand-bg2: #0C1428`);
-    vars.push(`--brand-bg3: #182844`);
-    vars.push(`--brand-card-bg: rgba(12,20,40,0.72)`);
-    vars.push(`--brand-sidebar-bg: rgba(8,14,28,0.92)`);
-    vars.push(`--brand-topbar-bg: rgba(8,14,28,0.90)`);
-    vars.push(`--brand-txt: #EEF2FF`);
-    vars.push(`--brand-txt2: #8A9BBF`);
-    vars.push(`--brand-txt3: #4A5878`);
-  } else {
-    // Light: bg/txt do banco
-    const bg = colors.tema_fundo_claro;
-    const txt = colors.tema_texto_claro;
-    if (bg) {
-      vars.push(`--brand-bg: ${bg}`);
-      vars.push(`--brand-bg1: ${lighten(bg, -4)}`);
-      vars.push(`--brand-bg2: ${lighten(bg, -8)}`);
-      vars.push(`--brand-bg3: ${lighten(bg, -16)}`);
-      vars.push(`--brand-card-bg: ${bg}e8`);
-      vars.push(`--brand-sidebar-bg: ${lighten(bg, -4)}eb`);
-      vars.push(`--brand-topbar-bg: ${lighten(bg, -4)}e6`);
-    }
-    if (txt) {
-      vars.push(`--brand-txt: ${txt}`);
-      vars.push(`--brand-txt2: ${lighten(txt, 30)}`);
-      vars.push(`--brand-txt3: ${lighten(txt, 60)}`);
-    }
-  }
-
-  if (!vars.length) return;
-
-  let styleEl = document.getElementById("brand-theme") as HTMLStyleElement | null;
-  if (!styleEl) {
-    styleEl = document.createElement("style");
-    styleEl.id = "brand-theme";
-    document.head.appendChild(styleEl);
-  }
-  styleEl.textContent = `html[data-theme="dark"], html[data-theme="light"] { ${vars.map(v => v + ";").join(" ")} }`;
-}
-
 export default function ClienteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(true);
-  const [brandColors, setBrandColors] = useState<BrandColors | null>(null);
 
   // useContentProtection();
 
@@ -98,14 +22,6 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
     document.documentElement.setAttribute("data-theme", saved || "light");
   }, []);
-
-  // Re-aplica brand theme quando tema muda
-  useEffect(() => {
-    if (!brandColors) return;
-    const handler = () => applyBrandTheme(brandColors);
-    window.addEventListener("theme-change", handler);
-    return () => window.removeEventListener("theme-change", handler);
-  }, [brandColors]);
 
   useEffect(() => {
     (async () => {
@@ -119,17 +35,6 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       setProfile(p);
       const feats = await getFeatures(supabase, p);
       setFeatures(feats);
-
-      // Aplica cores accent do licenciado
-      if (p.licensee_id) {
-        const { data: lic } = await supabase
-          .from("licensees")
-          .select("cor_primaria,cor_secundaria,tema_fundo_escuro,tema_fundo_claro,tema_texto_escuro,tema_texto_claro")
-          .eq("id", p.licensee_id)
-          .single();
-        console.log("[Brand]", lic);
-        if (lic) { setBrandColors(lic); applyBrandTheme(lic); }
-      }
 
       setChecking(false);
     })();

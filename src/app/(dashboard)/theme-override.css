@@ -1,0 +1,36 @@
+/* ── Dashboard (ADM) — Aurovista laranja original ── */
+html[data-theme="dark"] {
+  --brand-bg: #060B16;
+  --brand-bg1: #0A1020;
+  --brand-bg2: #0C1428;
+  --brand-bg3: #182844;
+  --brand-orange: #FF7A1A;
+  --brand-orange2: #FF9A3C;
+  --brand-orange3: rgba(255, 122, 26, 0.12);
+  --brand-txt: #EEF2FF;
+  --brand-txt2: #8A9BBF;
+  --brand-txt3: #4A5878;
+  --brand-bdr: rgba(255, 255, 255, 0.055);
+  --brand-bdr2: rgba(255, 255, 255, 0.10);
+  --brand-card-bg: rgba(12, 20, 40, 0.72);
+  --brand-sidebar-bg: rgba(8, 14, 28, 0.92);
+  --brand-topbar-bg: rgba(8, 14, 28, 0.90);
+}
+
+html[data-theme="light"] {
+  --brand-bg: #f8fafc;
+  --brand-bg1: #ffffff;
+  --brand-bg2: #f1f5f9;
+  --brand-bg3: #e2e8f0;
+  --brand-orange: #FF7A1A;
+  --brand-orange2: #FF9A3C;
+  --brand-orange3: rgba(255, 122, 26, 0.12);
+  --brand-txt: #0f172a;
+  --brand-txt2: #334155;
+  --brand-txt3: #64748b;
+  --brand-bdr: #e2e8f0;
+  --brand-bdr2: #cbd5e1;
+  --brand-card-bg: #ffffff;
+  --brand-sidebar-bg: #ffffff;
+  --brand-topbar-bg: #ffffff;
+}
