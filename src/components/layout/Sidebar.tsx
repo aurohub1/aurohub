@@ -318,7 +318,6 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
         }))
         .filter((section) => section.items.length > 0)
     : rawSections;
-  const label = brandLabel ?? "Central ADM";
   const initial = user.name.charAt(0).toUpperCase();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
@@ -364,9 +363,6 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
         <div className="min-w-0">
           <div className="truncate text-[15px] font-bold leading-tight text-[var(--txt)]">
             Aurohub
-          </div>
-          <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#D4A843]">
-            {label}
           </div>
         </div>
       </div>

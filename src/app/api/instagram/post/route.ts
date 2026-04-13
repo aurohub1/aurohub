@@ -33,26 +33,21 @@ export async function POST(req: NextRequest) {
     );
 
     // Access token sempre vem por licensee. IG user id pode vir por store (caso fornecido).
-    const { data: cred, error: credErr } = await sb
+    let credQuery = sb
       .from("instagram_credentials")
       .select("ig_user_id, access_token")
-      .eq("licensee_id", licensee_id)
-      .single();
+      .eq("licensee_id", licensee_id);
+
+    if (store_id) {
+      credQuery = credQuery.eq("store_id", store_id);
+    }
+
+    const { data: cred, error: credErr } = await credQuery.single();
     if (credErr || !cred) {
       return NextResponse.json({ error: "Instagram não configurado para este cliente" }, { status: 404 });
     }
 
-    let igUserId: string = cred.ig_user_id;
-    if (store_id) {
-      const { data: storeRow } = await sb
-        .from("stores")
-        .select("ig_user_id")
-        .eq("id", store_id)
-        .single();
-      const storeIg = (storeRow as { ig_user_id?: string | null } | null)?.ig_user_id;
-      if (storeIg) igUserId = storeIg;
-    }
-    const ig = { ig_user_id: igUserId, access_token: cred.access_token };
+    const ig = { ig_user_id: cred.ig_user_id, access_token: cred.access_token };
 
     // 1. Criar media container
     const createUrl = `https://graph.instagram.com/v23.0/${ig.ig_user_id}/media`;
