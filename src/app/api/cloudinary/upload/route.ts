@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     if (!dataUrl) return NextResponse.json({ error: "dataUrl required" }, { status: 400 });
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
+    const paramsToSign = `folder=${folder}&timestamp=${timestamp}&type=upload`;
     const signature = crypto.createHash("sha1").update(paramsToSign + secret).digest("hex");
 
     const fd = new FormData();
@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     fd.append("timestamp", String(timestamp));
     fd.append("folder", folder);
     fd.append("signature", signature);
+    fd.append("type", "upload");
 
     const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/${resourceType}/upload`, {
       method: "POST",
