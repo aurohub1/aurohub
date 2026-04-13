@@ -16,7 +16,7 @@ interface Store { id: string; name: string; licensee_id: string; }
 interface Segment { id: string; name: string; icon: string | null; }
 interface Plan { slug: string; name: string; max_posts_day: number; can_schedule: boolean; can_metrics: boolean; is_enterprise: boolean; }
 
-type ModalTab = "dados" | "acesso" | "limites";
+type ModalTab = "dados" | "acesso" | "limites" | "senha";
 
 const ROLE_MAP: Record<string, { label: string; color: string }> = {
   adm:      { label: "ADM",       color: "#D4A843" },
@@ -58,6 +58,9 @@ export default function UsuariosPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [modalError, setModalError] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState("");
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Config modal
@@ -207,6 +210,33 @@ export default function UsuariosPage() {
       }
       setEditOpen(false); await loadData();
     } catch (err) { console.error("[handleSave]", err); setModalError("Erro ao salvar."); } finally { setSaving(false); }
+  }
+
+  async function resetPassword(userId: string) {
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordMsg("Mínimo 6 caracteres");
+      return;
+    }
+    setPasswordSaving(true);
+    setPasswordMsg("");
+    try {
+      const res = await fetch("/api/admin/reset-password-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, password: newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordMsg("✅ Senha alterada com sucesso");
+        setNewPassword("");
+      } else {
+        setPasswordMsg(`❌ ${data.error || "Erro"}`);
+      }
+    } catch {
+      setPasswordMsg("❌ Erro de conexão");
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   /* ── Config modal ──────────────────────────────── */
@@ -384,9 +414,9 @@ export default function UsuariosPage() {
 
             {/* Tabs */}
             <div className="flex border-b border-[var(--bdr)] px-6">
-              {(["dados", "acesso", "limites"] as ModalTab[]).map((t) => (
+              {(["dados", "acesso", "limites", ...(editId ? ["senha"] : [])] as ModalTab[]).map((t) => (
                 <button key={t} onClick={() => setEditTab(t)} className={`border-b-2 px-4 py-2.5 text-[12px] font-medium ${editTab === t ? "border-[var(--txt)] text-[var(--txt)]" : "border-transparent text-[var(--txt3)]"}`}>
-                  {t === "dados" ? "Dados" : t === "acesso" ? "Lojas & Acesso" : "Limites & Plano"}
+                  {t === "dados" ? "Dados" : t === "acesso" ? "Lojas & Acesso" : t === "limites" ? "Limites & Plano" : "Senha"}
                 </button>
               ))}
             </div>
@@ -518,6 +548,36 @@ export default function UsuariosPage() {
                     <F label="Reels/mês" value={form.reels_limit} onChange={(v) => setForm({ ...form, reels_limit: v })} type="number" />
                     <F label="TV/mês" value={form.tv_limit} onChange={(v) => setForm({ ...form, tv_limit: v })} type="number" />
                   </div>
+                </div>
+              )}
+
+              {/* TAB 4: Senha */}
+              {editTab === "senha" && (
+                <div className="flex flex-col gap-4 p-6">
+                  <p className="text-[12px] text-[var(--txt3)]">
+                    Altera a senha de acesso deste usuário.
+                  </p>
+                  <div className="flex gap-2">
+                    <input type="text" value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Nova senha (mín. 6 caracteres)"
+                      className="h-9 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:outline-none focus:border-[#D4A843]" />
+                    <button onClick={() => setNewPassword(Math.random().toString(36).slice(2,10))}
+                      className="h-9 px-3 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] text-[11px] text-[var(--txt2)]">
+                      🎲
+                    </button>
+                  </div>
+                  {passwordMsg && (
+                    <p className="text-[11px]" style={{color: passwordMsg.includes("✅") ? "var(--green)" : "var(--red)"}}>
+                      {passwordMsg}
+                    </p>
+                  )}
+                  <button onClick={() => editId && resetPassword(editId)}
+                    disabled={passwordSaving || !newPassword}
+                    className="h-9 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50"
+                    style={{background: "linear-gradient(135deg, #FF7A1A, #D4A843)"}}>
+                    {passwordSaving ? "Salvando..." : "Alterar senha"}
+                  </button>
                 </div>
               )}
 
