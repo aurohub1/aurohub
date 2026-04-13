@@ -257,7 +257,7 @@ export default function PublicarPage() {
   const [caption, setCaption] = useState<string>("");
 
   // Música (stories/reels)
-  const [musicasDisponiveis, setMusicasDisponiveis] = useState<{ id: string; nome: string; artista: string; url: string; inicio_segundos: number }[]>([]);
+  const [musicasDisponiveis, setMusicasDisponiveis] = useState<{ id: string; nome: string; artista: string; cloudinary_url: string; inicio_segundos: number }[]>([]);
   const [selectedMusicaId, setSelectedMusicaId] = useState<string>("");
   const [musicaPlaying, setMusicaPlaying] = useState(false);
   const musicaAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -446,7 +446,7 @@ export default function PublicarPage() {
       if (p.licensee_id) {
         const { data: mData } = await supabase
           .from("musicas")
-          .select("id, nome, artista, url, inicio_segundos")
+          .select("id, nome, artista, cloudinary_url, inicio_segundos")
           .eq("ativa", true)
           .or(`licensee_id.is.null,licensee_id.eq.${p.licensee_id}`)
           .order("nome");
@@ -1167,7 +1167,7 @@ export default function PublicarPage() {
                               setMusicaPlaying(false);
                             } else {
                               if (musicaAudioRef.current) musicaAudioRef.current.pause();
-                              const audio = new Audio(sel.url);
+                              const audio = new Audio(sel.cloudinary_url);
                               audio.currentTime = sel.inicio_segundos;
                               audio.play();
                               audio.onended = () => setMusicaPlaying(false);

@@ -7,9 +7,9 @@ interface Musica {
   id: string;
   nome: string;
   artista: string;
-  url: string;
-  public_id: string;
-  duracao: number | null;
+  cloudinary_url: string;
+  cloudinary_public_id: string;
+  duracao_segundos: number | null;
   inicio_segundos: number;
   licensee_id: string | null;
   ativa: boolean;
@@ -80,9 +80,9 @@ export default function MusicasPage() {
       }
 
       // Detecta duração via Audio API
-      let duracao: number | null = upData.duration ? Math.round(upData.duration) : null;
-      if (!duracao) {
-        duracao = await new Promise<number | null>((resolve) => {
+      let duracao_segundos: number | null = upData.duration ? Math.round(upData.duration) : null;
+      if (!duracao_segundos) {
+        duracao_segundos = await new Promise<number | null>((resolve) => {
           const audio = new Audio(upData.secure_url);
           audio.addEventListener("loadedmetadata", () => resolve(Math.round(audio.duration)));
           audio.addEventListener("error", () => resolve(null));
@@ -93,9 +93,9 @@ export default function MusicasPage() {
       const { error } = await supabase.from("musicas").insert({
         nome: form.nome.trim(),
         artista: form.artista.trim(),
-        url: upData.secure_url,
-        public_id: upData.public_id,
-        duracao,
+        cloudinary_url: upData.secure_url,
+        cloudinary_public_id: upData.public_id,
+        duracao_segundos,
         inicio_segundos: parseInt(form.inicio_segundos) || 0,
         licensee_id: form.licensee_id || null,
         ativa: true,
@@ -136,7 +136,7 @@ export default function MusicasPage() {
       return;
     }
     if (audioRef.current) audioRef.current.pause();
-    const audio = new Audio(m.url);
+    const audio = new Audio(m.cloudinary_url);
     audio.currentTime = m.inicio_segundos;
     audio.play();
     audio.onended = () => setPlayingId(null);
@@ -233,7 +233,7 @@ export default function MusicasPage() {
               </div>
 
               {/* Duração */}
-              <span className="shrink-0 text-[10px] font-mono text-[var(--txt3)]">{fmt(m.duracao)}</span>
+              <span className="shrink-0 text-[10px] font-mono text-[var(--txt3)]">{fmt(m.duracao_segundos)}</span>
 
               {/* Início */}
               <div className="flex shrink-0 items-center gap-1">
