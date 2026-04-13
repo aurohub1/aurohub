@@ -60,6 +60,7 @@ export default function ClientesPage() {
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [modalError, setModalError] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
   /** Overrides carregadas. `undefined` = segue o padrão do plano. */
@@ -698,7 +699,7 @@ export default function ClientesPage() {
 
               {modalTab === "tema" && (() => {
                 const hex2hsl = (hex: string) => {
-                  let r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+                  const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
                   const max = Math.max(r,g,b), min = Math.min(r,g,b), l = (max+min)/2;
                   let h = 0, s = 0;
                   if (max !== min) {
@@ -720,19 +721,42 @@ export default function ClientesPage() {
                   }
                   return `#${[r,g,b2].map(v=>Math.round(v*255).toString(16).padStart(2,"0")).join("")}`;
                 };
-                const suggestTheme = () => {
-                  const [h, s] = hex2hsl(form.cor_primaria || "#FF7A1A");
-                  setForm(f => ({
-                    ...f,
+                const generateFromPrimary = (primary: string) => {
+                  const [h, s] = hex2hsl(primary);
+                  return {
+                    cor_primaria: primary,
                     cor_secundaria: hsl2hex(h, Math.min(100, s + 10), 55),
                     tema_fundo_escuro: hsl2hex(h, Math.min(40, s), 8),
                     tema_fundo_claro: hsl2hex(h, Math.max(10, s - 30), 97),
                     tema_texto_escuro: hsl2hex(h, Math.min(20, s), 15),
                     tema_texto_claro: hsl2hex(h, Math.min(15, s), 93),
-                  }));
+                  };
+                };
+                const suggestTheme = () => {
+                  const generated = generateFromPrimary(form.cor_primaria || "#009FE3");
+                  setForm(f => ({ ...f, ...generated }));
+                };
+                const extractFromLogo = async () => {
+                  if (!form.logo_url) { setModalError("Nenhum logo cadastrado."); return; }
+                  setExtracting(true); setModalError("");
+                  try {
+                    const res = await fetch("/api/admin/extract-colors", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ logoUrl: form.logo_url }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.colors?.length) throw new Error(data.error || "Nenhuma cor encontrada");
+                    const primary = data.colors[0];
+                    const generated = generateFromPrimary(primary);
+                    if (data.colors[1]) generated.cor_secundaria = data.colors[1];
+                    setForm(f => ({ ...f, ...generated }));
+                  } catch (err) {
+                    setModalError(err instanceof Error ? err.message : "Erro ao extrair cores");
+                  } finally { setExtracting(false); }
                 };
                 const p = {
-                  accent: form.cor_primaria || "#FF7A1A",
+                  accent: form.cor_primaria || "#009FE3",
                   accent2: form.cor_secundaria || "#D4A843",
                   bgDark: form.tema_fundo_escuro || "#0A1020",
                   bgLight: form.tema_fundo_claro || "#ffffff",
@@ -759,9 +783,14 @@ export default function ClientesPage() {
                     ))}
                   </div>
 
-                  <button type="button" onClick={suggestTheme} className="self-start rounded-lg border border-[var(--bdr)] px-4 py-2 text-[11px] font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)] transition-colors">
-                    Sugerir tema a partir da cor principal
-                  </button>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={suggestTheme} className="rounded-lg border border-[var(--bdr)] px-4 py-2 text-[11px] font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)] transition-colors">
+                      Sugerir tema
+                    </button>
+                    <button type="button" onClick={extractFromLogo} disabled={extracting || !form.logo_url} className="rounded-lg border border-[var(--bdr)] px-4 py-2 text-[11px] font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      {extracting ? "Extraindo..." : "Extrair cores do logo"}
+                    </button>
+                  </div>
 
                   {/* Preview */}
                   <div className="grid grid-cols-2 gap-3 mt-1">
@@ -787,7 +816,7 @@ export default function ClientesPage() {
                     </div>
                     {/* Light preview */}
                     <div className="rounded-xl overflow-hidden border border-[var(--bdr)]" style={{ background: p.bgLight }}>
-                      <div className="text-[9px] font-semibold px-2 py-1 text-center" style={{ background: `${p.bgLight}`, color: p.txtDark, borderBottom: `1px solid ${p.accent}33` }}>Claro</div>
+                      <div className="text-[9px] font-semibold px-2 py-1 text-center" style={{ background: p.bgLight, color: p.txtDark, borderBottom: `1px solid ${p.accent}33` }}>Claro</div>
                       <div className="flex h-[100px]">
                         <div className="w-[52px] shrink-0 flex flex-col gap-1.5 p-1.5" style={{ background: p.bgLight, borderRight: `1px solid ${p.accent}22` }}>
                           <div className="h-1.5 rounded-full" style={{ background: p.accent, width: "80%" }} />
