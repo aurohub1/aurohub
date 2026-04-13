@@ -36,6 +36,18 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
       const feats = await getFeatures(supabase, p);
       setFeatures(feats);
 
+      // Injeta CSS do tema do licensee
+      if (p.licensee_id) {
+        let link = document.getElementById("brand-theme-css") as HTMLLinkElement | null;
+        if (!link) {
+          link = document.createElement("link");
+          link.id = "brand-theme-css";
+          link.rel = "stylesheet";
+          document.head.appendChild(link);
+        }
+        link.href = `/api/theme/${p.licensee_id}`;
+      }
+
       setChecking(false);
     })();
   }, [router]);
