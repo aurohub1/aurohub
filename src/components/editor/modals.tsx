@@ -486,7 +486,7 @@ export function CropModal({ src, initial, onClose, onConfirm }: {
 /* ══ SAVE TEMPLATE MODAL ══════════════════════════ */
 
 interface MarcaRow { id: string; name: string; }
-interface LojaRow { id: string; name: string; }
+interface LojaRow { id: string; name: string; licensee_id?: string; }
 
 export interface SaveTemplateData {
   nome: string;
@@ -571,14 +571,18 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
   // Referência pra pré-seleção da loja do profile após lojas carregarem
   const pendingStoreRef = useRef<string | null>(null);
 
-  // Carrega stores da marca selecionada
+  // Carrega stores da marca selecionada (ou todas se ADM sem marca)
   useEffect(() => {
-    if (!licenseeId) { setLojas([]); return; }
     (async () => {
       let rows: LojaRow[] = [];
       try {
-        const r = await supabase.from("stores").select("id,name").eq("licensee_id", licenseeId).order("name");
-        if (!r.error && r.data) rows = r.data as LojaRow[];
+        if (licenseeId) {
+          const r = await supabase.from("stores").select("id,name,licensee_id").eq("licensee_id", licenseeId).order("name");
+          if (!r.error && r.data) rows = r.data as LojaRow[];
+        } else {
+          const r = await supabase.from("stores").select("id,name,licensee_id").order("name");
+          if (!r.error && r.data) rows = r.data as LojaRow[];
+        }
       } catch {}
       setLojas(rows);
 
@@ -640,7 +644,24 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
           </L>
           <L label="Loja">
             <select value={lojaId} onChange={e => setLojaId(e.target.value)} style={fieldS}>
-              {lojas.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              {licenseeId
+                ? lojas.map(l => <option key={l.id} value={l.id}>{l.name}</option>)
+                : (() => {
+                    const grouped: Record<string, LojaRow[]> = {};
+                    for (const l of lojas) {
+                      const key = l.licensee_id || "sem-marca";
+                      (grouped[key] ??= []).push(l);
+                    }
+                    return Object.entries(grouped).map(([licId, items]) => {
+                      const marca = marcas.find(m => m.id === licId);
+                      return (
+                        <optgroup key={licId} label={marca?.name || licId}>
+                          {items.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </optgroup>
+                      );
+                    });
+                  })()
+              }
             </select>
           </L>
         </div>
