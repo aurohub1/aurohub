@@ -10,9 +10,9 @@ import { useContentProtection } from "@/hooks/useContentProtection";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 
 function lighten(hex: string, amount = 20): string {
-  const r = Math.min(255, parseInt(hex.slice(1, 3), 16) + amount);
-  const g = Math.min(255, parseInt(hex.slice(3, 5), 16) + amount);
-  const b = Math.min(255, parseInt(hex.slice(5, 7), 16) + amount);
+  const r = Math.min(255, Math.max(0, parseInt(hex.slice(1, 3), 16) + amount));
+  const g = Math.min(255, Math.max(0, parseInt(hex.slice(3, 5), 16) + amount));
+  const b = Math.min(255, Math.max(0, parseInt(hex.slice(5, 7), 16) + amount));
   return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
 }
 
@@ -21,11 +21,13 @@ interface BrandColors {
   cor_secundaria?: string | null;
   tema_fundo_escuro?: string | null;
   tema_fundo_claro?: string | null;
+  tema_texto_escuro?: string | null;
+  tema_texto_claro?: string | null;
 }
 
 function applyBrandTheme(colors: BrandColors) {
   const el = document.documentElement;
-  const theme = localStorage.getItem("ah_theme") || "light";
+  const dark = (localStorage.getItem("ah_theme") || "light") === "dark";
 
   if (colors.cor_primaria) {
     el.style.setProperty("--brand-orange", colors.cor_primaria);
@@ -33,15 +35,27 @@ function applyBrandTheme(colors: BrandColors) {
     el.style.setProperty("--brand-orange3", colors.cor_primaria + "1f");
   }
 
-  const bg = theme === "dark" ? colors.tema_fundo_escuro : colors.tema_fundo_claro;
+  const bg = dark ? colors.tema_fundo_escuro : colors.tema_fundo_claro;
   if (bg) {
     el.style.setProperty("--brand-bg", bg);
-    el.style.setProperty("--brand-bg1", lighten(bg, theme === "dark" ? 8 : -4));
-    el.style.setProperty("--brand-bg2", lighten(bg, theme === "dark" ? 16 : -8));
-    el.style.setProperty("--brand-bg3", lighten(bg, theme === "dark" ? 30 : -16));
-    el.style.setProperty("--card-bg", theme === "dark" ? `${bg}b8` : bg);
-    el.style.setProperty("--sidebar-bg", theme === "dark" ? `${bg}eb` : bg);
-    el.style.setProperty("--topbar-bg", theme === "dark" ? `${bg}e6` : bg);
+    el.style.setProperty("--brand-bg1", lighten(bg, dark ? 8 : -4));
+    el.style.setProperty("--brand-bg2", lighten(bg, dark ? 16 : -8));
+    el.style.setProperty("--brand-bg3", lighten(bg, dark ? 30 : -16));
+    el.style.setProperty("--brand-card-bg", dark ? `${bg}b8` : `${bg}e8`);
+    el.style.setProperty("--brand-sidebar-bg", dark ? `${bg}eb` : `${lighten(bg, -4)}eb`);
+    el.style.setProperty("--brand-topbar-bg", dark ? `${bg}e6` : `${lighten(bg, -4)}e6`);
+  }
+
+  const txt = dark ? colors.tema_texto_claro : colors.tema_texto_escuro;
+  if (txt) {
+    el.style.setProperty("--brand-txt", txt);
+    el.style.setProperty("--brand-txt2", lighten(txt, dark ? -30 : 30));
+    el.style.setProperty("--brand-txt3", lighten(txt, dark ? -60 : 60));
+  }
+
+  if (colors.cor_primaria) {
+    el.style.setProperty("--brand-bdr", colors.cor_primaria + "26");
+    el.style.setProperty("--brand-bdr2", colors.cor_primaria + "40");
   }
 }
 
@@ -76,7 +90,7 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
       if (p.licensee_id) {
         const { data: lic } = await supabase
           .from("licensees")
-          .select("cor_primaria,cor_secundaria,tema_fundo_escuro,tema_fundo_claro")
+          .select("cor_primaria,cor_secundaria,tema_fundo_escuro,tema_fundo_claro,tema_texto_escuro,tema_texto_claro")
           .eq("id", p.licensee_id)
           .single();
         if (lic) applyBrandTheme(lic);
