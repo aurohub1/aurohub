@@ -255,6 +255,12 @@ export default function PublicarPage() {
 
   // Legenda
   const [caption, setCaption] = useState<string>("");
+
+  // Música (stories/reels)
+  const [musicasDisponiveis, setMusicasDisponiveis] = useState<{ id: string; nome: string; artista: string; url: string; inicio_segundos: number }[]>([]);
+  const [selectedMusicaId, setSelectedMusicaId] = useState<string>("");
+  const [musicaPlaying, setMusicaPlaying] = useState(false);
+  const musicaAudioRef = useRef<HTMLAudioElement | null>(null);
   const [generatingCaption, setGeneratingCaption] = useState(false);
 
   // Stores / publish targets
@@ -435,6 +441,17 @@ export default function PublicarPage() {
         const feats = await getFeatures(supabase, p);
         setFeatures(feats);
       } catch { /* noop */ }
+
+      // Músicas disponíveis (públicas + exclusivas do licensee)
+      if (p.licensee_id) {
+        const { data: mData } = await supabase
+          .from("musicas")
+          .select("id, nome, artista, url, inicio_segundos")
+          .eq("ativa", true)
+          .or(`licensee_id.is.null,licensee_id.eq.${p.licensee_id}`)
+          .order("nome");
+        setMusicasDisponiveis(mData ?? []);
+      }
 
       // Daily counters
       if (allStores[0]) await loadDailyCount(allStores[0].id);
@@ -1116,6 +1133,60 @@ export default function PublicarPage() {
                     </Field>
                   </Section>
                 </>
+              )}
+
+              {/* Música — Stories e Reels */}
+              {(format === "stories" || format === "reels") && musicasDisponiveis.length > 0 && (
+                <div className="border-t border-[var(--bdr)] pt-4">
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
+                    Música
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedMusicaId}
+                      onChange={e => {
+                        setSelectedMusicaId(e.target.value);
+                        if (musicaAudioRef.current) { musicaAudioRef.current.pause(); setMusicaPlaying(false); }
+                      }}
+                      className="h-9 flex-1 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
+                    >
+                      <option value="">Sem música</option>
+                      {musicasDisponiveis.map(m => (
+                        <option key={m.id} value={m.id}>{m.nome} — {m.artista}</option>
+                      ))}
+                    </select>
+                    {selectedMusicaId && (() => {
+                      const sel = musicasDisponiveis.find(m => m.id === selectedMusicaId);
+                      if (!sel) return null;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (musicaPlaying) {
+                              musicaAudioRef.current?.pause();
+                              setMusicaPlaying(false);
+                            } else {
+                              if (musicaAudioRef.current) musicaAudioRef.current.pause();
+                              const audio = new Audio(sel.url);
+                              audio.currentTime = sel.inicio_segundos;
+                              audio.play();
+                              audio.onended = () => setMusicaPlaying(false);
+                              musicaAudioRef.current = audio;
+                              setMusicaPlaying(true);
+                            }
+                          }}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--orange3)] hover:text-[var(--orange)]"
+                        >
+                          {musicaPlaying ? (
+                            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><rect x="3" y="2" width="4" height="12" rx="1" /><rect x="9" y="2" width="4" height="12" rx="1" /></svg>
+                          ) : (
+                            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><path d="M4 2l10 6-10 6V2z" /></svg>
+                          )}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
               )}
 
               {/* Legenda — só em Reels e Feed */}
