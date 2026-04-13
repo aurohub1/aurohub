@@ -59,6 +59,7 @@ export default function ClientesPage() {
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [modalError, setModalError] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
   /** Overrides carregadas. `undefined` = segue o padrão do plano. */
@@ -268,6 +269,59 @@ export default function ClientesPage() {
       console.error("[Logo upload]", err);
       setModalError("Falha no upload — cole a URL manualmente.");
     } finally { setUploading(false); }
+  }
+
+  async function extractColorsFromLogo() {
+    const logoUrl = form.logo_url;
+    if (!logoUrl) return;
+    setExtracting(true);
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = logoUrl;
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const colorMap: Record<string, number> = {};
+      for (let i = 0; i < data.length; i += 16) {
+        const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+        if (a < 128) continue;
+        const rq = Math.round(r / 32) * 32;
+        const gq = Math.round(g / 32) * 32;
+        const bq = Math.round(b / 32) * 32;
+        const key = `${rq},${gq},${bq}`;
+        colorMap[key] = (colorMap[key] || 0) + 1;
+      }
+      const sorted = Object.entries(colorMap)
+        .sort((a, b) => b[1] - a[1])
+        .filter(([k]) => {
+          const [r, g, b] = k.split(",").map(Number);
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          const saturation = max === 0 ? 0 : (max - min) / max;
+          return saturation > 0.2 && max > 30;
+        })
+        .slice(0, 3);
+      if (sorted.length >= 1) {
+        const toHex = (k: string) => {
+          const [r, g, b] = k.split(",").map(Number);
+          return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
+        };
+        setForm(f => ({
+          ...f,
+          cor_primaria: toHex(sorted[0][0]),
+          cor_secundaria: sorted[1] ? toHex(sorted[1][0]) : f.cor_secundaria,
+          cor_acento: sorted[2] ? toHex(sorted[2][0]) : f.cor_acento,
+        }));
+      }
+    } catch { /* silent */ }
+    finally { setExtracting(false); }
   }
 
   function addStoreRow() { setFormStores([...formStores, { name: "", ig_user_id: "" }]); }
@@ -676,6 +730,13 @@ export default function ClientesPage() {
                         </div>
                       ))}
                     </div>
+                    <button
+                      onClick={extractColorsFromLogo}
+                      disabled={!form.logo_url || extracting}
+                      className="mt-2 h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] text-[11px] font-semibold text-[var(--txt2)] hover:bg-[var(--bg1)] disabled:opacity-40 transition-all"
+                    >
+                      {extracting ? "Extraindo..." : "🎨 Extrair cores do logo"}
+                    </button>
                   </div>
 
                   <Field label="Nome da empresa" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Agência Viaje Bem" />
