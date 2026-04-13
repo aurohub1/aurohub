@@ -48,8 +48,9 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
           root.style.setProperty("--empresa-secondary", licColors.cor_secundaria || "#D4A843");
           root.style.setProperty("--empresa-accent", licColors.cor_acento || "#1E3A6E");
           root.style.setProperty("--empresa-bg", licColors.cor_fundo || "#0E1520");
+          // Ativa tema empresa por padrão quando licensee tem cores
           const saved = localStorage.getItem("ah_theme");
-          if (!saved || saved === "empresa") {
+          if (!saved || saved === "light" || saved === "empresa") {
             root.setAttribute("data-theme", "empresa");
             localStorage.setItem("ah_theme", "empresa");
           }

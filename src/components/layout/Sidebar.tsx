@@ -365,7 +365,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
           <div className="truncate text-[15px] font-bold leading-tight text-[var(--txt)]">
             Aurohub
           </div>
-          <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#D4A843]">
+          <div className="max-w-[140px] truncate font-bold uppercase tracking-[0.1em] text-[#D4A843]" style={{ fontSize: label.length > 20 ? 8 : 10 }}>
             {label}
           </div>
         </div>
@@ -441,32 +441,21 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
           </div>
 
           {/* Theme toggle */}
-          <div className="flex gap-1">
-            {([
-              { value: "light", icon: <Sun size={13} />, title: "Claro" },
-              { value: "dark", icon: <Moon size={13} />, title: "Escuro" },
-              { value: "empresa", icon: <span style={{ fontSize: 11 }}>🎨</span>, title: "Empresa" },
-            ] as const).map(({ value, icon, title }) => (
-              <button
-                key={value}
-                onClick={() => {
-                  setTheme(value);
-                  localStorage.setItem("ah_theme", value);
-                  document.documentElement.setAttribute("data-theme", value);
-                  window.dispatchEvent(new CustomEvent("theme-change", { detail: value }));
-                }}
-                title={title}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors"
-                style={{
-                  borderColor: theme === value ? "#FF7A1A" : "var(--bdr2)",
-                  background: theme === value ? "rgba(255,122,26,0.12)" : "transparent",
-                  color: theme === value ? "#FF7A1A" : "var(--txt3)",
-                }}
-              >
-                {icon}
-              </button>
-            ))}
-          </div>
+          <button
+            onClick={() => {
+              const order: ("light" | "dark" | "empresa")[] = ["light", "dark", "empresa"];
+              const idx = order.indexOf(theme as "light" | "dark" | "empresa");
+              const next = order[(idx + 1) % order.length];
+              setTheme(next);
+              localStorage.setItem("ah_theme", next);
+              document.documentElement.setAttribute("data-theme", next);
+              window.dispatchEvent(new CustomEvent("theme-change", { detail: next }));
+            }}
+            title={theme === "dark" ? "Tema claro" : theme === "light" ? "Tema empresa" : "Tema escuro"}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:bg-[rgba(255,122,26,0.12)] hover:text-[#FF7A1A]"
+          >
+            {theme === "dark" ? <Sun size={14} /> : theme === "light" ? <span style={{ fontSize: 11 }}>🎨</span> : <Moon size={14} />}
+          </button>
 
           {/* Logout */}
           <button
