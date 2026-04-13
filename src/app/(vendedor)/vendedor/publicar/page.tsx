@@ -257,7 +257,9 @@ export default function PublicarPage() {
   const [caption, setCaption] = useState<string>("");
 
   // Música (stories/reels)
-  const [musicasDisponiveis, setMusicasDisponiveis] = useState<{ id: string; nome: string; artista: string; cloudinary_url: string; inicio_segundos: number }[]>([]);
+  const [musicasDisponiveis, setMusicasDisponiveis] = useState<{ id: string; nome: string; artista: string; cloudinary_url: string; inicio_segundos: number; duracao_segundos: number | null }[]>([]);
+  const [musicaSearch, setMusicaSearch] = useState("");
+  const [musicaOpen, setMusicaOpen] = useState(false);
   const [selectedMusicaId, setSelectedMusicaId] = useState<string>("");
   const [musicaPlaying, setMusicaPlaying] = useState(false);
   const musicaAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -446,7 +448,7 @@ export default function PublicarPage() {
       if (p.licensee_id) {
         const { data: mData } = await supabase
           .from("musicas")
-          .select("id, nome, artista, cloudinary_url, inicio_segundos")
+          .select("id, nome, artista, cloudinary_url, inicio_segundos, duracao_segundos")
           .eq("ativa", true)
           .or(`licensee_id.is.null,licensee_id.eq.${p.licensee_id}`)
           .order("nome");
@@ -1136,56 +1138,123 @@ export default function PublicarPage() {
               )}
 
               {/* Música — Stories e Reels */}
-              {(format === "stories" || format === "reels") && musicasDisponiveis.length > 0 && (
+              {(format === "stories" || format === "reels") && (
                 <div className="border-t border-[var(--bdr)] pt-4">
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
                     Música
                   </label>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={selectedMusicaId}
-                      onChange={e => {
-                        setSelectedMusicaId(e.target.value);
-                        if (musicaAudioRef.current) { musicaAudioRef.current.pause(); setMusicaPlaying(false); }
-                      }}
-                      className="h-9 flex-1 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
-                    >
-                      <option value="">Sem música</option>
-                      {musicasDisponiveis.map(m => (
-                        <option key={m.id} value={m.id}>{m.nome} — {m.artista}</option>
-                      ))}
-                    </select>
-                    {selectedMusicaId && (() => {
-                      const sel = musicasDisponiveis.find(m => m.id === selectedMusicaId);
-                      if (!sel) return null;
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (musicaPlaying) {
-                              musicaAudioRef.current?.pause();
-                              setMusicaPlaying(false);
-                            } else {
-                              if (musicaAudioRef.current) musicaAudioRef.current.pause();
-                              const audio = new Audio(sel.cloudinary_url);
-                              audio.currentTime = sel.inicio_segundos;
-                              audio.play();
-                              audio.onended = () => setMusicaPlaying(false);
-                              musicaAudioRef.current = audio;
-                              setMusicaPlaying(true);
-                            }
-                          }}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--orange3)] hover:text-[var(--orange)]"
-                        >
-                          {musicaPlaying ? (
-                            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><rect x="3" y="2" width="4" height="12" rx="1" /><rect x="9" y="2" width="4" height="12" rx="1" /></svg>
-                          ) : (
-                            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><path d="M4 2l10 6-10 6V2z" /></svg>
+                  {musicasDisponiveis.length === 0 ? (
+                    <p className="text-[11px] text-[var(--txt3)]">Nenhuma música disponível.</p>
+                  ) : (() => {
+                    const sel = musicasDisponiveis.find(m => m.id === selectedMusicaId);
+                    const fmtDur = (s: number | null) => s ? `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}` : "";
+                    const q = musicaSearch.trim().toLowerCase();
+                    const filtered = q
+                      ? musicasDisponiveis.filter(m =>
+                          m.nome.toLowerCase().includes(q) || m.artista.toLowerCase().includes(q))
+                      : musicasDisponiveis;
+                    return (
+                      <div className="relative">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type="text"
+                              value={sel && !musicaOpen ? `${sel.nome} — ${sel.artista}` : musicaSearch}
+                              onChange={e => { setMusicaSearch(e.target.value); setMusicaOpen(true); }}
+                              onFocus={() => { setMusicaOpen(true); setMusicaSearch(""); }}
+                              onBlur={() => setTimeout(() => setMusicaOpen(false), 150)}
+                              placeholder="Buscar música..."
+                              className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 pr-8 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
+                            />
+                            {selectedMusicaId && (
+                              <button
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setSelectedMusicaId("");
+                                  setMusicaSearch("");
+                                  if (musicaAudioRef.current) { musicaAudioRef.current.pause(); setMusicaPlaying(false); }
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--txt3)] hover:text-[var(--red)]"
+                              >
+                                ✕
+                              </button>
+                            )}
+                            {musicaOpen && (
+                              <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] shadow-lg">
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setSelectedMusicaId("");
+                                    setMusicaSearch("");
+                                    setMusicaOpen(false);
+                                    if (musicaAudioRef.current) { musicaAudioRef.current.pause(); setMusicaPlaying(false); }
+                                  }}
+                                  className="block w-full border-b border-[var(--bdr)] px-3 py-2 text-left text-[11px] italic text-[var(--txt3)] hover:bg-[var(--hover-bg)]"
+                                >
+                                  Sem música
+                                </button>
+                                {filtered.length === 0 ? (
+                                  <p className="px-3 py-2 text-[11px] text-[var(--txt3)]">Nada encontrado.</p>
+                                ) : filtered.map(m => (
+                                  <button
+                                    key={m.id}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      setSelectedMusicaId(m.id);
+                                      setMusicaSearch("");
+                                      setMusicaOpen(false);
+                                      if (musicaAudioRef.current) { musicaAudioRef.current.pause(); setMusicaPlaying(false); }
+                                    }}
+                                    className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-[var(--hover-bg)] ${m.id === selectedMusicaId ? "bg-[var(--orange3)]" : ""}`}
+                                  >
+                                    <div className="min-w-0 flex-1">
+                                      <div className="truncate text-[12px] font-semibold text-[var(--txt)]">{m.nome}</div>
+                                      <div className="truncate text-[10px] text-[var(--txt3)]">{m.artista}</div>
+                                    </div>
+                                    <span className="shrink-0 text-[10px] font-mono text-[var(--txt3)]">{fmtDur(m.duracao_segundos)}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {sel && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (musicaPlaying) {
+                                  musicaAudioRef.current?.pause();
+                                  setMusicaPlaying(false);
+                                } else {
+                                  if (musicaAudioRef.current) musicaAudioRef.current.pause();
+                                  const audio = new Audio(sel.cloudinary_url);
+                                  audio.currentTime = sel.inicio_segundos;
+                                  audio.play();
+                                  audio.onended = () => setMusicaPlaying(false);
+                                  musicaAudioRef.current = audio;
+                                  setMusicaPlaying(true);
+                                }
+                              }}
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--orange3)] hover:text-[var(--orange)]"
+                            >
+                              {musicaPlaying ? (
+                                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><rect x="3" y="2" width="4" height="12" rx="1" /><rect x="9" y="2" width="4" height="12" rx="1" /></svg>
+                              ) : (
+                                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><path d="M4 2l10 6-10 6V2z" /></svg>
+                              )}
+                            </button>
                           )}
-                        </button>
-                      );
-                    })()}
-                  </div>
+                        </div>
+                        {sel && (
+                          <p className="mt-1 text-[10px] text-[var(--txt3)]">
+                            Início em {sel.inicio_segundos}s{sel.duracao_segundos ? ` · duração ${fmtDur(sel.duracao_segundos)}` : ""}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
