@@ -78,7 +78,7 @@ function applyBrandTheme(colors: BrandColors) {
     styleEl.id = "brand-theme";
     document.head.appendChild(styleEl);
   }
-  styleEl.textContent = `[data-theme] { ${vars.map(v => v + ";").join(" ")} }`;
+  styleEl.textContent = `html[data-theme="dark"], html[data-theme="light"] { ${vars.map(v => v + ";").join(" ")} }`;
 }
 
 export default function UnidadeLayout({ children }: { children: React.ReactNode }) {
