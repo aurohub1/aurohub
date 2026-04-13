@@ -33,6 +33,29 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         return;
       }
       setProfile(p);
+
+      // Injeta cores da empresa se disponíveis
+      if (p.licensee_id) {
+        const { data: licColors } = await supabase
+          .from("licensees")
+          .select("cor_primaria,cor_secundaria,cor_acento,cor_fundo,splash_effect")
+          .eq("id", p.licensee_id)
+          .single();
+
+        if (licColors?.cor_primaria) {
+          const root = document.documentElement;
+          root.style.setProperty("--empresa-primary", licColors.cor_primaria);
+          root.style.setProperty("--empresa-secondary", licColors.cor_secundaria || "#D4A843");
+          root.style.setProperty("--empresa-accent", licColors.cor_acento || "#1E3A6E");
+          root.style.setProperty("--empresa-bg", licColors.cor_fundo || "#0E1520");
+          const saved = localStorage.getItem("ah_theme");
+          if (!saved || saved === "empresa") {
+            root.setAttribute("data-theme", "empresa");
+            localStorage.setItem("ah_theme", "empresa");
+          }
+        }
+      }
+
       const feats = await getFeatures(supabase, p);
       setFeatures(feats);
       setChecking(false);
