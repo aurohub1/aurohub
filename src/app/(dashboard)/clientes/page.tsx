@@ -751,9 +751,9 @@ export default function ClientesPage() {
               {modalTab === "lojas" && (
                 <div className="flex flex-col gap-3">
                   {formStores.map((s, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input type="text" value={s.name} onChange={(e) => updateStoreRow(i, "name", e.target.value)} placeholder="Nome da loja" className="h-9 flex-1 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
-                      <input type="text" value={s.ig_user_id} onChange={(e) => updateStoreRow(i, "ig_user_id", e.target.value)} placeholder="Instagram ID" className="h-9 w-[140px] rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
+                    <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                      <input type="text" value={s.name} onChange={(e) => updateStoreRow(i, "name", e.target.value)} placeholder="Nome da loja" className="h-9 min-w-0 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
+                      <input type="text" value={s.ig_user_id} onChange={(e) => updateStoreRow(i, "ig_user_id", e.target.value)} placeholder="Instagram ID" className="h-9 min-w-0 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
                       {formStores.length > 1 && (
                         <button onClick={() => removeStoreRow(i)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--txt3)] hover:text-[var(--red)]">
                           <svg viewBox="0 0 16 16" className="h-3.5 w-3.5"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
