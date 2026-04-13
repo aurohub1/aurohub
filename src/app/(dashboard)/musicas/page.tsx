@@ -72,7 +72,12 @@ export default function MusicasPage() {
         body: fd,
       });
       const upData = await upRes.json();
-      if (!upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
+      if (!upData.secure_url) {
+        console.error("Cloudinary error:", upData);
+        console.error("Status:", upRes.status, upRes.statusText);
+        console.error("Sign data used:", signData);
+        throw new Error(upData.error?.message || `Upload falhou (${upRes.status})`);
+      }
 
       // Detecta duração via Audio API
       let duracao: number | null = upData.duration ? Math.round(upData.duration) : null;
@@ -95,7 +100,10 @@ export default function MusicasPage() {
         licensee_id: form.licensee_id || null,
         ativa: true,
       });
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase insert error:", error);
+        throw new Error(`${error.message} (${error.code || "?"})`);
+      }
 
       setForm({ nome: "", artista: "", inicio_segundos: "0", licensee_id: "" });
       if (fileRef.current) fileRef.current.value = "";
