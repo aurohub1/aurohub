@@ -29,10 +29,10 @@ function applyBrandTheme(colors: BrandColors) {
   const dark = (localStorage.getItem("ah_theme") || "light") === "dark";
   const accent = colors.cor_primaria;
   const accent2 = colors.cor_secundaria || accent;
-  const bg = dark ? colors.tema_fundo_escuro : colors.tema_fundo_claro;
-  const txt = dark ? colors.tema_texto_escuro : colors.tema_texto_claro;
 
   const vars: string[] = [];
+
+  // Accent sempre do banco
   if (accent) {
     vars.push(`--brand-orange: ${accent}`);
     vars.push(`--brand-orange2: ${accent2}`);
@@ -40,20 +40,39 @@ function applyBrandTheme(colors: BrandColors) {
     vars.push(`--brand-bdr: ${accent}26`);
     vars.push(`--brand-bdr2: ${accent}40`);
   }
-  if (bg) {
-    vars.push(`--brand-bg: ${bg}`);
-    vars.push(`--brand-bg1: ${lighten(bg, dark ? 8 : -4)}`);
-    vars.push(`--brand-bg2: ${lighten(bg, dark ? 16 : -8)}`);
-    vars.push(`--brand-bg3: ${lighten(bg, dark ? 30 : -16)}`);
-    vars.push(`--brand-card-bg: ${dark ? `${bg}b8` : `${bg}e8`}`);
-    vars.push(`--brand-sidebar-bg: ${dark ? `${bg}eb` : `${lighten(bg, -4)}eb`}`);
-    vars.push(`--brand-topbar-bg: ${dark ? `${bg}e6` : `${lighten(bg, -4)}e6`}`);
+
+  if (dark) {
+    // Dark: bg/txt hardcoded (padrão Aurovista)
+    vars.push(`--brand-bg: #060B16`);
+    vars.push(`--brand-bg1: #0A1020`);
+    vars.push(`--brand-bg2: #0C1428`);
+    vars.push(`--brand-bg3: #182844`);
+    vars.push(`--brand-card-bg: rgba(12,20,40,0.72)`);
+    vars.push(`--brand-sidebar-bg: rgba(8,14,28,0.92)`);
+    vars.push(`--brand-topbar-bg: rgba(8,14,28,0.90)`);
+    vars.push(`--brand-txt: #EEF2FF`);
+    vars.push(`--brand-txt2: #8A9BBF`);
+    vars.push(`--brand-txt3: #4A5878`);
+  } else {
+    // Light: bg/txt do banco
+    const bg = colors.tema_fundo_claro;
+    const txt = colors.tema_texto_claro;
+    if (bg) {
+      vars.push(`--brand-bg: ${bg}`);
+      vars.push(`--brand-bg1: ${lighten(bg, -4)}`);
+      vars.push(`--brand-bg2: ${lighten(bg, -8)}`);
+      vars.push(`--brand-bg3: ${lighten(bg, -16)}`);
+      vars.push(`--brand-card-bg: ${bg}e8`);
+      vars.push(`--brand-sidebar-bg: ${lighten(bg, -4)}eb`);
+      vars.push(`--brand-topbar-bg: ${lighten(bg, -4)}e6`);
+    }
+    if (txt) {
+      vars.push(`--brand-txt: ${txt}`);
+      vars.push(`--brand-txt2: ${lighten(txt, 30)}`);
+      vars.push(`--brand-txt3: ${lighten(txt, 60)}`);
+    }
   }
-  if (txt) {
-    vars.push(`--brand-txt: ${txt}`);
-    vars.push(`--brand-txt2: ${lighten(txt, dark ? -30 : 30)}`);
-    vars.push(`--brand-txt3: ${lighten(txt, dark ? -60 : 60)}`);
-  }
+
   if (!vars.length) return;
 
   let styleEl = document.getElementById("brand-theme") as HTMLStyleElement | null;
