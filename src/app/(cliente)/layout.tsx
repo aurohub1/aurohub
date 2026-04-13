@@ -46,7 +46,7 @@ function applyBrandTheme(colors: BrandColors) {
     el.style.setProperty("--brand-topbar-bg", dark ? `${bg}e6` : `${lighten(bg, -4)}e6`);
   }
 
-  const txt = dark ? colors.tema_texto_claro : colors.tema_texto_escuro;
+  const txt = dark ? colors.tema_texto_escuro : colors.tema_texto_claro;
   if (txt) {
     el.style.setProperty("--brand-txt", txt);
     el.style.setProperty("--brand-txt2", lighten(txt, dark ? -30 : 30));
