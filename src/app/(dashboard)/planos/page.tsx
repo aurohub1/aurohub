@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 
 interface Plan {
   id: string; slug: string; name: string; price_monthly: number; price_yearly: number;
-  max_feed_reels_day?: number | null; max_stories_day?: number | null;
+  max_feed_reels_day?: number | null; max_stories_day?: number | null; max_downloads_day?: number | null;
   is_internal?: boolean | null;
   price_setup?: number; min_months?: number;
   max_users: number; max_posts_day: number; can_schedule: boolean; can_metrics: boolean;

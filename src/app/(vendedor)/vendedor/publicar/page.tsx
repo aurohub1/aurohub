@@ -38,6 +38,7 @@ interface PlanLimits {
   max_posts_day: number;
   max_feed_reels_day: number | null;
   max_stories_day: number | null;
+  max_downloads_day: number | null;
   can_schedule: boolean;
   can_ia_legenda: boolean;
   is_enterprise: boolean;
@@ -262,6 +263,7 @@ export default function PublicarPage() {
 
   // Daily counter
   const [postsByFormat, setPostsByFormat] = useState<PostsByFormat>({ stories: 0, feed: 0, reels: 0, tv: 0 });
+  const [downloadsToday, setDownloadsToday] = useState(0);
   const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
   const [features, setFeatures] = useState<Set<string>>(new Set());
 
@@ -331,6 +333,17 @@ export default function PublicarPage() {
       if (f === "stories" || f === "feed" || f === "reels" || f === "tv") counts[f]++;
     }
     setPostsByFormat(counts);
+  }, []);
+
+  const loadDailyDownloads = useCallback(async (licenseeId: string) => {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const { count } = await supabase
+      .from("activity_logs")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", start.toISOString())
+      .eq("event_type", "download_arte")
+      .like("metadata->>licensee_id", licenseeId);
+    setDownloadsToday(count ?? 0);
   }, []);
 
   const loadData = useCallback(async () => {
@@ -411,7 +424,7 @@ export default function PublicarPage() {
       if (slug) {
         const { data: plan } = await supabase
           .from("plans")
-          .select("slug, max_posts_day, max_feed_reels_day, max_stories_day, can_schedule, can_ia_legenda, is_enterprise")
+          .select("slug, max_posts_day, max_feed_reels_day, max_stories_day, max_downloads_day, can_schedule, can_ia_legenda, is_enterprise")
           .eq("slug", slug)
           .single();
         if (plan) setPlanLimits(plan as PlanLimits);
@@ -423,8 +436,9 @@ export default function PublicarPage() {
         setFeatures(feats);
       } catch { /* noop */ }
 
-      // Daily counter (via primeira store selecionada)
+      // Daily counters
       if (allStores[0]) await loadDailyCount(allStores[0].id);
+      if (p.licensee_id) await loadDailyDownloads(p.licensee_id);
 
       // Avião inicial pra passagem
       if (!formCache.passagem.imgaviao) {
@@ -663,6 +677,14 @@ export default function PublicarPage() {
   }
 
   async function handleDownload() {
+    // Verifica limite diário de downloads
+    const maxDl = planLimits?.max_downloads_day;
+    if (maxDl !== null && maxDl !== undefined && maxDl > 0 && downloadsToday >= maxDl) {
+      setStatus("error");
+      setStatusMsg(`Limite diário de downloads atingido (${downloadsToday}/${maxDl})`);
+      return;
+    }
+
     setStatus("generating");
     const dataUrl = getPNGDataURL();
     if (!dataUrl) { setStatus("error"); setStatusMsg("Falha ao gerar imagem"); return; }
@@ -670,6 +692,21 @@ export default function PublicarPage() {
     a.href = dataUrl;
     a.download = `${currentTemplate?.nome || "arte"}_${Date.now()}.png`;
     a.click();
+
+    // Registra download na activity_logs
+    if (profile?.licensee_id) {
+      await supabase.from("activity_logs").insert({
+        event_type: "download_arte",
+        metadata: {
+          licensee_id: profile.licensee_id,
+          store_id: profile.store_id,
+          template: currentTemplate?.nome || "manual",
+          format,
+        },
+      });
+      setDownloadsToday(d => d + 1);
+    }
+
     setStatus("success"); setStatusMsg("Imagem baixada");
     setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
   }
@@ -1146,6 +1183,8 @@ export default function PublicarPage() {
                 limits={formatLimits}
                 visible={formatVisible}
                 current={format}
+                downloads={downloadsToday}
+                maxDownloads={planLimits?.max_downloads_day}
               />
             </div>
           )}
@@ -1470,12 +1509,14 @@ function ServicosBlock({
 }
 
 function DailyCounter({
-  posts, limits, visible, current,
+  posts, limits, visible, current, downloads, maxDownloads,
 }: {
   posts: PostsByFormat;
   limits: FormatLimits;
   visible: FormatVisibility;
   current: Format;
+  downloads: number;
+  maxDownloads: number | null | undefined;
 }) {
   // Combina feed+reels em uma única barra
   type Row = { label: string; count: number; max: number | null; keys: Format[] };
@@ -1490,6 +1531,10 @@ function DailyCounter({
     rows.push({ label: "Feed/Reels", count: feedReelsCount, max: combinedMax, keys: ["feed", "reels"] });
   }
   if (visible.tv) rows.push({ label: "TV", count: posts.tv || 0, max: limits.tv, keys: ["tv"] });
+
+  // Downloads
+  const dlMax = maxDownloads ?? null;
+  rows.push({ label: "Downloads", count: downloads, max: dlMax, keys: [] });
 
   if (rows.length === 0) return null;
 
