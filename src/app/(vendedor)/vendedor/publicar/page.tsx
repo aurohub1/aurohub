@@ -720,7 +720,7 @@ export default function PublicarPage() {
               store_id: target.id,
               image_url: upData.secure_url,
               caption,
-              media_type: format === "stories" ? "STORIES" : "IMAGE",
+              media_type: format === "stories" ? "STORIES" : format === "reels" ? "REELS" : "IMAGE",
               format, // stories | feed | reels | tv — lido pelo contador diário
             }),
           });
