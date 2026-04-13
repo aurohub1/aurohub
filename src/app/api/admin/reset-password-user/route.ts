@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
     const { error } = await supabaseAdmin.auth.admin.updateUserById(
-      user_id, { password }
+      user_id, { password, email_confirm: true }
     );
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
