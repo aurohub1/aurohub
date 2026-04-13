@@ -726,7 +726,7 @@ export default function PublicarPage() {
           });
           const pubData = await pubRes.json();
           if (!pubRes.ok || !pubData.success) {
-            resultados.push({ store: target, ok: false, error: pubData.error || "Falhou" });
+            resultados.push({ store: target, ok: false, error: pubData.detail || pubData.error || "Falhou" });
           } else {
             resultados.push({ store: target, ok: true });
           }
