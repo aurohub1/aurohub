@@ -70,7 +70,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
         brandLabel="Painel do Vendedor"
         extraPanel={pathname === "/vendedor/publicar" ? <VendorPublishPanel /> : undefined}
       />
-      <div className="ml-[220px] flex min-h-dvh flex-1 flex-col overflow-x-hidden">
+      <div className="ml-[220px] flex min-h-dvh flex-1 flex-col overflow-x-hidden pb-10">
         <main className="flex flex-1 flex-col gap-5 p-6">{children}</main>
         <footer className="flex shrink-0 items-center gap-3 border-t border-[var(--bdr)] bg-[var(--bg1)] px-6 py-3 text-[0.68rem] text-[var(--txt3)] overflow-hidden">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--green)]" />
@@ -80,7 +80,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
           {tickerItems.length > 0 && (
             <>
               <span className="text-[var(--bdr2)]">&middot;</span>
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 max-w-full overflow-hidden">
                 <style>{`@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
                 <div className="flex whitespace-nowrap text-[10px] text-[var(--txt3)]"
                   style={{ animation: "ticker 40s linear infinite" }}>
