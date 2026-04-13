@@ -8,10 +8,10 @@
 /* ── Dark (default) ──────────────────────────────── */
 :root,
 [data-theme="dark"] {
-  --bg: #060B16;
-  --bg1: #0A1020;
-  --bg2: #0C1428;
-  --bg3: #182844;
+  --bg: var(--brand-bg, #060B16);
+  --bg1: var(--brand-bg1, #0A1020);
+  --bg2: var(--brand-bg2, #0C1428);
+  --bg3: var(--brand-bg3, #182844);
 
   --navy: #1E3A6E;
   --gold: #D4A843;
@@ -54,10 +54,10 @@
 
 /* ── Light ───────────────────────────────────────── */
 [data-theme="light"] {
-  --bg: #f8fafc;
-  --bg1: #ffffff;
-  --bg2: #f1f5f9;
-  --bg3: #e2e8f0;
+  --bg: var(--brand-bg, #f8fafc);
+  --bg1: var(--brand-bg1, #ffffff);
+  --bg2: var(--brand-bg2, #f1f5f9);
+  --bg3: var(--brand-bg3, #e2e8f0);
 
   --txt: #0f172a;
   --txt2: #334155;

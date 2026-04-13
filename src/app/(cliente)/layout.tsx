@@ -37,10 +37,10 @@ function applyBrandTheme(colors: BrandColors) {
   // Fundos baseados no tema ativo
   const bg = theme === "dark" ? colors.tema_fundo_escuro : colors.tema_fundo_claro;
   if (bg) {
-    el.style.setProperty("--bg", bg);
-    el.style.setProperty("--bg1", lighten(bg, theme === "dark" ? 8 : -4));
-    el.style.setProperty("--bg2", lighten(bg, theme === "dark" ? 16 : -8));
-    el.style.setProperty("--bg3", lighten(bg, theme === "dark" ? 30 : -16));
+    el.style.setProperty("--brand-bg", bg);
+    el.style.setProperty("--brand-bg1", lighten(bg, theme === "dark" ? 8 : -4));
+    el.style.setProperty("--brand-bg2", lighten(bg, theme === "dark" ? 16 : -8));
+    el.style.setProperty("--brand-bg3", lighten(bg, theme === "dark" ? 30 : -16));
     el.style.setProperty("--card-bg", theme === "dark" ? `${bg}b8` : bg);
     el.style.setProperty("--sidebar-bg", theme === "dark" ? `${bg}eb` : bg);
     el.style.setProperty("--topbar-bg", theme === "dark" ? `${bg}e6` : bg);
