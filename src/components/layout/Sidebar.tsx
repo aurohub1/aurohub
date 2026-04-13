@@ -320,20 +320,20 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
     : rawSections;
   const label = brandLabel ?? "Central ADM";
   const initial = user.name.charAt(0).toUpperCase();
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"dark" | "light" | "empresa">("light");
 
   useEffect(() => {
-    const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
+    const saved = localStorage.getItem("ah_theme") as "dark" | "light" | "empresa" | null;
     if (saved) setTheme(saved);
 
     const onThemeChange = (e: Event) => {
-      const t = (e as CustomEvent).detail as "dark" | "light";
+      const t = (e as CustomEvent).detail as "dark" | "light" | "empresa";
       setTheme(t);
     };
     window.addEventListener("theme-change", onThemeChange);
 
     const observer = new MutationObserver(() => {
-      const t = document.documentElement.getAttribute("data-theme") as "dark" | "light";
+      const t = document.documentElement.getAttribute("data-theme") as "dark" | "light" | "empresa";
       if (t) setTheme(t);
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
@@ -441,19 +441,32 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
           </div>
 
           {/* Theme toggle */}
-          <button
-            onClick={() => {
-              const next = theme === "dark" ? "light" : "dark";
-              setTheme(next);
-              localStorage.setItem("ah_theme", next);
-              document.documentElement.setAttribute("data-theme", next);
-              window.dispatchEvent(new CustomEvent("theme-change", { detail: next }));
-            }}
-            title={theme === "dark" ? "Tema claro" : "Tema escuro"}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--bdr2)] text-[var(--txt3)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:bg-[rgba(255,122,26,0.12)] hover:text-[#FF7A1A]"
-          >
-            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
-          </button>
+          <div className="flex gap-1">
+            {([
+              { value: "light", icon: <Sun size={13} />, title: "Claro" },
+              { value: "dark", icon: <Moon size={13} />, title: "Escuro" },
+              { value: "empresa", icon: <span style={{ fontSize: 11 }}>🎨</span>, title: "Empresa" },
+            ] as const).map(({ value, icon, title }) => (
+              <button
+                key={value}
+                onClick={() => {
+                  setTheme(value);
+                  localStorage.setItem("ah_theme", value);
+                  document.documentElement.setAttribute("data-theme", value);
+                  window.dispatchEvent(new CustomEvent("theme-change", { detail: value }));
+                }}
+                title={title}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors"
+                style={{
+                  borderColor: theme === value ? "#FF7A1A" : "var(--bdr2)",
+                  background: theme === value ? "rgba(255,122,26,0.12)" : "transparent",
+                  color: theme === value ? "#FF7A1A" : "var(--txt3)",
+                }}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
 
           {/* Logout */}
           <button
