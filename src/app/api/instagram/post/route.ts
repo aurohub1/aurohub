@@ -82,29 +82,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "container sem id", detail: createData }, { status: 500 });
     }
 
-    // Vídeo: enfileira para processamento assíncrono (cron publica quando FINISHED)
+    // Vídeo: retorna credentials para o client fazer polling de status_code
     if (video_url && (mediaType === "REELS" || mediaType === "STORIES")) {
-      const { data: queued, error: qErr } = await sb
-        .from("instagram_publish_queue")
-        .insert({
-          creation_id: creationId,
-          licensee_id,
-          store_id,
-          ig_user_id: ig.ig_user_id,
-          access_token: ig.access_token,
-          media_type: mediaType,
-          video_url,
-          caption: caption ?? "",
-          format: format ?? null,
-          status: "pending",
-        })
-        .select("id")
-        .single();
-      if (qErr) {
-        console.error("[Queue] Falha ao enfileirar:", qErr);
-        return NextResponse.json({ error: "Falha ao enfileirar", detail: qErr.message }, { status: 500 });
-      }
-      return NextResponse.json({ success: true, queued: true, queue_id: queued.id, creation_id: creationId });
+      return NextResponse.json({
+        success: true,
+        queued: true,
+        creation_id: creationId,
+        ig_user_id: ig.ig_user_id,
+        access_token: ig.access_token,
+      });
     }
 
     // Imagem: delay curto + publish síncrono

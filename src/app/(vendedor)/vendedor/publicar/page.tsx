@@ -256,6 +256,9 @@ export default function PublicarPage() {
   // Legenda
   const [caption, setCaption] = useState<string>("");
 
+  // Video processing modal
+  const [videoProcessing, setVideoProcessing] = useState<{ msg: string; stage: "polling" | "publishing" | "done" | "error" } | null>(null);
+
   // Música (stories/reels)
   const [musicasDisponiveis, setMusicasDisponiveis] = useState<{ id: string; nome: string; artista: string; cloudinary_url: string; inicio_segundos: number; duracao_segundos: number | null }[]>([]);
   const [musicaSearch, setMusicaSearch] = useState("");
@@ -695,6 +698,54 @@ export default function PublicarPage() {
     return stage.toDataURL({ pixelRatio: 1 / scale, mimeType: "image/jpeg", quality: 0.92 });
   }
 
+  async function waitAndPublishVideo(payload: {
+    creation_id: string;
+    ig_user_id: string;
+    access_token: string;
+    licensee_id: string;
+    store_id?: string;
+    video_url: string;
+    media_type: "REELS" | "STORIES";
+    format: Format;
+    caption: string;
+  }): Promise<boolean> {
+    const maxPolls = 36; // 36 × 5s = 180s (3 minutos)
+    for (let i = 0; i < maxPolls; i++) {
+      await new Promise(r => setTimeout(r, 5000));
+      const statusUrl = `/api/instagram/status?creation_id=${payload.creation_id}&access_token=${encodeURIComponent(payload.access_token)}`;
+      const sRes = await fetch(statusUrl);
+      const sData = await sRes.json();
+      const code = sData.status_code as string;
+
+      if (code === "FINISHED") {
+        setVideoProcessing({ msg: "Publicando...", stage: "publishing" });
+        const pubRes = await fetch("/api/instagram/publish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const pubData = await pubRes.json();
+        if (pubData.success) {
+          setVideoProcessing({ msg: "Publicado!", stage: "done" });
+          setTimeout(() => setVideoProcessing(null), 2000);
+          return true;
+        }
+        setVideoProcessing({ msg: pubData.error || "Falha ao publicar", stage: "error" });
+        return false;
+      }
+
+      if (code === "ERROR" || code === "EXPIRED") {
+        setVideoProcessing({ msg: `Instagram rejeitou o vídeo (${code})`, stage: "error" });
+        return false;
+      }
+
+      setVideoProcessing({ msg: `Processando no Instagram... (${i + 1})`, stage: "polling" });
+    }
+
+    setVideoProcessing({ msg: "Timeout (3 min). Tente novamente.", stage: "error" });
+    return false;
+  }
+
   async function recordCanvasWithAudio(durationSec: number): Promise<Blob | null> {
     const stage = stageRef.current;
     if (!stage) return null;
@@ -968,14 +1019,31 @@ export default function PublicarPage() {
           const pubData = await pubRes.json();
           if (!pubRes.ok || !pubData.success) {
             const rawErr: string = pubData.detail || pubData.error || "Falhou";
-            // Instagram rejeita formatos incompatíveis (aspect ratio, duração, codec)
             const isFormatErr = /unsupported|format|aspect|ratio|codec|duration|invalid.*video|resolution/i.test(rawErr);
             const friendlyErr = isFormatErr && isVideo
               ? "Formato não suportado pelo Instagram. Use o botão Download."
               : rawErr;
             resultados.push({ store: target, ok: false, error: friendlyErr });
           } else if (pubData.queued) {
-            resultados.push({ store: target, ok: true, error: "Vídeo em processamento..." });
+            // Vídeo: polling até FINISHED → publish
+            setVideoProcessing({ msg: "Enviando para o Instagram...", stage: "polling" });
+            try {
+              const ok = await waitAndPublishVideo({
+                creation_id: pubData.creation_id,
+                ig_user_id: pubData.ig_user_id,
+                access_token: pubData.access_token,
+                licensee_id: profile.licensee_id,
+                store_id: target.id,
+                video_url: mediaUrl,
+                media_type: format === "stories" ? "STORIES" : "REELS",
+                format,
+                caption,
+              });
+              if (ok) resultados.push({ store: target, ok: true });
+              else resultados.push({ store: target, ok: false, error: "Falha no processamento" });
+            } catch (err) {
+              resultados.push({ store: target, ok: false, error: err instanceof Error ? err.message : "Erro" });
+            }
           } else {
             resultados.push({ store: target, ok: true });
           }
@@ -1026,6 +1094,52 @@ export default function PublicarPage() {
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr]">
+      {/* ═══ MODAL PROCESSAMENTO VÍDEO ═══ */}
+      {videoProcessing && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="mx-6 max-w-md rounded-2xl border border-[var(--bdr)] bg-[var(--bg1)] p-8 shadow-2xl">
+            <div className="mb-5 flex justify-center">
+              {videoProcessing.stage === "done" ? (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--green3)]">
+                  <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="var(--green)" strokeWidth="3" strokeLinecap="round"><path d="M5 12l5 5L20 7" /></svg>
+                </div>
+              ) : videoProcessing.stage === "error" ? (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--red3)]">
+                  <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="var(--red)" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                </div>
+              ) : (
+                <div className="relative flex h-14 w-14 items-center justify-center">
+                  <div className="absolute inset-0 animate-spin rounded-full border-[3px] border-[var(--bdr)] border-t-[var(--orange)]" />
+                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="var(--orange)"><path d="M8 5v14l11-7z" /></svg>
+                </div>
+              )}
+            </div>
+            <h3 className="mb-2 text-center text-[16px] font-bold text-[var(--txt)]">
+              {videoProcessing.stage === "done" ? "Publicado!" : videoProcessing.stage === "error" ? "Erro" : "Processando vídeo"}
+            </h3>
+            <p className="mb-4 text-center text-[12px] text-[var(--txt2)]">{videoProcessing.msg}</p>
+            {videoProcessing.stage === "polling" || videoProcessing.stage === "publishing" ? (
+              <>
+                <p className="mb-4 text-center text-[11px] text-[var(--txt3)]">
+                  Seu vídeo está sendo processado pelo Instagram.<br />Não feche esta tela.
+                </p>
+                <div className="relative h-1 overflow-hidden rounded-full bg-[var(--bg2)]">
+                  <div className="absolute inset-y-0 w-1/3 animate-[slide_1.5s_linear_infinite] rounded-full bg-[var(--orange)]" />
+                </div>
+                <style>{`@keyframes slide{from{left:-33%}to{left:100%}}`}</style>
+              </>
+            ) : (
+              <button
+                onClick={() => setVideoProcessing(null)}
+                className="mx-auto block rounded-lg bg-[var(--bg2)] px-4 py-2 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--bg3)]"
+              >
+                Fechar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ═══ COLUNA ESQUERDA — FORM ═══ */}
       <div
         className="flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden rounded-2xl border border-[var(--bdr)] shadow-xl"
