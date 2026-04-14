@@ -5,7 +5,8 @@ export type SplashEffect =
   | "particles" | "cinematic" | "slideup" | "scalefade" | "fadesuave"
   | "ondas" | "flutuacao" | "scanner" | "holofote" | "chuvapontos"
   | "gradiente" | "dissolve" | "bigbang" | "aurora" | "tinta" | "vagalumes"
-  | "aurora_espacial" | "galaxia" | "vidro";
+  | "aurora_espacial" | "galaxia" | "vidro"
+  | "vidro_janela" | "vidro_liquido" | "vidro_cristal" | "vidro_prisma";
 
 interface Props {
   logoUrl: string;
@@ -32,6 +33,7 @@ const EFFECTS: SplashEffect[] = [
   "ondas","flutuacao","scanner","holofote","chuvapontos",
   "gradiente","dissolve","bigbang","aurora","tinta","vagalumes",
   "aurora_espacial","galaxia","vidro",
+  "vidro_janela","vidro_liquido","vidro_cristal","vidro_prisma",
 ];
 
 export default function SplashScreen({
@@ -734,6 +736,311 @@ export default function SplashScreen({
           ctx.fillStyle = core;
           ctx.beginPath();
           ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        }
+
+        case "vidro_janela": {
+          // Formas grandes passando atrás de vidro fosco
+          const suavidadeNorm = suavidade / 10;
+
+          // Fundo escuro
+          const bg = ctx.createLinearGradient(0, 0, W, H);
+          bg.addColorStop(0, "#0a0d1a");
+          bg.addColorStop(1, "#030510");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          // Formas geométricas grandes se movendo lentamente (com blur)
+          ctx.save();
+          ctx.filter = `blur(${Math.round(suavidadeNorm * 50)}px)`;
+          const shapes = [
+            { col: c1, x0: 0.2, y0: 0.3, size: 0.35, speed: 0.06, rot: 0 },
+            { col: c2, x0: 0.7, y0: 0.6, size: 0.4, speed: 0.05, rot: 0.5 },
+            { col: c3, x0: 0.5, y0: 0.15, size: 0.3, speed: 0.04, rot: 1.2 },
+            { col: c1, x0: 0.85, y0: 0.8, size: 0.28, speed: 0.055, rot: 2.1 },
+          ];
+          for (const s of shapes) {
+            const x = W * (s.x0 + Math.sin(t * s.speed + s.rot) * 0.15);
+            const y = H * (s.y0 + Math.cos(t * s.speed * 0.8 + s.rot) * 0.1);
+            const sz = H * s.size;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(t * s.speed + s.rot);
+            const grad = ctx.createLinearGradient(-sz, -sz, sz, sz);
+            grad.addColorStop(0, `rgba(${s.col.r},${s.col.g},${s.col.b},0.6)`);
+            grad.addColorStop(1, `rgba(${s.col.r},${s.col.g},${s.col.b},0.3)`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(-sz, -sz, sz * 2, sz * 2);
+            ctx.restore();
+          }
+          ctx.restore();
+
+          // Camada fosca translúcida (vidro) cobrindo tudo
+          ctx.fillStyle = "rgba(255,255,255,0.04)";
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = "rgba(0,0,0,0.15)";
+          ctx.fillRect(0, 0, W, H);
+
+          // Bordas sutis brilhando (moldura)
+          const border = 20;
+          const borderGrad = ctx.createLinearGradient(0, 0, 0, H);
+          borderGrad.addColorStop(0, "rgba(255,255,255,0.12)");
+          borderGrad.addColorStop(0.5, "rgba(255,255,255,0.02)");
+          borderGrad.addColorStop(1, "rgba(255,255,255,0.08)");
+          ctx.strokeStyle = borderGrad;
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(border, border, W - border * 2, H - border * 2);
+
+          // Highlight interno superior (reflexo de vidro)
+          const shine = ctx.createLinearGradient(0, border, 0, H * 0.3);
+          shine.addColorStop(0, "rgba(255,255,255,0.08)");
+          shine.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = shine;
+          ctx.fillRect(border, border, W - border * 2, H * 0.3 - border);
+          break;
+        }
+
+        case "vidro_liquido": {
+          // Superfície ondulante com reflexos
+          const suavidadeNorm = suavidade / 10;
+
+          // Fundo escuro gradient
+          const bg = ctx.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, "#050a18");
+          bg.addColorStop(1, "#0a1228");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          // Ondas de cor (camadas horizontais com distorção)
+          ctx.save();
+          ctx.filter = `blur(${Math.round(suavidadeNorm * 30)}px)`;
+
+          const waves = [
+            { col: c1, yBase: 0.35, amp: 0.08, freq: 0.004, speed: 0.3, phase: 0,   alpha: 0.4 },
+            { col: c2, yBase: 0.50, amp: 0.06, freq: 0.005, speed: 0.25, phase: 1.5, alpha: 0.35 },
+            { col: c3, yBase: 0.65, amp: 0.07, freq: 0.0045, speed: 0.35, phase: 3.0, alpha: 0.38 },
+          ];
+
+          for (const w of waves) {
+            ctx.beginPath();
+            ctx.moveTo(0, H);
+            for (let x = 0; x <= W; x += 3) {
+              const wave1 = Math.sin(x * w.freq + t * w.speed + w.phase) * H * w.amp;
+              const wave2 = Math.sin(x * w.freq * 2.3 - t * w.speed * 0.6) * H * w.amp * 0.4;
+              const y = H * w.yBase + wave1 + wave2;
+              ctx.lineTo(x, y);
+            }
+            ctx.lineTo(W, H);
+            ctx.closePath();
+            const col = w.col;
+            const grad = ctx.createLinearGradient(0, H * w.yBase - H * w.amp, 0, H);
+            grad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0)`);
+            grad.addColorStop(0.5, `rgba(${col.r},${col.g},${col.b},${w.alpha * 0.6})`);
+            grad.addColorStop(1, `rgba(${col.r},${col.g},${col.b},${w.alpha})`);
+            ctx.fillStyle = grad;
+            ctx.fill();
+          }
+          ctx.restore();
+
+          // Reflexos de luz que distorcem (linhas horizontais finas brilhantes)
+          for (let i = 0; i < 5; i++) {
+            const yBase = H * (0.3 + i * 0.12);
+            ctx.beginPath();
+            for (let x = 0; x <= W; x += 4) {
+              const y = yBase + Math.sin(x * 0.008 + t * 0.8 + i) * 8 + Math.sin(x * 0.02 + t * 1.2 + i * 0.7) * 3;
+              if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = `rgba(255,255,255,${0.1 + Math.sin(t + i) * 0.05})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+
+          // Borda superior com brilho especular (linha horizontal luminosa)
+          const topShine = ctx.createLinearGradient(0, 0, 0, 40);
+          topShine.addColorStop(0, "rgba(255,255,255,0.25)");
+          topShine.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = topShine;
+          ctx.fillRect(0, 0, W, 40);
+          break;
+        }
+
+        case "vidro_cristal": {
+          // Formas hexagonais com faces refletindo luz
+          // Fundo escuro
+          const bg = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.7);
+          bg.addColorStop(0, "#0e1128");
+          bg.addColorStop(1, "#040612");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          const rotation = t * 0.05;
+
+          // Diversos cristais hexagonais espalhados
+          const crystals = [
+            { x: 0.25, y: 0.3, r: 0.12, col: c1, rot: 0 },
+            { x: 0.7, y: 0.25, r: 0.09, col: c2, rot: 0.5 },
+            { x: 0.5, y: 0.55, r: 0.15, col: c3, rot: 1.2 },
+            { x: 0.2, y: 0.75, r: 0.1, col: c4, rot: 2.0 },
+            { x: 0.8, y: 0.7, r: 0.11, col: c5, rot: 2.8 },
+            { x: 0.55, y: 0.15, r: 0.07, col: c1, rot: 3.5 },
+          ];
+
+          for (let ci = 0; ci < crystals.length; ci++) {
+            const c = crystals[ci];
+            const cx = W * c.x;
+            const cy = H * c.y;
+            const r = H * c.r;
+            const rot = rotation + c.rot;
+
+            // Sombra
+            ctx.save();
+            ctx.filter = "blur(10px)";
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const a = (i / 6) * Math.PI * 2 + rot;
+              const px = cx + Math.cos(a) * r + 8;
+              const py = cy + Math.sin(a) * r + 8;
+              if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fill();
+            ctx.restore();
+
+            // Faces do hexágono (6 triângulos com gradientes diferentes)
+            for (let i = 0; i < 6; i++) {
+              const a1 = (i / 6) * Math.PI * 2 + rot;
+              const a2 = ((i + 1) / 6) * Math.PI * 2 + rot;
+              const x1 = cx + Math.cos(a1) * r;
+              const y1 = cy + Math.sin(a1) * r;
+              const x2 = cx + Math.cos(a2) * r;
+              const y2 = cy + Math.sin(a2) * r;
+              const midX = (x1 + x2) / 2;
+              const midY = (y1 + y2) / 2;
+
+              ctx.beginPath();
+              ctx.moveTo(cx, cy);
+              ctx.lineTo(x1, y1);
+              ctx.lineTo(x2, y2);
+              ctx.closePath();
+
+              // Gradient da face: luz vem de cima
+              const grad = ctx.createLinearGradient(cx, cy, midX, midY);
+              const brightness = 0.4 + Math.max(0, Math.sin(a1 + a2) / 2) * 0.5;
+              grad.addColorStop(0, `rgba(${c.col.r},${c.col.g},${c.col.b},${0.35 * brightness})`);
+              grad.addColorStop(1, `rgba(${c.col.r},${c.col.g},${c.col.b},${0.15 * brightness})`);
+              ctx.fillStyle = grad;
+              ctx.fill();
+
+              // Borda brilhante
+              ctx.strokeStyle = `rgba(255,255,255,${0.25 + brightness * 0.2})`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+
+            // Highlight central (especular)
+            const hi = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 0, cx - r * 0.3, cy - r * 0.3, r * 0.4);
+            hi.addColorStop(0, "rgba(255,255,255,0.35)");
+            hi.addColorStop(1, "rgba(255,255,255,0)");
+            ctx.fillStyle = hi;
+            ctx.beginPath();
+            ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+
+        case "vidro_prisma": {
+          // Raio central dispersado em espectro
+          const bg = ctx.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, "#020308");
+          bg.addColorStop(1, "#080b18");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          const cx = W / 2;
+          const cy = H / 2;
+          const prismRotation = t * 0.08;
+
+          // Forma do prisma central (triângulo)
+          const prismSize = H * 0.12;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(prismRotation);
+          ctx.beginPath();
+          ctx.moveTo(0, -prismSize);
+          ctx.lineTo(prismSize * 0.866, prismSize * 0.5);
+          ctx.lineTo(-prismSize * 0.866, prismSize * 0.5);
+          ctx.closePath();
+          const prismGrad = ctx.createLinearGradient(-prismSize, -prismSize, prismSize, prismSize);
+          prismGrad.addColorStop(0, "rgba(255,255,255,0.25)");
+          prismGrad.addColorStop(0.5, "rgba(200,220,255,0.15)");
+          prismGrad.addColorStop(1, "rgba(255,255,255,0.3)");
+          ctx.fillStyle = prismGrad;
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.5)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.restore();
+
+          // Raio branco entrando (da esquerda)
+          const rayIn = ctx.createLinearGradient(0, cy, cx - prismSize, cy);
+          rayIn.addColorStop(0, "rgba(255,255,255,0.8)");
+          rayIn.addColorStop(1, "rgba(255,255,255,0.2)");
+          ctx.fillStyle = rayIn;
+          ctx.fillRect(0, cy - 2, cx - prismSize, 4);
+
+          // Raios saindo em espectro (usando cores da empresa)
+          const spectrumColors = [c1, c2, c3, c4, c5];
+          const rayAngles = [-0.25, -0.12, 0, 0.12, 0.25]; // leque suave
+
+          for (let i = 0; i < spectrumColors.length; i++) {
+            const col = spectrumColors[i];
+            const angle = rayAngles[i];
+            const startX = cx + prismSize * 0.5;
+            const startY = cy;
+            const endX = startX + Math.cos(angle) * W;
+            const endY = startY + Math.sin(angle) * W;
+
+            // Gradient do raio: mais forte no prisma, some nas bordas
+            const grad = ctx.createLinearGradient(startX, startY, endX, endY);
+            grad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0.9)`);
+            grad.addColorStop(0.4, `rgba(${col.r},${col.g},${col.b},0.5)`);
+            grad.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0)`);
+
+            ctx.save();
+            ctx.beginPath();
+            // Raio como trapézio (mais fino no prisma, mais largo nas bordas)
+            const widthStart = 3;
+            const widthEnd = 80;
+            const perpX = -Math.sin(angle);
+            const perpY = Math.cos(angle);
+            ctx.moveTo(startX + perpX * widthStart, startY + perpY * widthStart);
+            ctx.lineTo(startX - perpX * widthStart, startY - perpY * widthStart);
+            ctx.lineTo(endX - perpX * widthEnd, endY - perpY * widthEnd);
+            ctx.lineTo(endX + perpX * widthEnd, endY + perpY * widthEnd);
+            ctx.closePath();
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Linha central brilhante
+            ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},0.8)`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // Glow central
+          const centralGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, prismSize * 2);
+          centralGlow.addColorStop(0, "rgba(255,255,255,0.4)");
+          centralGlow.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = centralGlow;
+          ctx.beginPath();
+          ctx.arc(cx, cy, prismSize * 2, 0, Math.PI * 2);
           ctx.fill();
           break;
         }

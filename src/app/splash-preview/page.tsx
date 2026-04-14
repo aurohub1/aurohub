@@ -9,6 +9,7 @@ const EFFECTS: SplashEffect[] = [
   "ondas","flutuacao","scanner","holofote","chuvapontos",
   "gradiente","dissolve","bigbang","aurora","tinta","vagalumes",
   "aurora_espacial","galaxia","vidro",
+  "vidro_janela","vidro_liquido","vidro_cristal","vidro_prisma",
 ];
 
 export default function SplashPreview() {
