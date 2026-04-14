@@ -721,7 +721,6 @@ export default function ClientesPage() {
                           corFundo={form.cor_fundo || "#0E1520"}
                           velocidade={form.splash_velocidade ?? 5}
                           suavidade={form.splash_suavidade ?? 7}
-                          lottieUrl={form.splash_lottie_url || undefined}
                           embedded={{ width: 200, height: 120 }}
                         />
                       </div>
