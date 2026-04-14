@@ -114,6 +114,7 @@ export default function LoginPage() {
     name: string; home: string;
     logoUrl?: string; effect?: string; logoOrientation?: string;
     cor1?: string; cor2?: string; cor3?: string; cor4?: string; cor5?: string; corFundo?: string;
+    velocidade?: number; suavidade?: number;
   } | null>(null);
 
   useParticles(canvasRef);
@@ -187,14 +188,15 @@ export default function LoginPage() {
         const home = homeForRole(profile?.role ?? null);
         console.log("[Login] Showing splash → will redirect to:", home);
 
-        let splashConfig: Record<string, string | undefined> = {};
+        let splashConfig: Record<string, string | number | undefined> = {};
         if (profile?.licensee_id) {
           const { data: lic } = await supabase
             .from("licensees")
-            .select("logo_url,splash_effect,splash_logo_orientation,cor_primaria,cor_secundaria,cor_acento,cor_fundo,cor4,cor5")
+            .select("logo_url,splash_effect,splash_logo_orientation,splash_velocidade,splash_suavidade,cor_primaria,cor_secundaria,cor_acento,cor_fundo,cor4,cor5")
             .eq("id", profile.licensee_id)
             .single();
           if (lic) {
+            const lic2 = lic as typeof lic & { splash_velocidade?: number; splash_suavidade?: number };
             splashConfig = {
               logoUrl: lic.logo_url || undefined,
               effect: lic.splash_effect || "random",
@@ -205,6 +207,8 @@ export default function LoginPage() {
               cor4: lic.cor4 || undefined,
               cor5: lic.cor5 || undefined,
               corFundo: lic.cor_fundo || "#0E1520",
+              velocidade: lic2.splash_velocidade ?? 5,
+              suavidade: lic2.splash_suavidade ?? 7,
             };
           }
         }
@@ -250,6 +254,8 @@ export default function LoginPage() {
         cor4={splash.cor4}
         cor5={splash.cor5}
         corFundo={splash.corFundo || "#0E1520"}
+        velocidade={splash.velocidade}
+        suavidade={splash.suavidade}
         userName={splash.name}
         onDone={() => router.push(splash.home)}
       />

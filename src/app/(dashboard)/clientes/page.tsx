@@ -20,6 +20,7 @@ interface Licensee {
   segment_id: string | null; expires_at: string | null; created_at: string;
   logo_url: string | null;
   splash_effect?: string; splash_logo_orientation?: string;
+  splash_velocidade?: number; splash_suavidade?: number;
   cor_primaria?: string; cor_secundaria?: string; cor_acento?: string; cor_fundo?: string;
   cor4?: string; cor5?: string;
   tema_fundo_escuro?: string; tema_fundo_claro?: string; tema_texto_escuro?: string; tema_texto_claro?: string;
@@ -58,7 +59,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -96,7 +97,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, tema_fundo_escuro, tema_fundo_claro, tema_texto_escuro, tema_texto_claro").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, tema_fundo_escuro, tema_fundo_claro, tema_texto_escuro, tema_texto_claro").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -140,7 +141,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -148,7 +149,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -167,6 +168,8 @@ export default function ClientesPage() {
         logo_url: form.logo_url || null,
         splash_effect: form.splash_effect || null,
         splash_logo_orientation: form.splash_logo_orientation || "horizontal",
+        splash_velocidade: form.splash_velocidade ?? 5,
+        splash_suavidade: form.splash_suavidade ?? 7,
         cor_primaria: form.cor_primaria || null,
         cor_secundaria: form.cor_secundaria || null,
         cor_acento: form.cor_acento || null,
@@ -645,7 +648,7 @@ export default function ClientesPage() {
                     <div className="mb-3 flex justify-center">
                       <div className="rounded-lg overflow-hidden border border-[var(--bdr)]" style={{ width: 200, height: 120 }}>
                         <SplashScreen
-                          key={`${form.splash_effect}-${form.cor_primaria}-${form.cor_secundaria}-${form.cor_acento}-${form.cor_fundo}-${form.cor4}-${form.cor5}`}
+                          key={`${form.splash_effect}-${form.cor_primaria}-${form.cor_secundaria}-${form.cor_acento}-${form.cor_fundo}-${form.cor4}-${form.cor5}-${form.splash_velocidade}-${form.splash_suavidade}`}
                           logoUrl=""
                           effect={(form.splash_effect as SplashEffect) || "random"}
                           cor1={form.cor_primaria || "#FF7A1A"}
@@ -654,6 +657,8 @@ export default function ClientesPage() {
                           cor4={form.cor4 || undefined}
                           cor5={form.cor5 || undefined}
                           corFundo={form.cor_fundo || "#0E1520"}
+                          velocidade={form.splash_velocidade ?? 5}
+                          suavidade={form.splash_suavidade ?? 7}
                           embedded={{ width: 200, height: 120 }}
                         />
                       </div>
@@ -681,7 +686,6 @@ export default function ClientesPage() {
                           <option value="tinta">Tinta</option>
                           <option value="vagalumes">Vagalumes</option>
                           <option value="aurora_espacial">Aurora Espacial</option>
-                          <option value="universo">🌌 Universo</option>
                           <option value="galaxia">🌀 Galáxia</option>
                           <option value="vidro">✨ Vidro</option>
                         </select>
@@ -695,6 +699,37 @@ export default function ClientesPage() {
                         </select>
                       </div>
                     </div>
+
+                    {/* Sliders velocidade e suavidade */}
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--txt3)]">
+                          <span>Velocidade</span>
+                          <span className="font-mono text-[var(--txt2)]">{form.splash_velocidade ?? 5}</span>
+                        </div>
+                        <input type="range" min="1" max="10" step="1"
+                          value={form.splash_velocidade ?? 5}
+                          onChange={e => setForm(f => ({...f, splash_velocidade: parseInt(e.target.value)}))}
+                          className="w-full accent-[var(--orange)]" />
+                        <div className="flex justify-between text-[9px] text-[var(--txt3)] mt-0.5">
+                          <span>lento</span><span>rápido</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--txt3)]">
+                          <span>Suavidade</span>
+                          <span className="font-mono text-[var(--txt2)]">{form.splash_suavidade ?? 7}</span>
+                        </div>
+                        <input type="range" min="1" max="10" step="1"
+                          value={form.splash_suavidade ?? 7}
+                          onChange={e => setForm(f => ({...f, splash_suavidade: parseInt(e.target.value)}))}
+                          className="w-full accent-[var(--orange)]" />
+                        <div className="flex justify-between text-[9px] text-[var(--txt3)] mt-0.5">
+                          <span>intenso</span><span>suave</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3 mt-3">
                       {[
                         {key:"cor_primaria", label:"Cor primária"},
@@ -705,7 +740,7 @@ export default function ClientesPage() {
                         {key:"cor5", label:"Cor 5 (opcional)"},
                       ].map(({key, label}) => (
                         <div key={key} className="flex items-center gap-2">
-                          <input type="color" value={(form as Record<string,string>)[key] || "#000000"} onChange={e => setForm(f => ({...f, [key]: e.target.value}))} className="h-7 w-10 rounded cursor-pointer border border-[var(--bdr)]" />
+                          <input type="color" value={String((form as Record<string,unknown>)[key] || "") || "#000000"} onChange={e => setForm(f => ({...f, [key]: e.target.value}))} className="h-7 w-10 rounded cursor-pointer border border-[var(--bdr)]" />
                           <label className="text-[10px] text-[var(--txt3)]">{label}</label>
                         </div>
                       ))}
@@ -805,7 +840,7 @@ export default function ClientesPage() {
                       { key: "tema_texto_claro", label: "Texto (tema claro)" },
                     ].map(({ key, label }) => (
                       <div key={key} className="flex items-center gap-3">
-                        <input type="color" value={(form as Record<string, string>)[key] || "#000000"} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} className="h-8 w-12 rounded cursor-pointer border border-[var(--bdr)]" />
+                        <input type="color" value={String((form as Record<string, unknown>)[key] || "") || "#000000"} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} className="h-8 w-12 rounded cursor-pointer border border-[var(--bdr)]" />
                         <label className="text-[11px] text-[var(--txt2)]">{label}</label>
                       </div>
                     ))}

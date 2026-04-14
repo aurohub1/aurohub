@@ -5,7 +5,7 @@ export type SplashEffect =
   | "particles" | "cinematic" | "slideup" | "scalefade" | "fadesuave"
   | "ondas" | "flutuacao" | "scanner" | "holofote" | "chuvapontos"
   | "gradiente" | "dissolve" | "bigbang" | "aurora" | "tinta" | "vagalumes"
-  | "aurora_espacial" | "universo" | "galaxia" | "vidro";
+  | "aurora_espacial" | "galaxia" | "vidro";
 
 interface Props {
   logoUrl: string;
@@ -21,20 +21,24 @@ interface Props {
   onDone?: () => void;
   /** Modo embarcado: renderiza dentro de container relativo com tamanho custom e sem timers/dismiss */
   embedded?: { width: number; height: number };
+  /** Velocidade da animação 1-10 (default 5 = normal). Escala o tempo base. */
+  velocidade?: number;
+  /** Suavidade 1-10 (default 7). Controla blur/alpha em efeitos aurora/vidro. */
+  suavidade?: number;
 }
 
 const EFFECTS: SplashEffect[] = [
   "particles","cinematic","slideup","scalefade","fadesuave",
   "ondas","flutuacao","scanner","holofote","chuvapontos",
   "gradiente","dissolve","bigbang","aurora","tinta","vagalumes",
-  "aurora_espacial","universo","galaxia","vidro",
+  "aurora_espacial","galaxia","vidro",
 ];
 
 export default function SplashScreen({
   logoUrl, logoOrientation = "horizontal",
   effect = "random", cor1 = "#FF7A1A", cor2 = "#D4A843", cor3 = "#1E3A6E",
   cor4, cor5, corFundo = "#0E1520", userName, onDone,
-  embedded,
+  embedded, velocidade = 5, suavidade = 7,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [visible, setVisible] = useState(true);
@@ -86,7 +90,9 @@ export default function SplashScreen({
     }, 6300);
 
     function draw(now: number) {
-      const t = (now - startTime) / 1000;
+      // velocidade: 1=0.3x (muito lento), 5=1x (normal), 10=2x (rápido)
+      const speedFactor = 0.3 + (velocidade / 10) * 1.7;
+      const t = ((now - startTime) / 1000) * speedFactor;
       ctx.clearRect(0, 0, W, H);
 
       // Fundo
@@ -380,7 +386,7 @@ export default function SplashScreen({
 
         case "aurora": {
           // Apple-glossy aurora: gradientes radiais enormes fluindo horizontalmente
-          const suavidade = 0.7;
+          const suavidadeNorm = suavidade / 10; // 0.1 a 1.0
 
           // Fundo escuro gradient
           const bg = ctx.createLinearGradient(0, 0, 0, H);
@@ -390,7 +396,7 @@ export default function SplashScreen({
           ctx.fillRect(0, 0, W, H);
 
           ctx.save();
-          ctx.filter = `blur(${Math.round(suavidade * 80)}px)`;
+          ctx.filter = `blur(${Math.round(suavidadeNorm * 80)}px)`;
 
           // Orbes coloridos gigantes que se movem horizontalmente em velocidades diferentes
           const orbs = [
@@ -430,7 +436,7 @@ export default function SplashScreen({
 
         case "vidro": {
           // Glassmorphism / Apple Vision Pro style
-          const suavidade = 0.7;
+          const suavidadeNorm = suavidade / 10; // 0.1 a 1.0
 
           // Fundo escuro gradient radial (ambiente)
           const bg = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.7);
@@ -441,7 +447,7 @@ export default function SplashScreen({
 
           // Blobs coloridos difusos no fundo (simulando conteúdo atrás do vidro)
           ctx.save();
-          ctx.filter = `blur(${Math.round(suavidade * 90)}px)`;
+          ctx.filter = `blur(${Math.round(suavidadeNorm * 90)}px)`;
           const blobs = [
             { col: c1, x: 0.25, y: 0.3, r: 0.45, alpha: 0.6 },
             { col: c2, x: 0.75, y: 0.35, r: 0.4, alpha: 0.55 },
@@ -643,120 +649,6 @@ export default function SplashScreen({
           break;
         }
 
-        case "universo": {
-          // Fundo preto profundo (sobrescreve o corFundo)
-          ctx.fillStyle = "#000008";
-          ctx.fillRect(0, 0, W, H);
-
-          // Nebulosas coloridas (pulsação lenta) — cores da empresa
-          const nebulas = [c1, c2, c3, c4, c5];
-          for (let i = 0; i < 5; i++) {
-            const nCol = nebulas[i];
-            const nx = W * (0.15 + (i * 0.18)) + Math.sin(t * 0.15 + i) * 40;
-            const ny = H * (0.3 + Math.cos(t * 0.12 + i * 0.7) * 0.2);
-            const nr = H * (0.22 + Math.sin(t * 0.2 + i) * 0.06);
-            const nebGrad = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr);
-            const nAlpha = 0.12 + Math.sin(t * 0.3 + i) * 0.05;
-            nebGrad.addColorStop(0, `rgba(${nCol.r},${nCol.g},${nCol.b},${nAlpha})`);
-            nebGrad.addColorStop(0.5, `rgba(${nCol.r},${nCol.g},${nCol.b},${nAlpha * 0.4})`);
-            nebGrad.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = nebGrad;
-            ctx.fillRect(0, 0, W, H);
-          }
-
-          // Estrelas distantes (fundo) — pontos pequenos estáticos
-          for (let i = 0; i < 250; i++) {
-            const sx = (i * 173.7) % W;
-            const sy = (i * 97.3) % H;
-            const br = 0.3 + Math.sin(i * 0.7 + t * 1.5) * 0.25;
-            ctx.beginPath();
-            ctx.arc(sx, sy, 0.6, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,255,255,${br})`;
-            ctx.fill();
-          }
-
-          // Clusters de estrelas (3 regiões densas)
-          for (let cIdx = 0; cIdx < 3; cIdx++) {
-            const cx = W * (0.2 + cIdx * 0.3) + Math.cos(t * 0.1 + cIdx) * 30;
-            const cy = H * (0.25 + cIdx * 0.2);
-            for (let i = 0; i < 40; i++) {
-              const ang = (i / 40) * Math.PI * 2;
-              const d = Math.sqrt((i * 13.37) % 1) * 80;
-              const px = cx + Math.cos(ang) * d;
-              const py = cy + Math.sin(ang) * d;
-              const br = 0.4 + Math.sin(i + t * 2) * 0.3;
-              ctx.beginPath();
-              ctx.arc(px, py, 0.8, 0, Math.PI * 2);
-              ctx.fillStyle = `rgba(255,255,255,${br})`;
-              ctx.fill();
-            }
-          }
-
-          // Estrelas maiores com brilho pulsante (20 estrelas principais)
-          for (let i = 0; i < 20; i++) {
-            const orbit = (i % 4 + 1) * H * 0.14;
-            const speed = 0.15 + (i % 3) * 0.05;
-            const angle = (i / 20) * Math.PI * 2 + t * speed;
-            const x = W / 2 + Math.cos(angle) * orbit * (0.8 + Math.sin(i * 0.7) * 0.2);
-            const y = H / 2 + Math.sin(angle) * orbit * 0.5;
-            const pulse = 0.5 + Math.sin(t * 2 + i * 1.3) * 0.5;
-            const size = 1.5 + pulse * 2;
-            const col = [c1, c2, c3, c4, c5][i % 5];
-
-            // Halo/glow
-            const halo = ctx.createRadialGradient(x, y, 0, x, y, size * 5);
-            halo.addColorStop(0, `rgba(${col.r},${col.g},${col.b},${0.6 + pulse * 0.4})`);
-            halo.addColorStop(0.3, `rgba(${col.r},${col.g},${col.b},${0.2 * pulse})`);
-            halo.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = halo;
-            ctx.beginPath();
-            ctx.arc(x, y, size * 5, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Núcleo da estrela
-            ctx.beginPath();
-            ctx.arc(x, y, size * 0.6, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,255,255,${0.8 + pulse * 0.2})`;
-            ctx.fill();
-
-            // Cruz de luz (spike) nas estrelas mais brilhantes
-            if (pulse > 0.7) {
-              ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},${(pulse - 0.7) * 2})`;
-              ctx.lineWidth = 0.8;
-              ctx.beginPath();
-              ctx.moveTo(x - size * 4, y); ctx.lineTo(x + size * 4, y);
-              ctx.moveTo(x, y - size * 4); ctx.lineTo(x, y + size * 4);
-              ctx.stroke();
-            }
-          }
-
-          // Trilhas de luz (cometas) — partículas em movimento rápido com rastro
-          for (let i = 0; i < 8; i++) {
-            const cometT = (t * 0.3 + i / 8) % 1;
-            const startX = -50 + cometT * (W + 100);
-            const startY = H * (0.1 + (i % 4) * 0.22) + Math.sin(i) * 30;
-            const col = [c1, c2, c3, c4, c5][i % 5];
-
-            // Trail
-            const trail = ctx.createLinearGradient(startX - 80, startY, startX, startY);
-            trail.addColorStop(0, "rgba(0,0,0,0)");
-            trail.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0.7)`);
-            ctx.strokeStyle = trail;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(startX - 80, startY);
-            ctx.lineTo(startX, startY);
-            ctx.stroke();
-
-            // Ponta (cabeça do cometa)
-            ctx.beginPath();
-            ctx.arc(startX, startY, 1.8, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,255,255,0.95)`;
-            ctx.fill();
-          }
-          break;
-        }
-
         case "galaxia": {
           // Fundo preto profundo
           ctx.fillStyle = "#000005";
@@ -868,7 +760,7 @@ export default function SplashScreen({
       clearTimeout(greetOutTimer);
       clearTimeout(doneTimer);
     };
-  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo]);
+  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo, velocidade, suavidade]);
 
   const logoDims = {
     horizontal: { width: 220, height: 80 },
