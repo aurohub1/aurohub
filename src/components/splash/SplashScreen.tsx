@@ -379,26 +379,79 @@ export default function SplashScreen({
         }
 
         case "aurora": {
-          for(let i=0;i<10;i++){
-            const baseX=W*(i/10);
-            const waveAmp=H*0.25;
-            const freq=0.008;
-            const speed=t*(0.4+i*0.05);
+          // Fundo escuro noturno com leve gradient de cima pra baixo
+          const bg = ctx.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, "#050818");
+          bg.addColorStop(0.5, "#08102a");
+          bg.addColorStop(1, "#0a1630");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          // Estrelas estáticas sutis no fundo
+          for (let i = 0; i < 120; i++) {
+            const sx = (i * 173.7) % W;
+            const sy = ((i * 97.3) % H) * 0.7; // concentradas no topo
+            const br = 0.3 + Math.sin(i * 0.7 + t) * 0.2;
             ctx.beginPath();
-            ctx.moveTo(baseX,0);
-            for(let y=0;y<H;y+=3){
-              const x=baseX+Math.sin(y*freq+speed+i*0.8)*waveAmp*(1-y/H);
-              ctx.lineTo(x,y);
-            }
-            const col=i%4===0?c1:i%4===1?c2:i%4===2?c3:{r:100,g:200,b:255};
-            const curtain=ctx.createLinearGradient(baseX,0,baseX,H);
-            curtain.addColorStop(0,`rgba(${col.r},${col.g},${col.b},${0.15+Math.sin(t+i)*0.08})`);
-            curtain.addColorStop(0.5,`rgba(${col.r},${col.g},${col.b},${0.25+Math.cos(t*0.7+i)*0.1})`);
-            curtain.addColorStop(1,`rgba(${col.r},${col.g},${col.b},0)`);
-            ctx.strokeStyle=curtain;
-            ctx.lineWidth=W*0.06;
-            ctx.stroke();
+            ctx.arc(sx, sy, 0.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${br})`;
+            ctx.fill();
           }
+
+          // 5 cortinas horizontais empilhadas no topo da tela
+          // Cada cortina é uma faixa ondulante que flui da esquerda para direita
+          const layers = [
+            { band: 0.05, height: 0.28, color: c1, speed: 0.08, freq: 0.003, phase: 0, alphaMul: 0.55 },
+            { band: 0.10, height: 0.32, color: c2, speed: 0.06, freq: 0.0035, phase: 1.3, alphaMul: 0.50 },
+            { band: 0.15, height: 0.36, color: c3, speed: 0.05, freq: 0.004, phase: 2.1, alphaMul: 0.45 },
+            { band: 0.22, height: 0.30, color: c1, speed: 0.07, freq: 0.0045, phase: 3.8, alphaMul: 0.35 },
+            { band: 0.30, height: 0.28, color: c2, speed: 0.055, freq: 0.005, phase: 4.5, alphaMul: 0.28 },
+          ];
+
+          for (const layer of layers) {
+            const bandY = H * layer.band; // posição vertical da base da cortina
+            const bandH = H * layer.height;
+
+            // Desenha a cortina como polígono preenchido com gradient vertical
+            ctx.beginPath();
+
+            // Borda inferior (onda flui horizontalmente)
+            for (let x = 0; x <= W; x += 4) {
+              // Movimento orgânico: 3 frequências somadas, fluindo da esq para dir
+              const wave1 = Math.sin(x * layer.freq - t * layer.speed * 60 + layer.phase) * bandH * 0.15;
+              const wave2 = Math.sin(x * layer.freq * 2.3 - t * layer.speed * 40 + layer.phase * 0.7) * bandH * 0.08;
+              const wave3 = Math.sin(x * layer.freq * 0.6 - t * layer.speed * 80 + layer.phase * 1.4) * bandH * 0.12;
+              const y = bandY + bandH + wave1 + wave2 + wave3;
+              if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+
+            // Borda superior (simétrica com outra onda) — de volta
+            for (let x = W; x >= 0; x -= 4) {
+              const wave1 = Math.sin(x * layer.freq * 1.1 - t * layer.speed * 55 + layer.phase + 1.5) * bandH * 0.1;
+              const wave2 = Math.sin(x * layer.freq * 2.0 - t * layer.speed * 45 + layer.phase * 0.9) * bandH * 0.06;
+              const y = bandY + wave1 + wave2;
+              ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+
+            // Gradient vertical: base mais forte, topo mais esparso (como aurora real)
+            const grad = ctx.createLinearGradient(0, bandY, 0, bandY + bandH * 1.2);
+            const col = layer.color;
+            grad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0)`);
+            grad.addColorStop(0.3, `rgba(${col.r},${col.g},${col.b},${0.15 * layer.alphaMul})`);
+            grad.addColorStop(0.7, `rgba(${col.r},${col.g},${col.b},${0.55 * layer.alphaMul})`);
+            grad.addColorStop(1, `rgba(${col.r},${col.g},${col.b},${0.85 * layer.alphaMul})`);
+            ctx.fillStyle = grad;
+            ctx.fill();
+          }
+
+          // Brilho difuso adicional no topo (halo da aurora)
+          const halo = ctx.createRadialGradient(W * 0.5, H * 0.2, 0, W * 0.5, H * 0.2, H * 0.5);
+          halo.addColorStop(0, `rgba(${c2.r},${c2.g},${c2.b},0.08)`);
+          halo.addColorStop(0.5, `rgba(${c1.r},${c1.g},${c1.b},0.04)`);
+          halo.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = halo;
+          ctx.fillRect(0, 0, W, H);
           break;
         }
 
