@@ -142,6 +142,7 @@ function EditorInner() {
                     nome: meta.nome,
                     licenseeId: meta.licenseeId, lojaId: meta.lojaId,
                     licenseeNome: meta.licenseeNome, lojaNome: meta.lojaNome,
+                    thumbnail: thumbnail || null,
                   };
                   await supabase.from("system_config").upsert({
                     key,
@@ -199,7 +200,9 @@ function EditorInner() {
                 nome: meta.nome,
                 licenseeId: meta.licenseeId, lojaId: meta.lojaId,
                 licenseeNome: meta.licenseeNome, lojaNome: meta.lojaNome,
+                thumbnail: thumbnail || null,
               };
+              console.log("[Editor][save] system_config upsert:", { key: `tmpl_${key}`, hasThumbnail: !!thumbnail, thumbnailLen: thumbnail?.length ?? 0 });
               await supabase.from("system_config").upsert({
                 key: `tmpl_${key}`,
                 value: JSON.stringify(payload),

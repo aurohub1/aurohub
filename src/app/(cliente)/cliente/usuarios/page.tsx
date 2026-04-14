@@ -122,8 +122,12 @@ export default function ClienteUsuariosPage() {
     return map;
   }, [stores]);
 
+  // Plano resolvido — aceita slug do planFull (carregado do DB), do licensee ou do profile
+  const planSlug = (planFull?.slug || profile?.licensee?.plan_slug || profile?.licensee?.plan || profile?.plan?.slug || "").toLowerCase();
+  const isEnterprise = planSlug === "enterprise";
   const maxUsers = planFull?.max_users ?? null;
-  const unlimited = maxUsers === -1 || maxUsers === null;
+  // Enterprise = ilimitado por regra de negócio; também trata -1/0/null como ilimitado (0 = coluna não configurada)
+  const unlimited = isEnterprise || maxUsers === -1 || maxUsers === null || maxUsers === 0;
   const limitReached = !unlimited && maxUsers !== null && users.length >= maxUsers;
 
   /* ── Ações ─────────────────────────────────────── */
