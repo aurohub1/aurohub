@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/cron/instagram-publish",
-      "schedule": "* * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
