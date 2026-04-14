@@ -822,7 +822,11 @@ export default function PublicarPage() {
         fd.append("signature", signData.signature);
         const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`, { method: "POST", body: fd });
         const upData = await upRes.json();
-        if (upData.secure_url) { fileUrl = upData.secure_url; publicId = upData.public_id; }
+        if (upData.secure_url) {
+          publicId = upData.public_id;
+          // Cloudinary entrega MP4 via transformation f_mp4 — compatível com Instagram
+          fileUrl = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${publicId}.mp4`;
+        }
         else throw new Error(upData.error?.message || "Upload falhou");
       } catch (err) {
         console.warn("[Cloudinary video]", err);
