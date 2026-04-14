@@ -5,7 +5,7 @@ export type SplashEffect =
   | "particles" | "cinematic" | "slideup" | "scalefade" | "fadesuave"
   | "ondas" | "flutuacao" | "scanner" | "holofote" | "chuvapontos"
   | "gradiente" | "dissolve" | "bigbang" | "aurora" | "tinta" | "vagalumes"
-  | "aurora_espacial";
+  | "aurora_espacial" | "universo";
 
 interface Props {
   logoUrl: string;
@@ -14,6 +14,8 @@ interface Props {
   cor1?: string;
   cor2?: string;
   cor3?: string;
+  cor4?: string;
+  cor5?: string;
   corFundo?: string;
   userName?: string;
   onDone?: () => void;
@@ -23,13 +25,13 @@ const EFFECTS: SplashEffect[] = [
   "particles","cinematic","slideup","scalefade","fadesuave",
   "ondas","flutuacao","scanner","holofote","chuvapontos",
   "gradiente","dissolve","bigbang","aurora","tinta","vagalumes",
-  "aurora_espacial",
+  "aurora_espacial","universo",
 ];
 
 export default function SplashScreen({
   logoUrl, logoOrientation = "horizontal",
   effect = "random", cor1 = "#FF7A1A", cor2 = "#D4A843", cor3 = "#1E3A6E",
-  corFundo = "#0E1520", userName, onDone,
+  cor4, cor5, corFundo = "#0E1520", userName, onDone,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [visible, setVisible] = useState(true);
@@ -65,6 +67,8 @@ export default function SplashScreen({
       return { r, g, b };
     };
     const c1 = hex2rgb(cor1), c2 = hex2rgb(cor2), c3 = hex2rgb(cor3);
+    const c4 = cor4 ? hex2rgb(cor4) : c1;
+    const c5 = cor5 ? hex2rgb(cor5) : c2;
 
     const W = canvas.width, H = canvas.height;
 
@@ -469,6 +473,120 @@ export default function SplashScreen({
           break;
         }
 
+        case "universo": {
+          // Fundo preto profundo (sobrescreve o corFundo)
+          ctx.fillStyle = "#000008";
+          ctx.fillRect(0, 0, W, H);
+
+          // Nebulosas coloridas (pulsação lenta) — cores da empresa
+          const nebulas = [c1, c2, c3, c4, c5];
+          for (let i = 0; i < 5; i++) {
+            const nCol = nebulas[i];
+            const nx = W * (0.15 + (i * 0.18)) + Math.sin(t * 0.15 + i) * 40;
+            const ny = H * (0.3 + Math.cos(t * 0.12 + i * 0.7) * 0.2);
+            const nr = H * (0.22 + Math.sin(t * 0.2 + i) * 0.06);
+            const nebGrad = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr);
+            const nAlpha = 0.12 + Math.sin(t * 0.3 + i) * 0.05;
+            nebGrad.addColorStop(0, `rgba(${nCol.r},${nCol.g},${nCol.b},${nAlpha})`);
+            nebGrad.addColorStop(0.5, `rgba(${nCol.r},${nCol.g},${nCol.b},${nAlpha * 0.4})`);
+            nebGrad.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = nebGrad;
+            ctx.fillRect(0, 0, W, H);
+          }
+
+          // Estrelas distantes (fundo) — pontos pequenos estáticos
+          for (let i = 0; i < 250; i++) {
+            const sx = (i * 173.7) % W;
+            const sy = (i * 97.3) % H;
+            const br = 0.3 + Math.sin(i * 0.7 + t * 1.5) * 0.25;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 0.6, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${br})`;
+            ctx.fill();
+          }
+
+          // Clusters de estrelas (3 regiões densas)
+          for (let cIdx = 0; cIdx < 3; cIdx++) {
+            const cx = W * (0.2 + cIdx * 0.3) + Math.cos(t * 0.1 + cIdx) * 30;
+            const cy = H * (0.25 + cIdx * 0.2);
+            for (let i = 0; i < 40; i++) {
+              const ang = (i / 40) * Math.PI * 2;
+              const d = Math.sqrt((i * 13.37) % 1) * 80;
+              const px = cx + Math.cos(ang) * d;
+              const py = cy + Math.sin(ang) * d;
+              const br = 0.4 + Math.sin(i + t * 2) * 0.3;
+              ctx.beginPath();
+              ctx.arc(px, py, 0.8, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(255,255,255,${br})`;
+              ctx.fill();
+            }
+          }
+
+          // Estrelas maiores com brilho pulsante (20 estrelas principais)
+          for (let i = 0; i < 20; i++) {
+            const orbit = (i % 4 + 1) * H * 0.14;
+            const speed = 0.15 + (i % 3) * 0.05;
+            const angle = (i / 20) * Math.PI * 2 + t * speed;
+            const x = W / 2 + Math.cos(angle) * orbit * (0.8 + Math.sin(i * 0.7) * 0.2);
+            const y = H / 2 + Math.sin(angle) * orbit * 0.5;
+            const pulse = 0.5 + Math.sin(t * 2 + i * 1.3) * 0.5;
+            const size = 1.5 + pulse * 2;
+            const col = [c1, c2, c3, c4, c5][i % 5];
+
+            // Halo/glow
+            const halo = ctx.createRadialGradient(x, y, 0, x, y, size * 5);
+            halo.addColorStop(0, `rgba(${col.r},${col.g},${col.b},${0.6 + pulse * 0.4})`);
+            halo.addColorStop(0.3, `rgba(${col.r},${col.g},${col.b},${0.2 * pulse})`);
+            halo.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = halo;
+            ctx.beginPath();
+            ctx.arc(x, y, size * 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Núcleo da estrela
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.6, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${0.8 + pulse * 0.2})`;
+            ctx.fill();
+
+            // Cruz de luz (spike) nas estrelas mais brilhantes
+            if (pulse > 0.7) {
+              ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},${(pulse - 0.7) * 2})`;
+              ctx.lineWidth = 0.8;
+              ctx.beginPath();
+              ctx.moveTo(x - size * 4, y); ctx.lineTo(x + size * 4, y);
+              ctx.moveTo(x, y - size * 4); ctx.lineTo(x, y + size * 4);
+              ctx.stroke();
+            }
+          }
+
+          // Trilhas de luz (cometas) — partículas em movimento rápido com rastro
+          for (let i = 0; i < 8; i++) {
+            const cometT = (t * 0.3 + i / 8) % 1;
+            const startX = -50 + cometT * (W + 100);
+            const startY = H * (0.1 + (i % 4) * 0.22) + Math.sin(i) * 30;
+            const col = [c1, c2, c3, c4, c5][i % 5];
+
+            // Trail
+            const trail = ctx.createLinearGradient(startX - 80, startY, startX, startY);
+            trail.addColorStop(0, "rgba(0,0,0,0)");
+            trail.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0.7)`);
+            ctx.strokeStyle = trail;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(startX - 80, startY);
+            ctx.lineTo(startX, startY);
+            ctx.stroke();
+
+            // Ponta (cabeça do cometa)
+            ctx.beginPath();
+            ctx.arc(startX, startY, 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,0.95)`;
+            ctx.fill();
+          }
+          break;
+        }
+
         default: {
           const g=ctx.createLinearGradient(0,0,W,H);
           g.addColorStop(0,`rgba(${c3.r},${c3.g},${c3.b},0.3)`);
@@ -491,7 +609,7 @@ export default function SplashScreen({
       clearTimeout(greetOutTimer);
       clearTimeout(doneTimer);
     };
-  }, [activeEffect, cor1, cor2, cor3, corFundo]);
+  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo]);
 
   const logoDims = {
     horizontal: { width: 220, height: 80 },
