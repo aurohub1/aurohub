@@ -331,8 +331,67 @@ export default function CanvasStage(p: Props) {
 
   const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
-    p.onScaleChange(Math.min(3, Math.max(0.1, stageScale * (e.evt.deltaY < 0 ? 1.08 : 0.92))));
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Ctrl/Cmd+wheel = zoom (mantém comportamento antigo)
+    // Wheel puro com zoom > 100% = scroll/pan
+    if (e.evt.ctrlKey || e.evt.metaKey || stageScale <= 1.01) {
+      p.onScaleChange(Math.min(3, Math.max(0.1, stageScale * (e.evt.deltaY < 0 ? 1.08 : 0.92))));
+      return;
+    }
+
+    // Scroll/pan com o stage
+    const scrollSpeed = 1.2;
+    const dx = (e.evt.shiftKey || Math.abs(e.evt.deltaX) > 0) ? e.evt.deltaX * scrollSpeed : 0;
+    const dy = e.evt.deltaY * scrollSpeed;
+
+    // Se shift, usa deltaY como deltaX (convenção do browser)
+    const offsetX = e.evt.shiftKey ? e.evt.deltaY * scrollSpeed : dx;
+    const offsetY = e.evt.shiftKey ? 0 : dy;
+
+    stage.position({
+      x: stage.x() - offsetX,
+      y: stage.y() - offsetY,
+    });
+    stage.batchDraw();
   }, [stageScale, p.onScaleChange]);
+
+  // Pan com botão do meio do mouse (like Corel/Illustrator)
+  const panState = useRef<{ active: boolean; startX: number; startY: number; stageX: number; stageY: number }>({
+    active: false, startX: 0, startY: 0, stageX: 0, stageY: 0,
+  });
+
+  const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 1) return; // botão do meio
+    e.preventDefault();
+    const stage = stageRef.current;
+    if (!stage) return;
+    panState.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      stageX: stage.x(),
+      stageY: stage.y(),
+    };
+  }, []);
+
+  const handleContainerMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!panState.current.active) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const dx = e.clientX - panState.current.startX;
+    const dy = e.clientY - panState.current.startY;
+    stage.position({
+      x: panState.current.stageX + dx,
+      y: panState.current.stageY + dy,
+    });
+    stage.batchDraw();
+  }, []);
+
+  const handleContainerMouseUp = useCallback((e: React.MouseEvent) => {
+    if (e.button === 1) panState.current.active = false;
+  }, []);
 
   const handleElementClick = useCallback((elId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
     if (e.evt.shiftKey) {
@@ -348,7 +407,14 @@ export default function CanvasStage(p: Props) {
       background: "var(--ed-canvas-bg, #12121a)",
       backgroundImage: "radial-gradient(circle, var(--ed-bdr) 1px, transparent 1px)",
       backgroundSize: "20px 20px",
-    }} onClick={e => { if (e.target === e.currentTarget) p.onSelect(null); }}>
+      cursor: panState.current.active ? "grabbing" : undefined,
+    }}
+      onClick={e => { if (e.target === e.currentTarget) p.onSelect(null); }}
+      onMouseDown={handleContainerMouseDown}
+      onMouseMove={handleContainerMouseMove}
+      onMouseUp={handleContainerMouseUp}
+      onMouseLeave={handleContainerMouseUp}
+      onAuxClick={e => { if (e.button === 1) e.preventDefault(); }}>
       <Stage ref={stageRef} width={width * stageScale} height={height * stageScale} scaleX={stageScale} scaleY={stageScale}
         onWheel={handleWheel}
         onMouseDown={e => { if (e.target === e.target.getStage()) p.onSelect(null); }}
