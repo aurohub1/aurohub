@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 /**
  * Publica mídia no Instagram via Graph API.
@@ -78,8 +78,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "container sem id", detail: createData }, { status: 500 });
     }
 
-    // Aguarda container ficar pronto antes de publicar
-    await new Promise(r => setTimeout(r, 4000));
+    // Para vídeos (REELS/STORIES com video_url): polling do status_code até FINISHED
+    // Para imagens: delay curto é suficiente
+    if (video_url && (mediaType === "REELS" || mediaType === "STORIES")) {
+      const statusUrl = `https://graph.instagram.com/v23.0/${creationId}`;
+      const maxAttempts = 12; // 12 × 5s = 60s
+      let ready = false;
+      let lastStatus = "";
+      for (let i = 0; i < maxAttempts; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const statusRes = await fetch(`${statusUrl}?fields=status_code&access_token=${encodeURIComponent(ig.access_token)}`);
+        if (!statusRes.ok) continue;
+        const statusData = await statusRes.json();
+        lastStatus = statusData.status_code || "";
+        if (lastStatus === "FINISHED") { ready = true; break; }
+        if (lastStatus === "ERROR" || lastStatus === "EXPIRED") {
+          return NextResponse.json({ error: "Container falhou no Instagram", detail: statusData, status_code: lastStatus }, { status: 500 });
+        }
+      }
+      if (!ready) {
+        return NextResponse.json({ error: "Timeout processando vídeo (60s)", status_code: lastStatus }, { status: 504 });
+      }
+    } else {
+      await new Promise(r => setTimeout(r, 2000));
+    }
 
     // 2. Publicar
     const pubUrl = `https://graph.instagram.com/v23.0/${ig.ig_user_id}/media_publish`;
