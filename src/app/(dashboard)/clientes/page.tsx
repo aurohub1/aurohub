@@ -683,6 +683,7 @@ export default function ClientesPage() {
                           <option value="aurora_espacial">Aurora Espacial</option>
                           <option value="universo">🌌 Universo</option>
                           <option value="galaxia">🌀 Galáxia</option>
+                          <option value="vidro">✨ Vidro</option>
                         </select>
                       </div>
                       <div>

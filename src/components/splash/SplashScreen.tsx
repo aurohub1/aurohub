@@ -5,7 +5,7 @@ export type SplashEffect =
   | "particles" | "cinematic" | "slideup" | "scalefade" | "fadesuave"
   | "ondas" | "flutuacao" | "scanner" | "holofote" | "chuvapontos"
   | "gradiente" | "dissolve" | "bigbang" | "aurora" | "tinta" | "vagalumes"
-  | "aurora_espacial" | "universo" | "galaxia";
+  | "aurora_espacial" | "universo" | "galaxia" | "vidro";
 
 interface Props {
   logoUrl: string;
@@ -27,7 +27,7 @@ const EFFECTS: SplashEffect[] = [
   "particles","cinematic","slideup","scalefade","fadesuave",
   "ondas","flutuacao","scanner","holofote","chuvapontos",
   "gradiente","dissolve","bigbang","aurora","tinta","vagalumes",
-  "aurora_espacial","universo","galaxia",
+  "aurora_espacial","universo","galaxia","vidro",
 ];
 
 export default function SplashScreen({
@@ -379,79 +379,193 @@ export default function SplashScreen({
         }
 
         case "aurora": {
-          // Fundo escuro noturno com leve gradient de cima pra baixo
+          // Apple-glossy aurora: gradientes radiais enormes fluindo horizontalmente
+          const suavidade = 0.7;
+
+          // Fundo escuro gradient
           const bg = ctx.createLinearGradient(0, 0, 0, H);
-          bg.addColorStop(0, "#050818");
-          bg.addColorStop(0.5, "#08102a");
-          bg.addColorStop(1, "#0a1630");
+          bg.addColorStop(0, "#040612");
+          bg.addColorStop(1, "#0a0f22");
           ctx.fillStyle = bg;
           ctx.fillRect(0, 0, W, H);
 
-          // Estrelas estáticas sutis no fundo
-          for (let i = 0; i < 120; i++) {
-            const sx = (i * 173.7) % W;
-            const sy = ((i * 97.3) % H) * 0.7; // concentradas no topo
-            const br = 0.3 + Math.sin(i * 0.7 + t) * 0.2;
-            ctx.beginPath();
-            ctx.arc(sx, sy, 0.5, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,255,255,${br})`;
-            ctx.fill();
-          }
+          ctx.save();
+          ctx.filter = `blur(${Math.round(suavidade * 80)}px)`;
 
-          // 5 cortinas horizontais empilhadas no topo da tela
-          // Cada cortina é uma faixa ondulante que flui da esquerda para direita
-          const layers = [
-            { band: 0.05, height: 0.28, color: c1, speed: 0.08, freq: 0.003, phase: 0, alphaMul: 0.55 },
-            { band: 0.10, height: 0.32, color: c2, speed: 0.06, freq: 0.0035, phase: 1.3, alphaMul: 0.50 },
-            { band: 0.15, height: 0.36, color: c3, speed: 0.05, freq: 0.004, phase: 2.1, alphaMul: 0.45 },
-            { band: 0.22, height: 0.30, color: c1, speed: 0.07, freq: 0.0045, phase: 3.8, alphaMul: 0.35 },
-            { band: 0.30, height: 0.28, color: c2, speed: 0.055, freq: 0.005, phase: 4.5, alphaMul: 0.28 },
+          // Orbes coloridos gigantes que se movem horizontalmente em velocidades diferentes
+          const orbs = [
+            { col: c1, yBase: 0.3, yAmp: 0.05, xSpeed: 0.08, phase: 0,   radius: 0.7, alpha: 0.55 },
+            { col: c2, yBase: 0.35, yAmp: 0.08, xSpeed: 0.06, phase: 2.1, radius: 0.6, alpha: 0.45 },
+            { col: c3, yBase: 0.25, yAmp: 0.06, xSpeed: 0.05, phase: 4.2, radius: 0.75, alpha: 0.50 },
+            { col: c1, yBase: 0.45, yAmp: 0.04, xSpeed: 0.07, phase: 1.5, radius: 0.55, alpha: 0.30 },
+            { col: c2, yBase: 0.2,  yAmp: 0.07, xSpeed: 0.04, phase: 3.0, radius: 0.65, alpha: 0.35 },
           ];
 
-          for (const layer of layers) {
-            const bandY = H * layer.band; // posição vertical da base da cortina
-            const bandH = H * layer.height;
+          for (const orb of orbs) {
+            // Movimento horizontal contínuo loopado: cycles pela tela
+            const xCycle = (t * orb.xSpeed + orb.phase / (Math.PI * 2)) % 1.5 - 0.25;
+            const x = W * xCycle;
+            const y = H * (orb.yBase + Math.sin(t * 0.1 + orb.phase) * orb.yAmp);
+            const r = H * orb.radius;
 
-            // Desenha a cortina como polígono preenchido com gradient vertical
-            ctx.beginPath();
-
-            // Borda inferior (onda flui horizontalmente)
-            for (let x = 0; x <= W; x += 4) {
-              // Movimento orgânico: 3 frequências somadas, fluindo da esq para dir
-              const wave1 = Math.sin(x * layer.freq - t * layer.speed * 60 + layer.phase) * bandH * 0.15;
-              const wave2 = Math.sin(x * layer.freq * 2.3 - t * layer.speed * 40 + layer.phase * 0.7) * bandH * 0.08;
-              const wave3 = Math.sin(x * layer.freq * 0.6 - t * layer.speed * 80 + layer.phase * 1.4) * bandH * 0.12;
-              const y = bandY + bandH + wave1 + wave2 + wave3;
-              if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-
-            // Borda superior (simétrica com outra onda) — de volta
-            for (let x = W; x >= 0; x -= 4) {
-              const wave1 = Math.sin(x * layer.freq * 1.1 - t * layer.speed * 55 + layer.phase + 1.5) * bandH * 0.1;
-              const wave2 = Math.sin(x * layer.freq * 2.0 - t * layer.speed * 45 + layer.phase * 0.9) * bandH * 0.06;
-              const y = bandY + wave1 + wave2;
-              ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-
-            // Gradient vertical: base mais forte, topo mais esparso (como aurora real)
-            const grad = ctx.createLinearGradient(0, bandY, 0, bandY + bandH * 1.2);
-            const col = layer.color;
-            grad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0)`);
-            grad.addColorStop(0.3, `rgba(${col.r},${col.g},${col.b},${0.15 * layer.alphaMul})`);
-            grad.addColorStop(0.7, `rgba(${col.r},${col.g},${col.b},${0.55 * layer.alphaMul})`);
-            grad.addColorStop(1, `rgba(${col.r},${col.g},${col.b},${0.85 * layer.alphaMul})`);
+            const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+            const col = orb.col;
+            grad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},${orb.alpha})`);
+            grad.addColorStop(0.5, `rgba(${col.r},${col.g},${col.b},${orb.alpha * 0.4})`);
+            grad.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0)`);
             ctx.fillStyle = grad;
-            ctx.fill();
+            ctx.fillRect(0, 0, W, H);
           }
 
-          // Brilho difuso adicional no topo (halo da aurora)
-          const halo = ctx.createRadialGradient(W * 0.5, H * 0.2, 0, W * 0.5, H * 0.2, H * 0.5);
-          halo.addColorStop(0, `rgba(${c2.r},${c2.g},${c2.b},0.08)`);
-          halo.addColorStop(0.5, `rgba(${c1.r},${c1.g},${c1.b},0.04)`);
-          halo.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = halo;
+          ctx.restore();
+
+          // Leve overlay claro no topo (brilho Apple-glossy)
+          const shine = ctx.createLinearGradient(0, 0, 0, H * 0.5);
+          shine.addColorStop(0, "rgba(255,255,255,0.04)");
+          shine.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = shine;
+          ctx.fillRect(0, 0, W, H * 0.5);
+          break;
+        }
+
+        case "vidro": {
+          // Glassmorphism / Apple Vision Pro style
+          const suavidade = 0.7;
+
+          // Fundo escuro gradient radial (ambiente)
+          const bg = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.7);
+          bg.addColorStop(0, "#1a2038");
+          bg.addColorStop(1, "#050810");
+          ctx.fillStyle = bg;
           ctx.fillRect(0, 0, W, H);
+
+          // Blobs coloridos difusos no fundo (simulando conteúdo atrás do vidro)
+          ctx.save();
+          ctx.filter = `blur(${Math.round(suavidade * 90)}px)`;
+          const blobs = [
+            { col: c1, x: 0.25, y: 0.3, r: 0.45, alpha: 0.6 },
+            { col: c2, x: 0.75, y: 0.35, r: 0.4, alpha: 0.55 },
+            { col: c3, x: 0.5,  y: 0.75, r: 0.5, alpha: 0.5 },
+            { col: c4, x: 0.15, y: 0.7, r: 0.35, alpha: 0.4 },
+            { col: c5, x: 0.85, y: 0.65, r: 0.38, alpha: 0.4 },
+          ];
+          for (let i = 0; i < blobs.length; i++) {
+            const b = blobs[i];
+            const bx = W * (b.x + Math.sin(t * 0.15 + i) * 0.05);
+            const by = H * (b.y + Math.cos(t * 0.12 + i * 0.7) * 0.05);
+            const g = ctx.createRadialGradient(bx, by, 0, bx, by, H * b.r);
+            g.addColorStop(0, `rgba(${b.col.r},${b.col.g},${b.col.b},${b.alpha})`);
+            g.addColorStop(1, `rgba(${b.col.r},${b.col.g},${b.col.b},0)`);
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, W, H);
+          }
+          ctx.restore();
+
+          // Camadas de vidro translúcido (formas geométricas)
+          const shapes = [
+            { type: "circle", x: 0.3, y: 0.4, r: 0.18, alpha: 0.08, border: 0.25 },
+            { type: "rrect",  x: 0.55, y: 0.25, w: 0.35, h: 0.18, r: 0.04, alpha: 0.1, border: 0.22 },
+            { type: "circle", x: 0.75, y: 0.65, r: 0.22, alpha: 0.06, border: 0.2 },
+            { type: "rrect",  x: 0.15, y: 0.68, w: 0.28, h: 0.15, r: 0.03, alpha: 0.09, border: 0.25 },
+            { type: "circle", x: 0.5, y: 0.9, r: 0.12, alpha: 0.07, border: 0.2 },
+          ];
+
+          for (let i = 0; i < shapes.length; i++) {
+            const s = shapes[i];
+            // Flutuação suave
+            const floatY = Math.sin(t * 0.3 + i * 1.3) * H * 0.01;
+            const floatX = Math.cos(t * 0.25 + i * 0.8) * W * 0.005;
+
+            ctx.save();
+
+            if (s.type === "circle") {
+              const cx = W * s.x + floatX;
+              const cy = H * s.y + floatY;
+              const rr = H * s.r;
+
+              // Fundo do vidro (fill translúcido com gradient interno — reflexo)
+              const innerGrad = ctx.createRadialGradient(
+                cx - rr * 0.3, cy - rr * 0.3, 0,
+                cx, cy, rr
+              );
+              innerGrad.addColorStop(0, `rgba(255,255,255,${s.alpha + 0.08})`);
+              innerGrad.addColorStop(0.5, `rgba(255,255,255,${s.alpha * 0.6})`);
+              innerGrad.addColorStop(1, `rgba(255,255,255,${s.alpha * 0.3})`);
+              ctx.fillStyle = innerGrad;
+              ctx.beginPath();
+              ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+              ctx.fill();
+
+              // Borda brilhante (sutil)
+              ctx.lineWidth = 1.5;
+              const borderGrad = ctx.createLinearGradient(cx - rr, cy - rr, cx + rr, cy + rr);
+              borderGrad.addColorStop(0, `rgba(255,255,255,${s.border})`);
+              borderGrad.addColorStop(0.5, `rgba(255,255,255,${s.border * 0.2})`);
+              borderGrad.addColorStop(1, `rgba(255,255,255,${s.border * 0.5})`);
+              ctx.strokeStyle = borderGrad;
+              ctx.stroke();
+
+              // Highlight (reflexo diagonal superior)
+              ctx.beginPath();
+              ctx.arc(cx, cy, rr * 0.85, Math.PI * 1.15, Math.PI * 1.55);
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = `rgba(255,255,255,${0.15})`;
+              ctx.stroke();
+            } else {
+              // Rounded rect
+              const x = W * s.x + floatX;
+              const y = H * s.y + floatY;
+              const w = W * (s.w ?? 0.2);
+              const h = H * (s.h ?? 0.12);
+              const r = H * (s.r ?? 0.03);
+
+              const innerGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+              innerGrad.addColorStop(0, `rgba(255,255,255,${s.alpha + 0.1})`);
+              innerGrad.addColorStop(0.5, `rgba(255,255,255,${s.alpha * 0.7})`);
+              innerGrad.addColorStop(1, `rgba(255,255,255,${s.alpha * 0.4})`);
+
+              // Path do rounded rect
+              ctx.beginPath();
+              ctx.moveTo(x + r, y);
+              ctx.lineTo(x + w - r, y);
+              ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+              ctx.lineTo(x + w, y + h - r);
+              ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+              ctx.lineTo(x + r, y + h);
+              ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+              ctx.lineTo(x, y + r);
+              ctx.quadraticCurveTo(x, y, x + r, y);
+              ctx.closePath();
+              ctx.fillStyle = innerGrad;
+              ctx.fill();
+
+              // Borda
+              ctx.lineWidth = 1.5;
+              const borderGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+              borderGrad.addColorStop(0, `rgba(255,255,255,${s.border})`);
+              borderGrad.addColorStop(0.5, `rgba(255,255,255,${s.border * 0.3})`);
+              borderGrad.addColorStop(1, `rgba(255,255,255,${s.border * 0.6})`);
+              ctx.strokeStyle = borderGrad;
+              ctx.stroke();
+
+              // Highlight superior (linha fina branca)
+              ctx.beginPath();
+              ctx.moveTo(x + r * 2, y + 0.5);
+              ctx.lineTo(x + w - r * 2, y + 0.5);
+              ctx.lineWidth = 1;
+              ctx.strokeStyle = `rgba(255,255,255,0.3)`;
+              ctx.stroke();
+            }
+
+            ctx.restore();
+          }
+
+          // Overlay superior sutil (shine)
+          const topShine = ctx.createLinearGradient(0, 0, 0, H * 0.3);
+          topShine.addColorStop(0, "rgba(255,255,255,0.03)");
+          topShine.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = topShine;
+          ctx.fillRect(0, 0, W, H * 0.3);
           break;
         }
 
