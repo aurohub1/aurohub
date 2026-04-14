@@ -20,9 +20,23 @@ function useImage(src?: string): HTMLImageElement | null {
   return img;
 }
 
+/** Substitui [bindKey] inline pelo valor do form (ou "" se vazio) */
+function replaceInlineBinds(text: string, values: Record<string, string>): string {
+  return text.replace(/\[([a-z0-9_]+)\]/gi, (_full, key: string) => {
+    return values[key.toLowerCase()] || "";
+  });
+}
+
 function resolveText(el: EditorElement, values: Record<string, string>): string {
-  if (el.bindParam && values[el.bindParam]) return values[el.bindParam];
-  return el.text ?? "";
+  if (el.bindParam) {
+    if (values[el.bindParam]) return values[el.bindParam];
+    // bindParam sem valor → esconde placeholder bracketado
+    const txt = el.text ?? "";
+    if (txt.includes("[") && txt.includes("]")) return "";
+    return txt;
+  }
+  // Texto livre: substitui binds [xxx] pelos valores do form
+  return replaceInlineBinds(el.text ?? "", values);
 }
 
 function resolveImage(el: EditorElement, values: Record<string, string>): string | undefined {

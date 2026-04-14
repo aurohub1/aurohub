@@ -129,14 +129,29 @@ function applyTextTransform(text: string, transform?: string): string {
   }
 }
 
+/** Substitui qualquer [bindKey] no texto pelo valor do form (ou "" se vazio) */
+function replaceInlineBinds(text: string, values: Record<string, string>): string {
+  return text.replace(/\[([a-z0-9_]+)\]/gi, (_full, key: string) => {
+    const resolved = resolveBindParam(key.toLowerCase(), values);
+    return resolved || "";
+  });
+}
+
 function resolveText(el: EditorElement, values: Record<string, string>): string {
-  if (!el.bindParam) return applyTextTransform(el.text ?? "", el.textTransform);
-  const resolved = resolveBindParam(el.bindParam, values);
-  if (resolved) return applyTextTransform(resolved, el.textTransform);
-  // Se o texto é placeholder do editor ([destino], [parcelas] etc), esconde
+  // Prioridade 1: bindParam explícito do editor
+  if (el.bindParam) {
+    const resolved = resolveBindParam(el.bindParam, values);
+    if (resolved) return applyTextTransform(resolved, el.textTransform);
+    // bindParam sem valor → esconde o placeholder bracketado
+    const txt = el.text ?? "";
+    if (txt.includes("[") && txt.includes("]")) return "";
+    return applyTextTransform(txt, el.textTransform);
+  }
+
+  // Prioridade 2: texto livre — substitui [binds] inline por valores do form
   const txt = el.text ?? "";
-  if (txt.includes("[") && txt.includes("]")) return "";
-  return applyTextTransform(txt, el.textTransform);
+  const replaced = replaceInlineBinds(txt, values);
+  return applyTextTransform(replaced, el.textTransform);
 }
 
 /** Reduz fontSize até que o texto caiba em `maxLines` linhas dentro de `maxWidth`. */
