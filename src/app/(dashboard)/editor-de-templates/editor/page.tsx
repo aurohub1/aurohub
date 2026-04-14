@@ -293,38 +293,104 @@ export default function EditorPage() {
   function saveTemplate() {
     const stage = stageRef.current;
 
-    // Normaliza coordenadas para o sistema absoluto do canvas (sem zoom/pan)
-    // x_real = (x_elemento - stage.x()) / stage.scaleX()
-    const stageX = stage?.x() || 0;
-    const stageY = stage?.y() || 0;
-    const stageSx = stage?.scaleX() || 1;
-    const stageSy = stage?.scaleY() || 1;
+    // Serializa cada elemento capturando TODOS os atributos do node Konva via getAttrs()
+    // Isso preserva fontSize, fontFamily, letterSpacing, lineHeight, scaleX/Y, rotation, etc.
+    const serialized = elements.map((el) => {
+      // Fallback: sem stage, usa state cru
+      if (!stage) return el;
 
-    const normalized = elements.map((el) => {
-      const base = { ...el,
-        x: (el.x - stageX) / stageSx,
-        y: (el.y - stageY) / stageSy,
-        width: el.width / stageSx,
-        height: el.height / stageSy,
+      const node = stage.findOne(`#${el.id}`);
+      if (!node) return el;
+
+      // getAttrs() retorna todos os atributos do node (incluindo customs)
+      // Filtra "image" (HTMLImageElement não serializável) e guarda apenas src no meta
+      const attrs = { ...node.getAttrs() } as Record<string, unknown>;
+      delete attrs.image; // Ref ao HTMLImageElement — não serializável
+
+      return {
+        // Metadados do elemento (type, name, locked, isBind, bindKey, src)
+        id: el.id,
+        type: el.type,
+        name: el.name,
+        visible: el.visible,
+        locked: el.locked,
+        ...(el.type === "text" && "isBind" in el ? { isBind: (el as TextEl).isBind, bindKey: (el as TextEl).bindKey } : {}),
+        ...(el.type === "image" && "src" in el ? { src: (el as ImageEl).src } : {}),
+        // Todos os atributos do Konva node (x, y, width, height, fill, rotation, scaleX/Y,
+        // fontSize, fontFamily, fontStyle, align, letterSpacing, lineHeight, text, opacity, etc.)
+        attrs,
       };
-
-      // Força width/height para Text nodes a partir do node real
-      if (el.type === "text" && stage) {
-        const node = stage.findOne(`#${el.id}`) as Konva.Text | undefined;
-        if (node) {
-          return {
-            ...base,
-            width: node.width() / stageSx,
-            height: node.height() / stageSy,
-          };
-        }
-      }
-      return base;
     });
 
-    const data = { format, bgColor, bgSrc, elements: normalized };
+    const data = { format, bgColor, bgSrc, elements: serialized };
     console.log("[Editor] Template JSON:", JSON.stringify(data, null, 2));
     alert("Template salvo no console (integração Supabase pendente)");
+  }
+
+  /** Carrega template salvo — restaura state + aplica setAttrs em cada node Konva */
+  function loadTemplate(data: { format: Format; bgColor: string; bgSrc: string; elements: Array<{ id: string; type: string; name: string; visible: boolean; locked: boolean; isBind?: boolean; bindKey?: string; src?: string; attrs: Record<string, unknown> }> }) {
+    setFormat(data.format);
+    setBgColor(data.bgColor);
+    if (data.bgSrc) loadBgImage(data.bgSrc);
+
+    // Reconstrói elements state a partir dos attrs
+    const rebuilt: CanvasElement[] = data.elements.map((s) => {
+      const a = s.attrs;
+      const common = {
+        id: s.id,
+        name: s.name,
+        visible: s.visible,
+        locked: s.locked,
+        x: (a.x as number) || 0,
+        y: (a.y as number) || 0,
+        width: (a.width as number) || 100,
+        height: (a.height as number) || 100,
+        rotation: (a.rotation as number) || 0,
+        opacity: (a.opacity as number) ?? 1,
+      };
+      if (s.type === "text") {
+        return { ...common, type: "text",
+          text: (a.text as string) || "",
+          fontSize: (a.fontSize as number) || 24,
+          fontFamily: (a.fontFamily as string) || "DM Sans",
+          fill: (a.fill as string) || "#000",
+          fontStyle: (a.fontStyle as string) || "normal",
+          align: (a.align as string) || "left",
+          isBind: s.isBind ?? false,
+          bindKey: s.bindKey ?? "",
+        } as TextEl;
+      }
+      if (s.type === "image") {
+        return { ...common, type: "image", src: s.src ?? "" } as ImageEl;
+      }
+      if (s.type === "rect") {
+        return { ...common, type: "rect",
+          fill: (a.fill as string) || "#000",
+          stroke: (a.stroke as string) || "",
+          strokeWidth: (a.strokeWidth as number) || 0,
+          cornerRadius: (a.cornerRadius as number) || 0,
+        } as RectEl;
+      }
+      return { ...common, type: "circle",
+        fill: (a.fill as string) || "#000",
+        stroke: (a.stroke as string) || "",
+        strokeWidth: (a.strokeWidth as number) || 0,
+      } as CircleEl;
+    });
+    setElements(rebuilt);
+    pushHistory(rebuilt);
+
+    // Após o React montar os nodes, aplica setAttrs para restaurar fontSize,
+    // letterSpacing, lineHeight, scaleX/Y e todos os outros atributos não mapeados no state
+    setTimeout(() => {
+      const stage = stageRef.current;
+      if (!stage) return;
+      for (const s of data.elements) {
+        const node = stage.findOne(`#${s.id}`);
+        if (node) node.setAttrs(s.attrs);
+      }
+      stage.batchDraw();
+    }, 50);
   }
 
   /* ── Layer reorder ─────────────────────────────── */
