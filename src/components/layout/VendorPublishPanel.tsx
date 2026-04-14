@@ -67,14 +67,8 @@ export default function VendorPublishPanel() {
     return () => clearInterval(t);
   }, []);
 
-  /* ── Rotação de frase (30s) ────────────────────── */
-  useEffect(() => {
-    if (quotes.length <= 1) return;
-    const t = setInterval(() => {
-      setQuoteIdx((i) => (i + 1) % quotes.length);
-    }, 30000);
-    return () => clearInterval(t);
-  }, [quotes.length]);
+  /* ── Frase do dia: mesma frase durante todo o dia ──
+   * Não rotaciona; troca apenas quando a data muda. */
 
   /* ── Load profile + plano + quotes + clima ─────── */
   const loadAll = useCallback(async () => {
@@ -110,8 +104,25 @@ export default function VendorPublishPanel() {
       const pool = segQuotes.length > 0
         ? [...segQuotes, ...segQuotes, ...AUGUSTO_CURY]
         : AUGUSTO_CURY;
-      // Shuffle leve pra não começar sempre pelo primeiro
-      setQuotes([...pool].sort(() => Math.random() - 0.5));
+
+      // Frase do dia: persiste em localStorage; troca só quando data muda
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const storageKey = "ah_frase_do_dia";
+      let dailyQuote: string | null = null;
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        if (saved.data === today && typeof saved.frase === "string" && pool.includes(saved.frase)) {
+          dailyQuote = saved.frase;
+        }
+      } catch { /* ignore */ }
+
+      if (!dailyQuote) {
+        dailyQuote = pool[Math.floor(Math.random() * pool.length)];
+        try { localStorage.setItem(storageKey, JSON.stringify({ data: today, frase: dailyQuote })); } catch { /* ignore */ }
+      }
+
+      // Mantém o array com a frase do dia na posição 0
+      setQuotes([dailyQuote, ...pool.filter(q => q !== dailyQuote)]);
       setQuoteIdx(0);
 
       // Cidade da store pra clima
