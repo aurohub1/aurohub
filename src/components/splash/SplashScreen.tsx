@@ -7,7 +7,7 @@ export type SplashEffect =
   | "gradiente" | "dissolve" | "bigbang" | "aurora" | "tinta" | "vagalumes"
   | "aurora_espacial" | "galaxia"
   | "vidro_janela" | "vidro_liquido"
-  | "cidade_b" | "restaurante" | "restaurante2" | "saude"
+  | "cidade_a" | "cidade_b" | "restaurante" | "saude"
   | "moda" | "imobiliaria" | "educacao" | "beleza";
 
 interface Props {
@@ -30,8 +30,6 @@ interface Props {
   suavidade?: number;
   /** URL do áudio para tocar durante o splash. */
   somUrl?: string;
-  /** URL de arquivo Lottie (.json). Se fornecido, renderiza Lottie em vez do canvas. */
-  lottieUrl?: string;
 }
 
 const EFFECTS: SplashEffect[] = [
@@ -40,7 +38,7 @@ const EFFECTS: SplashEffect[] = [
   "gradiente","dissolve","bigbang","aurora","tinta","vagalumes",
   "aurora_espacial","galaxia",
   "vidro_janela","vidro_liquido",
-  "cidade_b","restaurante","restaurante2","saude",
+  "cidade_a","cidade_b","restaurante","saude",
   "moda","imobiliaria","educacao","beleza",
 ];
 
@@ -48,29 +46,10 @@ export default function SplashScreen({
   logoUrl, logoOrientation = "horizontal",
   effect = "random", cor1 = "#FF7A1A", cor2 = "#D4A843", cor3 = "#1E3A6E",
   cor4, cor5, corFundo = "#0E1520", userName, onDone,
-  embedded, velocidade = 5, suavidade = 7, somUrl, lottieUrl,
+  embedded, velocidade = 5, suavidade = 7, somUrl,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lottieContainerRef = useRef<HTMLDivElement>(null);
-
-  // Lottie: carrega e toca quando lottieUrl é fornecido
-  useEffect(() => {
-    if (!lottieUrl || !lottieContainerRef.current) return;
-    let anim: { destroy: () => void } | null = null;
-    (async () => {
-      const lottie = (await import("lottie-web")).default;
-      if (!lottieContainerRef.current) return;
-      anim = lottie.loadAnimation({
-        container: lottieContainerRef.current,
-        renderer: "svg",
-        loop: true,
-        autoplay: true,
-        path: lottieUrl,
-      });
-    })();
-    return () => { if (anim) anim.destroy(); };
-  }, [lottieUrl]);
   const [visible, setVisible] = useState(true);
   const [logoVisible, setLogoVisible] = useState(false);
   const [greetVisible, setGreetVisible] = useState(false);
@@ -766,33 +745,91 @@ export default function SplashScreen({
           break;
         }
 
+        case "cidade_a": {
+          // Silhuetas urbanas geométricas atrás de vidro jateado
+          ctx.fillStyle = "#0a0e1f";
+          ctx.fillRect(0, 0, W, H);
+
+          // Halo cor1 atrás
+          const glow = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.4, H * 0.5);
+          glow.addColorStop(0, `rgba(${c1.r},${c1.g},${c1.b},0.25)`);
+          glow.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = glow;
+          ctx.fillRect(0, 0, W, H);
+
+          // Prédios (12 retângulos)
+          for (let i = 0; i < 12; i++) {
+            const bx = (i / 12) * W - 20;
+            const bw = W / 12 + Math.sin(i * 2.3) * 10;
+            const bh = H * (0.3 + ((i * 37) % 50) / 100);
+            const col = i % 3 === 0 ? c1 : i % 3 === 1 ? c2 : c3;
+            ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},0.5)`;
+            ctx.fillRect(bx, H - bh, bw, bh);
+          }
+
+          // Carros (pontinhos se movendo horizontal)
+          for (let i = 0; i < 6; i++) {
+            const cx = ((t * 30 + i * 200) % (W + 40)) - 20;
+            const cy = H * (0.85 + (i % 2) * 0.05);
+            ctx.fillStyle = `rgba(${c2.r},${c2.g},${c2.b},0.9)`;
+            ctx.fillRect(cx, cy, 14, 6);
+            ctx.fillStyle = `rgba(255,255,255,0.6)`;
+            ctx.fillRect(cx + 12, cy + 1, 2, 4);
+          }
+
+          // Pessoas (traços finos verticais se movendo)
+          for (let i = 0; i < 10; i++) {
+            const px = ((t * 8 + i * 100) % W);
+            const py = H * 0.9;
+            ctx.fillStyle = `rgba(${c3.r},${c3.g},${c3.b},0.7)`;
+            ctx.fillRect(px, py, 2, 8);
+            ctx.beginPath();
+            ctx.arc(px + 1, py - 2, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Camada de vidro jateado cobrindo tudo
+          ctx.fillStyle = "rgba(255,255,255,0.04)";
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = "rgba(10,20,40,0.25)";
+          ctx.fillRect(0, 0, W, H);
+
+          // Borda glassmorphism
+          ctx.strokeStyle = "rgba(255,255,255,0.08)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(15, 15, W - 30, H - 30);
+          break;
+        }
+
         case "cidade_b": {
-          // Skyline maior com prédios 3x e carros como luzes
+          // Skyline detalhada com janelas piscando
           const bg = ctx.createLinearGradient(0, 0, 0, H);
-          bg.addColorStop(0, "#04051a");
-          bg.addColorStop(1, "#0c1238");
+          bg.addColorStop(0, "#06091c");
+          bg.addColorStop(1, "#101530");
           ctx.fillStyle = bg;
           ctx.fillRect(0, 0, W, H);
 
-          // Estrelas no topo
-          for (let i = 0; i < 80; i++) {
+          // Estrelas
+          for (let i = 0; i < 60; i++) {
             const sx = (i * 173.7) % W;
-            const sy = ((i * 97.3) % H) * 0.3;
+            const sy = ((i * 97.3) % H) * 0.5;
             const br = 0.3 + Math.sin(i * 0.7 + t) * 0.2;
             ctx.beginPath();
-            ctx.arc(sx, sy, 0.7, 0, Math.PI * 2);
+            ctx.arc(sx, sy, 0.6, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(255,255,255,${br})`;
             ctx.fill();
           }
 
-          // Prédios bem maiores (3x)
+          // Prédios detalhados
           const buildings = [
-            { x: 0.02, w: 0.18, h: 0.75 },
-            { x: 0.21, w: 0.12, h: 0.60 },
-            { x: 0.34, w: 0.20, h: 0.85 },
-            { x: 0.55, w: 0.14, h: 0.55 },
-            { x: 0.70, w: 0.16, h: 0.72 },
-            { x: 0.87, w: 0.12, h: 0.65 },
+            { x: 0.05, w: 0.12, h: 0.55 },
+            { x: 0.18, w: 0.08, h: 0.45 },
+            { x: 0.27, w: 0.14, h: 0.65 },
+            { x: 0.42, w: 0.09, h: 0.40 },
+            { x: 0.52, w: 0.13, h: 0.55 },
+            { x: 0.66, w: 0.10, h: 0.70 },
+            { x: 0.77, w: 0.08, h: 0.45 },
+            { x: 0.86, w: 0.12, h: 0.50 },
           ];
 
           for (let bi = 0; bi < buildings.length; bi++) {
@@ -802,56 +839,34 @@ export default function SplashScreen({
             const bh = H * b.h;
             const by = H - bh;
 
+            // Corpo do prédio
             const bGrad = ctx.createLinearGradient(bx, by, bx + bw, by);
-            bGrad.addColorStop(0, "#1c2344");
-            bGrad.addColorStop(1, "#0e1528");
+            bGrad.addColorStop(0, "#1a2038");
+            bGrad.addColorStop(1, "#0e1325");
             ctx.fillStyle = bGrad;
             ctx.fillRect(bx, by, bw, bh);
-            ctx.strokeStyle = "rgba(120,150,200,0.25)";
-            ctx.lineWidth = 1;
+
+            // Borda sutil
+            ctx.strokeStyle = "rgba(100,120,180,0.25)";
+            ctx.lineWidth = 0.8;
             ctx.strokeRect(bx, by, bw, bh);
 
-            // Janelas maiores e mais visíveis
-            const cols = Math.max(4, Math.floor(bw / 18));
-            const rows = Math.max(8, Math.floor(bh / 22));
-            const winW = (bw - 12) / cols - 3;
-            const winH = 8;
+            // Janelas piscando
+            const cols = Math.max(3, Math.floor(bw / 8));
+            const rows = Math.max(5, Math.floor(bh / 10));
             for (let r = 0; r < rows; r++) {
               for (let col = 0; col < cols; col++) {
                 const hash = (bi * 31 + r * 17 + col * 7) % 100;
-                if (hash < 65) {
-                  const blink = Math.sin(t * 0.4 + hash * 0.25) > 0.2 ? 1 : 0.4;
-                  const wCol = hash % 3 === 0 ? c2 : hash % 3 === 1 ? c1 : { r: 255, g: 220, b: 150 };
-                  ctx.fillStyle = `rgba(${wCol.r},${wCol.g},${wCol.b},${0.9 * blink})`;
-                  const wx = bx + 6 + col * ((bw - 12) / cols);
-                  const wy = by + 8 + r * ((bh - 16) / rows);
-                  ctx.fillRect(wx, wy, winW, winH);
+                if (hash < 55) {
+                  const blink = Math.sin(t * 0.5 + hash * 0.3) > 0.3 ? 1 : 0.3;
+                  const wCol = hash % 3 === 0 ? c2 : hash % 3 === 1 ? c1 : c3;
+                  ctx.fillStyle = `rgba(${wCol.r},${wCol.g},${wCol.b},${0.85 * blink})`;
+                  const wx = bx + 3 + col * (bw - 6) / cols;
+                  const wy = by + 5 + r * (bh - 10) / rows;
+                  ctx.fillRect(wx, wy, Math.max(2, bw / cols - 3), 2.5);
                 }
               }
             }
-          }
-
-          // Carros como pontos de luz se movendo nas ruas (base)
-          for (let i = 0; i < 12; i++) {
-            const lane = i % 2;
-            const carT = (t * 0.12 + i / 12) % 1;
-            const cx = carT * (W + 60) - 30;
-            const cy = H * (0.93 + lane * 0.03);
-            const col = lane === 0 ? { r: 255, g: 220, b: 150 } : { r: 255, g: 100, b: 80 };
-            // Halo do farol
-            const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, 18);
-            halo.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0.9)`);
-            halo.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = halo;
-            ctx.beginPath();
-            ctx.arc(cx, cy, 18, 0, Math.PI * 2);
-            ctx.fill();
-            // Trilha
-            const trail = ctx.createLinearGradient(cx - 40, cy, cx, cy);
-            trail.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0)`);
-            trail.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0.5)`);
-            ctx.fillStyle = trail;
-            ctx.fillRect(cx - 40, cy - 1, 40, 2);
           }
           break;
         }
@@ -864,6 +879,7 @@ export default function SplashScreen({
           ctx.fillStyle = bg;
           ctx.fillRect(0, 0, W, H);
 
+          // Partículas subindo em espiral
           for (let i = 0; i < 120; i++) {
             const lifeT = (t * 0.3 + i / 120) % 1;
             const baseX = W * (0.3 + (i % 5) * 0.1);
@@ -882,6 +898,8 @@ export default function SplashScreen({
             ctx.arc(x, y, size * 3, 0, Math.PI * 2);
             ctx.fill();
           }
+
+          // Brilhos quentes (sparkles)
           for (let i = 0; i < 25; i++) {
             const sparkT = (t * 0.5 + i / 25) % 1;
             const sx = (i * 137) % W;
@@ -897,369 +915,174 @@ export default function SplashScreen({
           break;
         }
 
-        case "restaurante2": {
-          // Brasas de churrasqueira
-          const bg = ctx.createLinearGradient(0, 0, 0, H);
-          bg.addColorStop(0, "#1a0505");
-          bg.addColorStop(0.5, "#2a0808");
-          bg.addColorStop(1, "#0a0202");
-          ctx.fillStyle = bg;
-          ctx.fillRect(0, 0, W, H);
-
-          // Brilho quente base (brasa no chão)
-          const emberBase = ctx.createRadialGradient(W * 0.5, H, 0, W * 0.5, H, H * 0.7);
-          emberBase.addColorStop(0, "rgba(255,80,30,0.35)");
-          emberBase.addColorStop(0.4, "rgba(200,40,20,0.12)");
-          emberBase.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = emberBase;
-          ctx.fillRect(0, 0, W, H);
-
-          // Brasas: partículas pequenas subindo
-          for (let i = 0; i < 200; i++) {
-            const lifeT = ((t * 0.35 + i / 200) % 1);
-            const baseX = ((i * 173.7) % W);
-            const sway = Math.sin(t * 1.5 + i * 0.3) * 18;
-            const x = baseX + sway;
-            const y = H - lifeT * H * 0.95;
-            const size = 1.2 + (1 - lifeT) * 1.3;
-            // Brasas perdem intensidade subindo (algumas "apagam")
-            const extinguish = Math.sin(i * 7.3) > 0.4 ? 1 : Math.max(0, 1 - lifeT * 1.8);
-            const alpha = (1 - lifeT * 0.7) * extinguish * 0.9;
-            const hue = lifeT < 0.3 ? 1 : lifeT < 0.7 ? 0.7 : 0.4;
-            const r = 255;
-            const g = Math.floor(80 + hue * 80);
-            const b = Math.floor(20 * hue);
-
-            // Glow
-            const gg = ctx.createRadialGradient(x, y, 0, x, y, size * 3);
-            gg.addColorStop(0, `rgba(${r},${g},${b},${alpha})`);
-            gg.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = gg;
-            ctx.beginPath();
-            ctx.arc(x, y, size * 3, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Núcleo brilhante
-            ctx.fillStyle = `rgba(255,${200 + hue * 55},${100 * hue},${alpha * 0.9})`;
-            ctx.beginPath();
-            ctx.arc(x, y, size * 0.7, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          // Flickers intensos ocasionais
-          for (let i = 0; i < 15; i++) {
-            const ft = (t * 0.8 + i / 15) % 1;
-            if (ft < 0.15) {
-              const fx = (i * 137) % W;
-              const fy = H - ft * H * 0.5;
-              const flash = Math.max(0, 1 - ft / 0.15);
-              ctx.fillStyle = `rgba(255,230,150,${flash * 0.8})`;
-              ctx.beginPath();
-              ctx.arc(fx, fy, 2 + flash * 3, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-          break;
-        }
-
         case "saude": {
-          // DNA helicoidal centralizado + células flutuantes
-          const bg = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.7);
-          bg.addColorStop(0, "#05142a");
-          bg.addColorStop(1, "#020610");
+          // Pulso cardíaco + DNA
+          const bg = ctx.createLinearGradient(0, 0, W, 0);
+          bg.addColorStop(0, "#051a15");
+          bg.addColorStop(1, "#05101a");
           ctx.fillStyle = bg;
           ctx.fillRect(0, 0, W, H);
 
-          // Partículas azul-verde flutuando (células)
-          for (let i = 0; i < 60; i++) {
-            const drift = (t * 0.2 + i / 60);
-            const cx = W * (0.1 + ((i * 0.17) % 0.8)) + Math.sin(drift + i) * 30;
-            const cy = H * (0.1 + ((i * 0.23) % 0.8)) + Math.cos(drift + i * 0.7) * 25;
-            const size = 2 + Math.sin(i + t) * 1.5;
-            const col = i % 2 === 0 ? { r: 80, g: 200, b: 220 } : { r: 100, g: 220, b: 160 };
-            const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 3);
-            halo.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0.5)`);
-            halo.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = halo;
-            ctx.beginPath();
-            ctx.arc(cx, cy, size * 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},0.8)`;
-            ctx.beginPath();
-            ctx.arc(cx, cy, size * 0.4, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          // DNA dupla hélice centralizada
-          const dnaRot = t * 0.25;
-          for (let i = 0; i < 60; i++) {
-            const yd = (i / 60) * H;
-            const phase1 = yd * 0.025 + dnaRot;
+          // DNA dupla hélice ao fundo (tenuem)
+          ctx.save();
+          ctx.globalAlpha = 0.25;
+          const dnaRot = t * 0.3;
+          for (let i = 0; i < 30; i++) {
+            const yd = (i / 30) * H;
+            const phase1 = yd * 0.03 + dnaRot;
             const phase2 = phase1 + Math.PI;
-            const x1 = W * 0.5 + Math.cos(phase1) * W * 0.12;
-            const x2 = W * 0.5 + Math.cos(phase2) * W * 0.12;
-
-            const z1 = Math.sin(phase1);
-            const z2 = Math.sin(phase2);
-            const size1 = 4 + z1 * 2;
-            const size2 = 4 + z2 * 2;
-            const alpha1 = 0.5 + z1 * 0.5;
-            const alpha2 = 0.5 + z2 * 0.5;
-
-            // Bolas da fita 1
-            const col1 = { r: 100, g: 220, b: 200 };
-            ctx.fillStyle = `rgba(${col1.r},${col1.g},${col1.b},${alpha1 * 0.8})`;
-            ctx.beginPath();
-            ctx.arc(x1, yd, size1, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Bolas da fita 2
-            const col2 = { r: 80, g: 180, b: 230 };
-            ctx.fillStyle = `rgba(${col2.r},${col2.g},${col2.b},${alpha2 * 0.8})`;
-            ctx.beginPath();
-            ctx.arc(x2, yd, size2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Pontes entre fitas (aparecem quando ambas estão "à frente")
-            if (Math.abs(Math.cos(phase1)) < 0.4) {
-              const bridgeAlpha = (0.4 - Math.abs(Math.cos(phase1))) * 2;
-              ctx.strokeStyle = `rgba(100,220,200,${bridgeAlpha * 0.6})`;
-              ctx.lineWidth = 1.5;
-              ctx.beginPath();
-              ctx.moveTo(x1, yd);
-              ctx.lineTo(x2, yd);
-              ctx.stroke();
+            const x1 = W * 0.5 + Math.cos(phase1) * W * 0.15;
+            const x2 = W * 0.5 + Math.cos(phase2) * W * 0.15;
+            const col = i % 2 === 0 ? c1 : c3;
+            // Pontos
+            ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},0.7)`;
+            ctx.beginPath(); ctx.arc(x1, yd, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x2, yd, 3, 0, Math.PI * 2); ctx.fill();
+            // Ligação
+            if (Math.abs(Math.cos(phase1)) < 0.3) {
+              ctx.strokeStyle = `rgba(${c2.r},${c2.g},${c2.b},0.4)`;
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(x1, yd); ctx.lineTo(x2, yd); ctx.stroke();
             }
+          }
+          ctx.restore();
+
+          // Linha de pulso cardíaco
+          ctx.strokeStyle = `rgba(${c1.r},${c1.g},${c1.b},0.9)`;
+          ctx.lineWidth = 2;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = `rgba(${c1.r},${c1.g},${c1.b},0.8)`;
+          ctx.beginPath();
+          const scrollX = (t * 80) % W;
+          for (let x = 0; x <= W; x += 2) {
+            const xRel = ((x + scrollX) % W) / W;
+            // Pulse wave: picos ocasionais
+            let y = H * 0.5;
+            const cycle = (xRel * 6) % 1;
+            if (cycle < 0.1) y = H * 0.5 - H * 0.2 * Math.sin(cycle * Math.PI * 10);
+            else if (cycle < 0.15) y = H * 0.5 + H * 0.08 * Math.sin(cycle * Math.PI * 20);
+            if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // Partículas azuis/verdes
+          for (let i = 0; i < 40; i++) {
+            const px = ((i * 137 + t * 20) % W);
+            const py = H * 0.5 + Math.sin(i + t) * H * 0.2;
+            const col = i % 2 === 0 ? c2 : c3;
+            ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},0.6)`;
+            ctx.beginPath();
+            ctx.arc(px, py, 1, 0, Math.PI * 2);
+            ctx.fill();
           }
           break;
         }
 
         case "moda": {
-          // Desfile de alta costura: spotlight central, glitter caindo, flash câmera
-          // Fundo preto profundo
-          ctx.fillStyle = "#020204";
+          // Faixas de seda com shimmer
+          ctx.fillStyle = "#0a0815";
           ctx.fillRect(0, 0, W, H);
 
-          const cx = W * 0.5;
+          // Faixas diagonais fluindo
+          const strips = [
+            { col: c1, y0: 0.1, angle: -0.15, speed: 0.3, width: 0.18 },
+            { col: c2, y0: 0.35, angle: -0.1, speed: 0.25, width: 0.15 },
+            { col: c3, y0: 0.6, angle: -0.12, speed: 0.35, width: 0.2 },
+            { col: c1, y0: 0.85, angle: -0.08, speed: 0.28, width: 0.14 },
+          ];
 
-          // Spotlight central (cone de luz vindo de cima)
-          ctx.save();
-          ctx.beginPath();
-          ctx.moveTo(cx - W * 0.05, 0); // topo estreito
-          ctx.lineTo(cx + W * 0.05, 0);
-          ctx.lineTo(cx + W * 0.55, H); // base larga
-          ctx.lineTo(cx - W * 0.55, H);
-          ctx.closePath();
-          const spotGrad = ctx.createLinearGradient(cx, 0, cx, H);
-          spotGrad.addColorStop(0, "rgba(255,245,220,0.28)");
-          spotGrad.addColorStop(0.5, "rgba(255,235,180,0.14)");
-          spotGrad.addColorStop(1, "rgba(255,200,100,0)");
-          ctx.fillStyle = spotGrad;
-          ctx.fill();
-          ctx.restore();
-
-          // Núcleo da luz (pequena fonte circular no topo)
-          const sourceGlow = ctx.createRadialGradient(cx, 0, 0, cx, 0, 80);
-          sourceGlow.addColorStop(0, "rgba(255,250,220,0.8)");
-          sourceGlow.addColorStop(1, "rgba(255,200,100,0)");
-          ctx.fillStyle = sourceGlow;
-          ctx.beginPath();
-          ctx.arc(cx, 0, 80, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Pódio/piso reflexivo sutil
-          const floorGrad = ctx.createLinearGradient(0, H * 0.8, 0, H);
-          floorGrad.addColorStop(0, "rgba(0,0,0,0)");
-          floorGrad.addColorStop(1, "rgba(255,235,180,0.05)");
-          ctx.fillStyle = floorGrad;
-          ctx.fillRect(0, H * 0.8, W, H * 0.2);
-
-          // Glitter caindo — partículas douradas e prateadas
-          for (let i = 0; i < 140; i++) {
-            const fallT = (t * 0.22 + i / 140) % 1;
-            const baseX = ((i * 137.5) % W);
-            const sway = Math.sin(t * 0.8 + i * 0.5) * 15;
-            const gx = baseX + sway;
-            const gy = fallT * (H + 20) - 10;
-
-            const isGold = i % 3 !== 0;
-            const col = isGold ? { r: 255, g: 220, b: 140 } : { r: 230, g: 230, b: 245 };
-
-            // Brilho alterna: cintila conforme cai
-            const twinkle = 0.3 + Math.abs(Math.sin(t * 4 + i * 1.3)) * 0.7;
-            const alpha = (1 - Math.abs(fallT - 0.5) * 1.5) * twinkle * 0.85;
-
-            if (alpha > 0.05) {
-              // Halo do glitter
-              const gHalo = ctx.createRadialGradient(gx, gy, 0, gx, gy, 4);
-              gHalo.addColorStop(0, `rgba(${col.r},${col.g},${col.b},${alpha})`);
-              gHalo.addColorStop(1, "rgba(0,0,0,0)");
-              ctx.fillStyle = gHalo;
-              ctx.beginPath();
-              ctx.arc(gx, gy, 4, 0, Math.PI * 2);
-              ctx.fill();
-
-              // Núcleo (pixel brilhante)
-              ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-              ctx.fillRect(gx - 0.5, gy - 0.5, 1, 1);
+          for (const s of strips) {
+            ctx.save();
+            const centerY = H * s.y0;
+            ctx.translate(W * 0.5, centerY);
+            ctx.rotate(s.angle);
+            const stripW = W * 2;
+            const stripH = H * s.width;
+            const offset = (t * s.speed * 200) % (W * 0.5);
+            for (let x = -stripW; x < stripW; x += 4) {
+              const wave = Math.sin((x + offset) * 0.012 + t * s.speed) * stripH * 0.15;
+              // Gradient de seda (com shimmer)
+              const grad = ctx.createLinearGradient(x, -stripH, x, stripH);
+              const shimmer = 0.5 + Math.sin(x * 0.03 + t * 2) * 0.5;
+              grad.addColorStop(0, `rgba(${s.col.r},${s.col.g},${s.col.b},0)`);
+              grad.addColorStop(0.4, `rgba(${s.col.r},${s.col.g},${s.col.b},${0.25 + shimmer * 0.2})`);
+              grad.addColorStop(0.5, `rgba(255,255,255,${0.1 + shimmer * 0.15})`);
+              grad.addColorStop(0.6, `rgba(${s.col.r},${s.col.g},${s.col.b},${0.25 + shimmer * 0.2})`);
+              grad.addColorStop(1, `rgba(${s.col.r},${s.col.g},${s.col.b},0)`);
+              ctx.fillStyle = grad;
+              ctx.fillRect(x, wave - stripH, 4, stripH * 2);
             }
+            ctx.restore();
           }
-
-          // Flashes de câmera diagonais (linhas de luz intermitentes)
-          for (let i = 0; i < 4; i++) {
-            const flashT = ((t * 0.4 + i * 0.3) % 2);
-            if (flashT < 0.2) {
-              // Flash ativo
-              const intensity = flashT < 0.08 ? flashT / 0.08 : (0.2 - flashT) / 0.12;
-              const angle = -0.35 + (i % 2) * 0.7; // diagonais variadas
-              const yBase = H * (0.15 + (i * 0.2));
-
-              ctx.save();
-              ctx.translate(cx, yBase);
-              ctx.rotate(angle);
-
-              const flashLen = W * 1.8;
-              const flashWidth = 60;
-              const fg = ctx.createLinearGradient(-flashLen / 2, 0, flashLen / 2, 0);
-              fg.addColorStop(0, "rgba(255,255,255,0)");
-              fg.addColorStop(0.4, `rgba(255,250,230,${intensity * 0.3})`);
-              fg.addColorStop(0.5, `rgba(255,255,255,${intensity * 0.7})`);
-              fg.addColorStop(0.6, `rgba(255,250,230,${intensity * 0.3})`);
-              fg.addColorStop(1, "rgba(255,255,255,0)");
-              ctx.fillStyle = fg;
-              ctx.fillRect(-flashLen / 2, -flashWidth / 2, flashLen, flashWidth);
-              ctx.restore();
-            }
-          }
-
-          // Vinheta nas bordas (elegante, foca no centro)
-          const vignette = ctx.createRadialGradient(cx, H * 0.5, 0, cx, H * 0.5, Math.max(W, H) * 0.7);
-          vignette.addColorStop(0, "rgba(0,0,0,0)");
-          vignette.addColorStop(0.7, "rgba(0,0,0,0.2)");
-          vignette.addColorStop(1, "rgba(0,0,0,0.7)");
-          ctx.fillStyle = vignette;
-          ctx.fillRect(0, 0, W, H);
           break;
         }
 
         case "imobiliaria": {
-          // Skyline ao entardecer detalhado
-          // Céu gradient roxo-laranja-dourado
-          const sky = ctx.createLinearGradient(0, 0, 0, H);
-          sky.addColorStop(0, "#2a1145");
-          sky.addColorStop(0.3, "#592050");
-          sky.addColorStop(0.55, "#c05828");
-          sky.addColorStop(0.75, "#e8a040");
-          sky.addColorStop(1, "#1a0818");
-          ctx.fillStyle = sky;
+          // Skyline ao entardecer
+          const bg = ctx.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, `rgba(${c3.r},${c3.g},${c3.b},0.8)`);
+          bg.addColorStop(0.5, `rgba(${c1.r},${c1.g},${c1.b},0.5)`);
+          bg.addColorStop(1, "#0a0615");
+          ctx.fillStyle = bg;
           ctx.fillRect(0, 0, W, H);
 
-          // Sol
-          const sunY = H * 0.6;
-          const sunR = H * 0.08;
-          const sun = ctx.createRadialGradient(W * 0.5, sunY, 0, W * 0.5, sunY, sunR * 3);
-          sun.addColorStop(0, "rgba(255,240,180,0.95)");
-          sun.addColorStop(0.4, "rgba(255,180,80,0.5)");
-          sun.addColorStop(1, "rgba(255,100,40,0)");
+          // Sol/Gradiente laranja
+          const sun = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, H * 0.4);
+          sun.addColorStop(0, `rgba(${c1.r},${c1.g},${c1.b},0.6)`);
+          sun.addColorStop(1, "rgba(0,0,0,0)");
           ctx.fillStyle = sun;
-          ctx.beginPath();
-          ctx.arc(W * 0.5, sunY, sunR * 3, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillRect(0, 0, W, H);
 
-          // Estrelas aparecendo gradualmente
-          const starOpacity = Math.min(1, t * 0.15);
-          for (let i = 0; i < 50; i++) {
+          // Estrelas (aparecendo com o tempo)
+          const starOpacity = Math.min(1, t * 0.2);
+          for (let i = 0; i < 40; i++) {
             const sx = (i * 173.7) % W;
-            const sy = ((i * 97.3) % H) * 0.45;
-            const br = starOpacity * (0.3 + Math.sin(i + t) * 0.2);
-            if (br > 0.05) {
-              ctx.beginPath();
-              ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
-              ctx.fillStyle = `rgba(255,255,255,${br})`;
-              ctx.fill();
-            }
+            const sy = ((i * 97.3) % H) * 0.5;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 0.7, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${starOpacity * (0.3 + Math.sin(i + t) * 0.2)})`;
+            ctx.fill();
           }
 
-          // Skyline detalhada
+          // Prédios (silhuetas escuras)
           const buildings = [
-            { x: 0.0, w: 0.08, h: 0.38 },
-            { x: 0.07, w: 0.11, h: 0.52 },
-            { x: 0.17, w: 0.07, h: 0.36 },
-            { x: 0.23, w: 0.13, h: 0.58 },
-            { x: 0.35, w: 0.08, h: 0.42 },
-            { x: 0.42, w: 0.11, h: 0.55 },
-            { x: 0.52, w: 0.07, h: 0.40 },
-            { x: 0.58, w: 0.13, h: 0.62 },
-            { x: 0.70, w: 0.08, h: 0.45 },
-            { x: 0.77, w: 0.12, h: 0.50 },
-            { x: 0.88, w: 0.07, h: 0.38 },
-            { x: 0.94, w: 0.08, h: 0.48 },
+            { x: 0.0, w: 0.15, h: 0.45 },
+            { x: 0.14, w: 0.10, h: 0.35 },
+            { x: 0.23, w: 0.13, h: 0.55 },
+            { x: 0.35, w: 0.09, h: 0.40 },
+            { x: 0.44, w: 0.14, h: 0.60 },
+            { x: 0.58, w: 0.10, h: 0.50 },
+            { x: 0.68, w: 0.12, h: 0.45 },
+            { x: 0.79, w: 0.09, h: 0.55 },
+            { x: 0.88, w: 0.12, h: 0.42 },
           ];
-
-          const horizon = H * 0.68; // separação prédios/água
 
           for (let bi = 0; bi < buildings.length; bi++) {
             const b = buildings[bi];
             const bx = W * b.x;
             const bw = W * b.w;
             const bh = H * b.h;
-            const by = horizon - bh;
+            const by = H - bh;
 
-            // Prédio silhueta escura
-            ctx.fillStyle = "#0e0a1a";
+            ctx.fillStyle = "#0a0a1a";
             ctx.fillRect(bx, by, bw, bh);
 
-            // Janelas piscando
-            const cols = Math.max(2, Math.floor(bw / 12));
-            const rows = Math.max(5, Math.floor(bh / 15));
+            // Janelas acendendo aleatoriamente
+            const cols = Math.max(2, Math.floor(bw / 10));
+            const rows = Math.max(4, Math.floor(bh / 12));
             for (let r = 0; r < rows; r++) {
               for (let col = 0; col < cols; col++) {
                 const hash = (bi * 31 + r * 17 + col * 7) % 100;
-                const pulse = Math.sin(t * 0.4 + hash * 0.12);
-                if (pulse > 0.1) {
-                  const wx = bx + 3 + col * ((bw - 6) / cols);
-                  const wy = by + 4 + r * ((bh - 8) / rows);
-                  const wCol = hash % 3 === 0 ? { r: 255, g: 220, b: 140 } : hash % 3 === 1 ? c2 : { r: 255, g: 180, b: 100 };
-                  ctx.fillStyle = `rgba(${wCol.r},${wCol.g},${wCol.b},${pulse})`;
-                  ctx.fillRect(wx, wy, Math.max(2, (bw - 6) / cols - 2), 3);
+                const lightUp = Math.sin(t * 0.3 + hash * 0.1);
+                if (lightUp > 0.2) {
+                  const wx = bx + 3 + col * (bw - 6) / cols;
+                  const wy = by + 4 + r * (bh - 8) / rows;
+                  ctx.fillStyle = `rgba(${c2.r},${c2.g},${c2.b},${(lightUp - 0.2) * 1.2})`;
+                  ctx.fillRect(wx, wy, Math.max(2, bw / cols - 3), 3);
                 }
               }
             }
-          }
-
-          // Reflexo na água (parte inferior)
-          const waterGrad = ctx.createLinearGradient(0, horizon, 0, H);
-          waterGrad.addColorStop(0, "rgba(40,20,60,0.9)");
-          waterGrad.addColorStop(1, "rgba(10,5,20,1)");
-          ctx.fillStyle = waterGrad;
-          ctx.fillRect(0, horizon, W, H - horizon);
-
-          // Reflexo dos prédios (invertido + distorção)
-          ctx.save();
-          ctx.globalAlpha = 0.4;
-          for (let bi = 0; bi < buildings.length; bi++) {
-            const b = buildings[bi];
-            const bx = W * b.x;
-            const bw = W * b.w;
-            const bh = H * b.h * 0.6; // Reflexo mais curto
-            // Ondulação
-            const wave = Math.sin(t * 2 + bi) * 2;
-            ctx.fillStyle = "#1a0e2a";
-            ctx.fillRect(bx + wave, horizon, bw, bh);
-          }
-          ctx.restore();
-
-          // Ondas horizontais de luz na água
-          for (let i = 0; i < 8; i++) {
-            const yw = horizon + 10 + i * ((H - horizon) / 10);
-            ctx.strokeStyle = `rgba(255,200,120,${0.15 * (1 - i / 8)})`;
-            ctx.lineWidth = 0.6;
-            ctx.beginPath();
-            for (let x = 0; x <= W; x += 6) {
-              const wy = yw + Math.sin(x * 0.02 + t + i) * 1.5;
-              if (x === 0) ctx.moveTo(x, wy); else ctx.lineTo(x, wy);
-            }
-            ctx.stroke();
           }
           break;
         }
@@ -1269,9 +1092,11 @@ export default function SplashScreen({
           ctx.fillStyle = "#05081a";
           ctx.fillRect(0, 0, W, H);
 
+          // Nodos (pontos luminosos)
           const nodes: { x: number; y: number; col: { r: number; g: number; b: number } }[] = [];
           const N = 40;
           for (let i = 0; i < N; i++) {
+            // Posição pseudo-aleatória estável + leve movimento
             const bx = ((i * 173.7) % 100) / 100;
             const by = ((i * 97.3) % 100) / 100;
             const nx = W * (bx + Math.sin(t * 0.2 + i) * 0.02);
@@ -1280,6 +1105,7 @@ export default function SplashScreen({
             nodes.push({ x: nx, y: ny, col });
           }
 
+          // Conexões (linhas finas entre nodos próximos)
           const maxDist = Math.min(W, H) * 0.25;
           for (let i = 0; i < N; i++) {
             for (let j = i + 1; j < N; j++) {
@@ -1299,6 +1125,7 @@ export default function SplashScreen({
             }
           }
 
+          // Nodos brilhantes
           for (let i = 0; i < N; i++) {
             const n = nodes[i];
             const pulse = 0.6 + Math.sin(t * 1.5 + i * 0.7) * 0.4;
@@ -1319,112 +1146,56 @@ export default function SplashScreen({
         }
 
         case "beleza": {
-          // Pétalas de rosa caindo em espiral com glitter
-          // Fundo rosé-dourado escuro
-          const bg = ctx.createRadialGradient(W * 0.7, H * 0.3, 0, W * 0.5, H * 0.6, Math.max(W, H) * 0.9);
-          bg.addColorStop(0, "#3a1a28");
-          bg.addColorStop(0.5, "#1f0a18");
-          bg.addColorStop(1, "#0a0308");
+          // Pétalas caindo com brilho perolado
+          const bg = ctx.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, `rgba(${c3.r},${c3.g},${c3.b},0.3)`);
+          bg.addColorStop(1, "#10050f");
+          ctx.fillStyle = "#10050f";
+          ctx.fillRect(0, 0, W, H);
           ctx.fillStyle = bg;
           ctx.fillRect(0, 0, W, H);
 
-          // Halo dourado difuso
-          const goldHalo = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.4, H * 0.6);
-          goldHalo.addColorStop(0, "rgba(212,168,67,0.12)");
-          goldHalo.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = goldHalo;
-          ctx.fillRect(0, 0, W, H);
-
-          // Glitter de fundo (partículas cintilantes pequenas)
-          for (let i = 0; i < 100; i++) {
-            const gx = (i * 173.7) % W;
-            const gy = (i * 97.3) % H;
-            const flash = Math.max(0, Math.sin(t * 1.5 + i * 0.7));
-            if (flash > 0.5) {
-              const alpha = (flash - 0.5) * 1.6;
-              ctx.fillStyle = `rgba(255,230,200,${alpha})`;
-              ctx.beginPath();
-              ctx.arc(gx, gy, 0.8, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-
-          // Brilhos perolados pulsantes (grandes)
-          for (let i = 0; i < 12; i++) {
-            const bx = W * (0.1 + (i * 0.085));
-            const by = H * (0.2 + ((i * 0.17) % 0.6));
-            const pulse = 0.4 + Math.sin(t * 1.2 + i * 0.9) * 0.6;
-            const size = 20 + pulse * 15;
-            const pearl = ctx.createRadialGradient(bx, by, 0, bx, by, size);
-            pearl.addColorStop(0, `rgba(255,240,245,${pulse * 0.3})`);
-            pearl.addColorStop(0.5, `rgba(255,200,220,${pulse * 0.15})`);
-            pearl.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = pearl;
+          // Sparkles
+          for (let i = 0; i < 60; i++) {
+            const sparkT = (t * 0.4 + i / 60) % 1;
+            const sx = (i * 137) % W;
+            const sy = sparkT * H;
+            const flash = Math.max(0, Math.sin(sparkT * Math.PI));
+            ctx.fillStyle = `rgba(255,230,245,${flash * 0.7})`;
             ctx.beginPath();
-            ctx.arc(bx, by, size, 0, Math.PI * 2);
+            ctx.arc(sx, sy, 0.8 + flash * 1.5, 0, Math.PI * 2);
             ctx.fill();
           }
 
-          // Pétalas grandes e suaves em espiral
-          for (let i = 0; i < 18; i++) {
-            const fallT = (t * 0.08 + i / 18) % 1;
-            const spiralAngle = fallT * Math.PI * 3 + i;
-            const spiralR = 80 + fallT * 60;
-            const baseX = W * (0.15 + (i * 0.05) % 0.7);
-            const px = baseX + Math.cos(spiralAngle) * spiralR;
-            const py = fallT * (H + 80) - 40;
-            const rot = spiralAngle + t * 0.5;
-
-            // Cor: rosé ou dourada alternando
-            const colRose = { r: 230, g: 140, b: 165 };
-            const colGold = { r: 230, g: 190, b: 130 };
-            const colPink = { r: 245, g: 180, b: 200 };
-            const cols = [colRose, colGold, colPink];
-            const col = cols[i % 3];
+          // Pétalas (elipses inclinadas)
+          for (let i = 0; i < 25; i++) {
+            const fallT = (t * 0.15 + i / 25) % 1;
+            const sway = Math.sin(t + i * 0.5) * W * 0.1;
+            const px = ((i * 137.5) % W) + sway;
+            const py = fallT * (H + 40) - 20;
+            const rot = t * 0.5 + i;
+            const col = i % 3 === 0 ? c1 : i % 3 === 1 ? c2 : { r: 255, g: 220, b: 230 };
 
             ctx.save();
             ctx.translate(px, py);
             ctx.rotate(rot);
 
-            // Pétala: forma de lágrima (elipse mais alongada)
-            const pW = 14;
-            const pH = 22;
+            // Pétala: gradiente perolado
+            const petalGrad = ctx.createLinearGradient(-8, 0, 8, 0);
+            petalGrad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0.7)`);
+            petalGrad.addColorStop(0.5, `rgba(255,240,250,0.5)`);
+            petalGrad.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0.7)`);
+            ctx.fillStyle = petalGrad;
 
-            // Shadow/halo
-            const pShadow = ctx.createRadialGradient(0, 0, 0, 0, 0, pW * 2);
-            pShadow.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0.3)`);
-            pShadow.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = pShadow;
             ctx.beginPath();
-            ctx.ellipse(0, 0, pW * 2, pH * 1.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, 8, 3.5, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Pétala com gradient perolado
-            const pGrad = ctx.createLinearGradient(-pW, -pH, pW, pH);
-            pGrad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0.95)`);
-            pGrad.addColorStop(0.5, `rgba(255,240,245,0.85)`);
-            pGrad.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0.9)`);
-            ctx.fillStyle = pGrad;
+            // Highlight
+            ctx.fillStyle = `rgba(255,255,255,0.3)`;
             ctx.beginPath();
-            ctx.ellipse(0, 0, pW, pH, 0, 0, Math.PI * 2);
+            ctx.ellipse(-2, -1, 3, 1, 0, 0, Math.PI * 2);
             ctx.fill();
-
-            // Highlight perolado superior
-            const hi = ctx.createRadialGradient(-pW * 0.3, -pH * 0.3, 0, -pW * 0.3, -pH * 0.3, pW * 0.8);
-            hi.addColorStop(0, "rgba(255,255,255,0.6)");
-            hi.addColorStop(1, "rgba(255,255,255,0)");
-            ctx.fillStyle = hi;
-            ctx.beginPath();
-            ctx.ellipse(-pW * 0.3, -pH * 0.3, pW * 0.6, pH * 0.3, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Linha central da pétala (detalhe)
-            ctx.strokeStyle = `rgba(${col.r},${col.g - 20},${col.b - 20},0.4)`;
-            ctx.lineWidth = 0.6;
-            ctx.beginPath();
-            ctx.moveTo(0, -pH * 0.9);
-            ctx.lineTo(0, pH * 0.9);
-            ctx.stroke();
 
             ctx.restore();
           }
@@ -1466,11 +1237,7 @@ export default function SplashScreen({
   return (
     <div className={embedded ? "relative overflow-hidden flex items-center justify-center" : "fixed inset-0 z-[9999] flex items-center justify-center"}
       style={{ background: corFundo, width: embedded?.width, height: embedded?.height }}>
-      {lottieUrl ? (
-        <div ref={lottieContainerRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : undefined} />
-      ) : (
-        <canvas ref={canvasRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : undefined} />
-      )}
+      <canvas ref={canvasRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : undefined} />
       <div className="relative z-10 flex items-center justify-center"
         style={{ position: "relative", width: logoDims.width, height: logoDims.height + 40 }}>
         <img src={logoUrl} alt="Logo"
