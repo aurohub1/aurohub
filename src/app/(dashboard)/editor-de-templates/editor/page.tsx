@@ -291,7 +291,38 @@ export default function EditorPage() {
   /* ── Save JSON ─────────────────────────────────── */
 
   function saveTemplate() {
-    const data = { format, bgColor, bgSrc, elements };
+    const stage = stageRef.current;
+
+    // Normaliza coordenadas para o sistema absoluto do canvas (sem zoom/pan)
+    // x_real = (x_elemento - stage.x()) / stage.scaleX()
+    const stageX = stage?.x() || 0;
+    const stageY = stage?.y() || 0;
+    const stageSx = stage?.scaleX() || 1;
+    const stageSy = stage?.scaleY() || 1;
+
+    const normalized = elements.map((el) => {
+      const base = { ...el,
+        x: (el.x - stageX) / stageSx,
+        y: (el.y - stageY) / stageSy,
+        width: el.width / stageSx,
+        height: el.height / stageSy,
+      };
+
+      // Força width/height para Text nodes a partir do node real
+      if (el.type === "text" && stage) {
+        const node = stage.findOne(`#${el.id}`) as Konva.Text | undefined;
+        if (node) {
+          return {
+            ...base,
+            width: node.width() / stageSx,
+            height: node.height() / stageSy,
+          };
+        }
+      }
+      return base;
+    });
+
+    const data = { format, bgColor, bgSrc, elements: normalized };
     console.log("[Editor] Template JSON:", JSON.stringify(data, null, 2));
     alert("Template salvo no console (integração Supabase pendente)");
   }
