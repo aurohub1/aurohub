@@ -220,7 +220,7 @@ export default function ClienteTemplatesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filtered.map((t) => (
             <TemplateCard key={t.key} tpl={t} onUse={() => useTemplate(t.id)} />
           ))}
@@ -264,10 +264,10 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
 
   return (
     <div className="card-glass group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5">
-      {/* Thumbnail */}
+      {/* Thumbnail — altura fixa menor, object-cover mantém proporção */}
       <div
         className="relative w-full overflow-hidden border-b border-[var(--bdr)]"
-        style={{ aspectRatio: fMeta.aspect }}
+        style={{ height: 140 }}
       >
         {tpl.thumbnail ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -295,35 +295,32 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
       </div>
 
       {/* Body */}
-      <div className="flex flex-1 flex-col gap-2.5 p-4">
+      <div className="flex flex-1 flex-col gap-2 p-2.5">
         <div className="min-w-0">
-          <h3 className="truncate text-[13px] font-bold text-[var(--txt)]" title={tpl.nome}>
+          <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={tpl.nome}>
             {tpl.nome}
           </h3>
-          <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--txt3)]">
-            <CalendarClock size={10} />
-            Atualizado em {formatDate(tpl.updatedAt)}
+          <div className="mt-0.5 flex items-center gap-1 text-[9px] text-[var(--txt3)]">
+            <CalendarClock size={9} />
+            {formatDate(tpl.updatedAt)}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1">
           <span
-            className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+            className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
             style={{ background: `${tMeta.color}22`, color: tMeta.color }}
           >
             {tMeta.label}
-          </span>
-          <span className="rounded-full bg-[var(--bg2)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--txt2)]">
-            {fMeta.label}
           </span>
         </div>
 
         <button
           onClick={onUse}
-          className="mt-auto flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
+          className="mt-auto flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
           style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
         >
-          <Sparkles size={13} /> Usar
+          <Sparkles size={11} /> Usar
         </button>
       </div>
     </div>
