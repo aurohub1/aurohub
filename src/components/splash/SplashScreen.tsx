@@ -6,7 +6,9 @@ export type SplashEffect =
   | "ondas" | "flutuacao" | "scanner" | "holofote" | "chuvapontos"
   | "gradiente" | "dissolve" | "bigbang" | "aurora" | "tinta" | "vagalumes"
   | "aurora_espacial" | "galaxia"
-  | "vidro_janela" | "vidro_liquido";
+  | "vidro_janela" | "vidro_liquido"
+  | "cidade_a" | "cidade_b" | "restaurante" | "saude"
+  | "moda" | "imobiliaria" | "educacao" | "beleza";
 
 interface Props {
   logoUrl: string;
@@ -36,6 +38,8 @@ const EFFECTS: SplashEffect[] = [
   "gradiente","dissolve","bigbang","aurora","tinta","vagalumes",
   "aurora_espacial","galaxia",
   "vidro_janela","vidro_liquido",
+  "cidade_a","cidade_b","restaurante","saude",
+  "moda","imobiliaria","educacao","beleza",
 ];
 
 export default function SplashScreen({
@@ -738,6 +742,463 @@ export default function SplashScreen({
           topShine.addColorStop(1, "rgba(255,255,255,0)");
           ctx.fillStyle = topShine;
           ctx.fillRect(0, 0, W, 40);
+          break;
+        }
+
+        case "cidade_a": {
+          // Silhuetas urbanas geométricas atrás de vidro jateado
+          ctx.fillStyle = "#0a0e1f";
+          ctx.fillRect(0, 0, W, H);
+
+          // Halo cor1 atrás
+          const glow = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.4, H * 0.5);
+          glow.addColorStop(0, `rgba(${c1.r},${c1.g},${c1.b},0.25)`);
+          glow.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = glow;
+          ctx.fillRect(0, 0, W, H);
+
+          // Prédios (12 retângulos)
+          for (let i = 0; i < 12; i++) {
+            const bx = (i / 12) * W - 20;
+            const bw = W / 12 + Math.sin(i * 2.3) * 10;
+            const bh = H * (0.3 + ((i * 37) % 50) / 100);
+            const col = i % 3 === 0 ? c1 : i % 3 === 1 ? c2 : c3;
+            ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},0.5)`;
+            ctx.fillRect(bx, H - bh, bw, bh);
+          }
+
+          // Carros (pontinhos se movendo horizontal)
+          for (let i = 0; i < 6; i++) {
+            const cx = ((t * 30 + i * 200) % (W + 40)) - 20;
+            const cy = H * (0.85 + (i % 2) * 0.05);
+            ctx.fillStyle = `rgba(${c2.r},${c2.g},${c2.b},0.9)`;
+            ctx.fillRect(cx, cy, 14, 6);
+            ctx.fillStyle = `rgba(255,255,255,0.6)`;
+            ctx.fillRect(cx + 12, cy + 1, 2, 4);
+          }
+
+          // Pessoas (traços finos verticais se movendo)
+          for (let i = 0; i < 10; i++) {
+            const px = ((t * 8 + i * 100) % W);
+            const py = H * 0.9;
+            ctx.fillStyle = `rgba(${c3.r},${c3.g},${c3.b},0.7)`;
+            ctx.fillRect(px, py, 2, 8);
+            ctx.beginPath();
+            ctx.arc(px + 1, py - 2, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Camada de vidro jateado cobrindo tudo
+          ctx.fillStyle = "rgba(255,255,255,0.04)";
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = "rgba(10,20,40,0.25)";
+          ctx.fillRect(0, 0, W, H);
+
+          // Borda glassmorphism
+          ctx.strokeStyle = "rgba(255,255,255,0.08)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(15, 15, W - 30, H - 30);
+          break;
+        }
+
+        case "cidade_b": {
+          // Skyline detalhada com janelas piscando
+          const bg = ctx.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, "#06091c");
+          bg.addColorStop(1, "#101530");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          // Estrelas
+          for (let i = 0; i < 60; i++) {
+            const sx = (i * 173.7) % W;
+            const sy = ((i * 97.3) % H) * 0.5;
+            const br = 0.3 + Math.sin(i * 0.7 + t) * 0.2;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 0.6, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${br})`;
+            ctx.fill();
+          }
+
+          // Prédios detalhados
+          const buildings = [
+            { x: 0.05, w: 0.12, h: 0.55 },
+            { x: 0.18, w: 0.08, h: 0.45 },
+            { x: 0.27, w: 0.14, h: 0.65 },
+            { x: 0.42, w: 0.09, h: 0.40 },
+            { x: 0.52, w: 0.13, h: 0.55 },
+            { x: 0.66, w: 0.10, h: 0.70 },
+            { x: 0.77, w: 0.08, h: 0.45 },
+            { x: 0.86, w: 0.12, h: 0.50 },
+          ];
+
+          for (let bi = 0; bi < buildings.length; bi++) {
+            const b = buildings[bi];
+            const bx = W * b.x;
+            const bw = W * b.w;
+            const bh = H * b.h;
+            const by = H - bh;
+
+            // Corpo do prédio
+            const bGrad = ctx.createLinearGradient(bx, by, bx + bw, by);
+            bGrad.addColorStop(0, "#1a2038");
+            bGrad.addColorStop(1, "#0e1325");
+            ctx.fillStyle = bGrad;
+            ctx.fillRect(bx, by, bw, bh);
+
+            // Borda sutil
+            ctx.strokeStyle = "rgba(100,120,180,0.25)";
+            ctx.lineWidth = 0.8;
+            ctx.strokeRect(bx, by, bw, bh);
+
+            // Janelas piscando
+            const cols = Math.max(3, Math.floor(bw / 8));
+            const rows = Math.max(5, Math.floor(bh / 10));
+            for (let r = 0; r < rows; r++) {
+              for (let col = 0; col < cols; col++) {
+                const hash = (bi * 31 + r * 17 + col * 7) % 100;
+                if (hash < 55) {
+                  const blink = Math.sin(t * 0.5 + hash * 0.3) > 0.3 ? 1 : 0.3;
+                  const wCol = hash % 3 === 0 ? c2 : hash % 3 === 1 ? c1 : c3;
+                  ctx.fillStyle = `rgba(${wCol.r},${wCol.g},${wCol.b},${0.85 * blink})`;
+                  const wx = bx + 3 + col * (bw - 6) / cols;
+                  const wy = by + 5 + r * (bh - 10) / rows;
+                  ctx.fillRect(wx, wy, Math.max(2, bw / cols - 3), 2.5);
+                }
+              }
+            }
+          }
+          break;
+        }
+
+        case "restaurante": {
+          // Vapor/fumaça dourada subindo
+          const bg = ctx.createRadialGradient(W * 0.5, H, 0, W * 0.5, H, H);
+          bg.addColorStop(0, "#1a0e05");
+          bg.addColorStop(1, "#05030a");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          // Partículas subindo em espiral
+          for (let i = 0; i < 120; i++) {
+            const lifeT = (t * 0.3 + i / 120) % 1;
+            const baseX = W * (0.3 + (i % 5) * 0.1);
+            const spiralR = 30 * lifeT;
+            const angle = t + i * 0.5;
+            const x = baseX + Math.cos(angle) * spiralR + Math.sin(lifeT * Math.PI * 2 + i) * 20;
+            const y = H - lifeT * H * 0.95;
+            const size = 1.5 + lifeT * 4;
+            const alpha = (1 - lifeT) * 0.6;
+            const col = i % 3 === 0 ? c1 : i % 3 === 1 ? c2 : { r: 255, g: 200, b: 100 };
+            const glowG = ctx.createRadialGradient(x, y, 0, x, y, size * 3);
+            glowG.addColorStop(0, `rgba(${col.r},${col.g},${col.b},${alpha})`);
+            glowG.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = glowG;
+            ctx.beginPath();
+            ctx.arc(x, y, size * 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Brilhos quentes (sparkles)
+          for (let i = 0; i < 25; i++) {
+            const sparkT = (t * 0.5 + i / 25) % 1;
+            const sx = (i * 137) % W;
+            const sy = H - sparkT * H;
+            const flash = Math.max(0, 1 - sparkT * 2);
+            if (flash > 0) {
+              ctx.fillStyle = `rgba(255,220,120,${flash * 0.9})`;
+              ctx.beginPath();
+              ctx.arc(sx, sy, 1.5 + flash * 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          break;
+        }
+
+        case "saude": {
+          // Pulso cardíaco + DNA
+          const bg = ctx.createLinearGradient(0, 0, W, 0);
+          bg.addColorStop(0, "#051a15");
+          bg.addColorStop(1, "#05101a");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          // DNA dupla hélice ao fundo (tenuem)
+          ctx.save();
+          ctx.globalAlpha = 0.25;
+          const dnaRot = t * 0.3;
+          for (let i = 0; i < 30; i++) {
+            const yd = (i / 30) * H;
+            const phase1 = yd * 0.03 + dnaRot;
+            const phase2 = phase1 + Math.PI;
+            const x1 = W * 0.5 + Math.cos(phase1) * W * 0.15;
+            const x2 = W * 0.5 + Math.cos(phase2) * W * 0.15;
+            const col = i % 2 === 0 ? c1 : c3;
+            // Pontos
+            ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},0.7)`;
+            ctx.beginPath(); ctx.arc(x1, yd, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x2, yd, 3, 0, Math.PI * 2); ctx.fill();
+            // Ligação
+            if (Math.abs(Math.cos(phase1)) < 0.3) {
+              ctx.strokeStyle = `rgba(${c2.r},${c2.g},${c2.b},0.4)`;
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(x1, yd); ctx.lineTo(x2, yd); ctx.stroke();
+            }
+          }
+          ctx.restore();
+
+          // Linha de pulso cardíaco
+          ctx.strokeStyle = `rgba(${c1.r},${c1.g},${c1.b},0.9)`;
+          ctx.lineWidth = 2;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = `rgba(${c1.r},${c1.g},${c1.b},0.8)`;
+          ctx.beginPath();
+          const scrollX = (t * 80) % W;
+          for (let x = 0; x <= W; x += 2) {
+            const xRel = ((x + scrollX) % W) / W;
+            // Pulse wave: picos ocasionais
+            let y = H * 0.5;
+            const cycle = (xRel * 6) % 1;
+            if (cycle < 0.1) y = H * 0.5 - H * 0.2 * Math.sin(cycle * Math.PI * 10);
+            else if (cycle < 0.15) y = H * 0.5 + H * 0.08 * Math.sin(cycle * Math.PI * 20);
+            if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // Partículas azuis/verdes
+          for (let i = 0; i < 40; i++) {
+            const px = ((i * 137 + t * 20) % W);
+            const py = H * 0.5 + Math.sin(i + t) * H * 0.2;
+            const col = i % 2 === 0 ? c2 : c3;
+            ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},0.6)`;
+            ctx.beginPath();
+            ctx.arc(px, py, 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+
+        case "moda": {
+          // Faixas de seda com shimmer
+          ctx.fillStyle = "#0a0815";
+          ctx.fillRect(0, 0, W, H);
+
+          // Faixas diagonais fluindo
+          const strips = [
+            { col: c1, y0: 0.1, angle: -0.15, speed: 0.3, width: 0.18 },
+            { col: c2, y0: 0.35, angle: -0.1, speed: 0.25, width: 0.15 },
+            { col: c3, y0: 0.6, angle: -0.12, speed: 0.35, width: 0.2 },
+            { col: c1, y0: 0.85, angle: -0.08, speed: 0.28, width: 0.14 },
+          ];
+
+          for (const s of strips) {
+            ctx.save();
+            const centerY = H * s.y0;
+            ctx.translate(W * 0.5, centerY);
+            ctx.rotate(s.angle);
+            const stripW = W * 2;
+            const stripH = H * s.width;
+            const offset = (t * s.speed * 200) % (W * 0.5);
+            for (let x = -stripW; x < stripW; x += 4) {
+              const wave = Math.sin((x + offset) * 0.012 + t * s.speed) * stripH * 0.15;
+              // Gradient de seda (com shimmer)
+              const grad = ctx.createLinearGradient(x, -stripH, x, stripH);
+              const shimmer = 0.5 + Math.sin(x * 0.03 + t * 2) * 0.5;
+              grad.addColorStop(0, `rgba(${s.col.r},${s.col.g},${s.col.b},0)`);
+              grad.addColorStop(0.4, `rgba(${s.col.r},${s.col.g},${s.col.b},${0.25 + shimmer * 0.2})`);
+              grad.addColorStop(0.5, `rgba(255,255,255,${0.1 + shimmer * 0.15})`);
+              grad.addColorStop(0.6, `rgba(${s.col.r},${s.col.g},${s.col.b},${0.25 + shimmer * 0.2})`);
+              grad.addColorStop(1, `rgba(${s.col.r},${s.col.g},${s.col.b},0)`);
+              ctx.fillStyle = grad;
+              ctx.fillRect(x, wave - stripH, 4, stripH * 2);
+            }
+            ctx.restore();
+          }
+          break;
+        }
+
+        case "imobiliaria": {
+          // Skyline ao entardecer
+          const bg = ctx.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, `rgba(${c3.r},${c3.g},${c3.b},0.8)`);
+          bg.addColorStop(0.5, `rgba(${c1.r},${c1.g},${c1.b},0.5)`);
+          bg.addColorStop(1, "#0a0615");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          // Sol/Gradiente laranja
+          const sun = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, H * 0.4);
+          sun.addColorStop(0, `rgba(${c1.r},${c1.g},${c1.b},0.6)`);
+          sun.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = sun;
+          ctx.fillRect(0, 0, W, H);
+
+          // Estrelas (aparecendo com o tempo)
+          const starOpacity = Math.min(1, t * 0.2);
+          for (let i = 0; i < 40; i++) {
+            const sx = (i * 173.7) % W;
+            const sy = ((i * 97.3) % H) * 0.5;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 0.7, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${starOpacity * (0.3 + Math.sin(i + t) * 0.2)})`;
+            ctx.fill();
+          }
+
+          // Prédios (silhuetas escuras)
+          const buildings = [
+            { x: 0.0, w: 0.15, h: 0.45 },
+            { x: 0.14, w: 0.10, h: 0.35 },
+            { x: 0.23, w: 0.13, h: 0.55 },
+            { x: 0.35, w: 0.09, h: 0.40 },
+            { x: 0.44, w: 0.14, h: 0.60 },
+            { x: 0.58, w: 0.10, h: 0.50 },
+            { x: 0.68, w: 0.12, h: 0.45 },
+            { x: 0.79, w: 0.09, h: 0.55 },
+            { x: 0.88, w: 0.12, h: 0.42 },
+          ];
+
+          for (let bi = 0; bi < buildings.length; bi++) {
+            const b = buildings[bi];
+            const bx = W * b.x;
+            const bw = W * b.w;
+            const bh = H * b.h;
+            const by = H - bh;
+
+            ctx.fillStyle = "#0a0a1a";
+            ctx.fillRect(bx, by, bw, bh);
+
+            // Janelas acendendo aleatoriamente
+            const cols = Math.max(2, Math.floor(bw / 10));
+            const rows = Math.max(4, Math.floor(bh / 12));
+            for (let r = 0; r < rows; r++) {
+              for (let col = 0; col < cols; col++) {
+                const hash = (bi * 31 + r * 17 + col * 7) % 100;
+                const lightUp = Math.sin(t * 0.3 + hash * 0.1);
+                if (lightUp > 0.2) {
+                  const wx = bx + 3 + col * (bw - 6) / cols;
+                  const wy = by + 4 + r * (bh - 8) / rows;
+                  ctx.fillStyle = `rgba(${c2.r},${c2.g},${c2.b},${(lightUp - 0.2) * 1.2})`;
+                  ctx.fillRect(wx, wy, Math.max(2, bw / cols - 3), 3);
+                }
+              }
+            }
+          }
+          break;
+        }
+
+        case "educacao": {
+          // Constelações/rede neural
+          ctx.fillStyle = "#05081a";
+          ctx.fillRect(0, 0, W, H);
+
+          // Nodos (pontos luminosos)
+          const nodes: { x: number; y: number; col: { r: number; g: number; b: number } }[] = [];
+          const N = 40;
+          for (let i = 0; i < N; i++) {
+            // Posição pseudo-aleatória estável + leve movimento
+            const bx = ((i * 173.7) % 100) / 100;
+            const by = ((i * 97.3) % 100) / 100;
+            const nx = W * (bx + Math.sin(t * 0.2 + i) * 0.02);
+            const ny = H * (by + Math.cos(t * 0.15 + i) * 0.02);
+            const col = i % 3 === 0 ? c1 : i % 3 === 1 ? c2 : c3;
+            nodes.push({ x: nx, y: ny, col });
+          }
+
+          // Conexões (linhas finas entre nodos próximos)
+          const maxDist = Math.min(W, H) * 0.25;
+          for (let i = 0; i < N; i++) {
+            for (let j = i + 1; j < N; j++) {
+              const dx = nodes[i].x - nodes[j].x;
+              const dy = nodes[i].y - nodes[j].y;
+              const d = Math.sqrt(dx * dx + dy * dy);
+              if (d < maxDist) {
+                const alpha = (1 - d / maxDist) * 0.3;
+                const col = nodes[i].col;
+                ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},${alpha})`;
+                ctx.lineWidth = 0.7;
+                ctx.beginPath();
+                ctx.moveTo(nodes[i].x, nodes[i].y);
+                ctx.lineTo(nodes[j].x, nodes[j].y);
+                ctx.stroke();
+              }
+            }
+          }
+
+          // Nodos brilhantes
+          for (let i = 0; i < N; i++) {
+            const n = nodes[i];
+            const pulse = 0.6 + Math.sin(t * 1.5 + i * 0.7) * 0.4;
+            const size = 2 + pulse * 1.5;
+            const halo = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, size * 3);
+            halo.addColorStop(0, `rgba(${n.col.r},${n.col.g},${n.col.b},${pulse})`);
+            halo.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = halo;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, size * 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = `rgba(255,255,255,${pulse})`;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, size * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+
+        case "beleza": {
+          // Pétalas caindo com brilho perolado
+          const bg = ctx.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, `rgba(${c3.r},${c3.g},${c3.b},0.3)`);
+          bg.addColorStop(1, "#10050f");
+          ctx.fillStyle = "#10050f";
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, W, H);
+
+          // Sparkles
+          for (let i = 0; i < 60; i++) {
+            const sparkT = (t * 0.4 + i / 60) % 1;
+            const sx = (i * 137) % W;
+            const sy = sparkT * H;
+            const flash = Math.max(0, Math.sin(sparkT * Math.PI));
+            ctx.fillStyle = `rgba(255,230,245,${flash * 0.7})`;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 0.8 + flash * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Pétalas (elipses inclinadas)
+          for (let i = 0; i < 25; i++) {
+            const fallT = (t * 0.15 + i / 25) % 1;
+            const sway = Math.sin(t + i * 0.5) * W * 0.1;
+            const px = ((i * 137.5) % W) + sway;
+            const py = fallT * (H + 40) - 20;
+            const rot = t * 0.5 + i;
+            const col = i % 3 === 0 ? c1 : i % 3 === 1 ? c2 : { r: 255, g: 220, b: 230 };
+
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(rot);
+
+            // Pétala: gradiente perolado
+            const petalGrad = ctx.createLinearGradient(-8, 0, 8, 0);
+            petalGrad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0.7)`);
+            petalGrad.addColorStop(0.5, `rgba(255,240,250,0.5)`);
+            petalGrad.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0.7)`);
+            ctx.fillStyle = petalGrad;
+
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 8, 3.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Highlight
+            ctx.fillStyle = `rgba(255,255,255,0.3)`;
+            ctx.beginPath();
+            ctx.ellipse(-2, -1, 3, 1, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+          }
           break;
         }
 
