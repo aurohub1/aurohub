@@ -10,7 +10,7 @@ export interface ShadowConfig { color: string; offsetX: number; offsetY: number;
 
 export interface EditorElement {
   id: string;
-  type: "text"|"image"|"rect"|"circle"|"qrcode";
+  type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind";
   name?: string;
   x: number; y: number; width: number; height: number;
   rotation?: number; opacity?: number;
@@ -205,6 +205,16 @@ export const BIND_GROUPS_BY_FORM: Record<string, typeof BIND_GROUPS> = {
 export function getBindGroups(formType?: string): typeof BIND_GROUPS {
   if (!formType) return BIND_GROUPS;
   return BIND_GROUPS_BY_FORM[formType] ?? BIND_GROUPS;
+}
+
+/** Retorna campos do formulário que contêm imagens (prefixo "img" ou nome "badge"/"foto"). */
+export function getImageBindFields(formType?: string): string[] {
+  const groups = getBindGroups(formType);
+  const isImg = (f: string) => /^img/i.test(f) || /badge/i.test(f) || /^foto/i.test(f);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const g of groups) for (const f of g.fields) if (isImg(f) && !seen.has(f)) { seen.add(f); out.push(f); }
+  return out;
 }
 
 export const FONTS = [

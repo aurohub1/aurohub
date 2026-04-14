@@ -282,6 +282,46 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     }
     return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={(e) => onClick(e)} image={img} width={el.width} height={el.height} cornerRadius={el.cornerRadius || 0} crop={crop} />;
   }
+  if (el.type === "imageBind") {
+    // Placeholder visível apenas no editor ADM: retângulo pontilhado + ícone + label do bind
+    const label = el.bindParam ? `🖼 ${el.bindParam}` : "🖼 Bind Imagem";
+    const iconSize = Math.min(48, Math.min(el.width, el.height) * 0.3);
+    return (
+      <>
+        <Rect
+          {...common}
+          ref={shapeRef as React.RefObject<Konva.Rect>}
+          onClick={(e) => onClick(e)}
+          width={el.width}
+          height={el.height}
+          fill="rgba(59,130,246,0.08)"
+          stroke="#3B82F6"
+          strokeWidth={2}
+          dash={[8, 6]}
+          cornerRadius={el.cornerRadius ?? 8}
+        />
+        <Text
+          x={el.x + el.width / 2 - iconSize / 2}
+          y={el.y + el.height / 2 - iconSize / 2 - 8}
+          text="🖼"
+          fontSize={iconSize}
+          listening={false}
+        />
+        <Text
+          x={el.x}
+          y={el.y + el.height / 2 + iconSize / 2 - 4}
+          width={el.width}
+          align="center"
+          text={label}
+          fontSize={14}
+          fontFamily="DM Sans"
+          fontStyle="bold"
+          fill="#3B82F6"
+          listening={false}
+        />
+      </>
+    );
+  }
   if (el.type === "qrcode") {
     if (!qrImg) {
       return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={el.height} fill={el.qrBg || "#FFFFFF"} stroke="#aaa" strokeWidth={1} dash={[4, 3]} cornerRadius={4} />;

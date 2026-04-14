@@ -1,5 +1,5 @@
 import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Hexagon, AlignCenter, ArrowUp, ArrowDown, ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Eye, EyeOff, Trash2, QrCode, FolderOpen, Package, MapPin } from "lucide-react";
-import { EditorElement, EditorSchema, BIND_GROUPS, FONTS, genId, getLaminaBindGroups } from "./types";
+import { EditorElement, EditorSchema, BIND_GROUPS, FONTS, genId, getLaminaBindGroups, getImageBindFields } from "./types";
 
 interface Props {
   schema: EditorSchema; selectedId: string | null;
@@ -24,6 +24,7 @@ export default function ToolsPanel(p: Props) {
       rect: { name: "Retângulo", x: p.canvasW / 4, y: p.canvasH / 3, width: p.canvasW / 3, height: p.canvasH / 6, fill: "#D4A843", cornerRadius: 0, opacity: 1 },
       circle: { name: "Círculo", x: p.canvasW / 2, y: p.canvasH / 2, width: 120, height: 120, fill: "#3B82F6", opacity: 1 },
       image: { name: "Imagem", x: p.canvasW / 4, y: p.canvasH / 4, width: p.canvasW / 2, height: p.canvasH / 3, opacity: 1 },
+      imageBind: { name: "🖼 Bind Imagem", x: p.canvasW / 4, y: p.canvasH / 4, width: p.canvasW / 2, height: p.canvasH / 3, opacity: 1, imageFit: "cover", cornerRadius: 8 },
       qrcode: { name: "QR Code", x: p.canvasW / 2 - 150, y: p.canvasH / 2 - 150, width: 300, height: 300, qrUrl: "https://aurohub.com.br", qrFg: "#000000", qrBg: "#FFFFFF", opacity: 1 },
     };
     p.onAdd({ id: genId(), type, ...defaults[type], ...overrides } as EditorElement);
@@ -67,6 +68,16 @@ export default function ToolsPanel(p: Props) {
         <TB icon={<QrCode size={14} />} t="QR Code" o={() => add("qrcode")} />
 
         <GL>BIND</GL>
+        {/* Bind de Imagem — placeholder que no cliente vira a imagem real do form */}
+        <div style={{ position: "relative" }} className="group">
+          <TB icon={<ImageIcon size={14} strokeDasharray="4 2" />} t="Bind Imagem" o={() => add("imageBind")} gold />
+          <div className="hidden group-hover:block" style={{ position: "absolute", left: 42, top: 0, zIndex: 999, width: 180, maxHeight: 260, overflowY: "auto", borderRadius: 8, border: "1px solid var(--ed-bdr)", padding: 6, background: "var(--ed-surface)", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+            <div style={{ fontSize: 7, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase" as const, color: "var(--ed-txt3)", marginBottom: 4 }}>Bind Imagem</div>
+            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 2 }}>{getImageBindFields(p.formType).map(f => (
+              <button key={f} onClick={() => add("imageBind", { name: `🖼 ${f}`, bindParam: f })} style={{ padding: "3px 6px", borderRadius: 3, border: "none", background: "rgba(59,130,246,0.12)", color: "#3B82F6", fontSize: 9, fontWeight: 600, cursor: "pointer" }}>{f}</button>
+            ))}</div>
+          </div>
+        </div>
         <div style={{ position: "relative" }} className="group">
           <TB icon={<Hexagon size={14} />} t="Campo Bind" o={() => {}} gold />
           <div className="hidden group-hover:block" style={{ position: "absolute", left: 42, top: 0, zIndex: 999, width: 180, maxHeight: 300, overflowY: "auto", borderRadius: 8, border: "1px solid var(--ed-bdr)", padding: 6, background: "var(--ed-surface)", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>

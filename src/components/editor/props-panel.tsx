@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { HexColorPicker } from "react-colorful";
-import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec } from "./types";
+import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec, getImageBindFields } from "./types";
 
 interface Props {
   selected: EditorElement | null;
@@ -289,6 +289,45 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           {s.clipShape === "rounded" && (
             <F l="Raio da máscara"><Num v={s.clipRadius ?? 40} c={v => u({ clipRadius: Math.max(0, v) })} /></F>
           )}
+        </Sec>
+      )}
+
+      {/* Image Bind — placeholder para imagens do formulário */}
+      {s.type === "imageBind" && (
+        <Sec t="Bind Imagem">
+          <div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 4, lineHeight: 1.4 }}>
+            Placeholder visível só no editor. No cliente, será substituído pela imagem do campo vinculado.
+          </div>
+          <F l="Campo do formulário">
+            <select
+              value={s.bindParam || ""}
+              onChange={e => {
+                const bp = e.target.value;
+                u({ bindParam: bp || undefined, name: bp ? `🖼 ${bp}` : s.name });
+              }}
+              style={selS}
+            >
+              <option value="">— escolha um campo —</option>
+              {getImageBindFields(formType).map(f => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </F>
+          <F l="Borda Raio"><Num v={s.cornerRadius || 0} c={v => u({ cornerRadius: v })} /></F>
+          <F l="Ajuste (preview)">
+            <select value={s.imageFit || "cover"} onChange={e => u({ imageFit: e.target.value as EditorElement["imageFit"] })} style={selS}>
+              <option value="fill">Esticar (fill)</option>
+              <option value="cover">Cobrir (cover)</option>
+              <option value="contain">Conter (contain)</option>
+            </select>
+          </F>
+          <F l="Máscara">
+            <select value={s.clipShape || "none"} onChange={e => u({ clipShape: e.target.value as EditorElement["clipShape"] })} style={selS}>
+              <option value="none">Nenhuma</option>
+              <option value="circle">Círculo</option>
+              <option value="rounded">Retângulo arredondado</option>
+            </select>
+          </F>
         </Sec>
       )}
 

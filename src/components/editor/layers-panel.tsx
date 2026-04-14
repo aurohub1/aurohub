@@ -18,6 +18,7 @@ function TypeIcon({ el }: { el: EditorElement }) {
   if (el.type === "rect") return <Square size={size} color={color} />;
   if (el.type === "circle") return <Circle size={size} color={color} />;
   if (el.type === "image") return <ImgIcon size={size} color={color} />;
+  if (el.type === "imageBind") return <ImgIcon size={size} color="#3B82F6" />;
   if (el.type === "qrcode") return <QrCode size={size} color={color} />;
   return null;
 }
