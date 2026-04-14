@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Stage, Layer, Rect, Circle, Text, Image as KImage, Transformer, Line, Group } from "react-konva";
 import type Konva from "konva";
 import QRCode from "qrcode";
-import { EditorElement, EditorSchema, SnapLine, calcSnapLines } from "./types";
+import { EditorElement, EditorSchema, SnapLine, calcSnapLines, applySmartLinks } from "./types";
 
 interface Props {
   width: number; height: number;
@@ -311,6 +311,21 @@ export default function CanvasStage(p: Props) {
 
   const handleDragEndClear = useCallback(() => setGuides([]), []);
 
+  // Wrapper: aplica update no elemento + propaga smart-links (track/resize) nos dependentes
+  const cascadeUpdate = useCallback((id: string, attrs: Partial<EditorElement>) => {
+    p.onUpdate(id, attrs);
+    // Só propaga se a mudança afeta geometria ou conteúdo
+    const geomKeys: (keyof EditorElement)[] = ["x","y","width","height","text","bindParam","linhas","fontSize"];
+    const affects = geomKeys.some(k => k in attrs);
+    if (!affects) return;
+    // Clona lista com o update aplicado para calcular cascata com valores novos
+    const nextElements = schema.elements.map(e => e.id === id ? { ...e, ...attrs } : e);
+    const patches = applySmartLinks(id, nextElements);
+    for (const [depId, patch] of Object.entries(patches)) {
+      p.onUpdate(depId, patch);
+    }
+  }, [schema.elements, p.onUpdate]);
+
   useEffect(() => { p.onStageRef(stageRef.current); }, [stageRef.current]);
 
   // Sync Transformer with selectedIds
@@ -477,7 +492,7 @@ export default function CanvasStage(p: Props) {
             <RenderElement key={el.id} el={el} allElements={schema.elements} playing={playing}
               animState={playing || currentTime > 0 ? getAnimState(el, currentTime) : getAnimState(el, 999)}
               onClick={(e) => handleElementClick(el.id, e)}
-              onChange={attrs => p.onUpdate(el.id, attrs)}
+              onChange={attrs => cascadeUpdate(el.id, attrs)}
               onRegisterRef={registerRef}
               onDragMoveSnap={handleDragMoveSnap}
               onDragEndClear={handleDragEndClear} />
@@ -493,6 +508,34 @@ export default function CanvasStage(p: Props) {
               opacity={0.8}
               listening={false} />
           ))}
+          {/* Smart-link dotted connectors (apenas para elementos selecionados) */}
+          {!playing && selectedIds.length > 0 && schema.elements.map(el => {
+            if (!selectedIds.includes(el.id)) return null;
+            const links: React.ReactElement[] = [];
+            if (el.smartTrack) {
+              const tgt = schema.elements.find(e => e.id === el.smartTrack!.targetId);
+              if (tgt) {
+                links.push(
+                  <Line key={`st-${el.id}`}
+                    points={[el.x + el.width / 2, el.y + el.height / 2, tgt.x + tgt.width / 2, tgt.y + tgt.height / 2]}
+                    stroke="#3B82F6" strokeWidth={1.5 / stageScale}
+                    dash={[6 / stageScale, 4 / stageScale]} opacity={0.75} listening={false} />
+                );
+              }
+            }
+            if (el.smartResize) {
+              const tgt = schema.elements.find(e => e.id === el.smartResize!.targetId);
+              if (tgt) {
+                links.push(
+                  <Line key={`sr-${el.id}`}
+                    points={[el.x + el.width / 2, el.y + el.height / 2, tgt.x + tgt.width / 2, tgt.y + tgt.height / 2]}
+                    stroke="#D4A843" strokeWidth={1.5 / stageScale}
+                    dash={[2 / stageScale, 3 / stageScale]} opacity={0.75} listening={false} />
+                );
+              }
+            }
+            return <React.Fragment key={`sl-${el.id}`}>{links}</React.Fragment>;
+          })}
           <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} boundBoxFunc={(_, nw) => nw} />
         </Layer>
       </Stage>

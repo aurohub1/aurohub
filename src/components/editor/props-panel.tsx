@@ -291,6 +291,85 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         </Sec>
       )}
 
+      {/* Smart Links */}
+      <Sec t="Smart Links">
+        <div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 4, lineHeight: 1.4 }}>
+          Vincule este elemento para seguir/acompanhar outro automaticamente.
+        </div>
+        {/* Smart Track — segue posição */}
+        <div style={{ marginBottom: 6 }}>
+          <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2, fontWeight: 600 }}>↔ Seguir posição</div>
+          <F l="Alvo">
+            <select
+              value={s.smartTrack?.targetId || ""}
+              onChange={e => {
+                const targetId = e.target.value;
+                if (!targetId) u({ smartTrack: undefined });
+                else u({ smartTrack: { targetId, direction: s.smartTrack?.direction || "right", gap: s.smartTrack?.gap ?? 8 } });
+              }}
+              style={selS}
+            >
+              <option value="">— nenhum —</option>
+              {allElements.filter(e => e.id !== s.id).map(e => (
+                <option key={e.id} value={e.id}>{e.name || e.id}</option>
+              ))}
+            </select>
+          </F>
+          {s.smartTrack && (
+            <G2>
+              <F l="Direção">
+                <select
+                  value={s.smartTrack.direction}
+                  onChange={e => u({ smartTrack: { ...s.smartTrack!, direction: e.target.value as "right"|"left"|"down"|"up" } })}
+                  style={selS}
+                >
+                  <option value="right">→ Direita</option>
+                  <option value="left">← Esquerda</option>
+                  <option value="down">↓ Abaixo</option>
+                  <option value="up">↑ Acima</option>
+                </select>
+              </F>
+              <F l="Gap"><Num v={s.smartTrack.gap} c={v => u({ smartTrack: { ...s.smartTrack!, gap: v } })} /></F>
+            </G2>
+          )}
+        </div>
+        {/* Smart Resize — ajusta tamanho */}
+        <div>
+          <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2, fontWeight: 600 }}>⇲ Ajustar tamanho</div>
+          <F l="Alvo">
+            <select
+              value={s.smartResize?.targetId || ""}
+              onChange={e => {
+                const targetId = e.target.value;
+                if (!targetId) u({ smartResize: undefined });
+                else u({ smartResize: { targetId, direction: s.smartResize?.direction || "vertical", padding: s.smartResize?.padding ?? 0 } });
+              }}
+              style={selS}
+            >
+              <option value="">— nenhum —</option>
+              {allElements.filter(e => e.id !== s.id).map(e => (
+                <option key={e.id} value={e.id}>{e.name || e.id}</option>
+              ))}
+            </select>
+          </F>
+          {s.smartResize && (
+            <G2>
+              <F l="Eixo">
+                <select
+                  value={s.smartResize.direction}
+                  onChange={e => u({ smartResize: { ...s.smartResize!, direction: e.target.value as "vertical"|"horizontal" } })}
+                  style={selS}
+                >
+                  <option value="vertical">↕ Vertical (altura)</option>
+                  <option value="horizontal">↔ Horizontal (largura)</option>
+                </select>
+              </F>
+              <F l="Padding"><Num v={s.smartResize.padding} c={v => u({ smartResize: { ...s.smartResize!, padding: v } })} /></F>
+            </G2>
+          )}
+        </div>
+      </Sec>
+
       {/* Bind */}
       <Sec t="Campo Bind">
         {s.bindParam && <div style={{ borderRadius: 6, background: "rgba(212,168,67,0.1)", padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "var(--ed-bind)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>⬡ {s.bindParam}</div>}

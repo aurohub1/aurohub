@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Rect, Circle, Text as KText, Image as KImage, Group } from "react-konva";
 import type Konva from "konva";
-import type { EditorElement, EditorSchema } from "@/components/editor/types";
+import { applySmartLinks, type EditorElement, type EditorSchema } from "@/components/editor/types";
 
 /* ── Helpers ─────────────────────────────────────── */
 
@@ -370,6 +370,33 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
     return Math.min(byH, byW, 1);
   }, [width, height, maxDisplay]);
 
+  // Preview-time smart-links: recalcula altura real de textos expansíveis (servicoslista)
+  // e propaga para elementos com smartTrack/smartResize apontando para eles.
+  const resolvedElements = useMemo(() => {
+    let els = schema.elements.map(e => ({ ...e }));
+    // Mede altura real dos textos que dependem de bind dinâmico
+    for (const el of els) {
+      if (el.type !== "text" || !el.bindParam) continue;
+      const txt = resolveBindParam(el.bindParam, values);
+      if (!txt) continue;
+      // Conta quebras de linha explícitas como base para altura
+      const lines = Math.max(1, txt.split("\n").length);
+      const fs = el.fontSize ?? 24;
+      const lh = el.lineHeight ?? 1.2;
+      const measured = Math.ceil(lines * fs * lh);
+      if (Math.abs(measured - el.height) > 1) {
+        el.height = measured;
+      }
+    }
+    // Propaga cascata de smart-links a partir de cada elemento ajustado
+    for (const src of schema.elements) {
+      if (src.type !== "text" || !src.bindParam) continue;
+      const patches = applySmartLinks(src.id, els);
+      els = els.map(e => patches[e.id] ? { ...e, ...patches[e.id] } : e);
+    }
+    return els;
+  }, [schema.elements, values]);
+
   useEffect(() => {
     if (stageRef.current && onReady) onReady(stageRef.current);
   }, [onReady]);
@@ -385,7 +412,7 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
     >
       <Layer>
         <Rect x={0} y={0} width={width} height={height} fill={schema.background || "#fff"} />
-        {schema.elements.map((el) => (
+        {resolvedElements.map((el) => (
           <RenderEl key={el.id} el={el} values={values} />
         ))}
       </Layer>

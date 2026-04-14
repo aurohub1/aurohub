@@ -43,6 +43,77 @@ export interface EditorElement {
   // Animation
   animation?: AnimationType; animDelay?: number; animDuration?: number;
   animEasing?: EasingType; animRepeat?: number;
+  // Smart Links
+  smartTrack?: { targetId: string; direction: "right"|"left"|"down"|"up"; gap: number };
+  smartResize?: { targetId: string; direction: "vertical"|"horizontal"; padding: number };
+}
+
+/**
+ * Cascade smart-link updates após mudança de um elemento.
+ * Percorre todos os elementos; para cada um que tenha smartTrack/smartResize
+ * apontando para o elemento fonte, gera um patch para reposicionar/redimensionar.
+ *
+ * Retorna um mapa `{ [id]: Partial<EditorElement> }` com todos os patches derivados.
+ * Executa múltiplas passadas para propagar cadeias (A→B→C).
+ */
+export function applySmartLinks(
+  sourceId: string,
+  elements: EditorElement[],
+  maxPasses = 4
+): Record<string, Partial<EditorElement>> {
+  const patches: Record<string, Partial<EditorElement>> = {};
+  const getEl = (id: string): EditorElement | undefined => {
+    if (patches[id]) return { ...elements.find(e => e.id === id)!, ...patches[id] };
+    return elements.find(e => e.id === id);
+  };
+
+  let dirty = new Set<string>([sourceId]);
+  for (let pass = 0; pass < maxPasses && dirty.size > 0; pass++) {
+    const next = new Set<string>();
+    for (const el of elements) {
+      if (el.id === sourceId && pass === 0) continue;
+      const track = el.smartTrack;
+      const resize = el.smartResize;
+      if (track && dirty.has(track.targetId)) {
+        const tgt = getEl(track.targetId);
+        if (tgt) {
+          const gap = track.gap ?? 0;
+          let nx = el.x, ny = el.y;
+          switch (track.direction) {
+            case "right": nx = tgt.x + tgt.width + gap; ny = tgt.y; break;
+            case "left":  nx = tgt.x - el.width - gap; ny = tgt.y; break;
+            case "down":  nx = tgt.x; ny = tgt.y + tgt.height + gap; break;
+            case "up":    nx = tgt.x; ny = tgt.y - el.height - gap; break;
+          }
+          if (nx !== el.x || ny !== el.y) {
+            patches[el.id] = { ...(patches[el.id] || {}), x: nx, y: ny };
+            next.add(el.id);
+          }
+        }
+      }
+      if (resize && dirty.has(resize.targetId)) {
+        const tgt = getEl(resize.targetId);
+        if (tgt) {
+          const pad = resize.padding ?? 0;
+          if (resize.direction === "vertical") {
+            const nh = Math.max(1, tgt.height + pad * 2);
+            if (nh !== el.height) {
+              patches[el.id] = { ...(patches[el.id] || {}), height: nh };
+              next.add(el.id);
+            }
+          } else {
+            const nw = Math.max(1, tgt.width + pad * 2);
+            if (nw !== el.width) {
+              patches[el.id] = { ...(patches[el.id] || {}), width: nw };
+              next.add(el.id);
+            }
+          }
+        }
+      }
+    }
+    dirty = next;
+  }
+  return patches;
 }
 
 export interface EditorSchema {
