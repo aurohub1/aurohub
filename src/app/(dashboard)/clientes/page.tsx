@@ -720,14 +720,15 @@ export default function ClientesPage() {
                           <option value="galaxia">🌀 Galáxia</option>
                           <option value="vidro_janela">🪟 Vidro Janela</option>
                           <option value="vidro_liquido">💧 Vidro Líquido</option>
-                          <option value="cidade_a">🏙️ Cidade A</option>
-                          <option value="cidade_b">🌃 Cidade B</option>
+                          <option value="cidade_b">🌃 Cidade</option>
                           <option value="restaurante">🍽️ Restaurante</option>
-                          <option value="saude">❤️ Saúde</option>
+                          <option value="restaurante2">🔥 Restaurante Brasas</option>
+                          <option value="saude">🧬 Saúde</option>
                           <option value="moda">👗 Moda</option>
                           <option value="imobiliaria">🏘️ Imobiliária</option>
                           <option value="educacao">🎓 Educação</option>
-                          <option value="beleza">🌸 Beleza</option>
+                          <option value="educacao2">🌐 Educação 2</option>
+                          <option value="beleza">🌹 Beleza</option>
                         </select>
                       </div>
                       <div>
