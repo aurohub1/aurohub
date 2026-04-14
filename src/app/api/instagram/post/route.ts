@@ -82,15 +82,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "container sem id", detail: createData }, { status: 500 });
     }
 
-    // Vídeo: Instagram precisa de tempo para processar o container.
-    // Imagem: delay curto é suficiente.
+    // Vídeo: enfileira para processamento assíncrono (cron publica quando FINISHED)
     if (video_url && (mediaType === "REELS" || mediaType === "STORIES")) {
-      await new Promise(r => setTimeout(r, 45000));
-    } else {
-      await new Promise(r => setTimeout(r, 2000));
+      const { data: queued, error: qErr } = await sb
+        .from("instagram_publish_queue")
+        .insert({
+          creation_id: creationId,
+          licensee_id,
+          store_id,
+          ig_user_id: ig.ig_user_id,
+          access_token: ig.access_token,
+          media_type: mediaType,
+          video_url,
+          caption: caption ?? "",
+          format: format ?? null,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (qErr) {
+        console.error("[Queue] Falha ao enfileirar:", qErr);
+        return NextResponse.json({ error: "Falha ao enfileirar", detail: qErr.message }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, queued: true, queue_id: queued.id, creation_id: creationId });
     }
 
-    // 2. Publicar
+    // Imagem: delay curto + publish síncrono
+    await new Promise(r => setTimeout(r, 2000));
+
     const pubUrl = `https://graph.instagram.com/v23.0/${ig.ig_user_id}/media_publish`;
     const pubParams = new URLSearchParams({
       creation_id: creationId,
@@ -104,7 +123,6 @@ export async function POST(req: NextRequest) {
     const pubData = await pubRes.json();
     const igPostId = pubData.id;
 
-    // 3. Log em activity_logs (best-effort)
     try {
       await sb.from("activity_logs").insert({
         event_type: "post_instagram",

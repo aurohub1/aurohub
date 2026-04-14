@@ -974,6 +974,8 @@ export default function PublicarPage() {
               ? "Formato não suportado pelo Instagram. Use o botão Download."
               : rawErr;
             resultados.push({ store: target, ok: false, error: friendlyErr });
+          } else if (pubData.queued) {
+            resultados.push({ store: target, ok: true, error: "Vídeo em processamento..." });
           } else {
             resultados.push({ store: target, ok: true });
           }
@@ -984,10 +986,13 @@ export default function PublicarPage() {
 
       const okCount = resultados.filter((r) => r.ok).length;
       const falhas = resultados.filter((r) => !r.ok);
+      const queuedCount = resultados.filter((r) => r.ok && r.error === "Vídeo em processamento...").length;
       if (okCount === 0) throw new Error(`Nenhuma publicação concluída. ${falhas[0]?.error ?? ""}`);
 
       setStatus("success");
-      setStatusMsg(falhas.length === 0
+      setStatusMsg(queuedCount > 0
+        ? `Vídeo em processamento — publicará em ~1 min`
+        : falhas.length === 0
         ? `Publicado em ${okCount} loja${okCount === 1 ? "" : "s"}!`
         : `${okCount} ok · ${falhas.length} falha${falhas.length === 1 ? "" : "s"}`);
       // Recarrega contador
