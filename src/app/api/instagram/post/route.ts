@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
-export const maxDuration = 90;
+export const maxDuration = 120;
 
 /**
  * Publica mídia no Instagram via Graph API.
@@ -86,11 +86,11 @@ export async function POST(req: NextRequest) {
     // Para imagens: delay curto é suficiente
     if (video_url && (mediaType === "REELS" || mediaType === "STORIES")) {
       const statusUrl = `https://graph.instagram.com/v23.0/${creationId}`;
-      const maxAttempts = 12; // 12 × 5s = 60s
+      const maxAttempts = 12; // 12 × 10s = 120s
       let ready = false;
       let lastStatus = "";
       for (let i = 0; i < maxAttempts; i++) {
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 10000));
         const statusRes = await fetch(`${statusUrl}?fields=status_code&access_token=${encodeURIComponent(ig.access_token)}`);
         if (!statusRes.ok) continue;
         const statusData = await statusRes.json();
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         }
       }
       if (!ready) {
-        return NextResponse.json({ error: "Timeout processando vídeo (60s)", status_code: lastStatus }, { status: 504 });
+        return NextResponse.json({ error: "Timeout processando vídeo (120s)", status_code: lastStatus }, { status: 504 });
       }
     } else {
       await new Promise(r => setTimeout(r, 2000));
