@@ -26,6 +26,8 @@ interface Licensee {
   cor_primaria?: string; cor_secundaria?: string; cor_acento?: string; cor_fundo?: string;
   cor4?: string; cor5?: string;
   tema_fundo_escuro?: string; tema_fundo_claro?: string; tema_texto_escuro?: string; tema_texto_claro?: string;
+  form_pacote?: boolean | null; form_campanha?: boolean | null; form_passagem?: boolean | null;
+  form_cruzeiro?: boolean | null; form_anoiteceu?: boolean | null; form_lamina?: boolean | null;
 }
 interface Segment { id: string; name: string; icon: string | null; }
 interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; }
@@ -33,7 +35,7 @@ interface Store { id: string; licensee_id: string; name: string; ig_user_id: str
 interface Profile { id: string; licensee_id: string | null; store_id: string | null; name: string | null; status: string; }
 
 type TabFilter = "" | "active" | "inactive";
-type ModalTab = "dados" | "tema" | "plano" | "lojas" | "features" | "senha";
+type ModalTab = "dados" | "tema" | "plano" | "lojas" | "features" | "formularios" | "senha";
 
 const PLAN_COLORS: Record<string, { color: string; label: string }> = {
   basic: { color: "#64748b", label: "Essencial" },
@@ -61,7 +63,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", form_pacote: true, form_campanha: true, form_passagem: true, form_cruzeiro: true, form_anoiteceu: true, form_lamina: true });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -156,7 +158,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, form_pacote, form_campanha, form_passagem, form_cruzeiro, form_anoiteceu, form_lamina").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -200,7 +202,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", form_pacote: true, form_campanha: true, form_passagem: true, form_cruzeiro: true, form_anoiteceu: true, form_lamina: true });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -208,7 +210,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF", form_pacote: l.form_pacote ?? true, form_campanha: l.form_campanha ?? true, form_passagem: l.form_passagem ?? true, form_cruzeiro: l.form_cruzeiro ?? true, form_anoiteceu: l.form_anoiteceu ?? true, form_lamina: l.form_lamina ?? true });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -237,6 +239,12 @@ export default function ClientesPage() {
         cor_fundo: form.cor_fundo || null,
         cor4: form.cor4 || null,
         cor5: form.cor5 || null,
+        form_pacote: form.form_pacote,
+        form_campanha: form.form_campanha,
+        form_passagem: form.form_passagem,
+        form_cruzeiro: form.form_cruzeiro,
+        form_anoiteceu: form.form_anoiteceu,
+        form_lamina: form.form_lamina,
       };
       if (formPlanIsInternal && form.expires_at) {
         payload.expires_at = form.expires_at;
@@ -664,9 +672,9 @@ export default function ClientesPage() {
 
             {/* Tabs */}
             <div className="flex border-b border-[var(--bdr)] px-6">
-              {(["dados", "tema", "plano", "lojas", "features", "senha"] as ModalTab[]).map((t) => (
+              {(["dados", "tema", "plano", "lojas", "features", "formularios", "senha"] as ModalTab[]).map((t) => (
                 <button key={t} onClick={() => setModalTab(t)} className={`border-b-2 px-4 py-2.5 text-[12px] font-medium transition-colors ${modalTab === t ? "border-[var(--txt)] text-[var(--txt)]" : "border-transparent text-[var(--txt3)] hover:text-[var(--txt2)]"}`}>
-                  {t === "dados" ? "Dados" : t === "tema" ? "Tema" : t === "plano" ? "Plano" : t === "lojas" ? "Lojas" : t === "features" ? "Features" : "Senha"}
+                  {t === "dados" ? "Dados" : t === "tema" ? "Tema" : t === "plano" ? "Plano" : t === "lojas" ? "Lojas" : t === "features" ? "Features" : t === "formularios" ? "Formulários" : "Senha"}
                 </button>
               ))}
             </div>
@@ -1104,6 +1112,42 @@ export default function ClientesPage() {
                     <svg viewBox="0 0 16 16" className="h-3 w-3"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
                     Adicionar loja
                   </button>
+                </div>
+              )}
+
+              {modalTab === "formularios" && (
+                <div className="flex flex-col gap-4">
+                  <p className="text-[12px] text-[var(--txt3)]">
+                    Controle quais formulários ficam disponíveis no Publicar deste cliente.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {([
+                      ["form_pacote",    "Pacote",    "Destinos com hotel e serviços"],
+                      ["form_campanha",  "Campanha",  "Campanhas promocionais"],
+                      ["form_passagem",  "Passagem",  "Passagens aéreas"],
+                      ["form_cruzeiro",  "Cruzeiro",  "Cruzeiros marítimos"],
+                      ["form_anoiteceu", "Anoiteceu", "Eventos/fins de semana"],
+                      ["form_lamina",    "Lâmina",    "Múltiplos destinos em lâmina"],
+                    ] as [keyof typeof form, string, string][]).map(([key, label, desc]) => {
+                      const on = form[key] as boolean;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setForm({ ...form, [key]: !on })}
+                          className={`flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${on ? "border-[#D4A843] bg-[#D4A843]/10" : "border-[var(--bdr)] bg-[var(--bg1)]"}`}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-[13px] font-semibold text-[var(--txt)]">{label}</span>
+                            <span className="text-[11px] text-[var(--txt3)]">{desc}</span>
+                          </div>
+                          <span className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-colors ${on ? "bg-[#D4A843]" : "bg-[var(--bdr)]"}`}>
+                            <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-5" : "translate-x-0"}`} />
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

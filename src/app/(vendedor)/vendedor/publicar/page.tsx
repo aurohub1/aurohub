@@ -17,6 +17,8 @@ const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
 /* ── Tipos ───────────────────────────────────────── */
 
 type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu";
+type EnabledForms = Record<FormType, boolean>;
+const DEFAULT_ENABLED_FORMS: EnabledForms = { pacote: true, campanha: true, passagem: true, cruzeiro: true, anoiteceu: true };
 type Format = "stories" | "feed" | "reels" | "tv";
 type PublishStatus = "idle" | "generating" | "uploading" | "publishing" | "success" | "error";
 
@@ -229,12 +231,22 @@ function calcNoites(ida: string, volta: string): number {
 
 export default function PublicarPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
+  const [enabledForms, setEnabledForms] = useState<EnabledForms>(DEFAULT_ENABLED_FORMS);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Estado por aba
   const [tab, setTab] = useState<FormType>("pacote");
   const [format, setFormat] = useState<Format>("stories");
+
+  // Auto-switch: se a aba atual foi desabilitada para este cliente, seleciona a primeira habilitada
+  useEffect(() => {
+    if (!enabledForms[tab]) {
+      const firstEnabled = (Object.keys(enabledForms) as FormType[]).find(k => enabledForms[k]);
+      if (firstEnabled) setTab(firstEnabled);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabledForms]);
 
   // Cache de dados por aba (preserva ao trocar)
   const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>(() => {
@@ -369,6 +381,26 @@ export default function PublicarPage() {
       const p = await getProfile(supabase);
       setProfile(p);
       if (!p?.licensee_id) { setLoading(false); return; }
+
+      // Permissões de formulários do licensee
+      try {
+        const { data: licForms } = await supabase
+          .from("licensees")
+          .select("form_pacote, form_campanha, form_passagem, form_cruzeiro, form_anoiteceu")
+          .eq("id", p.licensee_id)
+          .single();
+        if (licForms) {
+          setEnabledForms({
+            pacote:    licForms.form_pacote    ?? true,
+            campanha:  licForms.form_campanha  ?? true,
+            passagem:  licForms.form_passagem  ?? true,
+            cruzeiro:  licForms.form_cruzeiro  ?? true,
+            anoiteceu: licForms.form_anoiteceu ?? true,
+          });
+        }
+      } catch (err) {
+        console.warn("[Publicar] falha ao carregar permissões de formulários, usando defaults", err);
+      }
 
       // Templates do licensee
       const { data: tplData } = await supabase
@@ -1176,7 +1208,7 @@ export default function PublicarPage() {
         {/* Tabs — linha única, sem quebra */}
         <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-2">
           <div className="flex flex-nowrap items-center gap-0.5" style={{ whiteSpace: "nowrap" }}>
-            {FORM_ORDER.map((f) => {
+            {FORM_ORDER.filter((f) => enabledForms[f]).map((f) => {
               const active = tab === f;
               return (
                 <button
