@@ -22,6 +22,7 @@ interface Licensee {
   splash_effect?: string; splash_logo_orientation?: string;
   splash_velocidade?: number; splash_suavidade?: number;
   splash_som_url?: string | null; splash_som_public_id?: string | null;
+  splash_lottie_url?: string | null;
   cor_primaria?: string; cor_secundaria?: string; cor_acento?: string; cor_fundo?: string;
   cor4?: string; cor5?: string;
   tema_fundo_escuro?: string; tema_fundo_claro?: string; tema_texto_escuro?: string; tema_texto_claro?: string;
@@ -60,12 +61,41 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingSom, setUploadingSom] = useState(false);
   const somFileRef = useRef<HTMLInputElement>(null);
+  const [uploadingLottie, setUploadingLottie] = useState(false);
+  const lottieFileRef = useRef<HTMLInputElement>(null);
+
+  async function handleLottieUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith(".json")) { alert("Envie um arquivo .json"); return; }
+    setUploadingLottie(true);
+    try {
+      const signRes = await fetch("/api/cloudinary/sign", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: "aurohubv2/splash-lottie" }),
+      });
+      const signData = await signRes.json();
+      if (!signData.signature) throw new Error("Falha ao assinar");
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("api_key", signData.api_key);
+      fd.append("timestamp", String(signData.timestamp));
+      fd.append("folder", signData.folder);
+      fd.append("signature", signData.signature);
+      const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/raw/upload`, { method: "POST", body: fd });
+      const upData = await upRes.json();
+      if (!upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
+      setForm(f => ({ ...f, splash_lottie_url: upData.secure_url }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro no upload");
+    } finally { setUploadingLottie(false); if (lottieFileRef.current) lottieFileRef.current.value = ""; }
+  }
 
   async function handleSomUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -126,7 +156,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, tema_fundo_escuro, tema_fundo_claro, tema_texto_escuro, tema_texto_claro").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_lottie_url, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, tema_fundo_escuro, tema_fundo_claro, tema_texto_escuro, tema_texto_claro").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -170,7 +200,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -178,7 +208,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -201,6 +231,7 @@ export default function ClientesPage() {
         splash_suavidade: form.splash_suavidade ?? 7,
         splash_som_url: form.splash_som_url || null,
         splash_som_public_id: form.splash_som_public_id || null,
+        splash_lottie_url: form.splash_lottie_url || null,
         cor_primaria: form.cor_primaria || null,
         cor_secundaria: form.cor_secundaria || null,
         cor_acento: form.cor_acento || null,
@@ -679,7 +710,7 @@ export default function ClientesPage() {
                     <div className="mb-3 flex justify-center">
                       <div className="rounded-lg overflow-hidden border border-[var(--bdr)]" style={{ width: 200, height: 120 }}>
                         <SplashScreen
-                          key={`${form.splash_effect}-${form.cor_primaria}-${form.cor_secundaria}-${form.cor_acento}-${form.cor_fundo}-${form.cor4}-${form.cor5}-${form.splash_velocidade}-${form.splash_suavidade}`}
+                          key={`${form.splash_effect}-${form.cor_primaria}-${form.cor_secundaria}-${form.cor_acento}-${form.cor_fundo}-${form.cor4}-${form.cor5}-${form.splash_velocidade}-${form.splash_suavidade}-${form.splash_lottie_url}`}
                           logoUrl=""
                           effect={(form.splash_effect as SplashEffect) || "random"}
                           cor1={form.cor_primaria || "#FF7A1A"}
@@ -690,6 +721,7 @@ export default function ClientesPage() {
                           corFundo={form.cor_fundo || "#0E1520"}
                           velocidade={form.splash_velocidade ?? 5}
                           suavidade={form.splash_suavidade ?? 7}
+                          lottieUrl={form.splash_lottie_url || undefined}
                           embedded={{ width: 200, height: 120 }}
                         />
                       </div>
@@ -794,6 +826,41 @@ export default function ClientesPage() {
                           className="h-8 rounded-lg border border-[var(--bdr)] px-3 text-[10px] text-[var(--txt2)] hover:bg-[var(--hover-bg)] disabled:opacity-40"
                         >
                           {uploadingSom ? "Enviando..." : "🎵 Upload som"}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Lottie animation */}
+                    <div className="mt-3">
+                      <label className="block text-[10px] text-[var(--txt3)] mb-1">
+                        Animação Lottie (substitui efeito Canvas)
+                      </label>
+                      <input ref={lottieFileRef} type="file" accept=".json,application/json" onChange={handleLottieUpload} className="hidden" />
+                      {form.splash_lottie_url ? (
+                        <div className="flex items-center gap-2">
+                          <span className="flex-1 truncate text-[10px] text-[var(--txt2)]">
+                            ✓ {form.splash_lottie_url.split("/").pop()}
+                          </span>
+                          <a href={form.splash_lottie_url} target="_blank" rel="noopener noreferrer"
+                            className="shrink-0 rounded-lg border border-[var(--bdr)] px-2 py-1 text-[10px] text-[var(--txt2)] hover:bg-[var(--hover-bg)]">
+                            Ver
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, splash_lottie_url: "" }))}
+                            className="shrink-0 rounded-lg border border-[var(--bdr)] px-2 py-1 text-[10px] text-[var(--red)] hover:bg-[var(--red3)]"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => lottieFileRef.current?.click()}
+                          disabled={uploadingLottie}
+                          className="h-8 rounded-lg border border-[var(--bdr)] px-3 text-[10px] text-[var(--txt2)] hover:bg-[var(--hover-bg)] disabled:opacity-40"
+                        >
+                          {uploadingLottie ? "Enviando..." : "✨ Upload Lottie (.json)"}
                         </button>
                       )}
                     </div>

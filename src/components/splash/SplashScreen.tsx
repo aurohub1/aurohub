@@ -30,6 +30,8 @@ interface Props {
   suavidade?: number;
   /** URL do áudio para tocar durante o splash. */
   somUrl?: string;
+  /** URL de arquivo Lottie (.json). Se fornecido, renderiza Lottie em vez do canvas. */
+  lottieUrl?: string;
 }
 
 const EFFECTS: SplashEffect[] = [
@@ -46,10 +48,29 @@ export default function SplashScreen({
   logoUrl, logoOrientation = "horizontal",
   effect = "random", cor1 = "#FF7A1A", cor2 = "#D4A843", cor3 = "#1E3A6E",
   cor4, cor5, corFundo = "#0E1520", userName, onDone,
-  embedded, velocidade = 5, suavidade = 7, somUrl,
+  embedded, velocidade = 5, suavidade = 7, somUrl, lottieUrl,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lottieContainerRef = useRef<HTMLDivElement>(null);
+
+  // Lottie: carrega e toca quando lottieUrl é fornecido
+  useEffect(() => {
+    if (!lottieUrl || !lottieContainerRef.current) return;
+    let anim: { destroy: () => void } | null = null;
+    (async () => {
+      const lottie = (await import("lottie-web")).default;
+      if (!lottieContainerRef.current) return;
+      anim = lottie.loadAnimation({
+        container: lottieContainerRef.current,
+        renderer: "svg",
+        loop: true,
+        autoplay: true,
+        path: lottieUrl,
+      });
+    })();
+    return () => { if (anim) anim.destroy(); };
+  }, [lottieUrl]);
   const [visible, setVisible] = useState(true);
   const [logoVisible, setLogoVisible] = useState(false);
   const [greetVisible, setGreetVisible] = useState(false);
@@ -1523,7 +1544,11 @@ export default function SplashScreen({
   return (
     <div className={embedded ? "relative overflow-hidden flex items-center justify-center" : "fixed inset-0 z-[9999] flex items-center justify-center"}
       style={{ background: corFundo, width: embedded?.width, height: embedded?.height }}>
-      <canvas ref={canvasRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : undefined} />
+      {lottieUrl ? (
+        <div ref={lottieContainerRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : undefined} />
+      ) : (
+        <canvas ref={canvasRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : undefined} />
+      )}
       <div className="relative z-10 flex items-center justify-center"
         style={{ position: "relative", width: logoDims.width, height: logoDims.height + 40 }}>
         <img src={logoUrl} alt="Logo"
