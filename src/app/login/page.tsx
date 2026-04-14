@@ -188,6 +188,7 @@ export default function LoginPage() {
         const home = homeForRole(profile?.role ?? null);
         console.log("[Login] Showing splash → will redirect to:", home);
 
+        let hasSplash = false;
         let splashConfig: Record<string, string | number | undefined> = {};
         if (profile?.licensee_id) {
           const { data: lic } = await supabase
@@ -196,26 +197,38 @@ export default function LoginPage() {
             .eq("id", profile.licensee_id)
             .single();
           if (lic) {
-            const lic2 = lic as typeof lic & { splash_velocidade?: number; splash_suavidade?: number; splash_som_url?: string; splash_lottie_url?: string };
-            splashConfig = {
-              logoUrl: lic.logo_url || undefined,
-              effect: lic.splash_effect || "random",
-              logoOrientation: lic.splash_logo_orientation || "horizontal",
-              cor1: lic.cor_primaria || "var(--orange)",
-              cor2: lic.cor_secundaria || "#D4A843",
-              cor3: lic.cor_acento || "#1E3A6E",
-              cor4: lic.cor4 || undefined,
-              cor5: lic.cor5 || undefined,
-              corFundo: lic.cor_fundo || "#0E1520",
-              velocidade: lic2.splash_velocidade ?? 5,
-              suavidade: lic2.splash_suavidade ?? 7,
-              somUrl: lic2.splash_som_url || undefined,
-              lottieUrl: lic2.splash_lottie_url || undefined,
-            };
+            // Splash só é exibido se licensee tem splash_effect configurado
+            const effectSet = lic.splash_effect && lic.splash_effect.trim() !== "";
+            if (effectSet) {
+              hasSplash = true;
+              const lic2 = lic as typeof lic & { splash_velocidade?: number; splash_suavidade?: number; splash_som_url?: string; splash_lottie_url?: string };
+              splashConfig = {
+                logoUrl: lic.logo_url || undefined, // usa logo do licensee; se null, SplashScreen usará seu próprio default
+                effect: lic.splash_effect!,
+                logoOrientation: lic.splash_logo_orientation || "horizontal",
+                cor1: lic.cor_primaria || "var(--orange)",
+                cor2: lic.cor_secundaria || "#D4A843",
+                cor3: lic.cor_acento || "#1E3A6E",
+                cor4: lic.cor4 || undefined,
+                cor5: lic.cor5 || undefined,
+                corFundo: lic.cor_fundo || "#0E1520",
+                velocidade: lic2.splash_velocidade ?? 5,
+                suavidade: lic2.splash_suavidade ?? 7,
+                somUrl: lic2.splash_som_url || undefined,
+                lottieUrl: lic2.splash_lottie_url || undefined,
+              };
+            }
           }
         }
 
         setLoading(false);
+
+        // Sem splash configurado: redireciona direto para home
+        if (!hasSplash) {
+          router.push(home);
+          return;
+        }
+
         setSplash({ name, home, ...splashConfig });
         return;
       } catch (err) {
@@ -247,7 +260,7 @@ export default function LoginPage() {
   if (splash) {
     return (
       <SplashScreen
-        logoUrl={splash.logoUrl || "https://res.cloudinary.com/dxgj4bcch/image/upload/page/page/logo_aurovista.png"}
+        logoUrl={splash.logoUrl || ""}
         logoOrientation={(splash.logoOrientation as "horizontal"|"vertical"|"quadrado") || "horizontal"}
         effect={(splash.effect as SplashEffect) || "random"}
         cor1={splash.cor1 || "var(--orange)"}
