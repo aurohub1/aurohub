@@ -8,7 +8,7 @@ export type SplashEffect =
   | "aurora_espacial" | "galaxia"
   | "vidro_janela" | "vidro_liquido"
   | "cidade_b" | "restaurante" | "restaurante2" | "saude"
-  | "moda" | "imobiliaria" | "educacao" | "educacao2" | "beleza";
+  | "moda" | "imobiliaria" | "educacao" | "beleza";
 
 interface Props {
   logoUrl: string;
@@ -41,7 +41,7 @@ const EFFECTS: SplashEffect[] = [
   "aurora_espacial","galaxia",
   "vidro_janela","vidro_liquido",
   "cidade_b","restaurante","restaurante2","saude",
-  "moda","imobiliaria","educacao","educacao2","beleza",
+  "moda","imobiliaria","educacao","beleza",
 ];
 
 export default function SplashScreen({
@@ -1035,73 +1035,110 @@ export default function SplashScreen({
         }
 
         case "moda": {
-          // Faixas de luz metálica dourada/prateada diagonais
-          ctx.fillStyle = "#0a0610";
+          // Desfile de alta costura: spotlight central, glitter caindo, flash câmera
+          // Fundo preto profundo
+          ctx.fillStyle = "#020204";
           ctx.fillRect(0, 0, W, H);
 
-          // Halo ambient
-          const ambient = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.6);
-          ambient.addColorStop(0, `rgba(${c1.r},${c1.g},${c1.b},0.08)`);
-          ambient.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = ambient;
-          ctx.fillRect(0, 0, W, H);
+          const cx = W * 0.5;
 
-          // Faixas diagonais metálicas
-          const strips = [
-            { angle: -0.3, y: 0.15, speed: 0.25, width: 80, col: { r: 255, g: 215, b: 120 }, phase: 0 },
-            { angle: -0.25, y: 0.38, speed: 0.2, width: 60, col: { r: 220, g: 220, b: 235 }, phase: 1.2 },
-            { angle: -0.35, y: 0.55, speed: 0.3, width: 90, col: { r: 255, g: 230, b: 180 }, phase: 2.5 },
-            { angle: -0.22, y: 0.75, speed: 0.22, width: 55, col: { r: 200, g: 200, b: 220 }, phase: 3.8 },
-            { angle: -0.28, y: 0.92, speed: 0.26, width: 70, col: { r: 255, g: 200, b: 100 }, phase: 5 },
-          ];
+          // Spotlight central (cone de luz vindo de cima)
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(cx - W * 0.05, 0); // topo estreito
+          ctx.lineTo(cx + W * 0.05, 0);
+          ctx.lineTo(cx + W * 0.55, H); // base larga
+          ctx.lineTo(cx - W * 0.55, H);
+          ctx.closePath();
+          const spotGrad = ctx.createLinearGradient(cx, 0, cx, H);
+          spotGrad.addColorStop(0, "rgba(255,245,220,0.28)");
+          spotGrad.addColorStop(0.5, "rgba(255,235,180,0.14)");
+          spotGrad.addColorStop(1, "rgba(255,200,100,0)");
+          ctx.fillStyle = spotGrad;
+          ctx.fill();
+          ctx.restore();
 
-          for (const s of strips) {
-            ctx.save();
-            const cy = H * s.y;
-            ctx.translate(W * 0.5, cy);
-            ctx.rotate(s.angle);
+          // Núcleo da luz (pequena fonte circular no topo)
+          const sourceGlow = ctx.createRadialGradient(cx, 0, 0, cx, 0, 80);
+          sourceGlow.addColorStop(0, "rgba(255,250,220,0.8)");
+          sourceGlow.addColorStop(1, "rgba(255,200,100,0)");
+          ctx.fillStyle = sourceGlow;
+          ctx.beginPath();
+          ctx.arc(cx, 0, 80, 0, Math.PI * 2);
+          ctx.fill();
 
-            const offset = (t * s.speed * 300 + s.phase * 200) % (W * 2) - W;
+          // Pódio/piso reflexivo sutil
+          const floorGrad = ctx.createLinearGradient(0, H * 0.8, 0, H);
+          floorGrad.addColorStop(0, "rgba(0,0,0,0)");
+          floorGrad.addColorStop(1, "rgba(255,235,180,0.05)");
+          ctx.fillStyle = floorGrad;
+          ctx.fillRect(0, H * 0.8, W, H * 0.2);
 
-            // Faixa com gradient especular
-            const grad = ctx.createLinearGradient(offset - s.width, 0, offset + s.width, 0);
-            grad.addColorStop(0, `rgba(${s.col.r},${s.col.g},${s.col.b},0)`);
-            grad.addColorStop(0.2, `rgba(${s.col.r},${s.col.g},${s.col.b},0.3)`);
-            grad.addColorStop(0.45, `rgba(${s.col.r},${s.col.g},${s.col.b},0.7)`);
-            grad.addColorStop(0.5, `rgba(255,255,255,0.9)`);
-            grad.addColorStop(0.55, `rgba(${s.col.r},${s.col.g},${s.col.b},0.7)`);
-            grad.addColorStop(0.8, `rgba(${s.col.r},${s.col.g},${s.col.b},0.3)`);
-            grad.addColorStop(1, `rgba(${s.col.r},${s.col.g},${s.col.b},0)`);
-            ctx.fillStyle = grad;
-            ctx.fillRect(offset - s.width * 2, -3, s.width * 4, 6);
+          // Glitter caindo — partículas douradas e prateadas
+          for (let i = 0; i < 140; i++) {
+            const fallT = (t * 0.22 + i / 140) % 1;
+            const baseX = ((i * 137.5) % W);
+            const sway = Math.sin(t * 0.8 + i * 0.5) * 15;
+            const gx = baseX + sway;
+            const gy = fallT * (H + 20) - 10;
 
-            // Partículas brilhantes seguindo a faixa
-            for (let p = 0; p < 8; p++) {
-              const px = offset - s.width + (p / 8) * s.width * 2;
-              const flash = Math.max(0, Math.sin(t * 3 + p + s.phase));
-              if (flash > 0.3) {
-                ctx.fillStyle = `rgba(255,255,255,${flash * 0.9})`;
-                ctx.beginPath();
-                ctx.arc(px, (p % 2) * 2 - 1, 1.5, 0, Math.PI * 2);
-                ctx.fill();
-              }
-            }
-            ctx.restore();
-          }
+            const isGold = i % 3 !== 0;
+            const col = isGold ? { r: 255, g: 220, b: 140 } : { r: 230, g: 230, b: 245 };
 
-          // Brilhos aleatórios (shimmer de seda)
-          for (let i = 0; i < 40; i++) {
-            const sparkT = (t * 0.4 + i / 40) % 1;
-            const sx = (i * 137) % W;
-            const sy = (i * 197) % H;
-            const flash = Math.max(0, Math.sin(sparkT * Math.PI));
-            if (flash > 0.5) {
-              ctx.fillStyle = `rgba(255,240,200,${(flash - 0.5) * 1.4})`;
+            // Brilho alterna: cintila conforme cai
+            const twinkle = 0.3 + Math.abs(Math.sin(t * 4 + i * 1.3)) * 0.7;
+            const alpha = (1 - Math.abs(fallT - 0.5) * 1.5) * twinkle * 0.85;
+
+            if (alpha > 0.05) {
+              // Halo do glitter
+              const gHalo = ctx.createRadialGradient(gx, gy, 0, gx, gy, 4);
+              gHalo.addColorStop(0, `rgba(${col.r},${col.g},${col.b},${alpha})`);
+              gHalo.addColorStop(1, "rgba(0,0,0,0)");
+              ctx.fillStyle = gHalo;
               ctx.beginPath();
-              ctx.arc(sx, sy, 1, 0, Math.PI * 2);
+              ctx.arc(gx, gy, 4, 0, Math.PI * 2);
               ctx.fill();
+
+              // Núcleo (pixel brilhante)
+              ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+              ctx.fillRect(gx - 0.5, gy - 0.5, 1, 1);
             }
           }
+
+          // Flashes de câmera diagonais (linhas de luz intermitentes)
+          for (let i = 0; i < 4; i++) {
+            const flashT = ((t * 0.4 + i * 0.3) % 2);
+            if (flashT < 0.2) {
+              // Flash ativo
+              const intensity = flashT < 0.08 ? flashT / 0.08 : (0.2 - flashT) / 0.12;
+              const angle = -0.35 + (i % 2) * 0.7; // diagonais variadas
+              const yBase = H * (0.15 + (i * 0.2));
+
+              ctx.save();
+              ctx.translate(cx, yBase);
+              ctx.rotate(angle);
+
+              const flashLen = W * 1.8;
+              const flashWidth = 60;
+              const fg = ctx.createLinearGradient(-flashLen / 2, 0, flashLen / 2, 0);
+              fg.addColorStop(0, "rgba(255,255,255,0)");
+              fg.addColorStop(0.4, `rgba(255,250,230,${intensity * 0.3})`);
+              fg.addColorStop(0.5, `rgba(255,255,255,${intensity * 0.7})`);
+              fg.addColorStop(0.6, `rgba(255,250,230,${intensity * 0.3})`);
+              fg.addColorStop(1, "rgba(255,255,255,0)");
+              ctx.fillStyle = fg;
+              ctx.fillRect(-flashLen / 2, -flashWidth / 2, flashLen, flashWidth);
+              ctx.restore();
+            }
+          }
+
+          // Vinheta nas bordas (elegante, foca no centro)
+          const vignette = ctx.createRadialGradient(cx, H * 0.5, 0, cx, H * 0.5, Math.max(W, H) * 0.7);
+          vignette.addColorStop(0, "rgba(0,0,0,0)");
+          vignette.addColorStop(0.7, "rgba(0,0,0,0.2)");
+          vignette.addColorStop(1, "rgba(0,0,0,0.7)");
+          ctx.fillStyle = vignette;
+          ctx.fillRect(0, 0, W, H);
           break;
         }
 
@@ -1278,121 +1315,6 @@ export default function SplashScreen({
             ctx.arc(n.x, n.y, size * 0.6, 0, Math.PI * 2);
             ctx.fill();
           }
-          break;
-        }
-
-        case "educacao2": {
-          // Constelações nos cantos + rede neural expandindo do centro
-          ctx.fillStyle = "#04071a";
-          ctx.fillRect(0, 0, W, H);
-
-          // Constelações nos 4 cantos
-          const corners = [
-            { cx: 0.15, cy: 0.15, size: 0.15 },
-            { cx: 0.85, cy: 0.15, size: 0.15 },
-            { cx: 0.15, cy: 0.85, size: 0.15 },
-            { cx: 0.85, cy: 0.85, size: 0.15 },
-          ];
-          for (let ci = 0; ci < corners.length; ci++) {
-            const c = corners[ci];
-            const ccx = W * c.cx;
-            const ccy = H * c.cy;
-            const cSize = Math.min(W, H) * c.size;
-
-            const stars: { x: number; y: number }[] = [];
-            for (let i = 0; i < 8; i++) {
-              const ang = ((i / 8) + ci * 0.1) * Math.PI * 2;
-              const r = cSize * (0.3 + ((i * 0.31) % 0.7));
-              stars.push({ x: ccx + Math.cos(ang) * r, y: ccy + Math.sin(ang) * r });
-            }
-            // Linhas
-            for (let i = 0; i < stars.length - 1; i++) {
-              ctx.strokeStyle = `rgba(${c1.r},${c1.g},${c1.b},0.3)`;
-              ctx.lineWidth = 0.6;
-              ctx.beginPath();
-              ctx.moveTo(stars[i].x, stars[i].y);
-              ctx.lineTo(stars[i + 1].x, stars[i + 1].y);
-              ctx.stroke();
-            }
-            // Estrelas
-            for (const s of stars) {
-              const pulse = 0.5 + Math.sin(t + s.x * 0.01) * 0.5;
-              ctx.fillStyle = `rgba(255,255,255,${pulse})`;
-              ctx.beginPath();
-              ctx.arc(s.x, s.y, 1.5 + pulse, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-
-          // Rede neural central expandindo
-          const centerX = W * 0.5;
-          const centerY = H * 0.5;
-          const N = 30;
-          const expandProgress = Math.min(1, (t * 0.1) % 2);
-          const maxR = Math.min(W, H) * 0.35 * expandProgress;
-
-          const nodes: { x: number; y: number; col: { r: number; g: number; b: number } }[] = [];
-          for (let i = 0; i < N; i++) {
-            const ang = (i / N) * Math.PI * 2 + t * 0.1;
-            const r = maxR * (0.3 + ((i * 0.17) % 0.7));
-            const nx = centerX + Math.cos(ang) * r;
-            const ny = centerY + Math.sin(ang) * r;
-            const col = i % 3 === 0 ? c1 : i % 3 === 1 ? c2 : c3;
-            nodes.push({ x: nx, y: ny, col });
-          }
-
-          // Conexões com o centro
-          for (let i = 0; i < N; i++) {
-            const n = nodes[i];
-            const alpha = 0.25;
-            ctx.strokeStyle = `rgba(${n.col.r},${n.col.g},${n.col.b},${alpha})`;
-            ctx.lineWidth = 0.8;
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(n.x, n.y);
-            ctx.stroke();
-          }
-
-          // Conexões adjacentes
-          for (let i = 0; i < N; i++) {
-            const j = (i + 1) % N;
-            const n1 = nodes[i];
-            const n2 = nodes[j];
-            ctx.strokeStyle = `rgba(${n1.col.r},${n1.col.g},${n1.col.b},0.2)`;
-            ctx.lineWidth = 0.5;
-            ctx.beginPath();
-            ctx.moveTo(n1.x, n1.y);
-            ctx.lineTo(n2.x, n2.y);
-            ctx.stroke();
-          }
-
-          // Nodos
-          for (let i = 0; i < N; i++) {
-            const n = nodes[i];
-            const pulse = 0.6 + Math.sin(t * 2 + i * 0.5) * 0.4;
-            const size = 2 + pulse;
-            const halo = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, size * 3);
-            halo.addColorStop(0, `rgba(${n.col.r},${n.col.g},${n.col.b},${pulse})`);
-            halo.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = halo;
-            ctx.beginPath();
-            ctx.arc(n.x, n.y, size * 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = `rgba(255,255,255,${pulse})`;
-            ctx.beginPath();
-            ctx.arc(n.x, n.y, size * 0.5, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          // Núcleo central brilhante
-          const corePulse = 0.7 + Math.sin(t * 2) * 0.3;
-          const core = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 30);
-          core.addColorStop(0, `rgba(255,255,255,${corePulse})`);
-          core.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = core;
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
-          ctx.fill();
           break;
         }
 

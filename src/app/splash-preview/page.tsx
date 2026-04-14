@@ -11,7 +11,7 @@ const EFFECTS: SplashEffect[] = [
   "aurora_espacial","galaxia",
   "vidro_janela","vidro_liquido",
   "cidade_b","restaurante","restaurante2","saude",
-  "moda","imobiliaria","educacao","educacao2","beleza",
+  "moda","imobiliaria","educacao","beleza",
 ];
 
 export default function SplashPreview() {

@@ -759,7 +759,6 @@ export default function ClientesPage() {
                           <option value="moda">👗 Moda</option>
                           <option value="imobiliaria">🏘️ Imobiliária</option>
                           <option value="educacao">🎓 Educação</option>
-                          <option value="educacao2">🌐 Educação 2</option>
                           <option value="beleza">🌹 Beleza</option>
                         </select>
                       </div>
