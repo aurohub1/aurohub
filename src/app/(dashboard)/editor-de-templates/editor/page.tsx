@@ -327,6 +327,7 @@ export default function EditorPage() {
 
     const data = { format, bgColor, bgSrc, elements: serialized, stageJson };
     console.log("[Editor] Template JSON:", JSON.stringify(data, null, 2));
+    console.log("[Editor][saveTemplate] NOTA: esta função ainda NÃO persiste em supabase.from('templates'). Insert real acontece em /editor-de-templates (página de listagem) via handleSave. Veja result.data/result.error na console da listagem.");
     alert("Template salvo no console (integração Supabase pendente)");
   }
 

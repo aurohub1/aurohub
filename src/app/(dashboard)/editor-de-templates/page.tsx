@@ -175,6 +175,17 @@ export default function EditorTemplatesPage() {
         supabase.from("segments").select("id, name, icon"),
         supabase.from("licensees").select("id, name").order("name"),
       ]);
+      // DEBUG: logs para auditar se RLS está excluindo templates do ADM
+      console.log("[Templates][loadData] templates:", {
+        count: tR.data?.length ?? 0,
+        error: tR.error,
+        sample: tR.data?.slice(0, 3),
+      });
+      console.log("[Templates][loadData] template_groups:", {
+        count: gR.data?.length ?? 0,
+        error: gR.error,
+      });
+      if (tR.error) console.error("[Templates][loadData] RLS/query error em templates:", tR.error);
       setTemplates((tR.data as Template[]) ?? []);
       setFields((fR.data as Field[]) ?? []);
       setGroups((gR.data as TemplateGroup[]) ?? []);
@@ -325,14 +336,16 @@ export default function EditorTemplatesPage() {
           segment_id: form.segment_id || null, active: form.active,
           licensee_id: accessLicensees[0] || null,
         }).select("id").single();
-        if (gErr) { setModalError(gErr.message); return; }
+        console.log("[Templates][handleSave] insert template_groups:", { data: gData, error: gErr });
+        if (gErr) { console.error("[Templates][handleSave] erro em template_groups.insert:", gErr); setModalError(gErr.message); return; }
 
         // Create template
         const { data: tData, error: tErr } = await supabase.from("templates").insert({
           group_id: gData.id, format: form.format, width: fmt.w, height: fmt.h,
           image_url: form.image_url, active: form.active,
         }).select("id").single();
-        if (tErr) { setModalError(tErr.message); return; }
+        console.log("[Templates][handleSave] insert templates:", { data: tData, error: tErr });
+        if (tErr) { console.error("[Templates][handleSave] erro em templates.insert:", tErr); setModalError(tErr.message); return; }
 
         // Create fields
         if (selectedBinds.length > 0) {
