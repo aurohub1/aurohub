@@ -329,6 +329,29 @@ export default function CanvasStage(p: Props) {
     else nodeRefs.current.delete(id);
   }, []);
 
+  // Clamp da posição do stage: canvas deve manter ao menos 20% visível em cada eixo
+  const clampStagePos = useCallback((x: number, y: number) => {
+    const canvasW = width * stageScale;
+    const canvasH = height * stageScale;
+    const container = containerRef.current;
+    if (!container) return { x, y };
+    const viewW = container.clientWidth;
+    const viewH = container.clientHeight;
+
+    // Stage é posicionado absolutamente via stage.x()/stage.y(); esses valores são
+    // relativos ao seu container. Limita para não sumir completamente.
+    const margin = 0.2; // 20% mínimo visível
+    const maxRight = viewW - canvasW * margin;
+    const maxLeft = -canvasW * (1 - margin);
+    const maxBottom = viewH - canvasH * margin;
+    const maxTop = -canvasH * (1 - margin);
+
+    return {
+      x: Math.max(maxLeft, Math.min(maxRight, x)),
+      y: Math.max(maxTop, Math.min(maxBottom, y)),
+    };
+  }, [width, height, stageScale]);
+
   const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const stage = stageRef.current;
@@ -346,25 +369,24 @@ export default function CanvasStage(p: Props) {
     const dx = (e.evt.shiftKey || Math.abs(e.evt.deltaX) > 0) ? e.evt.deltaX * scrollSpeed : 0;
     const dy = e.evt.deltaY * scrollSpeed;
 
-    // Se shift, usa deltaY como deltaX (convenção do browser)
     const offsetX = e.evt.shiftKey ? e.evt.deltaY * scrollSpeed : dx;
     const offsetY = e.evt.shiftKey ? 0 : dy;
 
-    stage.position({
-      x: stage.x() - offsetX,
-      y: stage.y() - offsetY,
-    });
+    const newPos = clampStagePos(stage.x() - offsetX, stage.y() - offsetY);
+    stage.position(newPos);
     stage.batchDraw();
-  }, [stageScale, p.onScaleChange]);
+  }, [stageScale, p.onScaleChange, clampStagePos]);
 
   // Pan com botão do meio do mouse (like Corel/Illustrator)
   const panState = useRef<{ active: boolean; startX: number; startY: number; stageX: number; stageY: number }>({
     active: false, startX: 0, startY: 0, stageX: 0, stageY: 0,
   });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 1) return; // botão do meio
     e.preventDefault();
+    e.stopPropagation();
     const stage = stageRef.current;
     if (!stage) return;
     panState.current = {
@@ -376,21 +398,39 @@ export default function CanvasStage(p: Props) {
     };
   }, []);
 
+  // Capture phase: intercepta mousedown/click antes do Konva
+  // para impedir seleção de elementos quando botão do meio
+  const handleMouseDownCapture = useCallback((e: React.MouseEvent) => {
+    if (e.button === 1) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
+
+  const handleClickCapture = useCallback((e: React.MouseEvent) => {
+    // Previne seleção se o pan acabou de terminar (botão do meio release)
+    if (panState.current.active) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
+
   const handleContainerMouseMove = useCallback((e: React.MouseEvent) => {
     if (!panState.current.active) return;
     const stage = stageRef.current;
     if (!stage) return;
     const dx = e.clientX - panState.current.startX;
     const dy = e.clientY - panState.current.startY;
-    stage.position({
-      x: panState.current.stageX + dx,
-      y: panState.current.stageY + dy,
-    });
+    const newPos = clampStagePos(panState.current.stageX + dx, panState.current.stageY + dy);
+    stage.position(newPos);
     stage.batchDraw();
-  }, []);
+  }, [clampStagePos]);
 
   const handleContainerMouseUp = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1) panState.current.active = false;
+    if (e.button === 1) {
+      panState.current.active = false;
+      e.stopPropagation();
+    }
   }, []);
 
   const handleElementClick = useCallback((elId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -409,7 +449,10 @@ export default function CanvasStage(p: Props) {
       backgroundSize: "20px 20px",
       cursor: panState.current.active ? "grabbing" : undefined,
     }}
+      ref={containerRef}
       onClick={e => { if (e.target === e.currentTarget) p.onSelect(null); }}
+      onMouseDownCapture={handleMouseDownCapture}
+      onClickCapture={handleClickCapture}
       onMouseDown={handleContainerMouseDown}
       onMouseMove={handleContainerMouseMove}
       onMouseUp={handleContainerMouseUp}
