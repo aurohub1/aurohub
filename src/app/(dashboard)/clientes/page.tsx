@@ -156,7 +156,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, cor_primaria, cor_secundaria, cor_acento, cor_fundo").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -227,10 +227,16 @@ export default function ClientesPage() {
         logo_url: form.logo_url || null,
         splash_effect: form.splash_effect || null,
         splash_logo_orientation: form.splash_logo_orientation || "horizontal",
+        splash_velocidade: form.splash_velocidade ?? 5,
+        splash_suavidade: form.splash_suavidade ?? 7,
+        splash_som_url: form.splash_som_url || null,
+        splash_som_public_id: form.splash_som_public_id || null,
         cor_primaria: form.cor_primaria || null,
         cor_secundaria: form.cor_secundaria || null,
         cor_acento: form.cor_acento || null,
         cor_fundo: form.cor_fundo || null,
+        cor4: form.cor4 || null,
+        cor5: form.cor5 || null,
       };
       if (formPlanIsInternal && form.expires_at) {
         payload.expires_at = form.expires_at;
@@ -699,7 +705,7 @@ export default function ClientesPage() {
                     <div className="mb-3 flex justify-center">
                       <div className="rounded-lg overflow-hidden border border-[var(--bdr)]" style={{ width: 200, height: 120 }}>
                         <SplashScreen
-                          key={`${form.splash_effect}-${form.cor_primaria}-${form.cor_secundaria}-${form.cor_acento}-${form.cor_fundo}-${form.cor4}-${form.cor5}-${form.splash_velocidade}-${form.splash_suavidade}-${form.splash_lottie_url}`}
+                          key={`${form.splash_effect}-${form.cor_primaria}-${form.cor_secundaria}-${form.cor_acento}-${form.cor_fundo}-${form.cor4}-${form.cor5}-${form.splash_velocidade}-${form.splash_suavidade}`}
                           logoUrl=""
                           effect={(form.splash_effect as SplashEffect) || "random"}
                           cor1={form.cor_primaria || "#FF7A1A"}
@@ -740,9 +746,9 @@ export default function ClientesPage() {
                           <option value="galaxia">🌀 Galáxia</option>
                           <option value="vidro_janela">🪟 Vidro Janela</option>
                           <option value="vidro_liquido">💧 Vidro Líquido</option>
-                          <option value="cidade_b">🌃 Cidade</option>
+                          <option value="cidade_a">🏙️ Cidade A</option>
+                          <option value="cidade_b">🌃 Cidade B</option>
                           <option value="restaurante">🍽️ Restaurante</option>
-                          <option value="restaurante2">🔥 Restaurante Brasas</option>
                           <option value="saude">🧬 Saúde</option>
                           <option value="moda">👗 Moda</option>
                           <option value="imobiliaria">🏘️ Imobiliária</option>
