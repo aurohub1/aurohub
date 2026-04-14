@@ -53,6 +53,16 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
           --ed-danger: #f85149;
           --ed-green: #3fb950;
         }
+        /* Helvetica Neue — fallback stack para pesos 100-900.
+           Se o SO tiver Helvetica Neue instalada (macOS/iOS), usa direto;
+           senão cai em Helvetica/Arial. Konva consome via ctx.font. */
+        @font-face { font-family: "Helvetica Neue"; font-weight: 100; src: local("Helvetica Neue Thin"), local("HelveticaNeue-Thin"), local("Helvetica Neue UltraLight"), local("Helvetica"); font-display: swap; }
+        @font-face { font-family: "Helvetica Neue"; font-weight: 300; src: local("Helvetica Neue Light"), local("HelveticaNeue-Light"), local("Helvetica"); font-display: swap; }
+        @font-face { font-family: "Helvetica Neue"; font-weight: 400; src: local("Helvetica Neue"), local("HelveticaNeue"), local("Helvetica"); font-display: swap; }
+        @font-face { font-family: "Helvetica Neue"; font-weight: 500; src: local("Helvetica Neue Medium"), local("HelveticaNeue-Medium"), local("Helvetica"); font-display: swap; }
+        @font-face { font-family: "Helvetica Neue"; font-weight: 700; src: local("Helvetica Neue Bold"), local("HelveticaNeue-Bold"), local("Helvetica Bold"); font-display: swap; }
+        @font-face { font-family: "Helvetica Neue"; font-weight: 800; src: local("Helvetica Neue Heavy"), local("HelveticaNeue-Heavy"), local("Helvetica"); font-display: swap; }
+        @font-face { font-family: "Helvetica Neue"; font-weight: 900; src: local("Helvetica Neue Black"), local("HelveticaNeue-CondensedBlack"), local("Helvetica"); font-display: swap; }
         .react-colorful { width: 100% !important; height: 120px !important; border-radius: 6px !important; }
         .react-colorful__saturation { border-radius: 6px 6px 0 0 !important; }
         .react-colorful__hue { height: 10px !important; border-radius: 0 0 6px 6px !important; }

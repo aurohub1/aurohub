@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { HexColorPicker } from "react-colorful";
-import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups } from "./types";
+import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec } from "./types";
 
 interface Props {
   selected: EditorElement | null;
@@ -173,7 +173,17 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
       {s.type === "text" && (
         <Sec t="Texto">
           <F l="Conteúdo"><textarea value={s.text || ""} onChange={e => u({ text: e.target.value })} rows={3} style={{ ...inpS, height: "auto", resize: "vertical", padding: "6px 8px" }} /></F>
-          <F l="Fonte"><select value={s.fontFamily || FONTS[0]} onChange={e => u({ fontFamily: e.target.value })} style={selS}>{FONTS.map(f => <option key={f} value={f}>{f}</option>)}</select></F>
+          <F l="Fonte"><select value={s.fontFamily && s.fontStyle && s.fontStyle.match(/^\d+$/) ? `Helvetica Neue ${({"100":"Thin","300":"Light","400":"","500":"Medium","700":"Bold","800":"Heavy","900":"Black"} as Record<string,string>)[s.fontStyle] || ""}`.trim() || s.fontFamily : (s.fontFamily || FONTS[0])} onChange={e => {
+            const picked = e.target.value;
+            const spec = resolveFontSpec(picked);
+            // Se for variante de Helvetica Neue, grava fontFamily "Helvetica Neue" + fontStyle numérico
+            if (picked.startsWith("Helvetica Neue")) {
+              u({ fontFamily: spec.fontFamily, fontStyle: spec.fontWeight });
+            } else {
+              // Fonte não-HN: limpa peso numérico se existir
+              u({ fontFamily: picked, ...(s.fontStyle?.match(/^\d+$/) ? { fontStyle: "normal" } : {}) });
+            }
+          }} style={selS}>{FONTS.map(f => <option key={f} value={f}>{f}</option>)}</select></F>
           <G2>
             <F l="Tamanho"><Num v={s.fontSize || 32} c={v => u({ fontSize: v })} /></F>
             <F l="Peso"><select value={(s.fontStyle || "normal").includes("bold") ? "bold" : "normal"} onChange={e => u({ fontStyle: e.target.value })} style={selS}><option value="normal">Normal</option><option value="bold">Bold</option></select></F>
@@ -333,6 +343,39 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
             </G2>
           )}
         </div>
+        {/* Text Anchor — A termina onde B começa */}
+        <div style={{ marginBottom: 6 }}>
+          <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2, fontWeight: 600 }}>⊣ Âncora de texto</div>
+          <F l="Alvo (inicia onde ele termina)">
+            <select
+              value={s.textAnchor?.targetId || ""}
+              onChange={e => {
+                const targetId = e.target.value;
+                if (!targetId) u({ textAnchor: undefined });
+                else u({ textAnchor: { targetId, position: s.textAnchor?.position || "after" } });
+              }}
+              style={selS}
+            >
+              <option value="">— nenhum —</option>
+              {allElements.filter(e => e.id !== s.id).map(e => (
+                <option key={e.id} value={e.id}>{e.name || e.id}</option>
+              ))}
+            </select>
+          </F>
+          {s.textAnchor && (
+            <F l="Posição">
+              <select
+                value={s.textAnchor.position}
+                onChange={e => u({ textAnchor: { ...s.textAnchor!, position: e.target.value as "after"|"below" } })}
+                style={selS}
+              >
+                <option value="after">→ Depois (mesma linha)</option>
+                <option value="below">↓ Abaixo</option>
+              </select>
+            </F>
+          )}
+        </div>
+
         {/* Smart Resize — ajusta tamanho */}
         <div>
           <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2, fontWeight: 600 }}>⇲ Ajustar tamanho</div>

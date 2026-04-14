@@ -484,7 +484,17 @@ export default function CanvasStage(p: Props) {
       onAuxClick={e => { if (e.button === 1) e.preventDefault(); }}>
       <Stage ref={stageRef} width={width * stageScale} height={height * stageScale} scaleX={stageScale} scaleY={stageScale}
         onWheel={handleWheel}
-        onMouseDown={e => { if (e.target === e.target.getStage()) p.onSelect(null); }}
+        onMouseDown={e => {
+          // botão do meio: preventDefault + stopPropagation + desativa transformer ANTES de ativar pan
+          if (e.evt.button === 1) {
+            e.evt.preventDefault();
+            e.evt.stopPropagation();
+            trRef.current?.nodes([]);
+            trRef.current?.getLayer()?.batchDraw();
+            return;
+          }
+          if (e.target === e.target.getStage()) p.onSelect(null);
+        }}
         style={{ borderRadius: 4, boxShadow: "0 10px 48px rgba(0,0,0,0.5)" }}>
         <Layer>
           <Rect x={0} y={0} width={width} height={height} fill={schema.background} listening={false} />
@@ -531,6 +541,20 @@ export default function CanvasStage(p: Props) {
                     points={[el.x + el.width / 2, el.y + el.height / 2, tgt.x + tgt.width / 2, tgt.y + tgt.height / 2]}
                     stroke="#D4A843" strokeWidth={1.5 / stageScale}
                     dash={[2 / stageScale, 3 / stageScale]} opacity={0.75} listening={false} />
+                );
+              }
+            }
+            if (el.textAnchor) {
+              const tgt = schema.elements.find(e => e.id === el.textAnchor!.targetId);
+              if (tgt) {
+                // linha do ponto-âncora (fim de target) até início de el
+                const ax = el.textAnchor.position === "after" ? tgt.x + tgt.width : tgt.x;
+                const ay = el.textAnchor.position === "after" ? tgt.y : tgt.y + tgt.height;
+                links.push(
+                  <Line key={`ta-${el.id}`}
+                    points={[ax, ay, el.x, el.y]}
+                    stroke="#10B981" strokeWidth={1.5 / stageScale}
+                    dash={[4 / stageScale, 3 / stageScale]} opacity={0.75} listening={false} />
                 );
               }
             }

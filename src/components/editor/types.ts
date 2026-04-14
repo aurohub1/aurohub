@@ -46,6 +46,8 @@ export interface EditorElement {
   // Smart Links
   smartTrack?: { targetId: string; direction: "right"|"left"|"down"|"up"; gap: number };
   smartResize?: { targetId: string; direction: "vertical"|"horizontal"; padding: number };
+  // Text Anchor — este elemento começa onde target termina (A.end → B.start)
+  textAnchor?: { targetId: string; position: "after"|"below" };
 }
 
 /**
@@ -74,6 +76,24 @@ export function applySmartLinks(
       if (el.id === sourceId && pass === 0) continue;
       const track = el.smartTrack;
       const resize = el.smartResize;
+      const anchor = el.textAnchor;
+      if (anchor && dirty.has(anchor.targetId)) {
+        const tgt = getEl(anchor.targetId);
+        if (tgt) {
+          let nx = el.x, ny = el.y;
+          if (anchor.position === "after") {
+            nx = tgt.x + tgt.width;
+            ny = tgt.y;
+          } else {
+            nx = tgt.x;
+            ny = tgt.y + tgt.height;
+          }
+          if (nx !== el.x || ny !== el.y) {
+            patches[el.id] = { ...(patches[el.id] || {}), x: nx, y: ny };
+            next.add(el.id);
+          }
+        }
+      }
       if (track && dirty.has(track.targetId)) {
         const tgt = getEl(track.targetId);
         if (tgt) {
@@ -188,10 +208,29 @@ export function getBindGroups(formType?: string): typeof BIND_GROUPS {
 }
 
 export const FONTS = [
-  "DM Sans","DM Serif Display","Helvetica Neue","Arial","Inter","Montserrat",
-  "Poppins","Roboto","Open Sans","Lato","Raleway","Oswald","Bebas Neue",
-  "Barlow","Playfair Display","Georgia","Times New Roman","Impact","Verdana",
+  "DM Sans","DM Serif Display",
+  // Helvetica Neue — todos os pesos
+  "Helvetica Neue Thin","Helvetica Neue Light","Helvetica Neue","Helvetica Neue Medium",
+  "Helvetica Neue Bold","Helvetica Neue Heavy","Helvetica Neue Black",
+  "Arial","Inter","Montserrat","Poppins","Roboto","Open Sans","Lato","Raleway",
+  "Oswald","Bebas Neue","Barlow","Playfair Display","Georgia","Times New Roman",
+  "Impact","Verdana",
 ];
+
+/** Mapeia entrada do picker para { fontFamily, fontStyle } que o Konva/canvas entende */
+export function resolveFontSpec(fontName: string): { fontFamily: string; fontWeight: string } {
+  const hnMap: Record<string, string> = {
+    "Helvetica Neue Thin": "100",
+    "Helvetica Neue Light": "300",
+    "Helvetica Neue": "400",
+    "Helvetica Neue Medium": "500",
+    "Helvetica Neue Bold": "700",
+    "Helvetica Neue Heavy": "800",
+    "Helvetica Neue Black": "900",
+  };
+  if (hnMap[fontName]) return { fontFamily: "Helvetica Neue", fontWeight: hnMap[fontName] };
+  return { fontFamily: fontName, fontWeight: "400" };
+}
 
 export const ANIMATIONS: { value: AnimationType; label: string }[] = [
   { value: "none", label: "Nenhuma" },{ value: "fadeIn", label: "Fade In" },{ value: "fadeOut", label: "Fade Out" },

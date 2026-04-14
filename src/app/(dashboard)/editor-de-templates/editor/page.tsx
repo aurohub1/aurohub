@@ -322,13 +322,16 @@ export default function EditorPage() {
       };
     });
 
-    const data = { format, bgColor, bgSrc, elements: serialized };
+    // Serialização completa do Konva Stage via toJSON — inclui todos os layers, nodes e atributos
+    const stageJson = stage ? stage.toJSON() : null;
+
+    const data = { format, bgColor, bgSrc, elements: serialized, stageJson };
     console.log("[Editor] Template JSON:", JSON.stringify(data, null, 2));
     alert("Template salvo no console (integração Supabase pendente)");
   }
 
   /** Carrega template salvo — restaura state + aplica setAttrs em cada node Konva */
-  function loadTemplate(data: { format: Format; bgColor: string; bgSrc: string; elements: Array<{ id: string; type: string; name: string; visible: boolean; locked: boolean; isBind?: boolean; bindKey?: string; src?: string; attrs: Record<string, unknown> }> }) {
+  function loadTemplate(data: { format: Format; bgColor: string; bgSrc: string; elements: Array<{ id: string; type: string; name: string; visible: boolean; locked: boolean; isBind?: boolean; bindKey?: string; src?: string; attrs: Record<string, unknown> }>; stageJson?: string | null }) {
     setFormat(data.format);
     setBgColor(data.bgColor);
     if (data.bgSrc) loadBgImage(data.bgSrc);
@@ -381,13 +384,36 @@ export default function EditorPage() {
     pushHistory(rebuilt);
 
     // Após o React montar os nodes, aplica setAttrs para restaurar fontSize,
-    // letterSpacing, lineHeight, scaleX/Y e todos os outros atributos não mapeados no state
-    setTimeout(() => {
+    // letterSpacing, lineHeight, scaleX/Y e todos os outros atributos não mapeados no state.
+    // Se stageJson estiver presente, usa Konva.Node.create(json) para parse autorizado pelo Konva
+    // e extrai attrs de cada node por id — restaurando fidelidade máxima.
+    setTimeout(async () => {
       const stage = stageRef.current;
       if (!stage) return;
+
+      // Fonte preferencial de attrs: stageJson via Konva.Node.create — fallback para s.attrs
+      let nodeAttrsById: Record<string, Record<string, unknown>> | null = null;
+      if (data.stageJson) {
+        try {
+          const Konva = (await import("konva")).default;
+          const parsed = Konva.Node.create(data.stageJson) as unknown as Konva.Stage;
+          nodeAttrsById = {};
+          parsed.find("Node").forEach((n) => {
+            const id = n.id();
+            if (id) nodeAttrsById![id] = n.getAttrs();
+          });
+          parsed.destroy();
+        } catch (err) {
+          console.warn("[loadTemplate] Falha ao parsear stageJson, fallback pra s.attrs", err);
+          nodeAttrsById = null;
+        }
+      }
+
       for (const s of data.elements) {
         const node = stage.findOne(`#${s.id}`);
-        if (node) node.setAttrs(s.attrs);
+        if (!node) continue;
+        const attrs = nodeAttrsById?.[s.id] ?? s.attrs;
+        node.setAttrs(attrs);
       }
       stage.batchDraw();
     }, 50);
