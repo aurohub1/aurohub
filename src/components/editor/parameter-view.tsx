@@ -7,7 +7,7 @@ interface Props {
   onExport?: () => void;
 }
 
-const IMAGE_BINDS = ["imgfundo", "imgdestino", "imghotel", "imgloja", "imgperfil", "imgbadge1", "imgbadge2", "imgbadge3", "img_fundo", "img_campanha", "img_aviao", "img_anoiteceu"];
+const IMAGE_BINDS = ["imgfundo", "imgdestino", "imghotel", "imgloja", "imgperfil", "imgbadge1", "imgbadge2", "imgbadge3", "img_fundo", "img_campanha", "img_aviao", "img_anoiteceu", "badge", "allinclusive", "ofertas"];
 
 export default function ParameterView({ schema, onUpdate, onExport }: Props) {
   const bindElements = schema.elements.filter(el => el.bindParam);
