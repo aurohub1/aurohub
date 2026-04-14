@@ -5,7 +5,7 @@ export type SplashEffect =
   | "particles" | "cinematic" | "slideup" | "scalefade" | "fadesuave"
   | "ondas" | "flutuacao" | "scanner" | "holofote" | "chuvapontos"
   | "gradiente" | "dissolve" | "bigbang" | "aurora" | "tinta" | "vagalumes"
-  | "aurora_espacial" | "universo";
+  | "aurora_espacial" | "universo" | "galaxia";
 
 interface Props {
   logoUrl: string;
@@ -25,7 +25,7 @@ const EFFECTS: SplashEffect[] = [
   "particles","cinematic","slideup","scalefade","fadesuave",
   "ondas","flutuacao","scanner","holofote","chuvapontos",
   "gradiente","dissolve","bigbang","aurora","tinta","vagalumes",
-  "aurora_espacial","universo",
+  "aurora_espacial","universo","galaxia",
 ];
 
 export default function SplashScreen({
@@ -584,6 +584,101 @@ export default function SplashScreen({
             ctx.fillStyle = `rgba(255,255,255,0.95)`;
             ctx.fill();
           }
+          break;
+        }
+
+        case "galaxia": {
+          // Fundo preto profundo
+          ctx.fillStyle = "#000005";
+          ctx.fillRect(0, 0, W, H);
+
+          const cx = W / 2;
+          const cy = H / 2;
+          const rotation = t * 0.15; // rotação suave
+
+          // Halo geral (névoa difusa)
+          const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, H * 0.6);
+          halo.addColorStop(0, `rgba(${c1.r},${c1.g},${c1.b},0.18)`);
+          halo.addColorStop(0.3, `rgba(${c2.r},${c2.g},${c2.b},0.08)`);
+          halo.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = halo;
+          ctx.fillRect(0, 0, W, H);
+
+          // Estrelas de fundo (não rotacionam)
+          for (let i = 0; i < 200; i++) {
+            const sx = (i * 173.7) % W;
+            const sy = (i * 97.3) % H;
+            const br = 0.2 + Math.sin(i * 0.7 + t) * 0.15;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 0.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${br})`;
+            ctx.fill();
+          }
+
+          // Braços espirais (espiral logarítmica: r = a * e^(b*theta))
+          const arms = 4; // 4 braços
+          const particlesPerArm = 180;
+          const maxRadius = Math.min(W, H) * 0.42;
+          const a = 6;
+          const b = 0.22;
+
+          for (let arm = 0; arm < arms; arm++) {
+            const armOffset = (arm / arms) * Math.PI * 2;
+            const armColor = [c1, c2, c3, c4, c5][arm % 5];
+
+            for (let i = 0; i < particlesPerArm; i++) {
+              const theta = (i / particlesPerArm) * Math.PI * 4; // 2 voltas
+              const r = a * Math.exp(b * theta);
+              if (r > maxRadius) break;
+
+              const angle = theta + armOffset + rotation;
+              // Dispersão aleatória mas determinística
+              const noise = Math.sin(i * 12.9898 + arm * 78.233) * 0.5;
+              const noiseR = Math.cos(i * 43.723 + arm * 11.17) * 8;
+              const px = cx + Math.cos(angle + noise * 0.15) * (r + noiseR);
+              const py = cy + Math.sin(angle + noise * 0.15) * (r + noiseR) * 0.55; // achata
+
+              // Tamanho: maior no centro, menor nas bordas
+              const normR = r / maxRadius;
+              const size = 2.5 * (1 - normR * 0.7) + 0.5;
+              const alpha = (1 - normR * 0.5) * (0.5 + Math.sin(i + t * 2) * 0.3);
+
+              // Glow
+              const glow = ctx.createRadialGradient(px, py, 0, px, py, size * 3);
+              glow.addColorStop(0, `rgba(${armColor.r},${armColor.g},${armColor.b},${alpha})`);
+              glow.addColorStop(1, "rgba(0,0,0,0)");
+              ctx.fillStyle = glow;
+              ctx.beginPath();
+              ctx.arc(px, py, size * 3, 0, Math.PI * 2);
+              ctx.fill();
+
+              // Núcleo
+              ctx.beginPath();
+              ctx.arc(px, py, size * 0.6, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(255,255,255,${alpha * 0.9})`;
+              ctx.fill();
+            }
+          }
+
+          // Bulbo central luminoso (core)
+          const coreR = Math.min(W, H) * 0.12;
+          const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+          const corePulse = 0.85 + Math.sin(t * 1.5) * 0.15;
+          core.addColorStop(0, `rgba(255,245,220,${0.95 * corePulse})`);
+          core.addColorStop(0.15, `rgba(${c2.r},${c2.g},${c2.b},${0.7 * corePulse})`);
+          core.addColorStop(0.4, `rgba(${c1.r},${c1.g},${c1.b},${0.35 * corePulse})`);
+          core.addColorStop(0.8, `rgba(${c1.r},${c1.g},${c1.b},${0.1 * corePulse})`);
+          core.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = core;
+          ctx.beginPath();
+          ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Ponto central super brilhante
+          ctx.fillStyle = `rgba(255,255,255,${corePulse})`;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+          ctx.fill();
           break;
         }
 
