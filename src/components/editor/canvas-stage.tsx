@@ -298,6 +298,7 @@ export default function CanvasStage(p: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const nodeRefs = useRef<Map<string, Konva.Node>>(new Map());
   const [guides, setGuides] = useState<SnapLine[]>([]);
+  const [isPanning, setIsPanning] = useState(false);
 
   const handleDragMoveSnap = useCallback((id: string, rawX: number, rawY: number) => {
     if (!snapEnabled) return { x: rawX, y: rawY };
@@ -314,7 +315,7 @@ export default function CanvasStage(p: Props) {
 
   // Sync Transformer with selectedIds
   useEffect(() => {
-    if (!trRef.current || playing) { trRef.current?.nodes([]); return; }
+    if (!trRef.current || playing || isPanning) { trRef.current?.nodes([]); return; }
     const nodes: Konva.Node[] = [];
     for (const id of selectedIds) {
       const node = nodeRefs.current.get(id);
@@ -322,7 +323,7 @@ export default function CanvasStage(p: Props) {
     }
     trRef.current.nodes(nodes);
     trRef.current.getLayer()?.batchDraw();
-  }, [selectedIds, playing, schema.elements]);
+  }, [selectedIds, playing, schema.elements, isPanning]);
 
   const registerRef = useCallback((id: string, node: Konva.Node | null) => {
     if (node) nodeRefs.current.set(id, node);
@@ -378,9 +379,10 @@ export default function CanvasStage(p: Props) {
   }, [stageScale, p.onScaleChange, clampStagePos]);
 
   // Pan com botão do meio do mouse (like Corel/Illustrator)
-  const panState = useRef<{ active: boolean; startX: number; startY: number; stageX: number; stageY: number }>({
-    active: false, startX: 0, startY: 0, stageX: 0, stageY: 0,
+  const panState = useRef<{ startX: number; startY: number; stageX: number; stageY: number }>({
+    startX: 0, startY: 0, stageX: 0, stageY: 0,
   });
+  const panningRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -389,13 +391,17 @@ export default function CanvasStage(p: Props) {
     e.stopPropagation();
     const stage = stageRef.current;
     if (!stage) return;
+    // desativa transformer/seleção enquanto pan
+    trRef.current?.nodes([]);
+    trRef.current?.getLayer()?.batchDraw();
     panState.current = {
-      active: true,
       startX: e.clientX,
       startY: e.clientY,
       stageX: stage.x(),
       stageY: stage.y(),
     };
+    panningRef.current = true;
+    setIsPanning(true);
   }, []);
 
   // Capture phase: intercepta mousedown/click antes do Konva
@@ -409,16 +415,18 @@ export default function CanvasStage(p: Props) {
 
   const handleClickCapture = useCallback((e: React.MouseEvent) => {
     // Previne seleção se o pan acabou de terminar (botão do meio release)
-    if (panState.current.active) {
+    if (panningRef.current) {
       e.preventDefault();
       e.stopPropagation();
     }
   }, []);
 
   const handleContainerMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!panState.current.active) return;
+    if (!panningRef.current) return; // só pan se isPanning=true — ignora qualquer drag de elemento
     const stage = stageRef.current;
     if (!stage) return;
+    e.preventDefault();
+    e.stopPropagation();
     const dx = e.clientX - panState.current.startX;
     const dy = e.clientY - panState.current.startY;
     const newPos = clampStagePos(panState.current.stageX + dx, panState.current.stageY + dy);
@@ -427,8 +435,9 @@ export default function CanvasStage(p: Props) {
   }, [clampStagePos]);
 
   const handleContainerMouseUp = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1) {
-      panState.current.active = false;
+    if (panningRef.current) {
+      panningRef.current = false;
+      setIsPanning(false);
       e.stopPropagation();
     }
   }, []);
@@ -447,7 +456,7 @@ export default function CanvasStage(p: Props) {
       background: "var(--ed-canvas-bg, #12121a)",
       backgroundImage: "radial-gradient(circle, var(--ed-bdr) 1px, transparent 1px)",
       backgroundSize: "20px 20px",
-      cursor: panState.current.active ? "grabbing" : undefined,
+      cursor: isPanning ? "grabbing" : undefined,
     }}
       ref={containerRef}
       onClick={e => { if (e.target === e.currentTarget) p.onSelect(null); }}
