@@ -113,7 +113,7 @@ export default function LoginPage() {
   const [splash, setSplash] = useState<{
     name: string; home: string;
     logoUrl?: string; effect?: string; logoOrientation?: string;
-    cor1?: string; cor2?: string; cor3?: string; corFundo?: string;
+    cor1?: string; cor2?: string; cor3?: string; cor4?: string; cor5?: string; corFundo?: string;
   } | null>(null);
 
   useParticles(canvasRef);
@@ -191,7 +191,7 @@ export default function LoginPage() {
         if (profile?.licensee_id) {
           const { data: lic } = await supabase
             .from("licensees")
-            .select("logo_url,splash_effect,splash_logo_orientation,cor_primaria,cor_secundaria,cor_acento,cor_fundo")
+            .select("logo_url,splash_effect,splash_logo_orientation,cor_primaria,cor_secundaria,cor_acento,cor_fundo,cor4,cor5")
             .eq("id", profile.licensee_id)
             .single();
           if (lic) {
@@ -202,6 +202,8 @@ export default function LoginPage() {
               cor1: lic.cor_primaria || "var(--orange)",
               cor2: lic.cor_secundaria || "#D4A843",
               cor3: lic.cor_acento || "#1E3A6E",
+              cor4: lic.cor4 || undefined,
+              cor5: lic.cor5 || undefined,
               corFundo: lic.cor_fundo || "#0E1520",
             };
           }
@@ -245,6 +247,8 @@ export default function LoginPage() {
         cor1={splash.cor1 || "var(--orange)"}
         cor2={splash.cor2 || "#D4A843"}
         cor3={splash.cor3 || "#1E3A6E"}
+        cor4={splash.cor4}
+        cor5={splash.cor5}
         corFundo={splash.corFundo || "#0E1520"}
         userName={splash.name}
         onDone={() => router.push(splash.home)}

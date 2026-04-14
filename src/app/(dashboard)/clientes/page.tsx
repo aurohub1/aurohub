@@ -20,6 +20,7 @@ interface Licensee {
   logo_url: string | null;
   splash_effect?: string; splash_logo_orientation?: string;
   cor_primaria?: string; cor_secundaria?: string; cor_acento?: string; cor_fundo?: string;
+  cor4?: string; cor5?: string;
   tema_fundo_escuro?: string; tema_fundo_claro?: string; tema_texto_escuro?: string; tema_texto_claro?: string;
 }
 interface Segment { id: string; name: string; icon: string | null; }
@@ -94,7 +95,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, cor_primaria, cor_secundaria, cor_acento, cor_fundo, tema_fundo_escuro, tema_fundo_claro, tema_texto_escuro, tema_texto_claro").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, tema_fundo_escuro, tema_fundo_claro, tema_texto_escuro, tema_texto_claro").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -146,7 +147,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: (l as Licensee & {cor4?: string}).cor4 ?? "", cor5: (l as Licensee & {cor5?: string}).cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -660,6 +661,7 @@ export default function ClientesPage() {
                           <option value="tinta">Tinta</option>
                           <option value="vagalumes">Vagalumes</option>
                           <option value="aurora_espacial">Aurora Espacial</option>
+                          <option value="universo">🌌 Universo</option>
                         </select>
                       </div>
                       <div>
