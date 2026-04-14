@@ -27,6 +27,14 @@ interface DataTurismo {
   tipo: "feriado" | "vespera" | "temporada" | "evento";
 }
 
+interface DataComemorativa {
+  id: string;
+  nome: string;
+  data_mes: number;
+  data_dia: number;
+  tipo: string;
+}
+
 /* ── Constantes ──────────────────────────────────── */
 
 const LS_LEMBRETES = "ah_vendedor_lembretes_v1";
@@ -150,6 +158,8 @@ export default function VendedorInicioPage() {
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [noticiaIdx, setNoticiaIdx] = useState(0);
 
+  const [dbFeriados, setDbFeriados] = useState<DataComemorativa[]>([]);
+
   /* ── Load profile, posts, quote, weather ─────── */
   const loadData = useCallback(async () => {
     try {
@@ -212,6 +222,39 @@ export default function VendedorInicioPage() {
         const d = await w.json();
         if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code });
       }
+
+      // Datas comemorativas próximos 14 dias (tabela datas_comemorativas)
+      try {
+        const hojeDt = new Date();
+        const mesAtual = hojeDt.getMonth() + 1;
+        const diaAtual = hojeDt.getDate();
+        const diaFim = diaAtual + 14;
+        if (diaFim <= 31) {
+          const { data: dc } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", mesAtual)
+            .gte("data_dia", diaAtual)
+            .lte("data_dia", diaFim)
+            .order("data_dia");
+          setDbFeriados((dc ?? []) as DataComemorativa[]);
+        } else {
+          const { data: dc1 } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", mesAtual)
+            .gte("data_dia", diaAtual)
+            .order("data_dia");
+          const proxMes = mesAtual === 12 ? 1 : mesAtual + 1;
+          const { data: dc2 } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", proxMes)
+            .lte("data_dia", diaFim - 31)
+            .order("data_dia");
+          setDbFeriados([...((dc1 ?? []) as DataComemorativa[]), ...((dc2 ?? []) as DataComemorativa[])]);
+        }
+      } catch { /* tabela ausente — fallback pra hardcoded */ }
 
       // Notícias do setor — API interna que tenta múltiplos feeds com cache
       try {
@@ -282,11 +325,20 @@ export default function VendedorInicioPage() {
   /* ── Derived ──────────────────────────────────── */
 
   const proximosFeriados = useMemo(() => {
+    // Preferência: tabela datas_comemorativas (tempo real do ADM). Fallback: hardcoded CALENDARIO_TURISMO.
+    if (dbFeriados.length > 0) {
+      const year = new Date().getFullYear();
+      return dbFeriados.slice(0, 5).map((d) => ({
+        nome: d.nome,
+        data: `${year}-${String(d.data_mes).padStart(2, "0")}-${String(d.data_dia).padStart(2, "0")}`,
+        tipo: "feriado" as const,
+      }));
+    }
     return CALENDARIO_TURISMO
       .filter((d) => d.tipo === "feriado" && daysUntil(d.data) >= 0)
       .sort((a, b) => a.data.localeCompare(b.data))
       .slice(0, 5);
-  }, []);
+  }, [dbFeriados]);
 
   const calendarioProximos = useMemo(() => {
     return CALENDARIO_TURISMO
