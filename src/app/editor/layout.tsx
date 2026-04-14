@@ -26,7 +26,7 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
           --ed-active: rgba(59,130,246,0.1);
           --ed-active-txt: #3B82F6;
           --ed-accent: #3B82F6;
-          --ed-bind: #b8962d;
+          --ed-bind: #1E3A6E;
           --ed-orange: #FF7A1A;
           --ed-navy: #1E3A6E;
           --ed-danger: #cf222e;
@@ -47,7 +47,7 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
           --ed-active: rgba(59,130,246,0.15);
           --ed-active-txt: #3B82F6;
           --ed-accent: #3B82F6;
-          --ed-bind: #D4A843;
+          --ed-bind: #FFFFFF;
           --ed-orange: #FF7A1A;
           --ed-navy: #1E3A6E;
           --ed-danger: #f85149;

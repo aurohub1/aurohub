@@ -208,6 +208,11 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
         cornerRadius={el.cornerRadius ?? 0}
         stroke={el.stroke}
         strokeWidth={el.strokeWidth ?? 0}
+        dash={el.strokeDashArray}
+        shadowColor={el.shadow?.color}
+        shadowBlur={el.shadow?.blur ?? 0}
+        shadowOffsetX={el.shadow?.offsetX ?? 0}
+        shadowOffsetY={el.shadow?.offsetY ?? 0}
       />
     );
   }
@@ -222,6 +227,11 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
         opacity={el.opacity ?? 1}
         stroke={el.stroke}
         strokeWidth={el.strokeWidth ?? 0}
+        dash={el.strokeDashArray}
+        shadowColor={el.shadow?.color}
+        shadowBlur={el.shadow?.blur ?? 0}
+        shadowOffsetX={el.shadow?.offsetX ?? 0}
+        shadowOffsetY={el.shadow?.offsetY ?? 0}
       />
     );
   }
@@ -282,12 +292,19 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
         fontSize={fSize}
         fontFamily={el.fontFamily ?? "DM Sans"}
         fontStyle={el.fontStyle ?? "normal"}
+        textDecoration={el.textDecoration ?? ""}
         fill={el.fill || "#000"}
+        stroke={el.stroke}
+        strokeWidth={el.strokeWidth ?? 0}
         align={el.align ?? "left"}
         verticalAlign={el.verticalAlign ?? "top"}
         letterSpacing={el.letterSpacing ?? 0}
         lineHeight={el.lineHeight ?? 1.2}
         opacity={el.opacity ?? 1}
+        shadowColor={el.shadow?.color}
+        shadowBlur={el.shadow?.blur ?? 0}
+        shadowOffsetX={el.shadow?.offsetX ?? 0}
+        shadowOffsetY={el.shadow?.offsetY ?? 0}
       />
     );
   }
@@ -319,6 +336,12 @@ function RenderImage({ el, values }: { el: EditorElement; values: Record<string,
       rotation={el.rotation ?? 0}
       opacity={el.opacity ?? 1}
       cornerRadius={el.cornerRadius ?? 0}
+      stroke={el.stroke}
+      strokeWidth={el.strokeWidth ?? 0}
+      shadowColor={el.shadow?.color}
+      shadowBlur={el.shadow?.blur ?? 0}
+      shadowOffsetX={el.shadow?.offsetX ?? 0}
+      shadowOffsetY={el.shadow?.offsetY ?? 0}
     />
   );
 }

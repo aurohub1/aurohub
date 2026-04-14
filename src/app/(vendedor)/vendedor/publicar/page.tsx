@@ -237,8 +237,15 @@ export default function PublicarPage() {
   const [format, setFormat] = useState<Format>("stories");
 
   // Cache de dados por aba (preserva ao trocar)
-  const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>({
-    pacote: {}, campanha: {}, passagem: {}, cruzeiro: {}, anoiteceu: {},
+  const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>(() => {
+    const defaults = { formapagamento: "Cartão de Crédito", tipovoo: "( Voo Direto )" };
+    return {
+      pacote: { ...defaults },
+      campanha: { ...defaults },
+      passagem: { ...defaults },
+      cruzeiro: { ...defaults },
+      anoiteceu: { ...defaults },
+    };
   });
   const [badgeCache, setBadgeCache] = useState<Record<FormType, Record<string, boolean>>>({
     pacote: {}, campanha: {}, passagem: {}, cruzeiro: {}, anoiteceu: {},
@@ -1217,7 +1224,7 @@ export default function PublicarPage() {
                         <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" />
                       </Field>
                       <Field label="Tipo de voo">
-                        <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
+                        <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
                       </Field>
                     </Row2>
                   </Section>
@@ -1304,7 +1311,7 @@ export default function PublicarPage() {
                     <Row2>
                       <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" /></Field>
                       <Field label="Tipo de voo">
-                        <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Conexão"]} />
+                        <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
                       </Field>
                     </Row2>
                   </Section>
