@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import {
   Building2, Send, Palette, Lock, Sun, Moon,
-  Check, AlertCircle, RefreshCw, AtSign, Camera,
+  Check, AlertCircle,
 } from "lucide-react";
 
 /* ── Tipos ───────────────────────────────────────── */
@@ -16,13 +16,6 @@ interface LicenseeFull {
   email: string | null;
   phone: string | null;
   address: string | null;
-}
-
-interface StoreRow {
-  id: string;
-  name: string;
-  ig_user_id: string | null;
-  active: boolean | null;
 }
 
 interface PrefsForm {
@@ -39,7 +32,6 @@ const EMPTY_PREFS: PrefsForm = { legenda_padrao: "", hashtags_padrao: "", horari
 export default function ClienteConfiguracoesPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [licensee, setLicensee] = useState<LicenseeFull | null>(null);
-  const [stores, setStores] = useState<StoreRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [prefs, setPrefs] = useState<PrefsForm>(EMPTY_PREFS);
@@ -77,13 +69,6 @@ export default function ClienteConfiguracoesPage() {
         licRow = licData as LicenseeFull;
       }
       setLicensee(licRow);
-
-      const { data: sData } = await supabase
-        .from("stores")
-        .select("id, name, ig_user_id, active")
-        .eq("licensee_id", p.licensee_id)
-        .order("name");
-      setStores((sData ?? []) as StoreRow[]);
 
       // Preferências de publicação — localStorage por licensee
       try {
@@ -135,16 +120,6 @@ export default function ClienteConfiguracoesPage() {
     }
   }
 
-  function reconnectStore(store: StoreRow) {
-    // Stub — Instagram OAuth flow deve ser tratado em /api/instagram/auth
-    // Por ora, abre janela de info para o ADM completar manualmente.
-    alert(
-      `Reconectar Instagram para "${store.name}"\n\n` +
-      `Handle atual: ${store.ig_user_id ? "@" + store.ig_user_id : "não vinculado"}\n\n` +
-      `Para concluir a reconexão, contate o administrador ou use o fluxo OAuth em breve.`
-    );
-  }
-
   if (loading) {
     return <div className="text-[13px] text-[var(--txt3)]">Carregando configurações…</div>;
   }
@@ -164,50 +139,6 @@ export default function ClienteConfiguracoesPage() {
           <Readonly label="Telefone" value={licensee?.phone || "—"} />
           <Readonly label="Endereço" value={licensee?.address || "—"} />
         </div>
-      </Card>
-
-      {/* ── Instagram ─────────────────────────────── */}
-      <Card icon={<Camera size={16} />} title="Instagram" subtitle="Conexões por loja">
-        {stores.length === 0 ? (
-          <div className="text-[12px] text-[var(--txt3)]">Nenhuma loja cadastrada.</div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {stores.map((s) => {
-              const connected = !!s.ig_user_id;
-              return (
-                <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--bdr)] bg-[var(--surface)] px-3 py-2.5">
-                  <div className="flex min-w-0 flex-col gap-0.5">
-                    <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--txt)]">
-                      <AtSign size={12} className="text-[var(--txt3)]" />
-                      <span className="truncate">{s.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] text-[var(--txt2)]">
-                      {connected ? (
-                        <>
-                          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-green-500" />
-                          <span>@{s.ig_user_id}</span>
-                          <span className="text-[var(--txt3)]">· Conectado</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
-                          <span className="text-[var(--txt3)]">Não vinculado</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => reconnectStore(s)}
-                    className="flex h-8 items-center gap-1.5 rounded-md border border-[var(--bdr)] bg-[var(--surface2)] px-3 text-[11px] font-semibold text-[var(--txt)] hover:border-[var(--orange)]"
-                  >
-                    <RefreshCw size={12} />
-                    Reconectar
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </Card>
 
       {/* ── Publicação ────────────────────────────── */}
