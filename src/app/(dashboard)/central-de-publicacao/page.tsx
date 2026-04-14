@@ -397,7 +397,7 @@ export default function CentralPublicacaoPage() {
                   disabled={!selectedLicenseeId}
                   className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none disabled:opacity-50"
                 >
-                  <option value="">— Selecione —</option>
+                  <option value="">🏢 Todas as unidades</option>
                   {storesForLic.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
@@ -607,7 +607,16 @@ export default function CentralPublicacaoPage() {
                 <div className="text-[12px] text-[var(--txt3)]">Nenhuma publicação ainda</div>
               </div>
             ) : (
-              history.map((log) => {
+              history
+                .filter((log) => {
+                  const m = (log.metadata ?? {}) as Record<string, unknown>;
+                  // Filtro por licensee (se selecionado)
+                  if (selectedLicenseeId && m.licensee_id !== selectedLicenseeId) return false;
+                  // Filtro por store (se selecionado); "" = Todas as unidades = sem filtro
+                  if (selectedStoreId && m.store_id !== selectedStoreId) return false;
+                  return true;
+                })
+                .map((log) => {
                 const m = (log.metadata ?? {}) as Record<string, unknown>;
                 const licId = m.licensee_id as string | undefined;
                 const storeId = m.store_id as string | undefined;
