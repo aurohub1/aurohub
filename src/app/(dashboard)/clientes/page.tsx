@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import SplashScreen, { type SplashEffect } from "@/components/splash/SplashScreen";
 import {
   ALL_FEATURES,
   FEATURE_LABELS,
@@ -639,6 +640,25 @@ export default function ClientesPage() {
                   {/* Splash Screen */}
                   <div className="border-t border-[var(--bdr)] pt-4 mt-2">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)] mb-3">Splash Screen</label>
+
+                    {/* Mini preview */}
+                    <div className="mb-3 flex justify-center">
+                      <div className="rounded-lg overflow-hidden border border-[var(--bdr)]" style={{ width: 200, height: 120 }}>
+                        <SplashScreen
+                          key={`${form.splash_effect}-${form.cor_primaria}-${form.cor_secundaria}-${form.cor_acento}-${form.cor_fundo}-${form.cor4}-${form.cor5}`}
+                          logoUrl=""
+                          effect={(form.splash_effect as SplashEffect) || "random"}
+                          cor1={form.cor_primaria || "#FF7A1A"}
+                          cor2={form.cor_secundaria || "#D4A843"}
+                          cor3={form.cor_acento || "#1E3A6E"}
+                          cor4={form.cor4 || undefined}
+                          cor5={form.cor5 || undefined}
+                          corFundo={form.cor_fundo || "#0E1520"}
+                          embedded={{ width: 200, height: 120 }}
+                        />
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] text-[var(--txt3)] mb-1">Efeito</label>

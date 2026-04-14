@@ -19,6 +19,8 @@ interface Props {
   corFundo?: string;
   userName?: string;
   onDone?: () => void;
+  /** Modo embarcado: renderiza dentro de container relativo com tamanho custom e sem timers/dismiss */
+  embedded?: { width: number; height: number };
 }
 
 const EFFECTS: SplashEffect[] = [
@@ -32,6 +34,7 @@ export default function SplashScreen({
   logoUrl, logoOrientation = "horizontal",
   effect = "random", cor1 = "#FF7A1A", cor2 = "#D4A843", cor3 = "#1E3A6E",
   cor4, cor5, corFundo = "#0E1520", userName, onDone,
+  embedded,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [visible, setVisible] = useState(true);
@@ -54,8 +57,8 @@ export default function SplashScreen({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d")!;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = embedded ? embedded.width : window.innerWidth;
+    canvas.height = embedded ? embedded.height : window.innerHeight;
     let animId: number;
     let startTime = performance.now();
 
@@ -72,12 +75,12 @@ export default function SplashScreen({
 
     const W = canvas.width, H = canvas.height;
 
-    // Sequência: logo in (400ms) → logo out (3400ms) → greet in (3900ms) → greet out (5900ms) → done (6300ms)
-    const logoInTimer = setTimeout(() => setLogoVisible(true), 400);
-    const logoOutTimer = setTimeout(() => setLogoVisible(false), 3400);
-    const greetInTimer = setTimeout(() => setGreetVisible(true), 3900);
-    const greetOutTimer = setTimeout(() => setGreetVisible(false), 5900);
-    const doneTimer = setTimeout(() => {
+    // Em modo embedded: sem timers (preview infinito, sem dismiss)
+    const logoInTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(true), 400);
+    const logoOutTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(false), 3400);
+    const greetInTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(true), 3900);
+    const greetOutTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(false), 5900);
+    const doneTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => {
       setVisible(false);
       onDone?.();
     }, 6300);
@@ -715,9 +718,9 @@ export default function SplashScreen({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center"
-      style={{ background: corFundo }}>
-      <canvas ref={canvasRef} className="absolute inset-0" />
+    <div className={embedded ? "relative overflow-hidden flex items-center justify-center" : "fixed inset-0 z-[9999] flex items-center justify-center"}
+      style={{ background: corFundo, width: embedded?.width, height: embedded?.height }}>
+      <canvas ref={canvasRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : undefined} />
       <div className="relative z-10 flex items-center justify-center"
         style={{ position: "relative", width: logoDims.width, height: logoDims.height + 40 }}>
         <img src={logoUrl} alt="Logo"
