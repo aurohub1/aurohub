@@ -1252,7 +1252,7 @@ export default function PublicarPage() {
                     <Combobox label="Nome do hotel" value={values.hotel || ""} onChange={(v) => setField("hotel", v)} onBlur={onHotelBlur} loader={loadHoteis} placeholder="Nome do hotel" />
                   </Section>
 
-                  <Section title="Serviços inclusos" defaultOpen={false}>
+                  <Section title="Serviços inclusos" defaultOpen={true}>
                     <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={6} />
                   </Section>
 
@@ -1325,7 +1325,7 @@ export default function PublicarPage() {
                       </Field>
                     </Row2>
                   </Section>
-                  <Section title="Serviços inclusos" defaultOpen={false}>
+                  <Section title="Serviços inclusos" defaultOpen={true}>
                     <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={3} />
                   </Section>
                   <Section title="Pagamento">
