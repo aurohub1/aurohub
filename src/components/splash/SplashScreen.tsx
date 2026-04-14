@@ -26,6 +26,8 @@ interface Props {
   velocidade?: number;
   /** Suavidade 1-10 (default 7). Controla blur/alpha em efeitos aurora/vidro. */
   suavidade?: number;
+  /** URL do áudio para tocar durante o splash. */
+  somUrl?: string;
 }
 
 const EFFECTS: SplashEffect[] = [
@@ -40,12 +42,27 @@ export default function SplashScreen({
   logoUrl, logoOrientation = "horizontal",
   effect = "random", cor1 = "#FF7A1A", cor2 = "#D4A843", cor3 = "#1E3A6E",
   cor4, cor5, corFundo = "#0E1520", userName, onDone,
-  embedded, velocidade = 5, suavidade = 7,
+  embedded, velocidade = 5, suavidade = 7, somUrl,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [visible, setVisible] = useState(true);
   const [logoVisible, setLogoVisible] = useState(false);
   const [greetVisible, setGreetVisible] = useState(false);
+
+  // Som do splash: toca ao montar, para ao desmontar/embedded
+  useEffect(() => {
+    if (!somUrl || embedded) return;
+    const audio = new Audio(somUrl);
+    audio.volume = 0.6;
+    audio.play().catch(() => { /* autoplay pode ser bloqueado */ });
+    audioRef.current = audio;
+    return () => {
+      audio.pause();
+      audio.src = "";
+      audioRef.current = null;
+    };
+  }, [somUrl, embedded]);
 
   function getGreeting() {
     const h = new Date().getHours();
