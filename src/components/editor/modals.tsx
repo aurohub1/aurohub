@@ -494,8 +494,13 @@ export interface SaveTemplateData {
   format: string;
   licenseeId: string;
   licenseeNome: string;
+  /** @deprecated Use lojaIds instead. Mantido para compat. */
   lojaId: string;
+  /** @deprecated Use lojaIds instead. Mantido para compat. */
   lojaNome: string;
+  /** Lista de lojas selecionadas — array vazio = Todas as lojas do licensee */
+  lojaIds: string[];
+  lojaNomes: string[];
 }
 
 const FORM_TYPES = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu", "lamina"];
@@ -514,12 +519,13 @@ export function slugifyTemplateName(s: string): string {
     || "template";
 }
 
-export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, onClose, onConfirm }: {
+export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, initialLojaIds, onClose, onConfirm }: {
   initialName?: string;
   initialFormType: string;
   initialFormat: string;
   initialLicenseeId?: string;
   initialLojaId?: string;
+  initialLojaIds?: string[];
   onClose: () => void;
   onConfirm: (data: SaveTemplateData) => void | Promise<void>;
 }) {
@@ -529,7 +535,9 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
   const [marcas, setMarcas] = useState<MarcaRow[]>([]);
   const [lojas, setLojas] = useState<LojaRow[]>([]);
   const [licenseeId, setLicenseeId] = useState(initialLicenseeId || "");
-  const [lojaId, setLojaId] = useState(initialLojaId || "");
+  const [selectedLojaIds, setSelectedLojaIds] = useState<Set<string>>(
+    new Set(initialLojaIds ?? (initialLojaId ? [initialLojaId] : []))
+  );
   const [saving, setSaving] = useState(false);
 
   // Carrega marcas (licensees) + profile do usuário logado → pré-seleção
@@ -586,33 +594,57 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
       } catch {}
       setLojas(rows);
 
-      // Pré-seleção da loja: mantém se existir, senão usa profile.store_id, senão primeira
+      // Pré-seleção: profile.store_id OR initialLojaIds OR todas
       const pending = pendingStoreRef.current;
       if (pending && rows.find(l => l.id === pending)) {
-        setLojaId(pending);
+        setSelectedLojaIds(new Set([pending]));
         pendingStoreRef.current = null;
-      } else if (!rows.find(l => l.id === lojaId)) {
-        setLojaId(rows[0]?.id ?? "");
+      } else if (selectedLojaIds.size === 0) {
+        // Default = todas marcadas
+        setSelectedLojaIds(new Set(rows.map(r => r.id)));
+      } else {
+        // Filtra IDs que não existem mais na lista da marca atual
+        const valid = new Set([...selectedLojaIds].filter(id => rows.find(l => l.id === id)));
+        if (valid.size === 0) setSelectedLojaIds(new Set(rows.map(r => r.id)));
+        else setSelectedLojaIds(valid);
       }
     })();
   }, [licenseeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedMarca = marcas.find(m => m.id === licenseeId) || marcas[0];
-  const selectedLoja = lojas.find(l => l.id === lojaId) || lojas[0];
-  const canSave = nome.trim().length > 0 && !saving;
+  const allSelected = lojas.length > 0 && selectedLojaIds.size === lojas.length;
+  const canSave = nome.trim().length > 0 && selectedLojaIds.size > 0 && !saving;
+
+  function toggleLoja(id: string) {
+    setSelectedLojaIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (allSelected) setSelectedLojaIds(new Set());
+    else setSelectedLojaIds(new Set(lojas.map(l => l.id)));
+  }
 
   const confirm = async () => {
     if (!canSave) return;
     setSaving(true);
     try {
+      const ids = [...selectedLojaIds];
+      const nomes = ids.map(id => lojas.find(l => l.id === id)?.name || "").filter(Boolean);
       await onConfirm({
         nome: nome.trim(),
         formType,
         format,
         licenseeId: selectedMarca.id,
         licenseeNome: selectedMarca.name,
-        lojaId: selectedLoja.id,
-        lojaNome: selectedLoja.name,
+        lojaId: ids[0] || "",
+        lojaNome: nomes[0] || "",
+        lojaIds: ids,
+        lojaNomes: nomes,
       });
     } finally { setSaving(false); }
   };
@@ -636,35 +668,45 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
             </select>
           </L>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <L label="Marca">
-            <select value={licenseeId} onChange={e => setLicenseeId(e.target.value)} style={fieldS}>
-              {marcas.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-          </L>
-          <L label="Loja">
-            <select value={lojaId} onChange={e => setLojaId(e.target.value)} style={fieldS}>
-              {licenseeId
-                ? lojas.map(l => <option key={l.id} value={l.id}>{l.name}</option>)
-                : (() => {
-                    const grouped: Record<string, LojaRow[]> = {};
-                    for (const l of lojas) {
-                      const key = l.licensee_id || "sem-marca";
-                      (grouped[key] ??= []).push(l);
-                    }
-                    return Object.entries(grouped).map(([licId, items]) => {
-                      const marca = marcas.find(m => m.id === licId);
-                      return (
-                        <optgroup key={licId} label={marca?.name || licId}>
-                          {items.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                        </optgroup>
-                      );
-                    });
-                  })()
-              }
-            </select>
-          </L>
-        </div>
+        <L label="Marca">
+          <select value={licenseeId} onChange={e => setLicenseeId(e.target.value)} style={fieldS}>
+            {marcas.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        </L>
+        <L label={`Lojas ${selectedLojaIds.size > 0 ? `(${selectedLojaIds.size}/${lojas.length})` : ""}`}>
+          <div style={{
+            border: "1px solid var(--ed-bdr)", borderRadius: 8, padding: 8,
+            maxHeight: 180, overflowY: "auto", background: "var(--ed-input, rgba(255,255,255,0.02))",
+          }}>
+            {lojas.length === 0 ? (
+              <div style={{ fontSize: 11, color: "var(--ed-txt3)", padding: 4 }}>Nenhuma loja cadastrada.</div>
+            ) : (
+              <>
+                {/* Todas as lojas */}
+                <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 4px", cursor: "pointer", borderBottom: "1px solid var(--ed-bdr)", marginBottom: 4 }}>
+                  <input type="checkbox" checked={allSelected} onChange={toggleAll}
+                    style={{ accentColor: "#FF7A1A", width: 14, height: 14, cursor: "pointer" }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ed-txt)" }}>
+                    Todas as lojas
+                  </span>
+                </label>
+                {lojas.map(l => {
+                  const marca = !licenseeId ? marcas.find(m => m.id === l.licensee_id) : null;
+                  return (
+                    <label key={l.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 4px", cursor: "pointer" }}>
+                      <input type="checkbox" checked={selectedLojaIds.has(l.id)} onChange={() => toggleLoja(l.id)}
+                        style={{ accentColor: "#FF7A1A", width: 14, height: 14, cursor: "pointer" }} />
+                      <span style={{ fontSize: 11, color: "var(--ed-txt2)" }}>
+                        {l.name}
+                        {marca && <span style={{ color: "var(--ed-txt3)", marginLeft: 6, fontSize: 10 }}>· {marca.name}</span>}
+                      </span>
+                    </label>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </L>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 6 }}>
           <button onClick={onClose} disabled={saving} style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid var(--ed-bdr)", background: "transparent", color: "var(--ed-txt2)", cursor: saving ? "default" : "pointer", fontSize: 12, fontWeight: 600, opacity: saving ? 0.5 : 1 }}>Cancelar</button>
           <button onClick={confirm} disabled={!canSave} style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#FF7A1A", color: "#fff", cursor: canSave ? "pointer" : "default", fontSize: 12, fontWeight: 700, opacity: canSave ? 1 : 0.5, display: "flex", alignItems: "center", gap: 6 }}>
