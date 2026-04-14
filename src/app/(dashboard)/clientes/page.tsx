@@ -156,7 +156,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_lottie_url, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, tema_fundo_escuro, tema_fundo_claro, tema_texto_escuro, tema_texto_claro").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, cor_primaria, cor_secundaria, cor_acento, cor_fundo").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -227,21 +227,10 @@ export default function ClientesPage() {
         logo_url: form.logo_url || null,
         splash_effect: form.splash_effect || null,
         splash_logo_orientation: form.splash_logo_orientation || "horizontal",
-        splash_velocidade: form.splash_velocidade ?? 5,
-        splash_suavidade: form.splash_suavidade ?? 7,
-        splash_som_url: form.splash_som_url || null,
-        splash_som_public_id: form.splash_som_public_id || null,
-        splash_lottie_url: form.splash_lottie_url || null,
         cor_primaria: form.cor_primaria || null,
         cor_secundaria: form.cor_secundaria || null,
         cor_acento: form.cor_acento || null,
         cor_fundo: form.cor_fundo || null,
-        cor4: form.cor4 || null,
-        cor5: form.cor5 || null,
-        tema_fundo_escuro: form.tema_fundo_escuro || null,
-        tema_fundo_claro: form.tema_fundo_claro || null,
-        tema_texto_escuro: form.tema_texto_escuro || null,
-        tema_texto_claro: form.tema_texto_claro || null,
       };
       if (formPlanIsInternal && form.expires_at) {
         payload.expires_at = form.expires_at;
