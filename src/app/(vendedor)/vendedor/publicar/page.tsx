@@ -883,33 +883,68 @@ export default function PublicarPage() {
     }
 
     try {
-      setStatus("generating"); setStatusMsg("Gerando imagem...");
-      const dataUrl = getPNGDataURL();
-      if (!dataUrl) throw new Error("Falha ao gerar imagem");
+      const isVideo = format === "stories" || format === "reels";
+      let mediaUrl: string;
 
-      setStatus("uploading"); setStatusMsg("Enviando para Cloudinary...");
-      const folder = `aurohubv2/publicacoes/${profile.licensee_id}`;
-      const signRes = await fetch("/api/cloudinary/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder }),
-      });
-      const signData = await signRes.json();
-      if (!signRes.ok || !signData.signature) throw new Error(signData.error || "Falha ao assinar upload");
+      if (isVideo) {
+        // Grava vídeo WebM com áudio
+        setStatus("generating"); setStatusMsg("Gravando vídeo 15s...");
+        const els = (currentTemplate?.schema?.elements ?? []) as Array<{ animDelay?: number; animDuration?: number }>;
+        const maxAnim = els.reduce((m, el) => Math.max(m, (el.animDelay || 0) + (el.animDuration || 0.6)), 0);
+        const durationSec = Math.min(15, Math.max(5, Math.ceil(maxAnim + 2)));
+        const blob = await recordCanvasWithAudio(durationSec);
+        if (!blob) throw new Error("Falha ao gravar vídeo");
 
-      const fd = new FormData();
-      fd.append("file", dataUrl);
-      fd.append("api_key", signData.api_key);
-      fd.append("timestamp", String(signData.timestamp));
-      fd.append("folder", signData.folder);
-      fd.append("signature", signData.signature);
+        // Upload como video para Cloudinary
+        setStatus("uploading"); setStatusMsg("Enviando vídeo...");
+        const folder = `aurohubv2/publicacoes/${profile.licensee_id}`;
+        const signRes = await fetch("/api/cloudinary/sign", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folder }),
+        });
+        const signData = await signRes.json();
+        if (!signData.signature) throw new Error("Falha ao assinar upload");
+        const fd = new FormData();
+        fd.append("file", blob, "video.webm");
+        fd.append("api_key", signData.api_key);
+        fd.append("timestamp", String(signData.timestamp));
+        fd.append("folder", signData.folder);
+        fd.append("signature", signData.signature);
+        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`, { method: "POST", body: fd });
+        const upData = await upRes.json();
+        if (!upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
+        // MP4 H264/AAC via transformation URL (compatível Instagram)
+        mediaUrl = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${upData.public_id}.mp4`;
+      } else {
+        setStatus("generating"); setStatusMsg("Gerando imagem...");
+        const dataUrl = getPNGDataURL();
+        if (!dataUrl) throw new Error("Falha ao gerar imagem");
 
-      const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/image/upload`, {
-        method: "POST",
-        body: fd,
-      });
-      const upData = await upRes.json();
-      if (!upRes.ok || !upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
+        setStatus("uploading"); setStatusMsg("Enviando para Cloudinary...");
+        const folder = `aurohubv2/publicacoes/${profile.licensee_id}`;
+        const signRes = await fetch("/api/cloudinary/sign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folder }),
+        });
+        const signData = await signRes.json();
+        if (!signRes.ok || !signData.signature) throw new Error(signData.error || "Falha ao assinar upload");
+
+        const fd = new FormData();
+        fd.append("file", dataUrl);
+        fd.append("api_key", signData.api_key);
+        fd.append("timestamp", String(signData.timestamp));
+        fd.append("folder", signData.folder);
+        fd.append("signature", signData.signature);
+
+        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/image/upload`, {
+          method: "POST",
+          body: fd,
+        });
+        const upData = await upRes.json();
+        if (!upRes.ok || !upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
+        mediaUrl = upData.secure_url;
+      }
 
       setStatus("publishing");
       const targets = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
@@ -923,7 +958,8 @@ export default function PublicarPage() {
             body: JSON.stringify({
               licensee_id: profile.licensee_id,
               store_id: target.id,
-              image_url: upData.secure_url,
+              image_url: isVideo ? undefined : mediaUrl,
+              video_url: isVideo ? mediaUrl : undefined,
               caption,
               media_type: format === "stories" ? "STORIES" : format === "reels" ? "REELS" : "IMAGE",
               format, // stories | feed | reels | tv — lido pelo contador diário
@@ -931,7 +967,13 @@ export default function PublicarPage() {
           });
           const pubData = await pubRes.json();
           if (!pubRes.ok || !pubData.success) {
-            resultados.push({ store: target, ok: false, error: pubData.detail || pubData.error || "Falhou" });
+            const rawErr: string = pubData.detail || pubData.error || "Falhou";
+            // Instagram rejeita formatos incompatíveis (aspect ratio, duração, codec)
+            const isFormatErr = /unsupported|format|aspect|ratio|codec|duration|invalid.*video|resolution/i.test(rawErr);
+            const friendlyErr = isFormatErr && isVideo
+              ? "Formato não suportado pelo Instagram. Use o botão Download."
+              : rawErr;
+            resultados.push({ store: target, ok: false, error: friendlyErr });
           } else {
             resultados.push({ store: target, ok: true });
           }
