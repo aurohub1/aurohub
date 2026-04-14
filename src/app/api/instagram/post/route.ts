@@ -49,6 +49,10 @@ export async function POST(req: NextRequest) {
 
     const ig = { ig_user_id: cred.ig_user_id, access_token: cred.access_token };
 
+    console.log("[IG Post] video_url enviada:", video_url);
+    console.log("[IG Post] image_url enviada:", image_url);
+    console.log("[IG Post] media_type:", mediaType);
+
     // 1. Criar media container
     const createUrl = `https://graph.instagram.com/v23.0/${ig.ig_user_id}/media`;
     const createParams = new URLSearchParams();
