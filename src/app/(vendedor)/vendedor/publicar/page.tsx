@@ -695,6 +695,86 @@ export default function PublicarPage() {
     return stage.toDataURL({ pixelRatio: 1 / scale, mimeType: "image/jpeg", quality: 0.92 });
   }
 
+  async function recordCanvasWithAudio(durationSec: number): Promise<Blob | null> {
+    const stage = stageRef.current;
+    if (!stage) return null;
+
+    const [W, H] = FORMAT_DIMS[format];
+    const recCanvas = document.createElement("canvas");
+    recCanvas.width = W;
+    recCanvas.height = H;
+    const recCtx = recCanvas.getContext("2d");
+    if (!recCtx) return null;
+
+    // Render loop: copia frame do Konva no canvas de gravação
+    const scale = stage.scaleX() || 1;
+    let rafId = 0;
+    const drawFrame = () => {
+      const srcCanvas = stage.toCanvas({ pixelRatio: 1 / scale });
+      recCtx.drawImage(srcCanvas, 0, 0, W, H);
+      rafId = requestAnimationFrame(drawFrame);
+    };
+    drawFrame();
+
+    // Stream de vídeo
+    const fps = 30;
+    const videoStream = (recCanvas as HTMLCanvasElement).captureStream(fps);
+
+    // Áudio opcional (música selecionada)
+    let finalStream: MediaStream = videoStream;
+    let audioContext: AudioContext | null = null;
+    let audioEl: HTMLAudioElement | null = null;
+    const sel = selectedMusicaId ? musicasDisponiveis.find(m => m.id === selectedMusicaId) : null;
+    if (sel) {
+      try {
+        audioContext = new AudioContext();
+        audioEl = new Audio();
+        audioEl.crossOrigin = "anonymous";
+        audioEl.src = sel.cloudinary_url;
+        audioEl.currentTime = sel.inicio_segundos;
+        await new Promise<void>((resolve, reject) => {
+          audioEl!.oncanplay = () => resolve();
+          audioEl!.onerror = () => reject(new Error("Falha ao carregar áudio"));
+          setTimeout(() => reject(new Error("Timeout áudio")), 10000);
+        });
+        const source = audioContext.createMediaElementSource(audioEl);
+        const dest = audioContext.createMediaStreamDestination();
+        source.connect(dest);
+        finalStream = new MediaStream([
+          ...videoStream.getVideoTracks(),
+          ...dest.stream.getAudioTracks(),
+        ]);
+      } catch (err) {
+        console.warn("[Audio] Sem áudio no vídeo:", err);
+      }
+    }
+
+    // MediaRecorder
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+      ? "video/webm;codecs=vp9,opus"
+      : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+      ? "video/webm;codecs=vp8,opus"
+      : "video/webm";
+    const recorder = new MediaRecorder(finalStream, { mimeType, videoBitsPerSecond: 4_000_000 });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    const done = new Promise<Blob>((resolve) => {
+      recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
+    });
+
+    recorder.start(100);
+    if (audioEl) await audioEl.play().catch(() => {});
+
+    await new Promise(r => setTimeout(r, durationSec * 1000));
+
+    recorder.stop();
+    cancelAnimationFrame(rafId);
+    audioEl?.pause();
+    if (audioContext) await audioContext.close();
+
+    return done;
+  }
+
   async function handleDownload() {
     // Verifica limite diário de downloads
     const maxDl = planLimits?.max_downloads_day;
@@ -704,13 +784,60 @@ export default function PublicarPage() {
       return;
     }
 
-    setStatus("generating");
-    const dataUrl = getPNGDataURL();
-    if (!dataUrl) { setStatus("error"); setStatusMsg("Falha ao gerar imagem"); return; }
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `${currentTemplate?.nome || "arte"}_${Date.now()}.png`;
-    a.click();
+    const isVideo = format === "stories" || format === "reels";
+    let fileUrl: string;
+    let publicId: string | null = null;
+
+    if (isVideo) {
+      // Calcula duração: maior animDelay+animDuration dos elementos, ou 15s
+      const els = (currentTemplate?.schema?.elements ?? []) as Array<{ animDelay?: number; animDuration?: number }>;
+      const maxAnim = els.reduce((m, el) => Math.max(m, (el.animDelay || 0) + (el.animDuration || 0.6)), 0);
+      const durationSec = Math.min(15, Math.max(5, Math.ceil(maxAnim + 2)));
+
+      setStatus("generating"); setStatusMsg(`Gravando vídeo ${durationSec}s...`);
+      const blob = await recordCanvasWithAudio(durationSec);
+      if (!blob) { setStatus("error"); setStatusMsg("Falha ao gravar vídeo"); return; }
+
+      // Download local
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${currentTemplate?.nome || "arte"}_${Date.now()}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Upload para Cloudinary como vídeo
+      setStatus("uploading"); setStatusMsg("Enviando vídeo...");
+      try {
+        const signRes = await fetch("/api/cloudinary/sign", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folder: `aurohubv2/videos/${profile?.licensee_id || "anon"}` }),
+        });
+        const signData = await signRes.json();
+        const fd = new FormData();
+        fd.append("file", blob, "video.webm");
+        fd.append("api_key", signData.api_key);
+        fd.append("timestamp", String(signData.timestamp));
+        fd.append("folder", signData.folder);
+        fd.append("signature", signData.signature);
+        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`, { method: "POST", body: fd });
+        const upData = await upRes.json();
+        if (upData.secure_url) { fileUrl = upData.secure_url; publicId = upData.public_id; }
+        else throw new Error(upData.error?.message || "Upload falhou");
+      } catch (err) {
+        console.warn("[Cloudinary video]", err);
+        fileUrl = "local://blob";
+      }
+    } else {
+      setStatus("generating"); setStatusMsg("Gerando imagem...");
+      const dataUrl = getPNGDataURL();
+      if (!dataUrl) { setStatus("error"); setStatusMsg("Falha ao gerar imagem"); return; }
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `${currentTemplate?.nome || "arte"}_${Date.now()}.jpg`;
+      a.click();
+      fileUrl = "local://jpeg";
+    }
 
     // Registra download na activity_logs
     if (profile?.licensee_id) {
@@ -721,13 +848,16 @@ export default function PublicarPage() {
           store_id: profile.store_id,
           template: currentTemplate?.nome || "manual",
           format,
+          file_type: isVideo ? "video" : "image",
+          cloudinary_url: fileUrl,
+          cloudinary_public_id: publicId,
         },
       });
       setDownloadsToday(d => d + 1);
     }
 
-    setStatus("success"); setStatusMsg("Imagem baixada");
-    setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
+    setStatus("success"); setStatusMsg(isVideo ? "Vídeo baixado" : "Imagem baixada");
+    setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2500);
   }
 
   function limparFormulario() {
