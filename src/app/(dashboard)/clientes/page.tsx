@@ -56,7 +56,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -138,7 +138,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -146,7 +146,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: (l as Licensee & {cor4?: string}).cor4 ?? "", cor5: (l as Licensee & {cor5?: string}).cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -169,6 +169,8 @@ export default function ClientesPage() {
         cor_secundaria: form.cor_secundaria || null,
         cor_acento: form.cor_acento || null,
         cor_fundo: form.cor_fundo || null,
+        cor4: form.cor4 || null,
+        cor5: form.cor5 || null,
         tema_fundo_escuro: form.tema_fundo_escuro || null,
         tema_fundo_claro: form.tema_fundo_claro || null,
         tema_texto_escuro: form.tema_texto_escuro || null,
@@ -675,6 +677,8 @@ export default function ClientesPage() {
                         {key:"cor_secundaria", label:"Cor secundária"},
                         {key:"cor_acento", label:"Cor acento"},
                         {key:"cor_fundo", label:"Cor fundo"},
+                        {key:"cor4", label:"Cor 4 (opcional)"},
+                        {key:"cor5", label:"Cor 5 (opcional)"},
                       ].map(({key, label}) => (
                         <div key={key} className="flex items-center gap-2">
                           <input type="color" value={(form as Record<string,string>)[key] || "#000000"} onChange={e => setForm(f => ({...f, [key]: e.target.value}))} className="h-7 w-10 rounded cursor-pointer border border-[var(--bdr)]" />
