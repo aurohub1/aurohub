@@ -597,90 +597,84 @@ export default function SplashScreen({
 
           const cx = W / 2;
           const cy = H / 2;
-          const rotation = t * 0.15; // rotação suave
+          const rotation = t * 0.05; // rotação MUITO lenta (3x mais lenta)
 
-          // Halo geral (névoa difusa)
-          const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, H * 0.6);
-          halo.addColorStop(0, `rgba(${c1.r},${c1.g},${c1.b},0.18)`);
-          halo.addColorStop(0.3, `rgba(${c2.r},${c2.g},${c2.b},0.08)`);
+          // Halo geral sutil cobrindo toda a tela
+          const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.8);
+          halo.addColorStop(0, `rgba(${c1.r},${c1.g},${c1.b},0.08)`);
+          halo.addColorStop(0.4, `rgba(${c2.r},${c2.g},${c2.b},0.04)`);
           halo.addColorStop(1, "rgba(0,0,0,0)");
           ctx.fillStyle = halo;
           ctx.fillRect(0, 0, W, H);
 
-          // Estrelas de fundo (não rotacionam)
-          for (let i = 0; i < 200; i++) {
+          // Estrelas de fundo (não rotacionam) — mais espalhadas e sutis
+          for (let i = 0; i < 300; i++) {
             const sx = (i * 173.7) % W;
             const sy = (i * 97.3) % H;
-            const br = 0.2 + Math.sin(i * 0.7 + t) * 0.15;
+            const br = 0.15 + Math.sin(i * 0.7 + t * 0.8) * 0.1;
             ctx.beginPath();
-            ctx.arc(sx, sy, 0.5, 0, Math.PI * 2);
+            ctx.arc(sx, sy, 0.4, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(255,255,255,${br})`;
             ctx.fill();
           }
 
-          // Braços espirais (espiral logarítmica: r = a * e^(b*theta))
-          const arms = 4; // 4 braços
-          const particlesPerArm = 180;
-          const maxRadius = Math.min(W, H) * 0.42;
-          const a = 6;
-          const b = 0.22;
+          // Braços espirais — ESPIRAL AMPLIADA ocupando toda a tela
+          const arms = 4;
+          const particlesPerArm = 280; // mais partículas, mais espalhadas
+          const maxRadius = Math.max(W, H) * 0.75; // ocupa tela inteira
+          const a = 12;
+          const b = 0.24;
 
           for (let arm = 0; arm < arms; arm++) {
             const armOffset = (arm / arms) * Math.PI * 2;
             const armColor = [c1, c2, c3, c4, c5][arm % 5];
 
             for (let i = 0; i < particlesPerArm; i++) {
-              const theta = (i / particlesPerArm) * Math.PI * 4; // 2 voltas
+              const theta = (i / particlesPerArm) * Math.PI * 5; // 2.5 voltas (mais voltas)
               const r = a * Math.exp(b * theta);
               if (r > maxRadius) break;
 
               const angle = theta + armOffset + rotation;
-              // Dispersão aleatória mas determinística
+              // Dispersão maior (partículas mais espalhadas)
               const noise = Math.sin(i * 12.9898 + arm * 78.233) * 0.5;
-              const noiseR = Math.cos(i * 43.723 + arm * 11.17) * 8;
-              const px = cx + Math.cos(angle + noise * 0.15) * (r + noiseR);
-              const py = cy + Math.sin(angle + noise * 0.15) * (r + noiseR) * 0.55; // achata
+              const noiseR = Math.cos(i * 43.723 + arm * 11.17) * 20;
+              const px = cx + Math.cos(angle + noise * 0.22) * (r + noiseR);
+              const py = cy + Math.sin(angle + noise * 0.22) * (r + noiseR) * 0.55;
 
-              // Tamanho: maior no centro, menor nas bordas
               const normR = r / maxRadius;
-              const size = 2.5 * (1 - normR * 0.7) + 0.5;
-              const alpha = (1 - normR * 0.5) * (0.5 + Math.sin(i + t * 2) * 0.3);
+              // Tamanhos menores em geral
+              const size = 1.5 * (1 - normR * 0.6) + 0.3;
+              // Opacidade reduzida — fundo que não compete com logo
+              const alpha = (1 - normR * 0.6) * (0.22 + Math.sin(i + t * 1.2) * 0.12);
 
-              // Glow
-              const glow = ctx.createRadialGradient(px, py, 0, px, py, size * 3);
+              // Glow sutil
+              const glow = ctx.createRadialGradient(px, py, 0, px, py, size * 2.5);
               glow.addColorStop(0, `rgba(${armColor.r},${armColor.g},${armColor.b},${alpha})`);
               glow.addColorStop(1, "rgba(0,0,0,0)");
               ctx.fillStyle = glow;
               ctx.beginPath();
-              ctx.arc(px, py, size * 3, 0, Math.PI * 2);
+              ctx.arc(px, py, size * 2.5, 0, Math.PI * 2);
               ctx.fill();
 
-              // Núcleo
+              // Núcleo menor e mais sutil
               ctx.beginPath();
-              ctx.arc(px, py, size * 0.6, 0, Math.PI * 2);
-              ctx.fillStyle = `rgba(255,255,255,${alpha * 0.9})`;
+              ctx.arc(px, py, size * 0.4, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(255,255,255,${alpha * 0.55})`;
               ctx.fill();
             }
           }
 
-          // Bulbo central luminoso (core)
-          const coreR = Math.min(W, H) * 0.12;
+          // Bulbo central luminoso — reduzido e mais suave (sem competir com logo)
+          const coreR = Math.min(W, H) * 0.08;
           const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
-          const corePulse = 0.85 + Math.sin(t * 1.5) * 0.15;
-          core.addColorStop(0, `rgba(255,245,220,${0.95 * corePulse})`);
-          core.addColorStop(0.15, `rgba(${c2.r},${c2.g},${c2.b},${0.7 * corePulse})`);
-          core.addColorStop(0.4, `rgba(${c1.r},${c1.g},${c1.b},${0.35 * corePulse})`);
-          core.addColorStop(0.8, `rgba(${c1.r},${c1.g},${c1.b},${0.1 * corePulse})`);
+          const corePulse = 0.4 + Math.sin(t * 0.8) * 0.1;
+          core.addColorStop(0, `rgba(255,245,220,${0.35 * corePulse})`);
+          core.addColorStop(0.3, `rgba(${c2.r},${c2.g},${c2.b},${0.22 * corePulse})`);
+          core.addColorStop(0.7, `rgba(${c1.r},${c1.g},${c1.b},${0.1 * corePulse})`);
           core.addColorStop(1, "rgba(0,0,0,0)");
           ctx.fillStyle = core;
           ctx.beginPath();
           ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Ponto central super brilhante
-          ctx.fillStyle = `rgba(255,255,255,${corePulse})`;
-          ctx.beginPath();
-          ctx.arc(cx, cy, 3, 0, Math.PI * 2);
           ctx.fill();
           break;
         }
