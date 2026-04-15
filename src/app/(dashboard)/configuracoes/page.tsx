@@ -66,6 +66,7 @@ export default function ConfiguracoesPage() {
   const admSplashLogoRef = useRef<HTMLInputElement>(null);
   const admSplashSomRef = useRef<HTMLInputElement>(null);
   const [uploadingSom, setUploadingSom] = useState(false);
+  const [splashReplayKey, setSplashReplayKey] = useState(0);
 
   /* ── Load ──────────────────────────────────────── */
 
@@ -361,88 +362,131 @@ export default function ConfiguracoesPage() {
 
               {/* ── SPLASH ADM ──────────────────────── */}
               {activeSection === "splash" && (
-                <div className="flex flex-col gap-5">
-                  <SectionTitle title="Splash ADM" desc="Animação de entrada do login do ADM raiz. Valores salvos em system_config (adm_splash_*)." />
+                <div className="flex flex-col gap-4">
+                  <SectionTitle title="Splash ADM" desc="Animação de entrada do login do ADM. Salvo em system_config (adm_splash_*)." />
 
-                  {/* Preview ao vivo */}
-                  <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Preview ao vivo</label>
-                    <div className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ width: "100%", maxWidth: 560, height: 300 }}>
-                      <SplashScreen
-                        key={`adm-${JSON.stringify([
-                          config.adm_splash_logo,
-                          config.adm_splash_cor1, config.adm_splash_cor2,
-                          config.adm_splash_cor3, config.adm_splash_cor4, config.adm_splash_cor5,
-                        ])}`}
-                        logoUrl={config.adm_splash_logo || ""}
-                        effect="aurovista_adm"
-                        cor1={config.adm_splash_cor1 || "#D4A843"}
-                        cor2={config.adm_splash_cor2 || "#FF7A1A"}
-                        cor3={config.adm_splash_cor3 || "transparent"}
-                        cor4={config.adm_splash_cor4 || "transparent"}
-                        cor5={config.adm_splash_cor5 || "transparent"}
-                        corFundo="#060B16"
-                        userName="AUROVISTA"
-                        textoEfeito="typewriter"
-                        embedded={{ width: 560, height: 300 }}
-                      />
-                    </div>
+                  {/* Preview 21:9 full width */}
+                  <div className="w-full overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ aspectRatio: "21 / 9" }}>
+                    <SplashScreen
+                      key={`adm-${splashReplayKey}-${JSON.stringify([
+                        config.adm_splash_logo,
+                        config.adm_splash_cor1, config.adm_splash_cor2,
+                        config.adm_splash_cor3, config.adm_splash_cor4, config.adm_splash_cor5,
+                        config.adm_splash_velocidade, config.adm_splash_quantidade, config.adm_splash_tamanho,
+                        config.adm_splash_raio_orbital, config.adm_splash_nebulosa, config.adm_splash_opacidade,
+                        config.adm_splash_dispersao, config.adm_splash_velocidade_texto,
+                      ])}`}
+                      logoUrl={config.adm_splash_logo || ""}
+                      effect="aurovista_adm"
+                      cor1={config.adm_splash_cor1 || "#D4A843"}
+                      cor2={config.adm_splash_cor2 || "#FF7A1A"}
+                      cor3={config.adm_splash_cor3 || "transparent"}
+                      cor4={config.adm_splash_cor4 || "transparent"}
+                      cor5={config.adm_splash_cor5 || "transparent"}
+                      corFundo="#060B16"
+                      velocidade={getNum("adm_splash_velocidade", 5)}
+                      quantidade={getNum("adm_splash_quantidade", 5)}
+                      tamanho={getNum("adm_splash_tamanho", 5)}
+                      raioOrbital={getNum("adm_splash_raio_orbital", 5)}
+                      nebulosa={getNum("adm_splash_nebulosa", 6)}
+                      opacidade={getNum("adm_splash_opacidade", 8)}
+                      dispersao={getNum("adm_splash_dispersao", 4)}
+                      velocidadeTexto={getNum("adm_splash_velocidade_texto", 5)}
+                      userName="AUROVISTA"
+                      textoEfeito="typewriter"
+                      embedded={{ width: 1200, height: 514 }}
+                    />
                   </div>
 
-                  {/* Paleta de cores — 2 obrigatórias + 3 opcionais */}
-                  <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Paleta — cores 1 e 2 obrigatórias (partícula escolhe aleatória entre as definidas)</label>
-                    <div className="flex flex-wrap gap-3">
-                      <ColorSquare label="Cor 1" value={config.adm_splash_cor1 || "#D4A843"} onChange={(v) => set("adm_splash_cor1", v)} />
-                      <ColorSquare label="Cor 2" value={config.adm_splash_cor2 || "#FF7A1A"} onChange={(v) => set("adm_splash_cor2", v)} />
-                      <OptionalColorSquare label="Cor 3" value={config.adm_splash_cor3} onChange={(v) => set("adm_splash_cor3", v)} onClear={() => set("adm_splash_cor3", "transparent")} />
-                      <OptionalColorSquare label="Cor 4" value={config.adm_splash_cor4} onChange={(v) => set("adm_splash_cor4", v)} onClear={() => set("adm_splash_cor4", "transparent")} />
-                      <OptionalColorSquare label="Cor 5" value={config.adm_splash_cor5} onChange={(v) => set("adm_splash_cor5", v)} onClear={() => set("adm_splash_cor5", "transparent")} />
-                    </div>
+                  {/* Cores em linha horizontal */}
+                  <div className="flex flex-wrap items-end gap-3 rounded-xl border border-[var(--bdr)] p-3" style={{ background: "var(--card-bg)" }}>
+                    <span className="mr-2 text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Cores</span>
+                    <ColorSquare label="Cor 1" value={config.adm_splash_cor1 || "#D4A843"} onChange={(v) => set("adm_splash_cor1", v)} />
+                    <ColorSquare label="Cor 2" value={config.adm_splash_cor2 || "#FF7A1A"} onChange={(v) => set("adm_splash_cor2", v)} />
+                    <div className="mx-1 h-12 w-px bg-[var(--bdr)]" />
+                    <OptionalColorSquare label="Cor 3" value={config.adm_splash_cor3} onChange={(v) => set("adm_splash_cor3", v)} onClear={() => set("adm_splash_cor3", "transparent")} />
+                    <OptionalColorSquare label="Cor 4" value={config.adm_splash_cor4} onChange={(v) => set("adm_splash_cor4", v)} onClear={() => set("adm_splash_cor4", "transparent")} />
+                    <OptionalColorSquare label="Cor 5" value={config.adm_splash_cor5} onChange={(v) => set("adm_splash_cor5", v)} onClear={() => set("adm_splash_cor5", "transparent")} />
                   </div>
 
-                  {/* Logo */}
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Logo da splash</label>
-                    <div className="flex items-center gap-4">
-                      {config.adm_splash_logo ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={config.adm_splash_logo} alt="Logo splash" className="h-14 w-14 shrink-0 rounded-xl object-contain border border-[var(--bdr)] bg-[var(--bg2)]" />
-                      ) : (
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--bg3)] text-[18px] font-bold text-[var(--txt2)]">A</div>
-                      )}
-                      <div className="flex flex-1 flex-col gap-1.5">
-                        <input ref={admSplashLogoRef} type="file" accept="image/*" onChange={handleAdmSplashLogoUpload} className="hidden" />
-                        <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => admSplashLogoRef.current?.click()} disabled={uploading} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
-                            {uploading ? "Enviando..." : "Upload logo"}
-                          </button>
-                          {config.adm_splash_logo && (
-                            <button type="button" onClick={() => set("adm_splash_logo", "")} className="text-[11px] text-[var(--red)] hover:underline">Remover</button>
-                          )}
-                        </div>
-                        <input type="text" value={config.adm_splash_logo ?? ""} onChange={(e) => set("adm_splash_logo", e.target.value)} placeholder="ou cole URL" className="h-7 w-full rounded border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none" />
+                  {/* Grid 2 colunas: Partículas | Ambiente */}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="rounded-xl border border-[var(--bdr)] p-4" style={{ background: "var(--card-bg)" }}>
+                      <div className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[var(--orange)]">Partículas</div>
+                      <div className="flex flex-col gap-3">
+                        <Slider label="Velocidade" value={getNum("adm_splash_velocidade", 5)} onChange={(v) => set("adm_splash_velocidade", String(v))} />
+                        <Slider label="Quantidade" value={getNum("adm_splash_quantidade", 5)} onChange={(v) => set("adm_splash_quantidade", String(v))} />
+                        <Slider label="Tamanho" value={getNum("adm_splash_tamanho", 5)} onChange={(v) => set("adm_splash_tamanho", String(v))} />
+                        <Slider label="Raio orbital" value={getNum("adm_splash_raio_orbital", 5)} onChange={(v) => set("adm_splash_raio_orbital", String(v))} />
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-[var(--bdr)] p-4" style={{ background: "var(--card-bg)" }}>
+                      <div className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[var(--orange)]">Ambiente</div>
+                      <div className="flex flex-col gap-3">
+                        <Slider label="Nebulosa" value={getNum("adm_splash_nebulosa", 6)} onChange={(v) => set("adm_splash_nebulosa", String(v))} min={0} />
+                        <Slider label="Opacidade" value={getNum("adm_splash_opacidade", 8)} onChange={(v) => set("adm_splash_opacidade", String(v))} />
+                        <Slider label="Dispersão" value={getNum("adm_splash_dispersao", 4)} onChange={(v) => set("adm_splash_dispersao", String(v))} min={0} />
+                        <Slider label="Velocidade texto" value={getNum("adm_splash_velocidade_texto", 5)} onChange={(v) => set("adm_splash_velocidade_texto", String(v))} />
                       </div>
                     </div>
                   </div>
 
-                  {/* Som */}
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Som da splash</label>
-                    <div className="flex items-center gap-3">
-                      {config.adm_splash_som ? (
-                        <audio src={config.adm_splash_som} controls className="h-10" />
-                      ) : (
-                        <div className="flex h-10 items-center justify-center rounded-lg bg-[var(--bg2)] px-3 text-[11px] text-[var(--txt3)]">Sem som</div>
-                      )}
-                      <input ref={admSplashSomRef} type="file" accept="audio/*" onChange={handleAdmSplashSomUpload} className="hidden" />
-                      <button type="button" onClick={() => admSplashSomRef.current?.click()} disabled={uploadingSom} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
-                        {uploadingSom ? "Enviando..." : "Upload som"}
-                      </button>
-                      {config.adm_splash_som && (
-                        <button type="button" onClick={() => set("adm_splash_som", "")} className="text-[11px] text-[var(--red)] hover:underline">Remover</button>
-                      )}
+                  {/* Upload logo + som lado a lado */}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="rounded-xl border border-[var(--bdr)] p-4" style={{ background: "var(--card-bg)" }}>
+                      <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--txt3)]">Logo</div>
+                      <div className="flex items-center gap-3">
+                        {config.adm_splash_logo ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={config.adm_splash_logo} alt="Logo" className="h-12 w-12 shrink-0 rounded-lg object-contain border border-[var(--bdr)] bg-[var(--bg2)]" />
+                        ) : (
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[var(--bg3)] text-[16px] font-bold text-[var(--txt2)]">A</div>
+                        )}
+                        <input ref={admSplashLogoRef} type="file" accept="image/*" onChange={handleAdmSplashLogoUpload} className="hidden" />
+                        <button type="button" onClick={() => admSplashLogoRef.current?.click()} disabled={uploading} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
+                          {uploading ? "Enviando..." : "Upload"}
+                        </button>
+                        {config.adm_splash_logo && (
+                          <button type="button" onClick={() => set("adm_splash_logo", "")} className="text-[11px] text-[var(--red)] hover:underline">Remover</button>
+                        )}
+                      </div>
                     </div>
+                    <div className="rounded-xl border border-[var(--bdr)] p-4" style={{ background: "var(--card-bg)" }}>
+                      <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--txt3)]">Som</div>
+                      <div className="flex items-center gap-3">
+                        {config.adm_splash_som ? (
+                          <audio src={config.adm_splash_som} controls className="h-10 flex-1 min-w-0" />
+                        ) : (
+                          <div className="flex h-10 flex-1 items-center rounded-lg bg-[var(--bg2)] px-3 text-[11px] text-[var(--txt3)]">Sem som</div>
+                        )}
+                        <input ref={admSplashSomRef} type="file" accept="audio/*" onChange={handleAdmSplashSomUpload} className="hidden" />
+                        <button type="button" onClick={() => admSplashSomRef.current?.click()} disabled={uploadingSom} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
+                          {uploadingSom ? "Enviando..." : "Upload"}
+                        </button>
+                        {config.adm_splash_som && (
+                          <button type="button" onClick={() => set("adm_splash_som", "")} className="text-[11px] text-[var(--red)] hover:underline">Remover</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botões Aplicar / Replay + Salvar */}
+                  <div className="flex items-center justify-end gap-3 border-t border-[var(--bdr)] pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setSplashReplayKey((k) => k + 1)}
+                      className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] px-4 py-2 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+                    >
+                      ↻ Aplicar / Replay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="rounded-lg bg-[var(--orange)] px-5 py-2 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                    >
+                      {saving ? "Salvando..." : saved ? "Salvo!" : "Salvar"}
+                    </button>
                   </div>
                 </div>
               )}

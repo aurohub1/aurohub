@@ -136,13 +136,19 @@ export default function SplashScreen({
 
     const W = canvas.width, H = canvas.height;
 
-    // Inicializa partículas do aurovista_adm (uma vez — portado do aurovista_splash_v2.html)
-    for (let i = 0; i < 150; i++) {
+    // Inicializa partículas do aurovista_adm — baseado em aurovista_splash_v2.html, modulado por props
+    const aurovistaCount = Math.round(50 + (quantidade / 10) * 200); // 50-250 (default ~150 @ quantidade=5)
+    const aurovistaSizeMult = 0.4 + (tamanho / 10) * 1.2; // 0.4-1.6 (default 1.0 @ tamanho=5)
+    const aurovistaRadScale = (raioOrbital / 5); // 0.2-2 (default 1.0 @ raioOrbital=5)
+    const aurovistaSpdMult = 0.4 + (velocidade / 10) * 1.2; // 0.4-1.6 (default 1.0 @ velocidade=5)
+    const aurovistaDispersion = (dispersao / 10); // 0-1 (0 = órbita limpa, 1 = spread máximo)
+    for (let i = 0; i < aurovistaCount; i++) {
+      const disp = 1 + (Math.random() - 0.5) * aurovistaDispersion * 0.6;
       aurovistaPts.push({
         a: Math.random() * Math.PI * 2,
-        rad: 50 + Math.random() * Math.min(W, H) * 0.45,
-        spd: 0.0015 + Math.random() * 0.003,
-        sz: 0.8 + Math.random() * 2.8,
+        rad: (50 + Math.random() * Math.min(W, H) * 0.45) * aurovistaRadScale * disp,
+        spd: (0.0015 + Math.random() * 0.003) * aurovistaSpdMult,
+        sz: (0.8 + Math.random() * 2.8) * aurovistaSizeMult,
         col: aurovistaPool[Math.floor(Math.random() * aurovistaPool.length)],
         al: 0.2 + Math.random() * 0.8,
         pl: Math.random() * Math.PI * 2,
@@ -1257,13 +1263,15 @@ export default function SplashScreen({
         }
 
         case "aurovista_adm": {
-          // Port fiel de aurovista_splash_v2.html (60 fps de referência, convertido para delta-time)
+          // Port fiel de aurovista_splash_v2.html — modulado por props
           const cx = W / 2, cy = H / 2;
-          const dtScale = dt * 60; // converte unidades "por frame" em "por segundo"
+          const dtScale = dt * 60;
           const fr = simTime * 60;
+          const opacityMult = Math.max(0.1, Math.min(1, opacidade / 10));
 
           // Radial nebula: cor1 (center) → cor2 (0.4) → transparent
-          const na = Math.min(0.18, fr * 0.0012);
+          const naCap = 0.18 * (nebulosa / 10) * 2; // default 6 → cap 0.216; 10 → 0.36
+          const na = Math.min(naCap, fr * 0.0012);
           const hexToRgbStr = (hex: string, a: number) => {
             const rgb = hex2rgb(hex);
             return `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
@@ -1275,16 +1283,16 @@ export default function SplashScreen({
           ctx.fillStyle = g1;
           ctx.fillRect(0, 0, W, H);
 
-          // Partículas orbitando (150, velocidade/posição/alpha conforme anexo)
+          // Partículas orbitando
           aurovistaPts.forEach((p) => {
             p.a += p.spd * dtScale;
             const px = cx + Math.cos(p.a) * p.rad;
             const py = cy + Math.sin(p.a) * p.rad;
             p.pl += 0.04 * dtScale;
-            const al = p.al * (0.5 + 0.5 * Math.sin(p.pl));
+            const al = p.al * (0.5 + 0.5 * Math.sin(p.pl)) * opacityMult;
             ctx.beginPath();
             ctx.arc(px, py, p.sz, 0, Math.PI * 2);
-            ctx.fillStyle = p.col + Math.floor(al * 255).toString(16).padStart(2, "0");
+            ctx.fillStyle = p.col + Math.floor(Math.min(1, al) * 255).toString(16).padStart(2, "0");
             ctx.fill();
           });
 
