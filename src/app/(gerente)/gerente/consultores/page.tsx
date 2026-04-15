@@ -80,21 +80,15 @@ export default function GerenteConsultoresPage() {
       setProfile(p);
       if (!p?.licensee_id) { setLoading(false); return; }
 
-      // Consultores do licensee (gerente vê todos, não filtrado por store_id)
       const { data: vData, error: vError } = await supabase
         .from("profiles")
-        .select("id, name, email, role, status, licensee_id, store_id, created_at")
+        .select("id, name, email, role, status, licensee_id, store_id, created_at, avatar_url")
         .eq("licensee_id", p.licensee_id)
-        .eq("role", "vendedor")
-        .order("created_at", { ascending: false });
-      console.log("DEBUG consultores:", {
-        licensee_id: p.licensee_id,
-        store_id: p.store_id,
-        vData,
-        error: vError,
-      });
+        .eq("role", "vendedor");
+
+      setVendors((vData ?? []) as Vendor[]);
+      void vError;
       const list = (vData ?? []) as Vendor[];
-      setVendors(list);
 
       // Total de usuários do licensee (pra validar limite do plano)
       const { count: totalCount } = await supabase
