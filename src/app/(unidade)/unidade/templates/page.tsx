@@ -86,9 +86,13 @@ export default function UnidadeTemplatesPage() {
           const format = parsed.format || parsed.schema?.format || "stories";
           const bgColor = parsed.bgColor || parsed.background || parsed.schema?.background || "#1E3A6E";
           const els = (parsed.elements ?? parsed.schema?.elements ?? []) as Array<{ type?: string; src?: string }>;
-          const firstImgType = els.find((el) => el?.src && el.type === "image")?.src;
-          const anyWithSrc = els.find((el) => el?.src)?.src;
-          const thumbnail = parsed.thumbnail || parsed.image_url || parsed.thumb || parsed.schema?.thumbnail || parsed.schema?.image_url || firstImgType || anyWithSrc || null;
+          const firstRealImg = els.find((el) =>
+            el?.type === "image" &&
+            typeof el?.src === "string" &&
+            el.src.startsWith("http") &&
+            !el.src.toLowerCase().includes("placeholder")
+          )?.src;
+          const thumbnail = parsed.thumbnail || parsed.image_url || parsed.thumb || parsed.schema?.thumbnail || parsed.schema?.image_url || firstRealImg || null;
           rows.push({
             key: r.key,
             id: r.key.replace(/^tmpl_/, ""),

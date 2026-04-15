@@ -198,8 +198,9 @@ export default function UnidadePublicarPage() {
             qtdDestinos: parsed.qtdDestinos,
           },
           thumbnail: (parsed.thumbnail || parsed.image_url || parsed.thumb || parsed.schema?.thumbnail || parsed.schema?.image_url
-            || (schemaElements as Array<{ type?: string; src?: string }>).find((el) => el?.src && el.type === "image")?.src
-            || (schemaElements as Array<{ type?: string; src?: string }>).find((el) => el?.src)?.src
+            || (schemaElements as Array<{ type?: string; src?: string }>).find((el) =>
+              el?.type === "image" && typeof el?.src === "string" && el.src.startsWith("http") && !el.src.toLowerCase().includes("placeholder")
+            )?.src
             || null),
         });
       } catch { /* skip */ }

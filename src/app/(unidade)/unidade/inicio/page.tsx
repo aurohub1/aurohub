@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import {
-  Send, Users, BarChart3, ArrowRight, Image as ImageIcon,
+  Send, BarChart3, ArrowRight, Image as ImageIcon, CalendarDays,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
+
+interface DataComemorativa { id: string; nome: string; data_mes: number; data_dia: number; tipo: string; }
+function daysUntil(iso: string): number {
+  const a = new Date(); a.setHours(0,0,0,0);
+  const b = new Date(iso + "T00:00:00");
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+}
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -129,6 +136,7 @@ export default function UnidadeInicioPage() {
   const [postsHoje, setPostsHoje] = useState(0);
   const [postsMes, setPostsMes] = useState(0);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [dbFeriados, setDbFeriados] = useState<DataComemorativa[]>([]);
   const [ultimasPub, setUltimasPub] = useState<ScheduledPost[]>([]);
 
   const [noticias, setNoticias] = useState<Noticia[]>([]);
@@ -251,6 +259,42 @@ export default function UnidadeInicioPage() {
         .limit(5);
       setUltimasPub((posts ?? []) as ScheduledPost[]);
 
+      // Datas comemorativas próximos 14 dias
+      try {
+        const hojeDt = new Date();
+        const mesAtual = hojeDt.getMonth() + 1;
+        const diaAtual = hojeDt.getDate();
+        const diaFim = diaAtual + 14;
+        if (diaFim <= 31) {
+          const { data: dc } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", mesAtual)
+            .gte("data_dia", diaAtual)
+            .lte("data_dia", diaFim)
+            .order("data_dia")
+            .limit(5);
+          setDbFeriados((dc ?? []) as DataComemorativa[]);
+        } else {
+          const { data: dc1 } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", mesAtual)
+            .gte("data_dia", diaAtual)
+            .order("data_dia")
+            .limit(5);
+          const proxMes = mesAtual === 12 ? 1 : mesAtual + 1;
+          const { data: dc2 } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", proxMes)
+            .lte("data_dia", diaFim - 31)
+            .order("data_dia")
+            .limit(5);
+          setDbFeriados([...((dc1 ?? []) as DataComemorativa[]), ...((dc2 ?? []) as DataComemorativa[])].slice(0, 5));
+        }
+      } catch { /* silent */ }
+
       // Notícias do setor
       try {
         const segmentName = SEGMENT_MAP[segmentId ?? ""] ?? "default";
@@ -270,6 +314,14 @@ export default function UnidadeInicioPage() {
   useEffect(() => { loadData(); }, [loadData]);
 
   /* ── Derived ───────────────────────────────────── */
+
+  const proximosFeriados = useMemo(() => {
+    const year = new Date().getFullYear();
+    return dbFeriados.slice(0, 5).map((d) => ({
+      nome: d.nome,
+      data: `${year}-${String(d.data_mes).padStart(2, "0")}-${String(d.data_dia).padStart(2, "0")}`,
+    }));
+  }, [dbFeriados]);
 
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
@@ -396,34 +448,58 @@ export default function UnidadeInicioPage() {
       {/* ═══ Consultores + Últimas + Notícias — alturas alinhadas ═══ */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:col-span-2">
-          {/* ── Consultores ──────────────────────── */}
+          {/* ── Próximos feriados ──────────────────── */}
           <div className="card-glass flex h-[320px] flex-col overflow-hidden">
             <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
               <div className="flex items-center gap-2">
-                <Users size={15} className="text-[var(--orange)]" />
-                <h3 className="text-[14px] font-bold text-[var(--txt)]">Consultores</h3>
-                <span className="rounded-full bg-[var(--green3)] px-2 py-0.5 text-[0.55rem] font-bold text-[var(--green)]">
-                  {vendedores.length} {vendedores.length === 1 ? "ativo" : "ativos"}
-                </span>
+                <CalendarDays size={15} className="text-[var(--orange)]" />
+                <h3 className="text-[14px] font-bold text-[var(--txt)]">Próximos feriados</h3>
               </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+                {proximosFeriados.length}
+              </span>
             </div>
-            <div className="flex-1 overflow-y-auto p-5">
-              {vendedores.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-center text-[12px] text-[var(--txt3)]">Nenhum consultor cadastrado nesta unidade.</div>
+            <div className="flex flex-1 flex-col justify-center gap-2 p-4">
+              {proximosFeriados.length === 0 ? (
+                <div className="text-center text-[12px] text-[var(--txt3)]">Sem feriados próximos.</div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {vendedores.map((v) => (
-                    <div key={v.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-3 py-2">
-                      <div className="min-w-0">
-                        <div className="truncate text-[12px] font-medium text-[var(--txt)]">{v.name || v.email || "—"}</div>
-                        {v.email && <div className="truncate text-[10px] text-[var(--txt3)]">{v.email}</div>}
+                proximosFeriados.map((f) => {
+                  const diff = daysUntil(f.data);
+                  const d = new Date(f.data + "T00:00:00");
+                  const dia = String(d.getDate()).padStart(2, "0");
+                  const mes = d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "").toUpperCase();
+                  return (
+                    <div
+                      key={f.data + f.nome}
+                      className="flex items-center gap-3 rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 transition-colors hover:border-[rgba(59,130,246,0.4)]"
+                    >
+                      <div
+                        className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg text-white"
+                        style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #3B82F6 100%)" }}
+                      >
+                        <span className="font-[family-name:var(--font-dm-serif)] text-[16px] font-bold leading-none tabular-nums">
+                          {dia}
+                        </span>
+                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider opacity-90">
+                          {mes}
+                        </span>
                       </div>
-                      <span className="ml-2 shrink-0 rounded-full bg-[var(--green3)] px-2 py-0.5 text-[0.55rem] font-bold text-[var(--green)]">
-                        Ativo
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[12px] font-semibold text-[var(--txt)]">{f.nome}</div>
+                      </div>
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[0.55rem] font-bold tabular-nums"
+                        style={
+                          diff === 0
+                            ? { background: "var(--red3)", color: "var(--red)" }
+                            : { background: "var(--orange3)", color: "var(--orange)" }
+                        }
+                      >
+                        {diff === 0 ? "HOJE" : `em ${diff}d`}
                       </span>
                     </div>
-                  ))}
-                </div>
+                  );
+                })
               )}
             </div>
           </div>
