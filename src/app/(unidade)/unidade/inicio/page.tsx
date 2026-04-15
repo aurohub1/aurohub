@@ -5,7 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import {
-  Send, Users, Sparkles, BarChart3, CalendarClock, Image as ImageIcon,
+  Send, Users, Sparkles, BarChart3, CalendarClock, Image as ImageIcon, Plane,
 } from "lucide-react";
 
 /* ── Tipos ───────────────────────────────────────── */
@@ -24,6 +24,18 @@ interface ScheduledPost {
   scheduled_at: string;
   image_url: string | null;
 }
+
+interface Noticia { title: string; url: string; image?: string | null; source?: string; }
+
+const SEGMENT_MAP: Record<string, string> = {
+  "7dd6759b-ba23-4d33-b898-c7a00cdf7b80": "turismo",
+  "741c1469-9552-449a-835e-c79966680e68": "imobiliaria",
+  "3b5aacc8-c0f0-483d-a282-0cda7520fdcb": "moda",
+  "0deb6f4d-91a8-4ee8-b6d3-081caae6ccf0": "beleza",
+  "7071c508-3e6b-4a91-b5f4-dfcc070798d1": "educacao",
+  "eeb1f1b9-eac1-4c5b-afb5-59af3c1b8e6f": "restaurante",
+  "2b068193-9cb9-47e9-8796-ff3abc7318e0": "saude",
+};
 
 /* ── Constantes ──────────────────────────────────── */
 
@@ -82,6 +94,9 @@ export default function UnidadeInicioPage() {
   const [postsMes, setPostsMes] = useState(0);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [ultimasPub, setUltimasPub] = useState<ScheduledPost[]>([]);
+
+  const [noticias, setNoticias] = useState<Noticia[]>([]);
+  const [noticiaIdx, setNoticiaIdx] = useState(0);
 
   const [loading, setLoading] = useState(true);
 
@@ -147,6 +162,16 @@ export default function UnidadeInicioPage() {
         .order("scheduled_at", { ascending: false })
         .limit(5);
       setUltimasPub((posts ?? []) as ScheduledPost[]);
+
+      // Notícias do setor
+      try {
+        const segmentName = SEGMENT_MAP[segmentId ?? ""] ?? "default";
+        const res = await fetch(`/api/noticias?segment=${segmentName}`);
+        if (res.ok) {
+          const items = await res.json();
+          if (items.length) setNoticias(items);
+        }
+      } catch { /* silent */ }
     } catch (err) {
       console.error("[UnidadeInicio] load:", err);
     } finally {
@@ -155,6 +180,14 @@ export default function UnidadeInicioPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    if (noticias.length <= 1) return;
+    const t = setInterval(() => {
+      setNoticiaIdx(i => (i + 1) % noticias.length);
+    }, 6000);
+    return () => clearInterval(t);
+  }, [noticias.length]);
 
   /* ── Derived ───────────────────────────────────── */
 
@@ -361,6 +394,56 @@ export default function UnidadeInicioPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ═══ Notícias do setor ═══════════════════════ */}
+      <div className="card-glass flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Plane size={15} className="text-[var(--orange)]" />
+            <h3 className="text-[14px] font-bold text-[var(--txt)]">Notícias do setor</h3>
+          </div>
+          {noticias.length > 0 && (
+            <div className="flex gap-1">
+              {noticias.map((_, i) => (
+                <button key={i} onClick={() => setNoticiaIdx(i)}
+                  className="h-1.5 rounded-full transition-all"
+                  style={{ width: i === noticiaIdx ? 16 : 6, background: i === noticiaIdx ? "var(--orange)" : "var(--bdr2)" }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="relative flex-1 overflow-hidden">
+          {noticias.length === 0 ? (
+            <div className="py-8 text-center text-[12px] text-[var(--txt3)]">Carregando notícias...</div>
+          ) : (() => {
+            const n = noticias[noticiaIdx];
+            return (
+              <a href={n.url} target="_blank" rel="noopener noreferrer"
+                className="block hover:opacity-90 transition-opacity">
+                {n.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={n.image} alt=""
+                    className="w-full h-36 max-h-36 object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                )}
+                <div className="px-5 py-4">
+                  <p className="text-[13px] font-semibold leading-snug text-[var(--txt)]"
+                    style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {n.title}
+                  </p>
+                  {n.source && (
+                    <span className="mt-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--orange)]">
+                      {n.source}
+                    </span>
+                  )}
+                </div>
+              </a>
+            );
+          })()}
         </div>
       </div>
     </>
