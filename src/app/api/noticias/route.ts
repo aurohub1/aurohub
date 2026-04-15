@@ -11,6 +11,61 @@ const SEGMENT_QUERIES: Record<string, string> = {
   default: "negocios+brasil",
 };
 
+interface Noticia { title: string; url: string; image: string | null; source: string; }
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+}
+
+function parsePanrotasRss(xml: string): Noticia[] {
+  const items: Noticia[] = [];
+  const itemRegex = /<item\b[\s\S]*?<\/item>/g;
+  const itemBlocks = xml.match(itemRegex) ?? [];
+
+  for (const block of itemBlocks) {
+    const titleMatch = block.match(/<title>([\s\S]*?)<\/title>/);
+    const linkMatch = block.match(/<link>([\s\S]*?)<\/link>/);
+    const enclosureMatch = block.match(/<enclosure[^>]*\burl=["']([^"']+)["']/i);
+    const mediaMatch = block.match(/<media:content[^>]*\burl=["']([^"']+)["']/i);
+    const descImgMatch = block.match(/<description>([\s\S]*?)<\/description>/);
+    let image: string | null = null;
+    if (enclosureMatch) image = enclosureMatch[1];
+    else if (mediaMatch) image = mediaMatch[1];
+    else if (descImgMatch) {
+      const inner = decodeEntities(descImgMatch[1]);
+      const imgTag = inner.match(/<img[^>]*\bsrc=["']([^"']+)["']/i);
+      if (imgTag) image = imgTag[1];
+    }
+
+    const title = titleMatch ? decodeEntities(titleMatch[1]) : "";
+    const url = linkMatch ? decodeEntities(linkMatch[1]) : "";
+    if (!title || !url) continue;
+
+    items.push({ title, url, image, source: "PANROTAS" });
+    if (items.length >= 5) break;
+  }
+  return items;
+}
+
+async function fetchPanrotasRss(): Promise<Noticia[]> {
+  const res = await fetch("https://www.panrotas.com.br/feed/", {
+    next: { revalidate: 3600 },
+    headers: { "user-agent": "Mozilla/5.0 AurohubBot/1.0" },
+  });
+  if (!res.ok) return [];
+  const xml = await res.text();
+  return parsePanrotasRss(xml);
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const segment = searchParams.get("segment") || "default";
@@ -37,19 +92,25 @@ export async function GET(request: Request) {
             }))
         );
       }
-    } catch { /* fallback */ }
+    } catch { /* cai pro RSS */ }
   }
 
-  // Fallback — notícias hardcoded por segmento (sempre funciona)
-  const fallback: Record<string, { title: string; url: string }[]> = {
+  // Fallback RSS PANROTAS — funciona sem API key, com imagens do enclosure/media
+  try {
+    const rss = await fetchPanrotasRss();
+    if (rss.length) return NextResponse.json(rss);
+  } catch { /* cai pro hardcoded */ }
+
+  // Fallback final — hardcoded (sem imagem)
+  const fallback: Record<string, Noticia[]> = {
     turismo: [
-      { title: "Confira os destinos mais procurados para as próximas férias", url: "https://www.panrotas.com.br" },
-      { title: "Alta temporada: como se preparar para vender mais", url: "https://www.panrotas.com.br" },
-      { title: "Cruzeiros voltam a crescer no Brasil em 2026", url: "https://www.panrotas.com.br" },
+      { title: "Confira os destinos mais procurados para as próximas férias", url: "https://www.panrotas.com.br", image: null, source: "PANROTAS" },
+      { title: "Alta temporada: como se preparar para vender mais", url: "https://www.panrotas.com.br", image: null, source: "PANROTAS" },
+      { title: "Cruzeiros voltam a crescer no Brasil em 2026", url: "https://www.panrotas.com.br", image: null, source: "PANROTAS" },
     ],
     default: [
-      { title: "Tendências do mercado para 2026", url: "https://agenciabrasil.ebc.com.br" },
-      { title: "Como aumentar suas vendas com presença digital", url: "https://agenciabrasil.ebc.com.br" },
+      { title: "Tendências do mercado para 2026", url: "https://agenciabrasil.ebc.com.br", image: null, source: "Agência Brasil" },
+      { title: "Como aumentar suas vendas com presença digital", url: "https://agenciabrasil.ebc.com.br", image: null, source: "Agência Brasil" },
     ],
   };
 
