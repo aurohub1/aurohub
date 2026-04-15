@@ -54,14 +54,14 @@
 
 /* ── Light ───────────────────────────────────────── */
 [data-theme="light"] {
-  --bg0: #F0F4F8;
-  --bg: #F0F4F8;
+  --bg0: #EEF2F7;
+  --bg: #EEF2F7;
   --bg1: #FFFFFF;
-  --bg2: #E8EDF2;
+  --bg2: #E2E8F0;
   --bg3: #E2E8F0;
 
   --txt: #0F172A;
-  --txt2: #475569;
+  --txt2: #64748B;
   --txt3: #94A3B8;
 
   --bdr: #CBD5E1;
@@ -84,8 +84,8 @@
 
 [data-theme="light"] .card-glass {
   background: #FFFFFF;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  border-color: #E2E8F0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  border-color: #CBD5E1;
 }
 
 [data-theme="light"] aside {

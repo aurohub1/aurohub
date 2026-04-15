@@ -197,7 +197,10 @@ export default function GerentePublicarPage() {
             duration: parsed.duration || 5,
             qtdDestinos: parsed.qtdDestinos,
           },
-          thumbnail: parsed.thumbnail || parsed.image_url || parsed.thumb || parsed.schema?.thumbnail || parsed.schema?.image_url || null,
+          thumbnail: (parsed.thumbnail || parsed.image_url || parsed.thumb || parsed.schema?.thumbnail || parsed.schema?.image_url
+            || (schemaElements as Array<{ type?: string; src?: string }>).find((el) => el?.src && el.type === "image")?.src
+            || (schemaElements as Array<{ type?: string; src?: string }>).find((el) => el?.src)?.src
+            || null),
         });
       } catch { /* skip */ }
     }

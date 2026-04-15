@@ -105,7 +105,7 @@ export default function VendedorCalendarioPage() {
 
       const { data: dcA } = await supabase
         .from("datas_comemorativas")
-        .select("id, nome, data_mes, data_dia, tipo")
+        .select("*")
         .in("data_mes", [mesA, mesB]);
 
       const all = ((dcA ?? []) as (DataComemorativa & { segment_id?: string | null })[]);
@@ -140,10 +140,18 @@ export default function VendedorCalendarioPage() {
     const add = (iso: string, ev: Evento) => { (map[iso] ??= []).push(ev); };
 
     for (const f of feriados) {
-      add(isoDay(cursor.year, f.data_mes - 1, f.data_dia), { tipo: f.tipo, label: f.nome, source: "feriado" });
+      const fRow = f as { data_mes?: number; data_dia?: number; data?: string };
+      const fIso = fRow.data && typeof fRow.data === "string"
+        ? (() => { const d = new Date(fRow.data + "T12:00:00"); return isNaN(d.getTime()) ? null : isoDay(d.getFullYear(), d.getMonth(), d.getDate()); })()
+        : (typeof fRow.data_mes === "number" && typeof fRow.data_dia === "number" ? isoDay(cursor.year, fRow.data_mes - 1, fRow.data_dia) : null);
+      if (fIso) add(fIso, { tipo: f.tipo, label: f.nome, source: "feriado" });
     }
     for (const s of datasSegmento) {
-      add(isoDay(cursor.year, s.data_mes - 1, s.data_dia), { tipo: "segmento", label: s.nome, source: "segmento" });
+      const sRow = s as { data_mes?: number; data_dia?: number; data?: string };
+      const sIso = sRow.data && typeof sRow.data === "string"
+        ? (() => { const d = new Date(sRow.data + "T12:00:00"); return isNaN(d.getTime()) ? null : isoDay(d.getFullYear(), d.getMonth(), d.getDate()); })()
+        : (typeof sRow.data_mes === "number" && typeof sRow.data_dia === "number" ? isoDay(cursor.year, sRow.data_mes - 1, sRow.data_dia) : null);
+      if (sIso) add(sIso, { tipo: "segmento", label: s.nome, source: "segmento" });
     }
     for (const l of lembretes) {
       add(l.data, { tipo: "lembrete", label: `${l.cliente}${l.nota ? " — " + l.nota : ""}`, source: "lembrete", refId: l.id });
