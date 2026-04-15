@@ -7,7 +7,7 @@ import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
 import {
-  Send, BarChart3, ArrowRight, Image as ImageIcon, CalendarDays,
+  Send, BarChart3, Image as ImageIcon, CalendarDays,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
 
@@ -385,8 +385,8 @@ export default function GerenteInicioPage() {
         </div>
       </div>
 
-      {/* ═══ Stats + CTA Row ═══════════════════════ */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {/* ═══ Stats Row ═══════════════════════ */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Posts de Hoje */}
         <div className="card-glass flex items-center gap-4 px-5 py-5">
           <div
@@ -424,35 +424,6 @@ export default function GerenteInicioPage() {
           </div>
         </div>
 
-        {/* CTA: Publicar agora */}
-        <Link
-          href="/unidade/publicar"
-          className="group relative flex items-center gap-4 overflow-hidden rounded-2xl px-5 py-5 text-white shadow-lg transition-transform hover:scale-[1.015]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #3B82F6 45%, #D4A843 100%)" }}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"
-            style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0))" }}
-          />
-          <div
-            className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-            style={{
-              background: "rgba(255,255,255,0.18)",
-              border: "1px solid rgba(255,255,255,0.28)",
-              backdropFilter: "blur(10px)",
-            }}
-          >
-            <Send size={22} />
-          </div>
-          <div className="relative min-w-0 flex-1">
-            <div className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-white/80">Ação rápida</div>
-            <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none">
-              Publicar agora
-            </div>
-            <div className="mt-1 text-[11px] text-white/80">Criar e publicar uma arte</div>
-          </div>
-          <ArrowRight size={18} className="relative shrink-0 transition-transform group-hover:translate-x-0.5" />
-        </Link>
       </div>
 
       {/* ═══ Consultores + Últimas + Notícias — alturas alinhadas ═══ */}
