@@ -185,21 +185,29 @@ export default function LoginPage() {
           || (u?.user_metadata?.full_name as string | undefined)
           || u?.email?.split("@")[0]
           || "você";
-        const home = homeForRole(profile?.role ?? null);
-        console.log("[Login] Showing splash → will redirect to:", home);
+        const role = profile?.role ?? null;
+        const home = homeForRole(role);
+        const splashRoles = ["cliente", "unidade", "vendedor"];
+        const canShowSplash = role !== null && splashRoles.includes(role);
 
-        let splashConfig: Record<string, string | number | undefined> = {};
+        if (!canShowSplash) {
+          console.log("[Login] Skipping splash (role=", role, ") → redirect to:", home);
+          router.push(home);
+          return;
+        }
+
+        let splashConfig: Record<string, string | number | undefined> | null = null;
         if (profile?.licensee_id) {
           const { data: lic } = await supabase
             .from("licensees")
             .select("logo_url,splash_effect,splash_logo_orientation,splash_velocidade,splash_suavidade,splash_som_url,cor_primaria,cor_secundaria,cor_acento,cor_fundo,cor4,cor5")
             .eq("id", profile.licensee_id)
             .single();
-          if (lic) {
+          if (lic && lic.splash_effect) {
             const lic2 = lic as typeof lic & { splash_velocidade?: number; splash_suavidade?: number; splash_som_url?: string };
             splashConfig = {
               logoUrl: lic.logo_url || undefined,
-              effect: lic.splash_effect || "random",
+              effect: lic.splash_effect,
               logoOrientation: lic.splash_logo_orientation || "horizontal",
               cor1: lic.cor_primaria || "var(--orange)",
               cor2: lic.cor_secundaria || "#D4A843",
@@ -214,6 +222,13 @@ export default function LoginPage() {
           }
         }
 
+        if (!splashConfig) {
+          console.log("[Login] No splash_effect configured → redirect to:", home);
+          router.push(home);
+          return;
+        }
+
+        console.log("[Login] Showing splash → will redirect to:", home);
         setLoading(false);
         setSplash({ name, home, ...splashConfig });
         return;
