@@ -285,7 +285,7 @@ export default function GerenteInicioPage() {
   return (
     <>
       {/* ═══ HEADER ═════════════════════════════════ */}
-      <div className="card-glass relative overflow-hidden px-6 py-6">
+      <div className="card-glass relative px-6 py-6">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
           style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
