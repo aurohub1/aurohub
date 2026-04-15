@@ -81,7 +81,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
         sections={VENDEDOR_SECTIONS}
         activeFeatures={features}
         brandLabel="Painel do Consultor"
-        extraPanel={pathname === "/vendedor/publicar" ? <VendorPublishPanel /> : undefined}
+        extraPanel={pathname === "/consultor/publicar" ? <VendorPublishPanel /> : undefined}
       />
       <div className="ml-[220px] flex min-h-dvh flex-1 flex-col overflow-x-hidden pb-10">
         <main className="flex flex-1 flex-col gap-5 p-6">{children}</main>

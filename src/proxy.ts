@@ -30,7 +30,7 @@ const ADM_ROUTES = [
 ];
 const CLIENTE_PREFIX = "/cliente";
 const UNIDADE_PREFIX = "/unidade";
-const VENDEDOR_PREFIX = "/vendedor";
+const VENDEDOR_PREFIX = "/consultor";
 
 function matchesAny(pathname: string, list: string[]): boolean {
   return list.some(p => pathname === p || pathname.startsWith(p + "/"));
@@ -45,7 +45,7 @@ function homeForRole(role: string | null): string {
     case "adm": return "/inicio";
     case "cliente": return "/cliente/inicio";
     case "unidade": return "/unidade/inicio";
-    case "vendedor": return "/vendedor/inicio";
+    case "vendedor": return "/consultor/inicio";
     default: return "/login";
   }
 }

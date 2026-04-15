@@ -119,7 +119,7 @@ export default function VendedorTemplatesPage() {
   }, [templates, filterType, filterFormat, search]);
 
   const useTemplate = (id: string) => {
-    router.push(`/vendedor/publicar?template=${id}`);
+    router.push(`/consultor/publicar?template=${id}`);
   };
 
   /* ── Render ────────────────────────────────────── */

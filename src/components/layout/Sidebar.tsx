@@ -289,9 +289,9 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
   {
     title: "Minhas atividades",
     items: [
-      { label: "Início", href: "/vendedor/inicio", icon: I.home },
-      { label: "Templates", href: "/vendedor/templates", icon: I.templates, feature: "templates" },
-      { label: "Calendário", href: "/vendedor/calendario", icon: I.calendar },
+      { label: "Início", href: "/consultor/inicio", icon: I.home },
+      { label: "Templates", href: "/consultor/templates", icon: I.templates, feature: "templates" },
+      { label: "Calendário", href: "/consultor/calendario", icon: I.calendar },
     ],
   },
 ];

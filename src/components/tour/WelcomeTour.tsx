@@ -31,22 +31,22 @@ const VENDEDOR_STEPS: TourStep[] = [
   {
     title: "Publicar",
     description: "Aqui você cria e publica suas artes. Escolha um template, preencha os dados e publique no Instagram com um clique.",
-    targetSelector: 'a[href="/vendedor/publicar"]',
+    targetSelector: 'a[href="/consultor/publicar"]',
   },
   {
     title: "Calendário",
     description: "Acompanhe feriados e datas importantes para o turismo. Planeje suas campanhas com antecedência.",
-    targetSelector: 'a[href="/vendedor/calendario"]',
+    targetSelector: 'a[href="/consultor/calendario"]',
   },
   {
     title: "Lembretes",
     description: "Anote lembretes de clientes para não perder nenhuma venda. Marque follow-ups e combine com o calendário.",
-    targetSelector: 'a[href="/vendedor/lembretes"]',
+    targetSelector: 'a[href="/consultor/lembretes"]',
   },
   {
     title: "Seu painel",
     description: "O dashboard mostra tudo que você precisa saber hoje: atividades, metas e próximos lembretes.",
-    targetSelector: 'a[href="/vendedor/inicio"]',
+    targetSelector: 'a[href="/consultor/inicio"]',
   },
 ];
 

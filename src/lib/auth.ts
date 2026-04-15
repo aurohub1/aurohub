@@ -138,7 +138,7 @@ export function homeForRole(role: Role | string | null): string {
     case "cliente": return "/cliente/inicio";
     case "unidade": return "/unidade/inicio";
     case "gerente": return "/gerente/inicio";
-    case "vendedor": return "/vendedor/inicio";
+    case "vendedor": return "/consultor/inicio";
     default: return "/login";
   }
 }
