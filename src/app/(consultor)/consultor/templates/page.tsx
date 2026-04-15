@@ -85,7 +85,7 @@ export default function VendedorTemplatesPage() {
           const formType = parsed.formType || parsed.schema?.formType || "pacote";
           const format = parsed.format || parsed.schema?.format || "stories";
           const bgColor = parsed.bgColor || parsed.background || parsed.schema?.background || "#1E3A6E";
-          const thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null;
+          const thumbnail = parsed.thumbnail || null;
           rows.push({
             key: r.key,
             id: r.key.replace(/^tmpl_/, ""),
@@ -275,16 +275,11 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
         ) : (
           <div
             className="flex h-full w-full items-center justify-center"
-            style={{
-              background: `linear-gradient(135deg, ${tMeta.color}cc, ${tpl.bgColor})`,
-            }}
+            style={{ background: "#1E3A6E" }}
           >
-            <div className="flex flex-col items-center gap-1 text-white/90">
-              <FileText size={28} strokeWidth={1.5} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em]">
-                {tMeta.label}
-              </span>
-            </div>
+            <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/85">
+              {(tpl.format || "—").toUpperCase()}
+            </span>
           </div>
         )}
 

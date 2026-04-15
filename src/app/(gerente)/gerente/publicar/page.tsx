@@ -197,7 +197,7 @@ export default function GerentePublicarPage() {
             duration: parsed.duration || 5,
             qtdDestinos: parsed.qtdDestinos,
           },
-          thumbnail: parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null,
+          thumbnail: parsed.thumbnail || null,
         });
       } catch { /* skip */ }
     }
@@ -688,9 +688,9 @@ function TemplateThumb({ thumb, label, nome }: { thumb: string | null; label: st
       ) : (
         <div
           className="flex h-full w-full items-center justify-center"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}
+          style={{ background: "#1E3A6E" }}
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-white/80">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-white/85">
             {label}
           </div>
         </div>
