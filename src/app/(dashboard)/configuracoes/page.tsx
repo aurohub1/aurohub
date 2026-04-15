@@ -343,6 +343,15 @@ export default function ConfiguracoesPage() {
                 <div className="flex flex-col gap-5">
                   <SectionTitle title="Splash ADM" desc="Animação de entrada exibida no login do ADM raiz. Valores salvos em system_config." />
 
+                  {/* Link pro editor completo */}
+                  <a
+                    href="/configuracoes/splash-adm"
+                    className="flex items-center justify-between rounded-xl border border-[var(--orange3)] bg-[var(--orange3)] px-5 py-3 text-[13px] font-semibold text-[var(--orange)] transition-opacity hover:opacity-90"
+                  >
+                    <span>✨ Abrir editor completo (aurovista_adm + 8 sliders + som)</span>
+                    <span>→</span>
+                  </a>
+
                   {/* Preview */}
                   <div>
                     <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Preview</label>

@@ -115,6 +115,8 @@ export default function LoginPage() {
     logoUrl?: string; effect?: string; logoOrientation?: string;
     cor1?: string; cor2?: string; cor3?: string; cor4?: string; cor5?: string; corFundo?: string;
     velocidade?: number; suavidade?: number; somUrl?: string;
+    quantidade?: number; tamanho?: number; raioOrbital?: number;
+    nebulosa?: number; opacidade?: number; dispersao?: number; velocidadeTexto?: number;
   } | null>(null);
 
   useParticles(canvasRef);
@@ -199,22 +201,18 @@ export default function LoginPage() {
         let splashConfig: Record<string, string | number | undefined> | null = null;
 
         if (role === "adm") {
-          const admKeys = [
-            "adm_splash_effect",
-            "adm_splash_cor1",
-            "adm_splash_cor2",
-            "adm_splash_cor3",
-            "adm_splash_cor_fundo",
-            "adm_splash_logo",
-          ];
           const { data: cfgRows } = await supabase
             .from("system_config")
             .select("key,value")
-            .in("key", admKeys);
+            .like("key", "adm_splash_%");
           const cfg: Record<string, string> = {};
           for (const r of (cfgRows ?? []) as { key: string; value: string }[]) {
             cfg[r.key] = r.value;
           }
+          const num = (k: string, def: number): number => {
+            const v = Number(cfg[k]);
+            return Number.isFinite(v) && v > 0 ? v : def;
+          };
           if (cfg.adm_splash_effect) {
             splashConfig = {
               logoUrl: cfg.adm_splash_logo || undefined,
@@ -223,7 +221,19 @@ export default function LoginPage() {
               cor1: cfg.adm_splash_cor1 || "var(--orange)",
               cor2: cfg.adm_splash_cor2 || "#D4A843",
               cor3: cfg.adm_splash_cor3 || "#1E3A6E",
+              cor4: cfg.adm_splash_cor4 || "#3B82F6",
+              cor5: cfg.adm_splash_cor5 || "#F472B6",
               corFundo: cfg.adm_splash_cor_fundo || "#0E1520",
+              velocidade: num("adm_splash_velocidade", 5),
+              suavidade: num("adm_splash_suavidade", 7),
+              somUrl: cfg.adm_splash_som || undefined,
+              quantidade: num("adm_splash_quantidade", 5),
+              tamanho: num("adm_splash_tamanho", 5),
+              raioOrbital: num("adm_splash_raio_orbital", 5),
+              nebulosa: num("adm_splash_nebulosa", 6),
+              opacidade: num("adm_splash_opacidade", 8),
+              dispersao: num("adm_splash_dispersao", 4),
+              velocidadeTexto: num("adm_splash_velocidade_texto", 5),
             };
           }
         } else if (profile?.licensee_id) {
@@ -302,6 +312,13 @@ export default function LoginPage() {
         velocidade={splash.velocidade}
         suavidade={splash.suavidade}
         somUrl={splash.somUrl}
+        quantidade={splash.quantidade}
+        tamanho={splash.tamanho}
+        raioOrbital={splash.raioOrbital}
+        nebulosa={splash.nebulosa}
+        opacidade={splash.opacidade}
+        dispersao={splash.dispersao}
+        velocidadeTexto={splash.velocidadeTexto}
         userName={splash.name}
         onDone={() => router.push(splash.home)}
       />

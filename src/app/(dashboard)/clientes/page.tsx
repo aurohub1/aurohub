@@ -734,6 +734,7 @@ export default function ClientesPage() {
                         <label className="block text-[10px] text-[var(--txt3)] mb-1">Efeito</label>
                         <select value={form.splash_effect || "random"} onChange={e => setForm(f => ({...f, splash_effect: e.target.value}))} className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11px] text-[var(--txt)] focus:outline-none focus:border-[#D4A843]">
                           <option value="random">🎲 Aleatório</option>
+                          <option value="aurovista_adm">✨ Aurovista ADM</option>
                           <option value="particles">Partículas</option>
                           <option value="cinematic">Cinemático</option>
                           <option value="slideup">Slide Up</option>

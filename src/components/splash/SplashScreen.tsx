@@ -8,7 +8,8 @@ export type SplashEffect =
   | "aurora_espacial" | "galaxia"
   | "vidro_janela" | "vidro_liquido"
   | "cidade_a" | "cidade_b" | "restaurante" | "saude"
-  | "moda" | "imobiliaria" | "educacao" | "beleza";
+  | "moda" | "imobiliaria" | "educacao" | "beleza"
+  | "aurovista_adm";
 
 interface Props {
   logoUrl: string;
@@ -30,6 +31,20 @@ interface Props {
   suavidade?: number;
   /** URL do áudio para tocar durante o splash. */
   somUrl?: string;
+  /** aurovista_adm: quantidade de partículas orbitando (1-10, default 5). */
+  quantidade?: number;
+  /** aurovista_adm: tamanho das partículas (1-10, default 5). */
+  tamanho?: number;
+  /** aurovista_adm: raio orbital base das partículas (1-10, default 5). */
+  raioOrbital?: number;
+  /** aurovista_adm: intensidade da nebulosa dourada (0-10, default 6). */
+  nebulosa?: number;
+  /** aurovista_adm: opacidade geral do efeito (1-10, default 8). */
+  opacidade?: number;
+  /** aurovista_adm: dispersão/jitter das órbitas (0-10, default 4). */
+  dispersao?: number;
+  /** aurovista_adm: velocidade do typewriter (1-10, default 5). */
+  velocidadeTexto?: number;
 }
 
 const EFFECTS: SplashEffect[] = [
@@ -40,6 +55,7 @@ const EFFECTS: SplashEffect[] = [
   "vidro_janela","vidro_liquido",
   "cidade_a","cidade_b","restaurante","saude",
   "moda","imobiliaria","educacao","beleza",
+  "aurovista_adm",
 ];
 
 export default function SplashScreen({
@@ -47,6 +63,8 @@ export default function SplashScreen({
   effect = "random", cor1 = "#FF7A1A", cor2 = "#D4A843", cor3 = "#1E3A6E",
   cor4, cor5, corFundo = "#0E1520", userName, onDone,
   embedded, velocidade = 5, suavidade = 7, somUrl,
+  quantidade = 5, tamanho = 5, raioOrbital = 5, nebulosa = 6,
+  opacidade = 8, dispersao = 4, velocidadeTexto = 5,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -1202,6 +1220,75 @@ export default function SplashScreen({
           break;
         }
 
+        case "aurovista_adm": {
+          const cols = [c1, c2, c3, c4, c5];
+          const cx = W / 2, cy = H / 2;
+          const globalAlpha = Math.max(0.1, Math.min(1, opacidade / 10));
+          const baseR = (H * 0.22) * (raioOrbital / 5);
+          const particleCount = Math.round(30 + (quantidade / 10) * 170);
+          const particleSize = 0.6 + (tamanho / 10) * 3.4;
+          const jitter = (dispersao / 10) * baseR * 0.35;
+
+          // Nebulosa dourada pulsante (centralizada atrás do logo)
+          const pulse = 0.5 + 0.5 * Math.sin(t * 1.3);
+          const nebAlpha = (nebulosa / 10) * 0.55 * globalAlpha;
+          const nebR = H * 0.55 * (0.85 + pulse * 0.25);
+          const neb = ctx.createRadialGradient(cx, cy, 0, cx, cy, nebR);
+          neb.addColorStop(0, `rgba(${c2.r},${c2.g},${c2.b},${nebAlpha})`);
+          neb.addColorStop(0.35, `rgba(${c2.r},${c2.g},${c2.b},${nebAlpha * 0.55})`);
+          neb.addColorStop(0.7, `rgba(${c3.r},${c3.g},${c3.b},${nebAlpha * 0.2})`);
+          neb.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = neb;
+          ctx.fillRect(0, 0, W, H);
+
+          // Partículas em 5 cores orbitando
+          ctx.globalAlpha = globalAlpha;
+          for (let i = 0; i < particleCount; i++) {
+            const orbitIdx = i % 5;
+            const orbit = baseR * (0.55 + orbitIdx * 0.25);
+            const angle = (i / particleCount) * Math.PI * 2 + t * (0.5 + orbitIdx * 0.12);
+            const jx = Math.sin(i * 1.7 + t * 0.9) * jitter;
+            const jy = Math.cos(i * 2.3 + t * 0.7) * jitter;
+            const x = cx + Math.cos(angle) * orbit + jx;
+            const y = cy + Math.sin(angle) * orbit * 0.7 + jy;
+            const col = cols[i % cols.length];
+            const twinkle = 0.6 + 0.4 * Math.sin(i * 0.5 + t * 2);
+            const size = particleSize * (0.7 + twinkle * 0.6);
+            const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 4);
+            glow.addColorStop(0, `rgba(${col.r},${col.g},${col.b},${0.9 * twinkle})`);
+            glow.addColorStop(0.4, `rgba(${col.r},${col.g},${col.b},${0.35 * twinkle})`);
+            glow.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(x, y, size * 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+
+          // Typewriter do nome (sob o logo)
+          if (userName) {
+            const typeSpeed = 0.5 + (velocidadeTexto / 10) * 2.5; // chars/s: ~0.8 lento, ~3 rápido
+            const greet = getGreeting();
+            const fullText = `${greet}, ${userName}!`;
+            const loop = embedded ? (fullText.length / typeSpeed) + 2 : Infinity;
+            const phase = embedded ? (t % loop) : t;
+            const chars = Math.min(fullText.length, Math.floor(phase * typeSpeed));
+            const text = fullText.slice(0, chars);
+            const showCursor = Math.floor(t * 2) % 2 === 0;
+            ctx.save();
+            ctx.font = `500 ${Math.max(14, Math.round(H * 0.045))}px 'Helvetica Neue', Arial, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = `rgba(255,255,255,${0.9 * globalAlpha})`;
+            ctx.shadowColor = `rgba(${c2.r},${c2.g},${c2.b},0.5)`;
+            ctx.shadowBlur = 14;
+            const ty = cy + H * 0.22;
+            ctx.fillText(text + (showCursor && chars < fullText.length ? "▍" : ""), cx, ty);
+            ctx.restore();
+          }
+          break;
+        }
+
         default: {
           const g=ctx.createLinearGradient(0,0,W,H);
           g.addColorStop(0,`rgba(${c3.r},${c3.g},${c3.b},0.3)`);
@@ -1224,7 +1311,7 @@ export default function SplashScreen({
       clearTimeout(greetOutTimer);
       clearTimeout(doneTimer);
     };
-  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo, velocidade, suavidade]);
+  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo, velocidade, suavidade, quantidade, tamanho, raioOrbital, nebulosa, opacidade, dispersao, velocidadeTexto, userName, embedded]);
 
   const logoDims = {
     horizontal: { width: 220, height: 80 },
@@ -1248,7 +1335,7 @@ export default function SplashScreen({
             transform: logoVisible ? "scale(1)" : "scale(0.85)",
             transition: "opacity 0.5s ease, transform 0.5s ease",
           }} />
-        {userName && (
+        {userName && activeEffect !== "aurovista_adm" && (
           <p style={{
             position: "absolute",
             opacity: greetVisible ? 1 : 0,
