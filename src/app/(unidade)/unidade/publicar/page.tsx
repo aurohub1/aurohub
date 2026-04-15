@@ -197,11 +197,7 @@ export default function UnidadePublicarPage() {
             duration: parsed.duration || 5,
             qtdDestinos: parsed.qtdDestinos,
           },
-          thumbnail: (parsed.thumbnail || parsed.image_url || parsed.thumb || parsed.schema?.thumbnail || parsed.schema?.image_url
-            || (schemaElements as Array<{ type?: string; src?: string }>).find((el) =>
-              el?.type === "image" && typeof el?.src === "string" && el.src.startsWith("http") && !el.src.toLowerCase().includes("placeholder")
-            )?.src
-            || null),
+          thumbnail: parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null,
         });
       } catch { /* skip */ }
     }
