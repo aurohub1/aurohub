@@ -375,6 +375,7 @@ export default function ConfiguracoesPage() {
                         config.adm_splash_velocidade, config.adm_splash_quantidade, config.adm_splash_tamanho,
                         config.adm_splash_raio_orbital, config.adm_splash_nebulosa, config.adm_splash_opacidade,
                         config.adm_splash_dispersao, config.adm_splash_velocidade_texto,
+                        config.adm_splash_texto_glow, config.adm_splash_texto_glow_intensidade,
                       ])}`}
                       logoUrl={config.adm_splash_logo || ""}
                       effect="aurovista_adm"
@@ -392,6 +393,8 @@ export default function ConfiguracoesPage() {
                       opacidade={getNum("adm_splash_opacidade", 8)}
                       dispersao={getNum("adm_splash_dispersao", 4)}
                       velocidadeTexto={getNum("adm_splash_velocidade_texto", 5)}
+                      glowTexto={config.adm_splash_texto_glow !== "false"}
+                      glowIntensidade={getNum("adm_splash_texto_glow_intensidade", 5)}
                       userName="AUROVISTA"
                       textoEfeito="typewriter"
                       embedded={{ width: 1200, height: 514 }}
@@ -427,6 +430,27 @@ export default function ConfiguracoesPage() {
                         <Slider label="Opacidade" value={getNum("adm_splash_opacidade", 8)} onChange={(v) => set("adm_splash_opacidade", String(v))} />
                         <Slider label="Dispersão" value={getNum("adm_splash_dispersao", 4)} onChange={(v) => set("adm_splash_dispersao", String(v))} min={0} />
                         <Slider label="Velocidade texto" value={getNum("adm_splash_velocidade_texto", 5)} onChange={(v) => set("adm_splash_velocidade_texto", String(v))} />
+
+                        {/* Glow no texto */}
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[11px] text-[var(--txt3)]">Glow no texto</span>
+                          <button
+                            type="button"
+                            onClick={() => set("adm_splash_texto_glow", config.adm_splash_texto_glow === "false" ? "true" : "false")}
+                            className="relative h-5 w-9 rounded-full transition-colors"
+                            style={{ background: config.adm_splash_texto_glow === "false" ? "var(--bg3)" : "var(--orange)" }}
+                            aria-pressed={config.adm_splash_texto_glow !== "false"}
+                          >
+                            <span
+                              className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all"
+                              style={{ left: config.adm_splash_texto_glow === "false" ? "2px" : "18px" }}
+                            />
+                          </button>
+                        </div>
+
+                        {config.adm_splash_texto_glow !== "false" && (
+                          <Slider label="Intensidade do glow" value={getNum("adm_splash_texto_glow_intensidade", 5)} onChange={(v) => set("adm_splash_texto_glow_intensidade", String(v))} />
+                        )}
                       </div>
                     </div>
                   </div>

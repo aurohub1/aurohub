@@ -47,6 +47,10 @@ interface Props {
   velocidadeTexto?: number;
   /** aurovista_adm: efeito do texto. */
   textoEfeito?: TextoEfeito;
+  /** aurovista_adm: glow no texto (drop-shadow). Default true. */
+  glowTexto?: boolean;
+  /** aurovista_adm: intensidade do glow 1-10 (default 5 ≈ shadowBlur 14px). */
+  glowIntensidade?: number;
 }
 
 export type TextoEfeito = "typewriter" | "fadein" | "slideup" | "glitch" | "reveal" | "blurtosharp" | "scalein";
@@ -71,6 +75,7 @@ export default function SplashScreen({
   quantidade = 5, tamanho = 5, raioOrbital = 5, nebulosa = 6,
   opacidade = 8, dispersao = 4, velocidadeTexto = 5,
   textoEfeito = "typewriter",
+  glowTexto = true, glowIntensidade = 5,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -1312,8 +1317,13 @@ export default function SplashScreen({
             ctx.font = `500 ${fontSize}px 'Helvetica Neue', Arial, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.shadowColor = `rgba(${c2.r},${c2.g},${c2.b},0.5)`;
-            ctx.shadowBlur = 14;
+            if (glowTexto) {
+              ctx.shadowColor = `rgba(${c2.r},${c2.g},${c2.b},0.5)`;
+              ctx.shadowBlur = 4 + (glowIntensidade / 10) * 24; // 1→6.4px, 5→16px, 10→28px
+            } else {
+              ctx.shadowColor = "rgba(0,0,0,0)";
+              ctx.shadowBlur = 0;
+            }
             const baseAlpha = 0.9;
 
             switch (textoEfeito) {
@@ -1425,7 +1435,7 @@ export default function SplashScreen({
       clearTimeout(greetOutTimer);
       clearTimeout(doneTimer);
     };
-  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo, velocidade, suavidade, quantidade, tamanho, raioOrbital, nebulosa, opacidade, dispersao, velocidadeTexto, textoEfeito, userName, embedded]);
+  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo, velocidade, suavidade, quantidade, tamanho, raioOrbital, nebulosa, opacidade, dispersao, velocidadeTexto, textoEfeito, glowTexto, glowIntensidade, userName, embedded]);
 
   const logoDims = {
     horizontal: { width: 220, height: 80 },

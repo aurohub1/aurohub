@@ -118,6 +118,7 @@ export default function LoginPage() {
     quantidade?: number; tamanho?: number; raioOrbital?: number;
     nebulosa?: number; opacidade?: number; dispersao?: number; velocidadeTexto?: number;
     textoEfeito?: string;
+    glowTexto?: boolean; glowIntensidade?: number;
   } | null>(null);
 
   useParticles(canvasRef);
@@ -199,7 +200,7 @@ export default function LoginPage() {
           return;
         }
 
-        let splashConfig: Record<string, string | number | undefined> | null = null;
+        let splashConfig: Record<string, string | number | boolean | undefined> | null = null;
 
         if (role === "adm") {
           const { data: cfgRows } = await supabase
@@ -236,6 +237,8 @@ export default function LoginPage() {
               dispersao: num("adm_splash_dispersao", 4),
               velocidadeTexto: num("adm_splash_velocidade_texto", 5),
               textoEfeito: cfg.adm_splash_texto_efeito || "typewriter",
+              glowTexto: cfg.adm_splash_texto_glow !== "false",
+              glowIntensidade: num("adm_splash_texto_glow_intensidade", 5),
             };
           }
         } else if (profile?.licensee_id) {
@@ -322,6 +325,8 @@ export default function LoginPage() {
         dispersao={splash.dispersao}
         velocidadeTexto={splash.velocidadeTexto}
         textoEfeito={splash.textoEfeito as TextoEfeito | undefined}
+        glowTexto={splash.glowTexto}
+        glowIntensidade={splash.glowIntensidade}
         userName={splash.name}
         onDone={() => router.push(splash.home)}
       />
