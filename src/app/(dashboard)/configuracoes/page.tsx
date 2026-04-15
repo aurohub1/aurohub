@@ -3,12 +3,13 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import SplashScreen, { type SplashEffect } from "@/components/splash/SplashScreen";
 
 /* ── Types ───────────────────────────────────────── */
 
 type ConfigMap = Record<string, string>;
 
-type SectionKey = "geral" | "auth" | "integ" | "limites" | "sistema";
+type SectionKey = "geral" | "auth" | "integ" | "limites" | "splash" | "sistema";
 
 const SECTIONS: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
   {
@@ -26,6 +27,10 @@ const SECTIONS: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
   {
     key: "limites", label: "Limites globais",
     icon: <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><path d="M2 14l4-4 4 4 4-6 4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+  },
+  {
+    key: "splash", label: "Splash ADM",
+    icon: <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><path d="M10 2l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>,
   },
   {
     key: "sistema", label: "Sistema",
@@ -58,6 +63,7 @@ export default function ConfiguracoesPage() {
   const [mpTesting, setMpTesting] = useState(false);
   const [mpTestResult, setMpTestResult] = useState<"ok" | "fail" | null>(null);
   const logoRef = useRef<HTMLInputElement>(null);
+  const admSplashLogoRef = useRef<HTMLInputElement>(null);
 
   /* ── Load ──────────────────────────────────────── */
 
@@ -122,6 +128,20 @@ export default function ConfiguracoesPage() {
       set("logo_url", url);
     } catch (err) {
       console.error("[Logo upload]", err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleAdmSplashLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadToCloudinary(file, "aurohubv2/splash");
+      set("adm_splash_logo", url);
+    } catch (err) {
+      console.error("[ADM Splash logo upload]", err);
     } finally {
       setUploading(false);
     }
@@ -318,6 +338,95 @@ export default function ConfiguracoesPage() {
                 </div>
               )}
 
+              {/* ── SPLASH ADM ──────────────────────── */}
+              {activeSection === "splash" && (
+                <div className="flex flex-col gap-5">
+                  <SectionTitle title="Splash ADM" desc="Animação de entrada exibida no login do ADM raiz. Valores salvos em system_config." />
+
+                  {/* Preview */}
+                  <div>
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Preview</label>
+                    <div className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ width: "100%", maxWidth: 480, height: 240 }}>
+                      <SplashScreen
+                        key={`adm-${config.adm_splash_effect}-${config.adm_splash_cor1}-${config.adm_splash_cor2}-${config.adm_splash_cor3}-${config.adm_splash_cor_fundo}-${config.adm_splash_logo}`}
+                        logoUrl={config.adm_splash_logo || ""}
+                        effect={(config.adm_splash_effect as SplashEffect) || "random"}
+                        cor1={config.adm_splash_cor1 || "#FF7A1A"}
+                        cor2={config.adm_splash_cor2 || "#D4A843"}
+                        cor3={config.adm_splash_cor3 || "#1E3A6E"}
+                        corFundo={config.adm_splash_cor_fundo || "#0E1520"}
+                        embedded={{ width: 480, height: 240 }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Efeito */}
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Efeito</label>
+                    <select
+                      value={config.adm_splash_effect ?? "random"}
+                      onChange={(e) => set("adm_splash_effect", e.target.value)}
+                      className="h-9 w-full max-w-[300px] rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none"
+                    >
+                      <option value="random">🎲 Aleatório</option>
+                      <option value="particles">Partículas</option>
+                      <option value="cinematic">Cinemático</option>
+                      <option value="slideup">Slide Up</option>
+                      <option value="scalefade">Scale Fade</option>
+                      <option value="fadesuave">Fade Suave</option>
+                      <option value="ondas">Ondas</option>
+                      <option value="flutuacao">Flutuação</option>
+                      <option value="scanner">Scanner</option>
+                      <option value="holofote">Holofote</option>
+                      <option value="chuvapontos">Chuva de Pontos</option>
+                      <option value="gradiente">Gradiente</option>
+                      <option value="dissolve">Dissolve</option>
+                      <option value="bigbang">Big Bang</option>
+                      <option value="aurora">Aurora Boreal</option>
+                      <option value="tinta">Tinta</option>
+                      <option value="vagalumes">Vagalumes</option>
+                      <option value="aurora_espacial">Aurora Espacial</option>
+                      <option value="galaxia">🌀 Galáxia</option>
+                      <option value="vidro_janela">🪟 Vidro Janela</option>
+                      <option value="vidro_liquido">💧 Vidro Líquido</option>
+                    </select>
+                  </div>
+
+                  {/* Cores */}
+                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <ColorField label="Cor 1 (primária)" value={config.adm_splash_cor1 ?? "#FF7A1A"} onChange={(v) => set("adm_splash_cor1", v)} />
+                    <ColorField label="Cor 2 (secundária)" value={config.adm_splash_cor2 ?? "#D4A843"} onChange={(v) => set("adm_splash_cor2", v)} />
+                    <ColorField label="Cor 3 (acento)" value={config.adm_splash_cor3 ?? "#1E3A6E"} onChange={(v) => set("adm_splash_cor3", v)} />
+                    <ColorField label="Cor fundo" value={config.adm_splash_cor_fundo ?? "#0E1520"} onChange={(v) => set("adm_splash_cor_fundo", v)} />
+                  </div>
+
+                  {/* Logo */}
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Logo da splash</label>
+                    <div className="flex items-center gap-4">
+                      {config.adm_splash_logo ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={config.adm_splash_logo} alt="Logo splash" className="h-14 w-14 shrink-0 rounded-xl object-contain border border-[var(--bdr)] bg-[var(--bg2)]" />
+                      ) : (
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--bg3)] text-[18px] font-bold text-[var(--txt2)]">A</div>
+                      )}
+                      <div className="flex flex-1 flex-col gap-1.5">
+                        <input ref={admSplashLogoRef} type="file" accept="image/*" onChange={handleAdmSplashLogoUpload} className="hidden" />
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => admSplashLogoRef.current?.click()} disabled={uploading} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
+                            {uploading ? "Enviando..." : "Upload logo"}
+                          </button>
+                          {config.adm_splash_logo && (
+                            <button type="button" onClick={() => set("adm_splash_logo", "")} className="text-[11px] text-[var(--red)] hover:underline">Remover</button>
+                          )}
+                        </div>
+                        <input type="text" value={config.adm_splash_logo ?? ""} onChange={(e) => set("adm_splash_logo", e.target.value)} placeholder="ou cole URL" className="h-7 w-full rounded border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* ── SISTEMA ─────────────────────────── */}
               {activeSection === "sistema" && (
                 <div className="flex flex-col gap-5">
@@ -348,6 +457,28 @@ export default function ConfiguracoesPage() {
 }
 
 /* ── Sub-components ──────────────────────────────── */
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-10 shrink-0 cursor-pointer rounded-lg border border-[var(--bdr)] bg-transparent"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 min-w-0 flex-1 rounded-lg border border-[var(--bdr)] bg-transparent px-2 font-mono text-[12px] text-[var(--txt)] outline-none"
+        />
+      </div>
+    </div>
+  );
+}
 
 function SectionTitle({ title, desc }: { title: string; desc: string }) {
   return (
