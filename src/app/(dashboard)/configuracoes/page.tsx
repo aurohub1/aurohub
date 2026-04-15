@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
-import SplashScreen, { type SplashEffect } from "@/components/splash/SplashScreen";
+import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/splash/SplashScreen";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -64,6 +64,8 @@ export default function ConfiguracoesPage() {
   const [mpTestResult, setMpTestResult] = useState<"ok" | "fail" | null>(null);
   const logoRef = useRef<HTMLInputElement>(null);
   const admSplashLogoRef = useRef<HTMLInputElement>(null);
+  const admSplashSomRef = useRef<HTMLInputElement>(null);
+  const [uploadingSom, setUploadingSom] = useState(false);
 
   /* ── Load ──────────────────────────────────────── */
 
@@ -145,6 +147,25 @@ export default function ConfiguracoesPage() {
     } finally {
       setUploading(false);
     }
+  }
+
+  async function handleAdmSplashSomUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingSom(true);
+    try {
+      const url = await uploadToCloudinary(file, "aurohubv2/splash-som");
+      set("adm_splash_som", url);
+    } catch (err) {
+      console.error("[ADM Splash som upload]", err);
+    } finally {
+      setUploadingSom(false);
+    }
+  }
+
+  function getNum(key: string, def: number): number {
+    const v = Number(config[key]);
+    return Number.isFinite(v) && v > 0 ? v : def;
   }
 
   /* ── MP test ───────────────────────────────────── */
@@ -341,72 +362,111 @@ export default function ConfiguracoesPage() {
               {/* ── SPLASH ADM ──────────────────────── */}
               {activeSection === "splash" && (
                 <div className="flex flex-col gap-5">
-                  <SectionTitle title="Splash ADM" desc="Animação de entrada exibida no login do ADM raiz. Valores salvos em system_config." />
+                  <SectionTitle title="Splash ADM" desc="Animação de entrada do login do ADM raiz. Valores salvos em system_config (adm_splash_*)." />
 
-                  {/* Link pro editor completo */}
-                  <a
-                    href="/configuracoes/splash-adm"
-                    className="flex items-center justify-between rounded-xl border border-[var(--orange3)] bg-[var(--orange3)] px-5 py-3 text-[13px] font-semibold text-[var(--orange)] transition-opacity hover:opacity-90"
-                  >
-                    <span>✨ Abrir editor completo (aurovista_adm + 8 sliders + som)</span>
-                    <span>→</span>
-                  </a>
-
-                  {/* Preview */}
+                  {/* Preview ao vivo */}
                   <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Preview</label>
-                    <div className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ width: "100%", maxWidth: 480, height: 240 }}>
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Preview ao vivo</label>
+                    <div className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ width: "100%", maxWidth: 560, height: 300 }}>
                       <SplashScreen
-                        key={`adm-${config.adm_splash_effect}-${config.adm_splash_cor1}-${config.adm_splash_cor2}-${config.adm_splash_cor3}-${config.adm_splash_cor_fundo}-${config.adm_splash_logo}`}
+                        key={`adm-${JSON.stringify([
+                          config.adm_splash_effect, config.adm_splash_texto_efeito, config.adm_splash_logo,
+                          config.adm_splash_cor1, config.adm_splash_cor2, config.adm_splash_cor3,
+                          config.adm_splash_cor4, config.adm_splash_cor5, config.adm_splash_cor_fundo,
+                          config.adm_splash_velocidade, config.adm_splash_quantidade, config.adm_splash_tamanho,
+                          config.adm_splash_raio_orbital, config.adm_splash_nebulosa, config.adm_splash_opacidade,
+                          config.adm_splash_dispersao, config.adm_splash_velocidade_texto,
+                        ])}`}
                         logoUrl={config.adm_splash_logo || ""}
-                        effect={(config.adm_splash_effect as SplashEffect) || "random"}
+                        effect={(config.adm_splash_effect as SplashEffect) || "aurovista_adm"}
                         cor1={config.adm_splash_cor1 || "#FF7A1A"}
                         cor2={config.adm_splash_cor2 || "#D4A843"}
                         cor3={config.adm_splash_cor3 || "#1E3A6E"}
+                        cor4={config.adm_splash_cor4 || "#3B82F6"}
+                        cor5={config.adm_splash_cor5 || "#F472B6"}
                         corFundo={config.adm_splash_cor_fundo || "#0E1520"}
-                        embedded={{ width: 480, height: 240 }}
+                        velocidade={getNum("adm_splash_velocidade", 5)}
+                        quantidade={getNum("adm_splash_quantidade", 5)}
+                        tamanho={getNum("adm_splash_tamanho", 5)}
+                        raioOrbital={getNum("adm_splash_raio_orbital", 5)}
+                        nebulosa={getNum("adm_splash_nebulosa", 6)}
+                        opacidade={getNum("adm_splash_opacidade", 8)}
+                        dispersao={getNum("adm_splash_dispersao", 4)}
+                        velocidadeTexto={getNum("adm_splash_velocidade_texto", 5)}
+                        textoEfeito={(config.adm_splash_texto_efeito as TextoEfeito) || "typewriter"}
+                        userName="Duane"
+                        embedded={{ width: 560, height: 300 }}
                       />
                     </div>
                   </div>
 
                   {/* Efeito */}
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Efeito</label>
-                    <select
-                      value={config.adm_splash_effect ?? "random"}
-                      onChange={(e) => set("adm_splash_effect", e.target.value)}
-                      className="h-9 w-full max-w-[300px] rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none"
-                    >
-                      <option value="random">🎲 Aleatório</option>
-                      <option value="particles">Partículas</option>
-                      <option value="cinematic">Cinemático</option>
-                      <option value="slideup">Slide Up</option>
-                      <option value="scalefade">Scale Fade</option>
-                      <option value="fadesuave">Fade Suave</option>
-                      <option value="ondas">Ondas</option>
-                      <option value="flutuacao">Flutuação</option>
-                      <option value="scanner">Scanner</option>
-                      <option value="holofote">Holofote</option>
-                      <option value="chuvapontos">Chuva de Pontos</option>
-                      <option value="gradiente">Gradiente</option>
-                      <option value="dissolve">Dissolve</option>
-                      <option value="bigbang">Big Bang</option>
-                      <option value="aurora">Aurora Boreal</option>
-                      <option value="tinta">Tinta</option>
-                      <option value="vagalumes">Vagalumes</option>
-                      <option value="aurora_espacial">Aurora Espacial</option>
-                      <option value="galaxia">🌀 Galáxia</option>
-                      <option value="vidro_janela">🪟 Vidro Janela</option>
-                      <option value="vidro_liquido">💧 Vidro Líquido</option>
-                    </select>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Efeito visual</label>
+                      <select
+                        value={config.adm_splash_effect ?? "aurovista_adm"}
+                        onChange={(e) => set("adm_splash_effect", e.target.value)}
+                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none"
+                      >
+                        <option value="aurovista_adm">✨ Aurovista ADM (exclusivo)</option>
+                        <option value="particles">Partículas</option>
+                        <option value="cinematic">Cinemático</option>
+                        <option value="scalefade">Scale Fade</option>
+                        <option value="fadesuave">Fade Suave</option>
+                        <option value="aurora">Aurora Boreal</option>
+                        <option value="aurora_espacial">Aurora Espacial</option>
+                        <option value="galaxia">🌀 Galáxia</option>
+                        <option value="vagalumes">Vagalumes</option>
+                        <option value="holofote">Holofote</option>
+                        <option value="bigbang">Big Bang</option>
+                        <option value="vidro_liquido">💧 Vidro Líquido</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Efeito do texto</label>
+                      <select
+                        value={config.adm_splash_texto_efeito ?? "typewriter"}
+                        onChange={(e) => set("adm_splash_texto_efeito", e.target.value)}
+                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none"
+                      >
+                        <option value="typewriter">Typewriter (digitando)</option>
+                        <option value="fadein">Fade in</option>
+                        <option value="slideup">Slide up</option>
+                        <option value="glitch">Glitch</option>
+                        <option value="reveal">Reveal (cortina)</option>
+                        <option value="blurtosharp">Blur → Sharp</option>
+                        <option value="scalein">Scale in</option>
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Cores */}
-                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    <ColorField label="Cor 1 (primária)" value={config.adm_splash_cor1 ?? "#FF7A1A"} onChange={(v) => set("adm_splash_cor1", v)} />
-                    <ColorField label="Cor 2 (secundária)" value={config.adm_splash_cor2 ?? "#D4A843"} onChange={(v) => set("adm_splash_cor2", v)} />
-                    <ColorField label="Cor 3 (acento)" value={config.adm_splash_cor3 ?? "#1E3A6E"} onChange={(v) => set("adm_splash_cor3", v)} />
-                    <ColorField label="Cor fundo" value={config.adm_splash_cor_fundo ?? "#0E1520"} onChange={(v) => set("adm_splash_cor_fundo", v)} />
+                  {/* 5 Color pickers (quadrados clicáveis) + fundo */}
+                  <div>
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Paleta de cores</label>
+                    <div className="flex flex-wrap gap-3">
+                      <ColorSquare label="Cor 1" value={config.adm_splash_cor1 || "#FF7A1A"} onChange={(v) => set("adm_splash_cor1", v)} />
+                      <ColorSquare label="Cor 2" value={config.adm_splash_cor2 || "#D4A843"} onChange={(v) => set("adm_splash_cor2", v)} />
+                      <ColorSquare label="Cor 3" value={config.adm_splash_cor3 || "#1E3A6E"} onChange={(v) => set("adm_splash_cor3", v)} />
+                      <ColorSquare label="Cor 4" value={config.adm_splash_cor4 || "#3B82F6"} onChange={(v) => set("adm_splash_cor4", v)} />
+                      <ColorSquare label="Cor 5" value={config.adm_splash_cor5 || "#F472B6"} onChange={(v) => set("adm_splash_cor5", v)} />
+                      <ColorSquare label="Fundo" value={config.adm_splash_cor_fundo || "#0E1520"} onChange={(v) => set("adm_splash_cor_fundo", v)} />
+                    </div>
+                  </div>
+
+                  {/* 8 sliders */}
+                  <div>
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Parâmetros</label>
+                    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                      <Slider label="Velocidade" value={getNum("adm_splash_velocidade", 5)} onChange={(v) => set("adm_splash_velocidade", String(v))} />
+                      <Slider label="Quantidade" value={getNum("adm_splash_quantidade", 5)} onChange={(v) => set("adm_splash_quantidade", String(v))} />
+                      <Slider label="Tamanho" value={getNum("adm_splash_tamanho", 5)} onChange={(v) => set("adm_splash_tamanho", String(v))} />
+                      <Slider label="Raio orbital" value={getNum("adm_splash_raio_orbital", 5)} onChange={(v) => set("adm_splash_raio_orbital", String(v))} />
+                      <Slider label="Nebulosa" value={getNum("adm_splash_nebulosa", 6)} onChange={(v) => set("adm_splash_nebulosa", String(v))} min={0} />
+                      <Slider label="Opacidade" value={getNum("adm_splash_opacidade", 8)} onChange={(v) => set("adm_splash_opacidade", String(v))} />
+                      <Slider label="Dispersão" value={getNum("adm_splash_dispersao", 4)} onChange={(v) => set("adm_splash_dispersao", String(v))} min={0} />
+                      <Slider label="Veloc. texto" value={getNum("adm_splash_velocidade_texto", 5)} onChange={(v) => set("adm_splash_velocidade_texto", String(v))} />
+                    </div>
                   </div>
 
                   {/* Logo */}
@@ -431,6 +491,25 @@ export default function ConfiguracoesPage() {
                         </div>
                         <input type="text" value={config.adm_splash_logo ?? ""} onChange={(e) => set("adm_splash_logo", e.target.value)} placeholder="ou cole URL" className="h-7 w-full rounded border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none" />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Som */}
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Som da splash</label>
+                    <div className="flex items-center gap-3">
+                      {config.adm_splash_som ? (
+                        <audio src={config.adm_splash_som} controls className="h-10" />
+                      ) : (
+                        <div className="flex h-10 items-center justify-center rounded-lg bg-[var(--bg2)] px-3 text-[11px] text-[var(--txt3)]">Sem som</div>
+                      )}
+                      <input ref={admSplashSomRef} type="file" accept="audio/*" onChange={handleAdmSplashSomUpload} className="hidden" />
+                      <button type="button" onClick={() => admSplashSomRef.current?.click()} disabled={uploadingSom} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
+                        {uploadingSom ? "Enviando..." : "Upload som"}
+                      </button>
+                      {config.adm_splash_som && (
+                        <button type="button" onClick={() => set("adm_splash_som", "")} className="text-[11px] text-[var(--red)] hover:underline">Remover</button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -467,24 +546,26 @@ export default function ConfiguracoesPage() {
 
 /* ── Sub-components ──────────────────────────────── */
 
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function ColorSquare({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="flex cursor-pointer flex-col items-center gap-1.5">
+      <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-[var(--bdr)] shadow-inner" style={{ background: value }}>
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+      </div>
+      <span className="text-[10px] font-medium text-[var(--txt3)]">{label}</span>
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="h-6 w-20 rounded border border-[var(--bdr)] bg-transparent px-1.5 text-center font-mono text-[10px] text-[var(--txt2)] outline-none" />
+    </label>
+  );
+}
+
+function Slider({ label, value, onChange, min = 1, max = 10 }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number }) {
   return (
     <div>
-      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">{label}</label>
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-10 shrink-0 cursor-pointer rounded-lg border border-[var(--bdr)] bg-transparent"
-        />
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-[var(--bdr)] bg-transparent px-2 font-mono text-[12px] text-[var(--txt)] outline-none"
-        />
+      <div className="mb-1 flex items-center justify-between text-[11px]">
+        <span className="text-[var(--txt3)]">{label}</span>
+        <span className="font-mono text-[var(--txt2)]">{value}</span>
       </div>
+      <input type="range" min={min} max={max} step="1" value={value} onChange={(e) => onChange(parseInt(e.target.value))} className="w-full accent-[var(--orange)]" />
     </div>
   );
 }
