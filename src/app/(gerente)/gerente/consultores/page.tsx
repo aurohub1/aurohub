@@ -81,12 +81,14 @@ export default function GerenteConsultoresPage() {
       if (!p?.licensee_id) { setLoading(false); return; }
 
       // Consultores do licensee (gerente vê todos, não filtrado por store_id)
-      const { data: vData } = await supabase
+      const { data: vData, error: vErr } = await supabase
         .from("profiles")
         .select("id, name, email, role, status, licensee_id, store_id, created_at")
         .eq("licensee_id", p.licensee_id)
         .eq("role", "vendedor")
         .order("created_at", { ascending: false });
+      console.log("[GerenteConsultores] query params:", { licensee_id: p.licensee_id, role: "vendedor" });
+      console.log("[GerenteConsultores] result:", { rows: vData?.length ?? 0, data: vData, error: vErr });
       const list = (vData ?? []) as Vendor[];
       setVendors(list);
 
