@@ -33,6 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
+      suppressHydrationWarning
       className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} h-full antialiased`}
     >
       <head>

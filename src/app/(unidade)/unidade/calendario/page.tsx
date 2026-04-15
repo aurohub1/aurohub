@@ -105,7 +105,7 @@ export default function UnidadeCalendarioPage() {
 
       const { data: dcA } = await supabase
         .from("datas_comemorativas")
-        .select("id, nome, data_mes, data_dia, tipo, segment_id")
+        .select("id, nome, data_mes, data_dia, tipo")
         .in("data_mes", [mesA, mesB]);
 
       const all = ((dcA ?? []) as (DataComemorativa & { segment_id?: string | null })[]);
