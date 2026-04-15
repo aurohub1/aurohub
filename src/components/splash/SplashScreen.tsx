@@ -43,9 +43,14 @@ interface Props {
   opacidade?: number;
   /** aurovista_adm: dispersão/jitter das órbitas (0-10, default 4). */
   dispersao?: number;
-  /** aurovista_adm: velocidade do typewriter (1-10, default 5). */
+  /** aurovista_adm: velocidade do texto (1-10, default 5). */
   velocidadeTexto?: number;
+  /** aurovista_adm: efeito do texto. */
+  textoEfeito?: TextoEfeito;
 }
+
+export type TextoEfeito = "typewriter" | "fadein" | "slideup" | "glitch" | "reveal" | "blurtosharp" | "scalein";
+export const TEXTO_EFEITOS: TextoEfeito[] = ["typewriter", "fadein", "slideup", "glitch", "reveal", "blurtosharp", "scalein"];
 
 const EFFECTS: SplashEffect[] = [
   "particles","cinematic","slideup","scalefade","fadesuave",
@@ -65,6 +70,7 @@ export default function SplashScreen({
   embedded, velocidade = 5, suavidade = 7, somUrl,
   quantidade = 5, tamanho = 5, raioOrbital = 5, nebulosa = 6,
   opacidade = 8, dispersao = 4, velocidadeTexto = 5,
+  textoEfeito = "typewriter",
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -105,7 +111,8 @@ export default function SplashScreen({
     canvas.width = embedded ? embedded.width : window.innerWidth;
     canvas.height = embedded ? embedded.height : window.innerHeight;
     let animId: number;
-    let startTime = performance.now();
+    let lastFrame = performance.now();
+    let simTime = 0;
 
     // Helper
     const hex2rgb = (hex: string) => {
@@ -131,9 +138,16 @@ export default function SplashScreen({
     }, 6300);
 
     function draw(now: number) {
-      // velocidade: 1=0.3x (muito lento), 5=1x (normal), 10=2x (rápido)
+      // velocidade: 1=0.3x, 5=1x, 10=2x — delta time para consistência em telas 30/60/120/144Hz
       const speedFactor = 0.3 + (velocidade / 10) * 1.7;
-      const t = ((now - startTime) / 1000) * speedFactor;
+      const rawDt = (now - lastFrame) / 1000;
+      lastFrame = now;
+      // Evita saltos grandes (tab em bg) e pausa quando document.hidden
+      const dt = typeof document !== "undefined" && document.hidden
+        ? 0
+        : Math.min(0.1, rawDt);
+      simTime += dt * speedFactor;
+      const t = simTime;
       ctx.clearRect(0, 0, W, H);
 
       // Fundo
@@ -1265,25 +1279,108 @@ export default function SplashScreen({
           }
           ctx.globalAlpha = 1;
 
-          // Typewriter do nome (sob o logo)
+          // Texto (nome) com 7 efeitos
           if (userName) {
-            const typeSpeed = 0.5 + (velocidadeTexto / 10) * 2.5; // chars/s: ~0.8 lento, ~3 rápido
             const greet = getGreeting();
             const fullText = `${greet}, ${userName}!`;
-            const loop = embedded ? (fullText.length / typeSpeed) + 2 : Infinity;
-            const phase = embedded ? (t % loop) : t;
-            const chars = Math.min(fullText.length, Math.floor(phase * typeSpeed));
-            const text = fullText.slice(0, chars);
-            const showCursor = Math.floor(t * 2) % 2 === 0;
+            const duration = 2.5 - (velocidadeTexto / 10) * 2; // 0.5s rápido → 2.5s lento
+            const loopLen = embedded ? duration + 2 : Infinity;
+            const phase = embedded ? (t % loopLen) : t;
+            const progress = Math.max(0, Math.min(1, phase / duration));
+            const holdFade = phase > duration ? Math.max(0, 1 - (phase - duration) * 0.8) : 1;
+            const fontSize = Math.max(14, Math.round(H * 0.045));
+            const ty = cy + H * 0.22;
+
             ctx.save();
-            ctx.font = `500 ${Math.max(14, Math.round(H * 0.045))}px 'Helvetica Neue', Arial, sans-serif`;
+            ctx.font = `500 ${fontSize}px 'Helvetica Neue', Arial, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillStyle = `rgba(255,255,255,${0.9 * globalAlpha})`;
             ctx.shadowColor = `rgba(${c2.r},${c2.g},${c2.b},0.5)`;
             ctx.shadowBlur = 14;
-            const ty = cy + H * 0.22;
-            ctx.fillText(text + (showCursor && chars < fullText.length ? "▍" : ""), cx, ty);
+            const baseAlpha = 0.9 * globalAlpha;
+
+            switch (textoEfeito) {
+              case "typewriter": {
+                const chars = Math.floor(progress * fullText.length);
+                const text = fullText.slice(0, chars);
+                const cursorOn = Math.floor(t * 2) % 2 === 0;
+                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * holdFade})`;
+                ctx.fillText(text + (cursorOn && chars < fullText.length ? "▍" : ""), cx, ty);
+                break;
+              }
+              case "fadein": {
+                const eased = 1 - Math.pow(1 - progress, 3);
+                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * eased * holdFade})`;
+                ctx.fillText(fullText, cx, ty);
+                break;
+              }
+              case "slideup": {
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const offset = (1 - eased) * fontSize * 1.2;
+                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * eased * holdFade})`;
+                ctx.fillText(fullText, cx, ty + offset);
+                break;
+              }
+              case "glitch": {
+                const settleProgress = Math.min(1, progress * 1.3);
+                const glitching = settleProgress < 1;
+                const chars = fullText.split("").map((c, i) => {
+                  if (!glitching) return c;
+                  const charProgress = Math.min(1, (settleProgress - (i / fullText.length) * 0.4) * 2);
+                  if (charProgress <= 0) return " ";
+                  if (charProgress >= 1) return c;
+                  const scrambleChars = "!@#$%^&*_+<>/\\|0123456789abcdefghijklmnopqrstuvwxyz";
+                  return scrambleChars[Math.floor((t * 40 + i * 13) % scrambleChars.length)];
+                }).join("");
+                if (glitching) {
+                  ctx.fillStyle = `rgba(${c1.r},${c1.g},${c1.b},${0.5 * baseAlpha * holdFade})`;
+                  ctx.fillText(chars, cx - 2, ty);
+                  ctx.fillStyle = `rgba(${c4.r},${c4.g},${c4.b},${0.5 * baseAlpha * holdFade})`;
+                  ctx.fillText(chars, cx + 2, ty);
+                }
+                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * holdFade})`;
+                ctx.fillText(chars, cx, ty);
+                break;
+              }
+              case "reveal": {
+                const eased = 1 - Math.pow(1 - progress, 2);
+                const metrics = ctx.measureText(fullText);
+                const textW = metrics.width;
+                const revealW = textW * eased;
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(cx - textW / 2, ty - fontSize, revealW, fontSize * 2);
+                ctx.clip();
+                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * holdFade})`;
+                ctx.fillText(fullText, cx, ty);
+                ctx.restore();
+                if (eased < 1) {
+                  const edgeX = cx - textW / 2 + revealW;
+                  ctx.fillStyle = `rgba(${c2.r},${c2.g},${c2.b},${baseAlpha * holdFade})`;
+                  ctx.fillRect(edgeX - 1, ty - fontSize * 0.8, 2, fontSize * 1.6);
+                }
+                break;
+              }
+              case "blurtosharp": {
+                const eased = 1 - Math.pow(1 - progress, 2);
+                const blur = (1 - eased) * 20;
+                ctx.filter = `blur(${blur}px)`;
+                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * holdFade})`;
+                ctx.fillText(fullText, cx, ty);
+                ctx.filter = "none";
+                break;
+              }
+              case "scalein": {
+                const eased = 1 - Math.pow(1 - progress, 3);
+                ctx.save();
+                ctx.translate(cx, ty);
+                ctx.scale(eased, eased);
+                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * eased * holdFade})`;
+                ctx.fillText(fullText, 0, 0);
+                ctx.restore();
+                break;
+              }
+            }
             ctx.restore();
           }
           break;
@@ -1311,7 +1408,7 @@ export default function SplashScreen({
       clearTimeout(greetOutTimer);
       clearTimeout(doneTimer);
     };
-  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo, velocidade, suavidade, quantidade, tamanho, raioOrbital, nebulosa, opacidade, dispersao, velocidadeTexto, userName, embedded]);
+  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo, velocidade, suavidade, quantidade, tamanho, raioOrbital, nebulosa, opacidade, dispersao, velocidadeTexto, textoEfeito, userName, embedded]);
 
   const logoDims = {
     horizontal: { width: 220, height: 80 },

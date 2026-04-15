@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole } from "@/lib/auth";
-import SplashScreen, { type SplashEffect } from "@/components/splash/SplashScreen";
+import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/splash/SplashScreen";
 
 /* ── Particle system ─────────────────────────────── */
 
@@ -117,6 +117,7 @@ export default function LoginPage() {
     velocidade?: number; suavidade?: number; somUrl?: string;
     quantidade?: number; tamanho?: number; raioOrbital?: number;
     nebulosa?: number; opacidade?: number; dispersao?: number; velocidadeTexto?: number;
+    textoEfeito?: string;
   } | null>(null);
 
   useParticles(canvasRef);
@@ -234,6 +235,7 @@ export default function LoginPage() {
               opacidade: num("adm_splash_opacidade", 8),
               dispersao: num("adm_splash_dispersao", 4),
               velocidadeTexto: num("adm_splash_velocidade_texto", 5),
+              textoEfeito: cfg.adm_splash_texto_efeito || "typewriter",
             };
           }
         } else if (profile?.licensee_id) {
@@ -319,6 +321,7 @@ export default function LoginPage() {
         opacidade={splash.opacidade}
         dispersao={splash.dispersao}
         velocidadeTexto={splash.velocidadeTexto}
+        textoEfeito={splash.textoEfeito as TextoEfeito | undefined}
         userName={splash.name}
         onDone={() => router.push(splash.home)}
       />

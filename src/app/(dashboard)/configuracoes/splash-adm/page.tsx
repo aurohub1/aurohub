@@ -5,7 +5,17 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
-import SplashScreen, { type SplashEffect } from "@/components/splash/SplashScreen";
+import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/splash/SplashScreen";
+
+const TEXTO_EFEITO_OPTIONS: { value: TextoEfeito; label: string }[] = [
+  { value: "typewriter", label: "Typewriter (digitando)" },
+  { value: "fadein", label: "Fade in" },
+  { value: "slideup", label: "Slide up" },
+  { value: "glitch", label: "Glitch" },
+  { value: "reveal", label: "Reveal (cortina)" },
+  { value: "blurtosharp", label: "Blur → Sharp" },
+  { value: "scalein", label: "Scale in" },
+];
 
 type ConfigMap = Record<string, string>;
 
@@ -136,6 +146,7 @@ export default function SplashAdmPage() {
               opacidade={getNum("adm_splash_opacidade", 8)}
               dispersao={getNum("adm_splash_dispersao", 4)}
               velocidadeTexto={getNum("adm_splash_velocidade_texto", 5)}
+              textoEfeito={(config.adm_splash_texto_efeito as TextoEfeito) || "typewriter"}
               userName="Duane"
               embedded={{ width: 420, height: 280 }}
             />
@@ -179,6 +190,18 @@ export default function SplashAdmPage() {
             <Slider label="Opacidade geral" value={getNum("adm_splash_opacidade", 8)} onChange={(v) => set("adm_splash_opacidade", String(v))} />
             <Slider label="Dispersão" value={getNum("adm_splash_dispersao", 4)} onChange={(v) => set("adm_splash_dispersao", String(v))} min={0} />
             <Slider label="Velocidade do texto" value={getNum("adm_splash_velocidade_texto", 5)} onChange={(v) => set("adm_splash_velocidade_texto", String(v))} />
+          </div>
+
+          {/* Efeito do texto */}
+          <div>
+            <Label>Efeito do texto</Label>
+            <select
+              value={config.adm_splash_texto_efeito ?? "typewriter"}
+              onChange={(e) => set("adm_splash_texto_efeito", e.target.value)}
+              className="h-9 w-full max-w-[320px] rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none"
+            >
+              {TEXTO_EFEITO_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </div>
 
           {/* Logo */}

@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
-import SplashScreen, { type SplashEffect } from "@/components/splash/SplashScreen";
+import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/splash/SplashScreen";
 import {
   ALL_FEATURES,
   FEATURE_LABELS,
@@ -23,6 +23,7 @@ interface Licensee {
   splash_velocidade?: number; splash_suavidade?: number;
   splash_som_url?: string | null; splash_som_public_id?: string | null;
   splash_lottie_url?: string | null;
+  splash_texto_efeito?: string | null;
   cor_primaria?: string; cor_secundaria?: string; cor_acento?: string; cor_fundo?: string;
   cor4?: string; cor5?: string;
   tema_fundo_escuro?: string; tema_fundo_claro?: string; tema_texto_escuro?: string; tema_texto_claro?: string;
@@ -63,7 +64,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", form_pacote: true, form_campanha: true, form_passagem: true, form_cruzeiro: true, form_anoiteceu: true, form_lamina: true });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", form_pacote: true, form_campanha: true, form_passagem: true, form_cruzeiro: true, form_anoiteceu: true, form_lamina: true });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -158,7 +159,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, form_pacote, form_campanha, form_passagem, form_cruzeiro, form_anoiteceu, form_lamina").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_texto_efeito, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, form_pacote, form_campanha, form_passagem, form_cruzeiro, form_anoiteceu, form_lamina").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -202,7 +203,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", form_pacote: true, form_campanha: true, form_passagem: true, form_cruzeiro: true, form_anoiteceu: true, form_lamina: true });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "var(--orange)", cor_secundaria: "#D4A843", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", form_pacote: true, form_campanha: true, form_passagem: true, form_cruzeiro: true, form_anoiteceu: true, form_lamina: true });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -210,7 +211,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF", form_pacote: l.form_pacote ?? true, form_campanha: l.form_campanha ?? true, form_passagem: l.form_passagem ?? true, form_cruzeiro: l.form_cruzeiro ?? true, form_anoiteceu: l.form_anoiteceu ?? true, form_lamina: l.form_lamina ?? true });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", splash_texto_efeito: l.splash_texto_efeito ?? "typewriter", cor_primaria: l.cor_primaria ?? "var(--orange)", cor_secundaria: l.cor_secundaria ?? "#D4A843", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF", form_pacote: l.form_pacote ?? true, form_campanha: l.form_campanha ?? true, form_passagem: l.form_passagem ?? true, form_cruzeiro: l.form_cruzeiro ?? true, form_anoiteceu: l.form_anoiteceu ?? true, form_lamina: l.form_lamina ?? true });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -233,6 +234,7 @@ export default function ClientesPage() {
         splash_suavidade: form.splash_suavidade ?? 7,
         splash_som_url: form.splash_som_url || null,
         splash_som_public_id: form.splash_som_public_id || null,
+        splash_texto_efeito: form.splash_texto_efeito || "typewriter",
         cor_primaria: form.cor_primaria || null,
         cor_secundaria: form.cor_secundaria || null,
         cor_acento: form.cor_acento || null,
@@ -713,7 +715,7 @@ export default function ClientesPage() {
                     <div className="mb-3 flex justify-center">
                       <div className="rounded-lg overflow-hidden border border-[var(--bdr)]" style={{ width: 200, height: 120 }}>
                         <SplashScreen
-                          key={`${form.splash_effect}-${form.cor_primaria}-${form.cor_secundaria}-${form.cor_acento}-${form.cor_fundo}-${form.cor4}-${form.cor5}-${form.splash_velocidade}-${form.splash_suavidade}`}
+                          key={`${form.splash_effect}-${form.cor_primaria}-${form.cor_secundaria}-${form.cor_acento}-${form.cor_fundo}-${form.cor4}-${form.cor5}-${form.splash_velocidade}-${form.splash_suavidade}-${form.splash_texto_efeito}`}
                           logoUrl=""
                           effect={(form.splash_effect as SplashEffect) || "random"}
                           cor1={form.cor_primaria || "#FF7A1A"}
@@ -724,6 +726,7 @@ export default function ClientesPage() {
                           corFundo={form.cor_fundo || "#0E1520"}
                           velocidade={form.splash_velocidade ?? 5}
                           suavidade={form.splash_suavidade ?? 7}
+                          textoEfeito={(form.splash_texto_efeito as TextoEfeito) || "typewriter"}
                           embedded={{ width: 200, height: 120 }}
                         />
                       </div>
@@ -803,6 +806,24 @@ export default function ClientesPage() {
                           <span>intenso</span><span>suave</span>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Efeito do texto */}
+                    <div className="mt-3">
+                      <label className="block text-[10px] text-[var(--txt3)] mb-1">Efeito do texto</label>
+                      <select
+                        value={form.splash_texto_efeito || "typewriter"}
+                        onChange={e => setForm(f => ({...f, splash_texto_efeito: e.target.value}))}
+                        className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11px] text-[var(--txt)] focus:outline-none focus:border-[#D4A843]"
+                      >
+                        <option value="typewriter">Typewriter (digitando)</option>
+                        <option value="fadein">Fade in</option>
+                        <option value="slideup">Slide up</option>
+                        <option value="glitch">Glitch</option>
+                        <option value="reveal">Reveal (cortina)</option>
+                        <option value="blurtosharp">Blur → Sharp</option>
+                        <option value="scalein">Scale in</option>
+                      </select>
                     </div>
 
                     {/* Som do splash */}
