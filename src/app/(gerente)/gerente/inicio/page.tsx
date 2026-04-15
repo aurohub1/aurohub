@@ -142,7 +142,8 @@ export default function GerenteInicioPage() {
     try {
       const p = await getProfile(supabase);
       setProfile(p);
-      if (!p?.store_id) { setLoading(false); return; }
+      // Gerente pode não ter store_id (tier licensee) → permite licensee_id como mínimo
+      if (!p?.licensee_id) { setLoading(false); return; }
 
       // Frase do segmento
       let segmentQuotes: string[] | null = null;
@@ -226,18 +227,21 @@ export default function GerenteInicioPage() {
           .gte("created_at", inicioMes.toISOString())
           .in("event_type", ["post_instagram", "post_scheduled"]),
       ]);
-      const countByStore = (rows: { metadata: Record<string, unknown> | null }[] | null) =>
-        (rows ?? []).filter((l) => l.metadata?.store_id === p.store_id).length;
-      setPostsHoje(countByStore(logsHojeRes.data));
-      setPostsMes(countByStore(logsMesRes.data));
+      const countByScope = (rows: { metadata: Record<string, unknown> | null }[] | null) =>
+        (rows ?? []).filter((l) => p.store_id ? l.metadata?.store_id === p.store_id : l.metadata?.licensee_id === p.licensee_id).length;
+      setPostsHoje(countByScope(logsHojeRes.data));
+      setPostsMes(countByScope(logsMesRes.data));
 
-      // Vendedores da unidade
-      const { data: vendData } = await supabase
+      // Consultores — gerente vê todos do licensee; se tiver store_id filtra por loja
+      const vendQuery = supabase
         .from("profiles")
         .select("id, name, email")
-        .eq("store_id", p.store_id)
+        .eq("licensee_id", p.licensee_id)
         .eq("role", "vendedor")
         .order("name");
+      const { data: vendData } = p.store_id
+        ? await vendQuery.eq("store_id", p.store_id)
+        : await vendQuery;
       const vendList = (vendData ?? []) as Vendedor[];
       setVendedores(vendList);
 
