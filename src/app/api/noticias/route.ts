@@ -46,14 +46,23 @@ function parseRssItems(xml: string, source: string): NoticiaComData[] {
   for (const block of itemBlocks) {
     const titleMatch = block.match(/<title>([\s\S]*?)<\/title>/);
     const linkMatch = block.match(/<link>([\s\S]*?)<\/link>/);
-    const enclosureMatch = block.match(/<enclosure[^>]*\burl=["']([^"']+)["']/i);
-    const mediaMatch = block.match(/<media:content[^>]*\burl=["']([^"']+)["']/i);
+    const enclosureMatch = block.match(/<enclosure[^>]*\btype=["']image\/[^"']+["'][^>]*\burl=["']([^"']+)["']/i)
+      ?? block.match(/<enclosure[^>]*\burl=["']([^"']+)["'][^>]*\btype=["']image\//i)
+      ?? block.match(/<enclosure[^>]*\burl=["']([^"']+)["']/i);
+    const mediaMatch = block.match(/<media:content[^>]*\burl=["']([^"']+)["']/i)
+      ?? block.match(/<media:thumbnail[^>]*\burl=["']([^"']+)["']/i);
+    const contentEncMatch = block.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/);
     const descImgMatch = block.match(/<description>([\s\S]*?)<\/description>/);
     const pubDateMatch = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
     let image: string | null = null;
     if (enclosureMatch) image = enclosureMatch[1];
     else if (mediaMatch) image = mediaMatch[1];
-    else if (descImgMatch) {
+    else if (contentEncMatch) {
+      const inner = decodeEntities(contentEncMatch[1]);
+      const imgTag = inner.match(/<img[^>]*\bsrc=["']([^"']+)["']/i);
+      if (imgTag) image = imgTag[1];
+    }
+    if (!image && descImgMatch) {
       const inner = decodeEntities(descImgMatch[1]);
       const imgTag = inner.match(/<img[^>]*\bsrc=["']([^"']+)["']/i);
       if (imgTag) image = imgTag[1];
@@ -67,6 +76,33 @@ function parseRssItems(xml: string, source: string): NoticiaComData[] {
     items.push({ title, url, image, source, pubTs });
   }
   return items;
+}
+
+async function fetchOgImage(articleUrl: string): Promise<string | null> {
+  try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 3500);
+    const res = await fetch(articleUrl, {
+      cache: "no-store",
+      signal: ctrl.signal,
+      headers: { "user-agent": "Mozilla/5.0 AurohubBot/1.0" },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const html = (await res.text()).slice(0, 60_000);
+    const og = html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i)
+            ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i)
+            ?? html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    if (!og) return null;
+    let url = decodeEntities(og[1]);
+    if (url.startsWith("//")) url = "https:" + url;
+    else if (url.startsWith("/")) {
+      try { url = new URL(url, articleUrl).toString(); } catch { return null; }
+    }
+    return url;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchFeed(url: string, source: string): Promise<NoticiaComData[]> {
@@ -83,11 +119,22 @@ async function fetchFeed(url: string, source: string): Promise<NoticiaComData[]>
   }
 }
 
+async function hydrateOgImages(items: NoticiaComData[]): Promise<NoticiaComData[]> {
+  const jobs = items.map(async (it) => {
+    if (it.image) return it;
+    const og = await fetchOgImage(it.url);
+    return og ? { ...it, image: og } : it;
+  });
+  return Promise.all(jobs);
+}
+
 async function fetchTurismoRss(): Promise<Noticia[]> {
   const results = await Promise.all(TURISMO_FEEDS.map((f) => fetchFeed(f.url, f.source)));
   const all = results.flat();
   all.sort((a, b) => b.pubTs - a.pubTs);
-  return all.slice(0, 8).map(({ title, url, image, source }) => ({ title, url, image, source }));
+  const top = all.slice(0, 8);
+  const hydrated = await hydrateOgImages(top);
+  return hydrated.map(({ title, url, image, source }) => ({ title, url, image, source }));
 }
 
 export async function GET(request: Request) {
