@@ -139,7 +139,7 @@ export default function VendedorTemplatesPage() {
         <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
-              Painel do Vendedor · Biblioteca
+              Painel do Consultor · Biblioteca
             </p>
             <h1 className="mt-1.5 flex items-center gap-3 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
               Meus Templates

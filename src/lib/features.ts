@@ -29,7 +29,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   templates:   "Biblioteca de templates",
   unidades:    "Gestão de unidades",
   usuarios:    "Gestão de usuários",
-  vendedores:  "Gestão de vendedores",
+  vendedores:  "Gestão de consultores",
   calendario:  "Calendário",
   lembretes:   "Lembretes",
 };

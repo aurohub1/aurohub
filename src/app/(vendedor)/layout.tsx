@@ -76,11 +76,11 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
     <>
       <Sidebar
         activePath={pathname}
-        user={{ name: profile?.name || "Vendedor", role: "vendedor" }}
+        user={{ name: profile?.name || "Consultor", role: "vendedor" }}
         onLogout={handleLogout}
         sections={VENDEDOR_SECTIONS}
         activeFeatures={features}
-        brandLabel="Painel do Vendedor"
+        brandLabel="Painel do Consultor"
         extraPanel={pathname === "/vendedor/publicar" ? <VendorPublishPanel /> : undefined}
       />
       <div className="ml-[220px] flex min-h-dvh flex-1 flex-col overflow-x-hidden pb-10">

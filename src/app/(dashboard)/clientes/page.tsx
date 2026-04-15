@@ -964,7 +964,7 @@ export default function ClientesPage() {
                 };
                 return (
                 <div className="flex flex-col gap-5">
-                  <p className="text-[11px] text-[var(--txt3)]">Cores da marca aplicadas no painel do cliente/vendedor.</p>
+                  <p className="text-[11px] text-[var(--txt3)]">Cores da marca aplicadas no painel do cliente/consultor.</p>
 
                   <div className="grid grid-cols-2 gap-4">
                     {[

@@ -109,8 +109,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
   }
 
   if (el.type === "imageBind") {
-    if (!el.bindParam || !values[el.bindParam]) return null;
-    return <RenderImage el={{ ...el, type: "image", src: values[el.bindParam] }} values={values} />;
+    return <RenderImage el={{ ...el, type: "image" }} values={values} />;
   }
 
   return null;

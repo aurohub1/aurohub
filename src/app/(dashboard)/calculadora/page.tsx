@@ -25,9 +25,9 @@ const PLAN_DISPLAY: Record<string, { label: string; emoji: string; implant: numb
 };
 
 const ADDONS = [
-  { key: "individual", label: "Transmissão Individual", price: 29, desc: "1 vendedor" },
-  { key: "time", label: "Transmissão Time", price: 199, desc: "Até 10 vendedores" },
-  { key: "rede", label: "Transmissão Rede", price: 449, desc: "Até 30 vendedores" },
+  { key: "individual", label: "Transmissão Individual", price: 29, desc: "1 consultor" },
+  { key: "time", label: "Transmissão Time", price: 199, desc: "Até 10 consultores" },
+  { key: "rede", label: "Transmissão Rede", price: 449, desc: "Até 30 consultores" },
 ];
 
 function brl(v: number): string {

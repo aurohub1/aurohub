@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
+import { NewsCard } from "@/components/NewsCard";
 import {
   Send, Bell, Plus, Check, Trash2, CalendarDays, Plane, Sparkles,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
@@ -156,7 +157,6 @@ export default function VendedorInicioPage() {
   const [novaNota, setNovaNota] = useState("");
 
   const [noticias, setNoticias] = useState<Noticia[]>([]);
-  const [noticiaIdx, setNoticiaIdx] = useState(0);
 
   const [dbFeriados, setDbFeriados] = useState<DataComemorativa[]>([]);
 
@@ -291,14 +291,6 @@ export default function VendedorInicioPage() {
     } catch { /* silent */ }
   }, []);
 
-  useEffect(() => {
-    if (noticias.length <= 1) return;
-    const t = setInterval(() => {
-      setNoticiaIdx(i => (i + 1) % noticias.length);
-    }, 6000);
-    return () => clearInterval(t);
-  }, [noticias.length]);
-
   function persistLembretes(next: Lembrete[]) {
     setLembretes(next);
     try { localStorage.setItem(LS_LEMBRETES, JSON.stringify(next)); } catch { /* silent */ }
@@ -364,10 +356,10 @@ export default function VendedorInicioPage() {
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
-              Painel do Vendedor · {greeting()}
+              Painel do Consultor · {greeting()}
             </p>
             <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
-              Olá, {profile?.name?.split(" ")[0] || "vendedor"}
+              Olá, {profile?.name?.split(" ")[0] || "consultor"}
             </h1>
             <p className="mt-1.5 max-w-[560px] text-[13px] italic text-[var(--txt2)]">
               &ldquo;{quote}&rdquo;
@@ -603,54 +595,7 @@ export default function VendedorInicioPage() {
         </div>
 
         {/* ── Notícias do Setor — slideshow ──────── */}
-        <div className="card-glass flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
-            <div className="flex items-center gap-2">
-              <Plane size={15} className="text-[var(--orange)]" />
-              <h3 className="text-[14px] font-bold text-[var(--txt)]">Notícias do setor</h3>
-            </div>
-            {noticias.length > 0 && (
-              <div className="flex gap-1">
-                {noticias.map((_, i) => (
-                  <button key={i} onClick={() => setNoticiaIdx(i)}
-                    className="h-1.5 rounded-full transition-all"
-                    style={{ width: i === noticiaIdx ? 16 : 6, background: i === noticiaIdx ? "var(--orange)" : "var(--bdr2)" }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="relative flex-1 overflow-hidden">
-            {noticias.length === 0 ? (
-              <div className="py-8 text-center text-[12px] text-[var(--txt3)]">Carregando notícias...</div>
-            ) : (() => {
-              const n = noticias[noticiaIdx];
-              return (
-                <a href={n.url} target="_blank" rel="noopener noreferrer"
-                  className="block hover:opacity-90 transition-opacity">
-                  {n.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={n.image} alt=""
-                      className="w-full h-36 max-h-36 object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                    />
-                  )}
-                  <div className="px-5 py-4">
-                    <p className="text-[13px] font-semibold leading-snug text-[var(--txt)]"
-                      style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                      {n.title}
-                    </p>
-                    {n.source && (
-                      <span className="mt-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--orange)]">
-                        {n.source}
-                      </span>
-                    )}
-                  </div>
-                </a>
-              );
-            })()}
-          </div>
-        </div>
+        <NewsCard news={noticias} />
       </div>
     </>
   );

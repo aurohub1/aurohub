@@ -93,9 +93,9 @@ const PLAN_INFO: Record<string, {
 };
 
 const ADDON_TRANSMISSAO = [
-  { name: "Individual", price: "R$29", period: "/mês", desc: "1 vendedor", emoji: "👤", features: ["1 perfil de vendedor", "Link personalizado", "QR Code individual"] },
-  { name: "Time", price: "R$199", period: "/mês", desc: "Até 10 vendedores", emoji: "👥", features: ["Até 10 vendedores", "Painel do gestor", "Ranking de vendas"] },
-  { name: "Rede", price: "R$449", period: "/mês", desc: "Até 30 vendedores", emoji: "🏪", features: ["Até 30 vendedores", "Multi-loja", "Relatórios avançados"] },
+  { name: "Individual", price: "R$29", period: "/mês", desc: "1 consultor", emoji: "👤", features: ["1 perfil de consultor", "Link personalizado", "QR Code individual"] },
+  { name: "Time", price: "R$199", period: "/mês", desc: "Até 10 consultores", emoji: "👥", features: ["Até 10 consultores", "Painel do gestor", "Ranking de vendas"] },
+  { name: "Rede", price: "R$449", period: "/mês", desc: "Até 30 consultores", emoji: "🏪", features: ["Até 30 consultores", "Multi-loja", "Relatórios avançados"] },
 ];
 
 /* ── Helpers ─────────────────────────────────────── */

@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
       },
+      { protocol: "https", hostname: "**.panrotas.com.br" },
+      { protocol: "https", hostname: "panrotas.com.br" },
+      { protocol: "https", hostname: "**.newsapi.org" },
+      { protocol: "https", hostname: "newsapi.org" },
+      { protocol: "https", hostname: "**" },
+      { protocol: "http", hostname: "**" },
     ],
   },
   webpack: (config, { isServer }) => {

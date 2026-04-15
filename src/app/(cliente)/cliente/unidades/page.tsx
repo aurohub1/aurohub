@@ -148,7 +148,7 @@ export default function ClienteUnidadesPage() {
             Nenhuma unidade cadastrada
           </div>
           <p className="max-w-[360px] text-[12px] text-[var(--txt3)]">
-            Cadastre sua primeira unidade para começar a gerenciar vendedores e publicações.
+            Cadastre sua primeira unidade para começar a gerenciar consultores e publicações.
           </p>
           <button
             onClick={() => setCreating(true)}
@@ -290,7 +290,7 @@ function StoreCard({
 
       <div className="flex flex-col gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] p-3">
         <div className="flex items-center justify-between text-[11px] text-[var(--txt3)]">
-          <span className="flex items-center gap-1.5"><Users size={12} /> Vendedores</span>
+          <span className="flex items-center gap-1.5"><Users size={12} /> Consultores</span>
           <span className="font-bold text-[var(--txt)] tabular-nums">{vendorCount}</span>
         </div>
         <div className="flex items-center justify-between text-[11px] text-[var(--txt3)]">
@@ -306,7 +306,7 @@ function StoreCard({
           onClick={onViewVendors}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[11px] font-semibold text-[var(--txt2)] transition-colors hover:border-[rgba(255,122,26,0.3)] hover:text-[var(--orange)]"
         >
-          <Users size={12} /> Ver vendedores
+          <Users size={12} /> Ver consultores
         </button>
         <button
           onClick={onEdit}
@@ -518,11 +518,11 @@ function VendorsModal({
   onClose: () => void;
 }) {
   return (
-    <ModalShell title={`Vendedores · ${store.name}`} onClose={onClose}>
+    <ModalShell title={`Consultores · ${store.name}`} onClose={onClose}>
       <div className="flex flex-col gap-2 p-5 max-h-[60vh] overflow-y-auto">
         {vendors.length === 0 ? (
           <div className="py-8 text-center text-[12px] text-[var(--txt3)]">
-            Nenhum vendedor vinculado a esta unidade.
+            Nenhum consultor vinculado a esta unidade.
           </div>
         ) : (
           vendors.map((v) => (

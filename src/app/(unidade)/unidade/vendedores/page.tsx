@@ -179,7 +179,7 @@ export default function UnidadeVendedoresPage() {
               </span>
             </h1>
             <p className="mt-1 text-[12px] text-[var(--txt3)]">
-              {profile?.store?.name || "Sua unidade"} · {vendors.length} vendedor{vendors.length === 1 ? "" : "es"} no total
+              {profile?.store?.name || "Sua unidade"} · {vendors.length} consultor{vendors.length === 1 ? "" : "es"} no total
               {!unlimited && ` · Plano: ${totalUsersLicensee} / ${maxUsers}`}
             </p>
           </div>
@@ -187,11 +187,11 @@ export default function UnidadeVendedoresPage() {
           <button
             onClick={() => !limitReached && setCreating(true)}
             disabled={limitReached}
-            title={limitReached ? "Limite do plano atingido" : "Novo vendedor"}
+            title={limitReached ? "Limite do plano atingido" : "Novo consultor"}
             className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
           >
-            <Plus size={15} /> Novo vendedor
+            <Plus size={15} /> Novo consultor
           </button>
         </div>
       </div>
@@ -209,10 +209,10 @@ export default function UnidadeVendedoresPage() {
             <Users size={24} />
           </div>
           <div className="font-[family-name:var(--font-dm-serif)] text-[18px] font-bold text-[var(--txt)]">
-            Nenhum vendedor cadastrado
+            Nenhum consultor cadastrado
           </div>
           <p className="max-w-[360px] text-[12px] text-[var(--txt3)]">
-            Cadastre seu primeiro vendedor para começar a publicar pela unidade.
+            Cadastre seu primeiro consultor para começar a publicar pela unidade.
           </p>
           {!limitReached && (
             <button
@@ -220,7 +220,7 @@ export default function UnidadeVendedoresPage() {
               className="mt-2 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
               style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
             >
-              <Plus size={13} /> Novo vendedor
+              <Plus size={13} /> Novo consultor
             </button>
           )}
         </div>
@@ -241,7 +241,7 @@ export default function UnidadeVendedoresPage() {
       {/* ═══ MODAL CRIAR ═══ */}
       {creating && (
         <VendorFormModal
-          title="Novo vendedor"
+          title="Novo consultor"
           showPassword
           initial={{
             name: "",
@@ -276,7 +276,7 @@ export default function UnidadeVendedoresPage() {
       {/* ═══ MODAL EDITAR ═══ */}
       {editing && (
         <VendorFormModal
-          title="Editar vendedor"
+          title="Editar consultor"
           showPassword={false}
           initial={{
             name: editing.name ?? "",
@@ -485,7 +485,7 @@ function VendorFormModal({
             value={form.email}
             disabled={!showPassword}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            placeholder="vendedor@dominio.com"
+            placeholder="consultor@dominio.com"
             className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none disabled:opacity-60"
           />
         </Field>

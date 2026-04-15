@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
+import { NewsCard } from "@/components/NewsCard";
 import {
-  Store, Users, BarChart3, FileText, Sparkles, CalendarClock, ArrowRight, Plane,
+  Store, Users, BarChart3, FileText, Sparkles, CalendarClock, ArrowRight,
+  Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
 
 /* ── Tipos ───────────────────────────────────────── */
@@ -42,13 +44,39 @@ const SEGMENT_MAP: Record<string, string> = {
 
 /* ── Helpers ─────────────────────────────────────── */
 
-const FALLBACK_QUOTES = [
-  "Cada destino começa com uma decisão.",
-  "Vender viagem é vender memórias.",
-  "Inspire primeiro, venda depois.",
-  "Destinos não se vendem — se sonham.",
-  "Cada post é um convite para sonhar.",
+const AUGUSTO_CURY = [
+  "Grandes sonhos exigem grandes atitudes.",
+  "O sucesso não é o destino, é a jornada.",
+  "Quem não treina a mente para superar obstáculos desiste no primeiro problema.",
+  "Seja o protagonista da sua história.",
+  "A mente que se abre a uma nova ideia jamais volta ao seu tamanho original.",
+  "Não tenha medo dos momentos difíceis — o melhor aço é forjado no fogo mais intenso.",
+  "Aprenda a ser feliz com o que você tem enquanto busca o que deseja.",
+  "Pessoas emocionalmente saudáveis transformam obstáculos em degraus.",
+  "Quem tem um porquê suporta qualquer como.",
+  "O maior adversário que você vai enfrentar está dentro de você.",
+  "Treine sua mente como um atleta treina o corpo.",
+  "Cada amanhecer é uma chance de reescrever sua história.",
+  "Inteligência sem emoção é como um carro sem combustível.",
+  "Os mais sábios aprendem com os próprios erros e com os erros dos outros.",
+  "Não espere a tempestade passar — aprenda a dançar na chuva.",
 ];
+
+function pickQuoteOfDay(segmentQuotes: string[] | null): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const storageKey = "ah_frase_do_dia";
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    if (saved.date === today && saved.quote) return saved.quote;
+  } catch { /* ignore */ }
+
+  const pool = [...(segmentQuotes ?? []), ...AUGUSTO_CURY];
+  const dayIndex = Math.floor(Date.now() / 86400000);
+  const quote = pool[dayIndex % pool.length];
+
+  try { localStorage.setItem(storageKey, JSON.stringify({ date: today, quote })); } catch { /* ignore */ }
+  return quote;
+}
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -57,8 +85,16 @@ function greeting(): string {
   return "Boa noite";
 }
 
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function WeatherIcon({ code, size = 22 }: { code: number | null; size?: number }) {
+  const color = "var(--orange)";
+  if (code === null) return <Cloud size={size} color={color} />;
+  if (code === 0) return <Sun size={size} color={color} />;
+  if (code <= 3) return <CloudSun size={size} color={color} />;
+  if (code <= 48) return <CloudFog size={size} color={color} />;
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return <CloudRain size={size} color={color} />;
+  if (code >= 71 && code <= 77) return <CloudSnow size={size} color={color} />;
+  if (code >= 95) return <CloudLightning size={size} color={color} />;
+  return <Cloud size={size} color={color} />;
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -71,7 +107,7 @@ function roleLabel(role: string | null): string {
     case "adm":      return "ADM";
     case "cliente":  return "Cliente";
     case "unidade":  return "Unidade";
-    case "vendedor": return "Vendedor";
+    case "vendedor": return "Consultor";
     default:         return role || "—";
   }
 }
@@ -90,7 +126,9 @@ export default function ClienteInicioPage() {
   const [templatesCount, setTemplatesCount] = useState(0);
 
   const [noticias, setNoticias] = useState<Noticia[]>([]);
-  const [noticiaIdx, setNoticiaIdx] = useState(0);
+
+  const [cityName, setCityName] = useState<string>("Rio Preto");
+  const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -113,7 +151,38 @@ export default function ClienteInicioPage() {
         const arr = (outros as { quotes?: unknown } | null)?.quotes;
         if (Array.isArray(arr) && arr.length > 0) segmentQuotes = arr as string[];
       }
-      setQuote(pickRandom(segmentQuotes ?? FALLBACK_QUOTES));
+      setQuote(pickQuoteOfDay(segmentQuotes));
+
+      // Previsão do tempo via geolocation do browser (fallback Rio Preto)
+      try {
+        const pos = await new Promise<{ lat: number; lon: number } | null>((resolve) => {
+          if (typeof window === "undefined" || !navigator.geolocation) { resolve(null); return; }
+          navigator.geolocation.getCurrentPosition(
+            (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+            () => resolve(null),
+            { timeout: 5000, maximumAge: 600_000 }
+          );
+        });
+        const lat = pos?.lat ?? -20.8116;
+        const lon = pos?.lon ?? -49.3755;
+
+        if (pos) {
+          try {
+            const rev = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=pt`);
+            if (rev.ok) {
+              const d = await rev.json();
+              const name = d?.results?.[0]?.name;
+              if (name) setCityName(name);
+            }
+          } catch { /* silent */ }
+        }
+
+        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=America/Sao_Paulo`);
+        if (w.ok) {
+          const d = await w.json();
+          if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code });
+        }
+      } catch { /* silent */ }
 
       // Dados do licensee (expires_at não vem no FullProfile)
       const { data: licFull } = await supabase
@@ -202,14 +271,6 @@ export default function ClienteInicioPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  useEffect(() => {
-    if (noticias.length <= 1) return;
-    const t = setInterval(() => {
-      setNoticiaIdx(i => (i + 1) % noticias.length);
-    }, 6000);
-    return () => clearInterval(t);
-  }, [noticias.length]);
-
   /* ── Derived ───────────────────────────────────── */
 
   const status = profile?.licensee?.status ?? "—";
@@ -244,13 +305,40 @@ export default function ClienteInicioPage() {
             <p className="mt-1 text-[11px] text-[var(--txt3)]">{profile?.licensee?.name || "—"}</p>
           </div>
 
-          <Link
-            href="/editor"
-            className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
-          >
-            <Sparkles size={15} /> Criar arte
-          </Link>
+          <div className="flex shrink-0 items-center gap-3">
+            <div
+              className="flex items-center gap-3 rounded-2xl border border-[var(--bdr)] px-4 py-2.5"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,122,26,0.08), rgba(59,130,246,0.05))",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-xl"
+                style={{
+                  background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.14))",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <WeatherIcon code={weather?.code ?? null} />
+              </div>
+              <div>
+                <div className="font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-none text-[var(--txt)] tabular-nums">
+                  {weather ? `${weather.temp}°` : "—"}
+                </div>
+                <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--txt3)]">
+                  {cityName}
+                </div>
+              </div>
+            </div>
+            <Link
+              href="/editor"
+              className="flex items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
+              style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+            >
+              <Sparkles size={15} /> Criar arte
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -360,8 +448,9 @@ export default function ClienteInicioPage() {
         </div>
       </div>
 
-      {/* ═══ Unidades + Usuários ══════════════════════ */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      {/* ═══ Unidades + Usuários + Notícias ══════════════════════ */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:col-span-2">
         {/* ── Unidades ──────────────────────────── */}
         <div className="card-glass flex flex-col">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
@@ -450,56 +539,10 @@ export default function ClienteInicioPage() {
             )}
           </div>
         </div>
-      </div>
+        </div>
 
-      {/* ═══ Notícias do setor ═══════════════════════ */}
-      <div className="card-glass flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
-          <div className="flex items-center gap-2">
-            <Plane size={15} className="text-[var(--orange)]" />
-            <h3 className="text-[14px] font-bold text-[var(--txt)]">Notícias do setor</h3>
-          </div>
-          {noticias.length > 0 && (
-            <div className="flex gap-1">
-              {noticias.map((_, i) => (
-                <button key={i} onClick={() => setNoticiaIdx(i)}
-                  className="h-1.5 rounded-full transition-all"
-                  style={{ width: i === noticiaIdx ? 16 : 6, background: i === noticiaIdx ? "var(--orange)" : "var(--bdr2)" }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="relative flex-1 overflow-hidden">
-          {noticias.length === 0 ? (
-            <div className="py-8 text-center text-[12px] text-[var(--txt3)]">Carregando notícias...</div>
-          ) : (() => {
-            const n = noticias[noticiaIdx];
-            return (
-              <a href={n.url} target="_blank" rel="noopener noreferrer"
-                className="block hover:opacity-90 transition-opacity">
-                {n.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={n.image} alt=""
-                    className="w-full h-36 max-h-36 object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                  />
-                )}
-                <div className="px-5 py-4">
-                  <p className="text-[13px] font-semibold leading-snug text-[var(--txt)]"
-                    style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                    {n.title}
-                  </p>
-                  {n.source && (
-                    <span className="mt-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--orange)]">
-                      {n.source}
-                    </span>
-                  )}
-                </div>
-              </a>
-            );
-          })()}
-        </div>
+        {/* ── Notícias do setor ─────────────────── */}
+        <NewsCard news={noticias} />
       </div>
     </>
   );

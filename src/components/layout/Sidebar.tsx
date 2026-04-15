@@ -277,8 +277,7 @@ export const UNIDADE_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/unidade/inicio", icon: I.home },
       { label: "Publicar", href: "/unidade/publicar", icon: I.publish, feature: "publicar" },
-      { label: "Templates", href: "/unidade/templates", icon: I.templates, feature: "templates" },
-      { label: "Vendedores", href: "/unidade/vendedores", icon: I.vendors, feature: "vendedores" },
+      { label: "Consultores", href: "/unidade/vendedores", icon: I.vendors, feature: "vendedores" },
     ],
   },
   {
@@ -294,9 +293,7 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     title: "Minhas atividades",
     items: [
       { label: "Início", href: "/vendedor/inicio", icon: I.home },
-      { label: "Criar Arte", href: "/vendedor/publicar", icon: I.publish, feature: "publicar" },
-      { label: "Calendário", href: "/vendedor/calendario", icon: I.calendar, feature: "calendario" },
-      { label: "Lembretes", href: "/vendedor/lembretes", icon: I.bell, feature: "lembretes" },
+      { label: "Templates", href: "/vendedor/templates", icon: I.templates, feature: "templates" },
     ],
   },
 ];
@@ -308,7 +305,7 @@ function roleBadgeLabel(role: string): string {
     adm: "ADM RAIZ",
     cliente: "CLIENTE",
     unidade: "UNIDADE",
-    vendedor: "VENDEDOR",
+    vendedor: "CONSULTOR",
     licensee: "LICENCIADO",
     store: "LOJA",
     employee: "FUNCIONARIO",

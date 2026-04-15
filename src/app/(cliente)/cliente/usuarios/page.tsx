@@ -46,7 +46,7 @@ const ROLE_META: Record<string, { label: string; color: string; bg: string }> = 
   adm:      { label: "ADM",      color: "#D4A843", bg: "rgba(212,168,67,0.15)" },
   cliente:  { label: "Cliente",  color: "#3B82F6", bg: "rgba(59,130,246,0.15)" },
   unidade:  { label: "Unidade",  color: "#22C55E", bg: "rgba(34,197,94,0.15)" },
-  vendedor: { label: "Vendedor", color: "#A78BFA", bg: "rgba(167,139,250,0.15)" },
+  vendedor: { label: "Consultor", color: "#A78BFA", bg: "rgba(167,139,250,0.15)" },
 };
 
 function roleMeta(r: string) {
@@ -513,7 +513,7 @@ function UserFormModal({
             />
             <RolePill
               active={form.role === "vendedor"}
-              label="Vendedor"
+              label="Consultor"
               color="#A78BFA"
               onClick={() => setForm({ ...form, role: "vendedor" })}
             />

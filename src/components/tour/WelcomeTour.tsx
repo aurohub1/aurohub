@@ -57,17 +57,17 @@ const CLIENTE_STEPS: TourStep[] = [
   },
   {
     title: "Templates",
-    description: "Acesse os modelos de artes criados para a sua agência. É a biblioteca usada pelas unidades e vendedores.",
+    description: "Acesse os modelos de artes criados para a sua agência. É a biblioteca usada pelas unidades e consultores.",
     targetSelector: 'a[href="/cliente/templates"]',
   },
   {
     title: "Unidades",
-    description: "Gerencie suas filiais. Cadastre novas lojas, atualize cidade e Instagram, veja os vendedores vinculados.",
+    description: "Gerencie suas filiais. Cadastre novas lojas, atualize cidade e Instagram, veja os consultores vinculados.",
     targetSelector: 'a[href="/cliente/unidades"]',
   },
   {
     title: "Usuários",
-    description: "Controle quem tem acesso ao sistema. Crie gerentes de unidade e vendedores dentro do limite do seu plano.",
+    description: "Controle quem tem acesso ao sistema. Crie gerentes de unidade e consultores dentro do limite do seu plano.",
     targetSelector: 'a[href="/cliente/usuarios"]',
   },
 ];
@@ -83,8 +83,8 @@ const UNIDADE_STEPS: TourStep[] = [
     targetSelector: 'a[href="/unidade/publicar"]',
   },
   {
-    title: "Vendedores",
-    description: "Gerencie sua equipe: crie vendedores, acompanhe posts do dia e ative/desative acessos.",
+    title: "Consultores",
+    description: "Gerencie sua equipe: crie consultores, acompanhe posts do dia e ative/desative acessos.",
     targetSelector: 'a[href="/unidade/vendedores"]',
   },
   {

@@ -22,7 +22,7 @@ const ROLE_MAP: Record<string, { label: string; color: string }> = {
   adm:      { label: "ADM",       color: "#D4A843" },
   cliente:  { label: "Cliente",   color: "#3B82F6" },
   unidade:  { label: "Unidade",   color: "#22C55E" },
-  vendedor: { label: "Vendedor",  color: "#A78BFA" },
+  vendedor: { label: "Consultor",  color: "#A78BFA" },
   // Legados
   licensee: { label: "Licenciado", color: "#3B82F6" },
   client:   { label: "Funcionário", color: "#A78BFA" },
@@ -465,7 +465,7 @@ export default function UsuariosPage() {
                     <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none">
                       <option value="cliente">Cliente</option>
                       <option value="unidade">Unidade</option>
-                      <option value="vendedor">Vendedor</option>
+                      <option value="vendedor">Consultor</option>
                       <option value="adm">ADM</option>
                     </select>
                   </div>

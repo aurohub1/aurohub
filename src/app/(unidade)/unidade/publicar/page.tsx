@@ -23,6 +23,7 @@ interface TemplateRow {
   width: number;
   height: number;
   schema: EditorSchema;
+  thumbnail: string | null;
 }
 
 type BindType = "text" | "image" | "date" | "number";
@@ -196,6 +197,7 @@ export default function UnidadePublicarPage() {
             duration: parsed.duration || 5,
             qtdDestinos: parsed.qtdDestinos,
           },
+          thumbnail: parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null,
         });
       } catch { /* skip */ }
     }
@@ -237,7 +239,9 @@ export default function UnidadePublicarPage() {
 
   function pickTemplate(t: TemplateRow) {
     setSelected(t);
-    setValues({});
+    // Seed imgfundo com thumbnail do template para que o canvas não apareça preto
+    // antes do usuário preencher os campos dinâmicos.
+    setValues(t.thumbnail ? { imgfundo: t.thumbnail } : {});
     setCaption("");
     setStatus("idle");
     setStatusMsg("");
@@ -437,12 +441,21 @@ export default function UnidadePublicarPage() {
                 className="card-glass group flex flex-col gap-3 p-4 text-left transition-transform hover:scale-[1.02]"
               >
                 <div
-                  className="flex aspect-[3/4] w-full items-center justify-center rounded-lg border border-[var(--bdr)]"
-                  style={{ background: t.schema.background || "#f5f5f5" }}
+                  className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-lg border border-[var(--bdr)]"
+                  style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}
                 >
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-white/80">
                     {FORMAT_LABELS[t.format] || t.format}
                   </div>
+                  {t.thumbnail && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={t.thumbnail}
+                      alt={t.nome}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                    />
+                  )}
                 </div>
                 <div>
                   <div className="truncate text-[13px] font-semibold text-[var(--txt)]">{t.nome}</div>
@@ -483,13 +496,13 @@ export default function UnidadePublicarPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_auto]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr]">
         {/* ── Formulário ─────────────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="border-b border-[var(--bdr)] px-5 py-4">
+        <div className="card-glass flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden">
+          <div className="shrink-0 border-b border-[var(--bdr)] px-5 py-4">
             <h3 className="text-[14px] font-bold text-[var(--txt)]">Preencher dados</h3>
           </div>
-          <div className="flex flex-col gap-3 p-5">
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-5">
             {bindFields.length === 0 ? (
               <div className="py-4 text-center text-[12px] text-[var(--txt3)]">
                 Este template não tem campos dinâmicos.
@@ -648,19 +661,24 @@ export default function UnidadePublicarPage() {
         </div>
 
         {/* ── Preview ──────────────────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="border-b border-[var(--bdr)] px-5 py-4">
+        <div className="card-glass relative flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden lg:sticky lg:top-4 lg:self-start">
+          <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <h3 className="text-[14px] font-bold text-[var(--txt)]">Preview ao vivo</h3>
+            <div className="text-[10px] text-[var(--txt3)] tabular-nums">
+              {selected.width}×{selected.height}
+            </div>
           </div>
-          <div className="flex flex-1 items-center justify-center p-5">
-            <PreviewStage
-              schema={selected.schema}
-              width={selected.width}
-              height={selected.height}
-              values={values}
-              maxDisplay={480}
-              onReady={(s) => { stageRef.current = s; }}
-            />
+          <div className="h-full flex flex-1 items-center justify-center p-5 overflow-hidden">
+            <div style={{ filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.18)) drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}>
+              <PreviewStage
+                schema={selected.schema}
+                width={selected.width}
+                height={selected.height}
+                values={values}
+                maxDisplay={Math.round((typeof window !== "undefined" ? window.innerHeight : 900) * 0.82)}
+                onReady={(s) => { stageRef.current = s; }}
+              />
+            </div>
           </div>
         </div>
       </div>
