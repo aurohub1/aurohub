@@ -406,8 +406,11 @@ export default function ConfiguracoesPage() {
                     </select>
                   </div>
 
-                  {/* Preview 21:9 full width */}
-                  <div className="w-full overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ aspectRatio: "21 / 9" }}>
+                  {/* Preview — embedded, max-h 300px, não bloqueia cliques, onDone no-op */}
+                  <div
+                    className="pointer-events-none mx-auto w-full overflow-hidden rounded-xl border border-[var(--bdr)]"
+                    style={{ maxHeight: 300, height: 300, aspectRatio: "21 / 9" }}
+                  >
                     <SplashScreen
                       key={`adm-${splashReplayKey}-${JSON.stringify([
                         config.adm_splash_effect,
@@ -418,6 +421,7 @@ export default function ConfiguracoesPage() {
                         config.adm_splash_raio_orbital, config.adm_splash_nebulosa, config.adm_splash_opacidade,
                         config.adm_splash_dispersao, config.adm_splash_velocidade_texto,
                         config.adm_splash_texto_glow, config.adm_splash_texto_glow_intensidade,
+                        config.adm_splash_texto_efeito,
                       ])}`}
                       logoUrl={config.adm_splash_logo || ""}
                       effect={(config.adm_splash_effect as SplashEffect) || "aurovista_adm"}
@@ -439,6 +443,8 @@ export default function ConfiguracoesPage() {
                       glowIntensidade={getNum("adm_splash_texto_glow_intensidade", 5)}
                       userName="AUROVISTA"
                       textoEfeito={(config.adm_splash_texto_efeito as TextoEfeito) || "typewriter"}
+                      onDone={() => { /* preview: no-op */ }}
+                      embedded={{ width: 700, height: 300 }}
                     />
                   </div>
 
