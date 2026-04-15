@@ -170,10 +170,11 @@ export default function UnidadePublicarPage() {
     const p = await getProfile(supabase);
     setProfile(p);
     if (!p?.licensee_id) { setLoadingTpl(false); return; }
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("system_config")
       .select("key, value")
       .like("key", "tmpl_%");
+    console.log("RAW DATA:", data?.length, "ERROR:", error?.message);
 
     const rows: TemplateRow[] = [];
     for (const r of (data ?? []) as { key: string; value: string }[]) {
