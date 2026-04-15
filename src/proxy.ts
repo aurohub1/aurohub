@@ -30,6 +30,7 @@ const ADM_ROUTES = [
 ];
 const CLIENTE_PREFIX = "/cliente";
 const UNIDADE_PREFIX = "/unidade";
+const GERENTE_PREFIX = "/gerente";
 const VENDEDOR_PREFIX = "/consultor";
 
 function matchesAny(pathname: string, list: string[]): boolean {
@@ -45,6 +46,7 @@ function homeForRole(role: string | null): string {
     case "adm": return "/inicio";
     case "cliente": return "/cliente/inicio";
     case "unidade": return "/unidade/inicio";
+    case "gerente": return "/gerente/inicio";
     case "vendedor": return "/consultor/inicio";
     default: return "/login";
   }
@@ -65,10 +67,16 @@ function isAllowed(role: string, pathname: string): boolean {
   if (role === "cliente") {
     return pathname.startsWith(CLIENTE_PREFIX)
         || pathname.startsWith(UNIDADE_PREFIX)
+        || pathname.startsWith(GERENTE_PREFIX)
         || pathname.startsWith(VENDEDOR_PREFIX);
   }
   if (role === "unidade") {
     return pathname.startsWith(UNIDADE_PREFIX)
+        || pathname.startsWith(GERENTE_PREFIX)
+        || pathname.startsWith(VENDEDOR_PREFIX);
+  }
+  if (role === "gerente") {
+    return pathname.startsWith(GERENTE_PREFIX)
         || pathname.startsWith(VENDEDOR_PREFIX);
   }
   if (role === "vendedor") {
@@ -122,15 +130,16 @@ export async function proxy(request: NextRequest) {
   const role = (profile?.role as string | null) ?? null;
   const myHome = homeForRole(role);
 
-  // Usuário logado em /login ou / → manda pra sua home
-  if (pathname === "/" || pathname === "/login") {
+  // Usuário logado em /login ou / → manda pra sua home (evita loop se myHome for /login)
+  if ((pathname === "/" || pathname === "/login") && myHome !== pathname) {
     const url = request.nextUrl.clone();
     url.pathname = myHome;
     return NextResponse.redirect(url);
   }
 
-  // Sem role válida → força logout
+  // Sem role válida → permite ficar no /login (sem redirect loop)
   if (!role) {
+    if (pathname === "/login") return response;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
