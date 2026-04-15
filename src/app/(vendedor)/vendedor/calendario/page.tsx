@@ -302,12 +302,24 @@ export default function VendedorCalendarioPage() {
                   const isToday = sameISO(cell.iso, todayIso);
                   const isSelected = sameISO(cell.iso, selectedDay);
                   const evs = eventosPorDia[cell.iso] ?? [];
+                  const hasFeriado = evs.some((e) => e.tipo === "feriado");
+                  const hasVespera = evs.some((e) => e.tipo === "vespera");
+                  const cellBg = isSelected
+                    ? "rgba(255,122,26,0.10)"
+                    : hasFeriado
+                      ? "rgba(239,68,68,0.08)"
+                      : hasVespera
+                        ? "rgba(255,122,26,0.06)"
+                        : undefined;
+                  const feriadoLabel = evs.find((e) => e.tipo === "feriado")?.label
+                    ?? evs.find((e) => e.tipo === "vespera")?.label;
                   return (
                     <button
                       key={cell.iso}
                       onClick={() => setSelectedDay(cell.iso)}
+                      title={feriadoLabel}
                       className="group relative flex min-h-[70px] flex-col gap-1 border-b border-r border-[var(--bdr)] p-2 text-left transition-colors hover:bg-[var(--hover-bg)]"
-                      style={isSelected ? { background: "rgba(255,122,26,0.08)" } : undefined}
+                      style={cellBg ? { background: cellBg } : undefined}
                     >
                       <span
                         className={`text-[11px] font-semibold tabular-nums ${
@@ -320,10 +332,15 @@ export default function VendedorCalendarioPage() {
                           </span>
                         ) : cell.day}
                       </span>
+                      {feriadoLabel && (
+                        <span className="line-clamp-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--red)]">
+                          {feriadoLabel}
+                        </span>
+                      )}
                       <div className="flex flex-wrap gap-0.5">
                         {evs.slice(0, 3).map((e, i) => {
                           const style = TIPO_BADGE[e.tipo] ?? TIPO_BADGE.evento;
-                          return <span key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: style.color }} />;
+                          return <span key={i} className="h-2 w-2 rounded-full" style={{ background: style.color }} />;
                         })}
                         {evs.length > 3 && <span className="text-[8px] text-[var(--txt3)]">+{evs.length - 3}</span>}
                       </div>

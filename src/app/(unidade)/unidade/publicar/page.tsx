@@ -440,25 +440,7 @@ export default function UnidadePublicarPage() {
                 onClick={() => pickTemplate(t)}
                 className="card-glass group flex flex-col gap-3 p-4 text-left transition-transform hover:scale-[1.02]"
               >
-                <div className="relative mx-auto aspect-[3/4] max-h-[180px] w-full overflow-hidden rounded-lg border border-[var(--bdr)]">
-                  {t.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={t.thumbnail}
-                      alt={t.nome}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="flex h-full w-full items-center justify-center"
-                      style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}
-                    >
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-white/80">
-                        {FORMAT_LABELS[t.format] || t.format}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <TemplateThumb thumb={t.thumbnail} label={FORMAT_LABELS[t.format] || t.format} nome={t.nome} />
                 <div>
                   <div className="truncate text-[13px] font-semibold text-[var(--txt)]">{t.nome}</div>
                   <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--txt3)]">
@@ -685,5 +667,34 @@ export default function UnidadePublicarPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/* ── TemplateThumb ──────────────────────────────── */
+
+function TemplateThumb({ thumb, label, nome }: { thumb: string | null; label: string; nome: string }) {
+  const [failed, setFailed] = useState(false);
+  const show = thumb && !failed;
+  return (
+    <div className="relative mx-auto aspect-[3/4] max-h-[180px] w-full overflow-hidden rounded-lg border border-[var(--bdr)]">
+      {show ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={thumb as string}
+          alt={nome}
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div
+          className="flex h-full w-full items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}
+        >
+          <div className="text-[11px] font-bold uppercase tracking-wider text-white/80">
+            {label}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
