@@ -141,9 +141,10 @@ export default function GerenteInicioPage() {
   const loadData = useCallback(async () => {
     try {
       const p = await getProfile(supabase);
+      console.log("[GerenteInicio] profile:", { role: p?.role, licensee_id: p?.licensee_id, store_id: p?.store_id, name: p?.name });
       setProfile(p);
       // Gerente pode não ter store_id (tier licensee) → permite licensee_id como mínimo
-      if (!p?.licensee_id) { setLoading(false); return; }
+      if (!p?.licensee_id) { console.warn("[GerenteInicio] no licensee_id, early return"); setLoading(false); return; }
 
       // Frase do segmento
       let segmentQuotes: string[] | null = null;
