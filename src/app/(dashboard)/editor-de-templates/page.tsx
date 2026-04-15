@@ -110,26 +110,56 @@ export default function EditorTemplatesPage() {
   const [canvasLoading, setCanvasLoading] = useState(true);
   const [thumbUploadingKey, setThumbUploadingKey] = useState<string | null>(null);
 
+  async function persistThumb(key: string, url: string) {
+    const { data: row } = await supabase
+      .from("system_config")
+      .select("value")
+      .eq("key", key)
+      .single();
+    const current = row?.value ? JSON.parse(row.value) : {};
+    current.thumbnail = url;
+    await supabase
+      .from("system_config")
+      .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
+    setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, thumbnail: url } : t)));
+  }
+
   async function handleThumbUpload(key: string, file: File) {
     setThumbUploadingKey(key);
     try {
       const url = await uploadToCloudinary(file, "aurohubv2/thumbs");
-      // Lê JSON atual, atualiza .thumbnail, upsert
-      const { data: row } = await supabase
-        .from("system_config")
-        .select("value")
-        .eq("key", key)
-        .single();
-      const current = row?.value ? JSON.parse(row.value) : {};
-      current.thumbnail = url;
-      await supabase
-        .from("system_config")
-        .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
-      // Atualiza state local pra refletir imediato
-      setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, thumbnail: url } : t)));
+      await persistThumb(key, url);
     } catch (err) {
       console.error("[Thumb upload]", err);
       alert("Falha no upload do thumbnail.");
+    } finally {
+      setThumbUploadingKey(null);
+    }
+  }
+
+  async function handleCaptureCard(key: string) {
+    setThumbUploadingKey(key);
+    try {
+      // 1) Tenta achar stage Konva no DOM (caso preview tenha sido renderizado)
+      const konvaCanvas = document.querySelector<HTMLCanvasElement>(`[data-tmpl-key="${key}"] canvas`);
+      let blob: Blob | null = null;
+      if (konvaCanvas) {
+        blob = await new Promise<Blob | null>((resolve) => konvaCanvas.toBlob((b) => resolve(b), "image/png"));
+      } else {
+        // 2) Fallback: html2canvas no card inteiro
+        const cardEl = document.querySelector<HTMLElement>(`[data-tmpl-key="${key}"]`);
+        if (!cardEl) throw new Error("Card não encontrado");
+        const { default: html2canvas } = await import("html2canvas");
+        const snap = await html2canvas(cardEl, { useCORS: true, backgroundColor: null, scale: 2 });
+        blob = await new Promise<Blob | null>((resolve) => snap.toBlob((b) => resolve(b), "image/png"));
+      }
+      if (!blob) throw new Error("Falha ao gerar PNG");
+      const file = new File([blob], `${key}-capture.png`, { type: "image/png" });
+      const url = await uploadToCloudinary(file, "aurohubv2/thumbs");
+      await persistThumb(key, url);
+    } catch (err) {
+      console.error("[Thumb capture]", err);
+      alert("Falha ao capturar o card.");
     } finally {
       setThumbUploadingKey(null);
     }
@@ -483,7 +513,7 @@ export default function EditorTemplatesPage() {
                         ) : (
                           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
                             {items.map(t => (
-                              <div key={t.key} className="overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)]" style={{ background: "var(--bg1)" }}>
+                              <div key={t.key} data-tmpl-key={t.key} className="overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)]" style={{ background: "var(--bg1)" }}>
                                 {t.thumbnail ? (
                                   /* eslint-disable-next-line @next/next/no-img-element */
                                   <img src={t.thumbnail} alt="" className="h-24 w-full object-cover" />
@@ -495,18 +525,29 @@ export default function EditorTemplatesPage() {
                                 <div className="px-4 py-3">
                                   <div className="truncate text-[13px] font-bold text-[var(--txt)]" title={t.displayName}>{t.displayName}</div>
 
-                                  {/* Upload thumb — pequeno, abaixo do nome */}
-                                  <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)]">
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
+                                  {/* Thumb — upload ou capturar */}
+                                  <div className="mt-1.5 flex items-center gap-3">
+                                    <label className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)]">
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        disabled={thumbUploadingKey === t.key}
+                                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleThumbUpload(t.key, f); e.currentTarget.value = ""; }}
+                                      />
+                                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M2 11l3.5-4 2.5 3 2-2 4 5M2 4h12v8H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+                                      {thumbUploadingKey === t.key ? "Enviando…" : "Thumb"}
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCaptureCard(t.key)}
                                       disabled={thumbUploadingKey === t.key}
-                                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleThumbUpload(t.key, f); e.currentTarget.value = ""; }}
-                                    />
-                                    <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M2 11l3.5-4 2.5 3 2-2 4 5M2 4h12v8H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
-                                    {thumbUploadingKey === t.key ? "Enviando…" : "Thumb"}
-                                  </label>
+                                      className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)] disabled:opacity-50"
+                                    >
+                                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M3 5h2l1-2h4l1 2h2v8H3V5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><circle cx="8" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.5" /></svg>
+                                      Capturar
+                                    </button>
+                                  </div>
 
                                   <div className="mt-2 flex gap-1.5 text-[10px]">
                                     <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.formType}</span>
