@@ -109,7 +109,7 @@ export default function VendedorCalendarioPage() {
         .in("data_mes", [mesA, mesB]);
 
       const all = ((dcA ?? []) as (DataComemorativa & { segment_id?: string | null })[]);
-      setFeriados(all.filter((d) => d.tipo === "feriado" || d.tipo === "vespera" || d.tipo === "temporada"));
+      setFeriados(all.filter((d) => d.tipo !== "segmento" && d.tipo !== "evento"));
       setDatasSegmento(
         all.filter((d) => d.tipo === "segmento" || d.tipo === "evento" || (segmentId && d.segment_id === segmentId))
       );

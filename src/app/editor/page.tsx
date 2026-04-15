@@ -130,19 +130,32 @@ function EditorInner() {
           onClose={() => { setPendingSave(null); setPendingVariants(null); }}
           onConfirm={async (meta: SaveTemplateData) => {
             setSaving(true);
-            const thumbnail = pendingSave.thumbnail;
+            // Fallback: se toDataURL falhou (CORS), tenta usar 1ª imagem do schema ou background url
+            const fallbackThumb = (() => {
+              const els = (schema?.elements ?? []) as Array<{ type?: string; src?: string }>;
+              const firstImg = els.find((e) => e?.type === "image" && typeof e?.src === "string" && e.src!.length > 0)?.src;
+              if (firstImg) return firstImg;
+              const bg = (schema as { background?: string })?.background;
+              if (bg && typeof bg === "string" && (bg.startsWith("http") || bg.startsWith("data:"))) return bg;
+              return null;
+            })();
+            const thumbnail = pendingSave.thumbnail || fallbackThumb || null;
             try {
               // Fluxo de variantes: salva cada uma com meta do modal
               if (pendingVariants && pendingVariants.length > 0) {
                 for (const v of pendingVariants) {
                   const key = `tmpl_variant_${v.format}_${Date.now()}`;
+                  const vEls = (v.schema?.elements ?? []) as Array<{ type?: string; src?: string }>;
+                  const vFirstImg = vEls.find((e) => e?.type === "image" && typeof e?.src === "string" && e.src!.length > 0)?.src;
+                  const vBg = (v.schema as { background?: string })?.background;
+                  const vFallback = vFirstImg || (vBg && typeof vBg === "string" && (vBg.startsWith("http") || vBg.startsWith("data:")) ? vBg : null);
                   const payload = {
                     ...v.schema, width: v.width, height: v.height,
                     format: v.format, formType: meta.formType, qtdDestinos,
                     nome: meta.nome,
                     licenseeId: meta.licenseeId, lojaId: meta.lojaId,
                     licenseeNome: meta.licenseeNome, lojaNome: meta.lojaNome,
-                    thumbnail: thumbnail || null,
+                    thumbnail: thumbnail || vFallback || null,
                   };
                   await supabase.from("system_config").upsert({
                     key,

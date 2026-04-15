@@ -78,13 +78,13 @@ export default function GerenteConsultoresPage() {
     try {
       const p = await getProfile(supabase);
       setProfile(p);
-      if (!p?.store_id || !p?.licensee_id) { setLoading(false); return; }
+      if (!p?.licensee_id) { setLoading(false); return; }
 
-      // Vendedores da unidade
+      // Consultores do licensee (gerente vê todos, não filtrado por store_id)
       const { data: vData } = await supabase
         .from("profiles")
         .select("id, name, email, role, status, licensee_id, store_id, created_at")
-        .eq("store_id", p.store_id)
+        .eq("licensee_id", p.licensee_id)
         .eq("role", "vendedor")
         .order("created_at", { ascending: false });
       const list = (vData ?? []) as Vendor[];

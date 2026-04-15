@@ -54,27 +54,49 @@
 
 /* ── Light ───────────────────────────────────────── */
 [data-theme="light"] {
-  --bg: #f8fafc;
-  --bg1: #ffffff;
-  --bg2: #f1f5f9;
-  --bg3: #e2e8f0;
+  --bg: #F0F4F8;            /* blue-tinted white */
+  --bg1: #FFFFFF;
+  --bg2: #EFF6FF;           /* active-menu bg, hover surfaces */
+  --bg3: #E2E8F0;
 
-  --txt: #0f172a;
-  --txt2: #334155;
-  --txt3: #64748b;
+  --txt: #0F172A;           /* primary */
+  --txt2: #475569;          /* secondary */
+  --txt3: #64748B;
 
-  --bdr: #e2e8f0;
-  --bdr2: #cbd5e1;
+  --bdr: #E2E8F0;
+  --bdr2: #CBD5E1;
 
-  --sh: 0 2px 12px rgba(13, 22, 40, 0.08);
-  --sh2: 0 8px 32px rgba(13, 22, 40, 0.12);
+  --sh: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --sh2: 0 8px 24px rgba(15, 23, 42, 0.10);
 
-  --card-bg: #ffffff;
-  --sidebar-bg: #ffffff;
-  --topbar-bg: #ffffff;
-  --hover-bg: rgba(13, 22, 40, 0.06);
-  --input-bg: rgba(13, 22, 40, 0.06);
-  --overlay-bg: rgba(0, 0, 0, 0.4);
+  --navy: #1E3A6E;          /* brand deep blue — active text */
+  --blue: #3B82F6;
+  --gold: #D4A843;
+
+  --card-bg: #FFFFFF;
+  --sidebar-bg: #FFFFFF;
+  --topbar-bg: #FFFFFF;
+  --hover-bg: #EFF6FF;      /* soft blue hover */
+  --input-bg: #F8FAFC;
+  --overlay-bg: rgba(15, 23, 42, 0.45);
+}
+
+[data-theme="light"] .card-glass {
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] aside {
+  background: #FFFFFF !important;
+  border-right: 1px solid #E2E8F0;
+  box-shadow: none;
+}
+
+/* Active menu item no sidebar (orange var) ganha tom brand no light */
+[data-theme="light"] aside a.bg-\[var\(--orange3\)\] {
+  background: #EFF6FF !important;
+  color: #1E3A6E !important;
 }
 
 *, *::before, *::after {
