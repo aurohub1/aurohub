@@ -406,46 +406,55 @@ export default function ConfiguracoesPage() {
                     </select>
                   </div>
 
-                  {/* Preview — embedded, max-h 300px, não bloqueia cliques, onDone no-op */}
+                  {/* Preview — wrapper relativo 16:9, max 280px, SplashScreen absolute inset:0 */}
                   <div
-                    className="pointer-events-none mx-auto w-full overflow-hidden rounded-xl border border-[var(--bdr)]"
-                    style={{ maxHeight: 300, height: 300, aspectRatio: "21 / 9" }}
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      aspectRatio: "16 / 9",
+                      overflow: "hidden",
+                      borderRadius: 12,
+                      maxHeight: 280,
+                      pointerEvents: "none",
+                    }}
                   >
-                    <SplashScreen
-                      key={`adm-${splashReplayKey}-${JSON.stringify([
-                        config.adm_splash_effect,
-                        config.adm_splash_logo,
-                        config.adm_splash_cor1, config.adm_splash_cor2,
-                        config.adm_splash_cor3, config.adm_splash_cor4, config.adm_splash_cor5,
-                        config.adm_splash_velocidade, config.adm_splash_quantidade, config.adm_splash_tamanho,
-                        config.adm_splash_raio_orbital, config.adm_splash_nebulosa, config.adm_splash_opacidade,
-                        config.adm_splash_dispersao, config.adm_splash_velocidade_texto,
-                        config.adm_splash_texto_glow, config.adm_splash_texto_glow_intensidade,
-                        config.adm_splash_texto_efeito,
-                      ])}`}
-                      logoUrl={config.adm_splash_logo || ""}
-                      effect={(config.adm_splash_effect as SplashEffect) || "aurovista_adm"}
-                      cor1={config.adm_splash_cor1 || "#D4A843"}
-                      cor2={config.adm_splash_cor2 || "#FF7A1A"}
-                      cor3={config.adm_splash_cor3 || "transparent"}
-                      cor4={config.adm_splash_cor4 || "transparent"}
-                      cor5={config.adm_splash_cor5 || "transparent"}
-                      corFundo="#060B16"
-                      velocidade={getNum("adm_splash_velocidade", 5)}
-                      quantidade={getNum("adm_splash_quantidade", 5)}
-                      tamanho={getNum("adm_splash_tamanho", 5)}
-                      raioOrbital={getNum("adm_splash_raio_orbital", 5)}
-                      nebulosa={getNum("adm_splash_nebulosa", 6)}
-                      opacidade={getNum("adm_splash_opacidade", 8)}
-                      dispersao={getNum("adm_splash_dispersao", 4)}
-                      velocidadeTexto={getNum("adm_splash_velocidade_texto", 5)}
-                      glowTexto={config.adm_splash_texto_glow !== "false"}
-                      glowIntensidade={getNum("adm_splash_texto_glow_intensidade", 5)}
-                      userName="AUROVISTA"
-                      textoEfeito={(config.adm_splash_texto_efeito as TextoEfeito) || "typewriter"}
-                      onDone={() => { /* preview: no-op */ }}
-                      embedded={{ width: 700, height: 300 }}
-                    />
+                    <div style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+                      <SplashScreen
+                        key={`adm-${splashReplayKey}-${JSON.stringify([
+                          config.adm_splash_effect,
+                          config.adm_splash_logo,
+                          config.adm_splash_cor1, config.adm_splash_cor2,
+                          config.adm_splash_cor3, config.adm_splash_cor4, config.adm_splash_cor5,
+                          config.adm_splash_velocidade, config.adm_splash_quantidade, config.adm_splash_tamanho,
+                          config.adm_splash_raio_orbital, config.adm_splash_nebulosa, config.adm_splash_opacidade,
+                          config.adm_splash_dispersao, config.adm_splash_velocidade_texto,
+                          config.adm_splash_texto_glow, config.adm_splash_texto_glow_intensidade,
+                          config.adm_splash_texto_efeito,
+                        ])}`}
+                        logoUrl={config.adm_splash_logo || ""}
+                        effect={(config.adm_splash_effect as SplashEffect) || "aurovista_adm"}
+                        cor1={config.adm_splash_cor1 || "#D4A843"}
+                        cor2={config.adm_splash_cor2 || "#FF7A1A"}
+                        cor3={config.adm_splash_cor3 || "transparent"}
+                        cor4={config.adm_splash_cor4 || "transparent"}
+                        cor5={config.adm_splash_cor5 || "transparent"}
+                        corFundo="#060B16"
+                        velocidade={getNum("adm_splash_velocidade", 5)}
+                        quantidade={getNum("adm_splash_quantidade", 5)}
+                        tamanho={getNum("adm_splash_tamanho", 5)}
+                        raioOrbital={getNum("adm_splash_raio_orbital", 5)}
+                        nebulosa={getNum("adm_splash_nebulosa", 6)}
+                        opacidade={getNum("adm_splash_opacidade", 8)}
+                        dispersao={getNum("adm_splash_dispersao", 4)}
+                        velocidadeTexto={getNum("adm_splash_velocidade_texto", 5)}
+                        glowTexto={config.adm_splash_texto_glow !== "false"}
+                        glowIntensidade={getNum("adm_splash_texto_glow_intensidade", 5)}
+                        userName="AUROVISTA"
+                        textoEfeito={(config.adm_splash_texto_efeito as TextoEfeito) || "typewriter"}
+                        onDone={() => {}}
+                        embedded={{ width: 498, height: 280 }}
+                      />
+                    </div>
                   </div>
 
                   {/* Cores em linha horizontal */}
