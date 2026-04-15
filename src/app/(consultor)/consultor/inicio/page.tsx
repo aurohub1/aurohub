@@ -242,7 +242,7 @@ export default function VendedorInicioPage() {
     // Preferência: tabela datas_comemorativas (tempo real do ADM). Fallback: hardcoded CALENDARIO_TURISMO.
     if (dbFeriados.length > 0) {
       const year = new Date().getFullYear();
-      return dbFeriados.slice(0, 4).map((d) => ({
+      return dbFeriados.slice(0, 5).map((d) => ({
         nome: d.nome,
         data: `${year}-${String(d.data_mes).padStart(2, "0")}-${String(d.data_dia).padStart(2, "0")}`,
         tipo: "feriado" as const,
@@ -251,7 +251,7 @@ export default function VendedorInicioPage() {
     return CALENDARIO_TURISMO
       .filter((d) => d.tipo === "feriado" && daysUntil(d.data) >= 0)
       .sort((a, b) => a.data.localeCompare(b.data))
-      .slice(0, 4);
+      .slice(0, 5);
   }, [dbFeriados]);
 
   /* ── Render ──────────────────────────────────── */
