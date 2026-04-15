@@ -72,7 +72,7 @@ function parseRssItems(xml: string, source: string): NoticiaComData[] {
 async function fetchFeed(url: string, source: string): Promise<NoticiaComData[]> {
   try {
     const res = await fetch(url, {
-      next: { revalidate: 3600 },
+      cache: "no-store",
       headers: { "user-agent": "Mozilla/5.0 AurohubBot/1.0" },
     });
     if (!res.ok) return [];
@@ -95,8 +95,17 @@ export async function GET(request: Request) {
   const segment = searchParams.get("segment") || "default";
   const query = SEGMENT_QUERIES[segment] || SEGMENT_QUERIES.default;
 
+  // Turismo: sempre tenta RSS primeiro (independente de NEWS_API_KEY)
+  if (segment === "turismo") {
+    try {
+      const rss = await fetchTurismoRss();
+      if (rss.length) return NextResponse.json(rss);
+    } catch { /* cai pro hardcoded */ }
+  }
+
+  // Outros segmentos: NewsAPI como fonte principal
   const apiKey = process.env.NEWS_API_KEY;
-  if (apiKey) {
+  if (apiKey && segment !== "turismo") {
     try {
       const res = await fetch(
         `https://newsapi.org/v2/everything?q=${query}&language=pt&pageSize=5&sortBy=publishedAt&apiKey=${apiKey}`,
@@ -116,14 +125,6 @@ export async function GET(request: Request) {
             }))
         );
       }
-    } catch { /* cai pro RSS */ }
-  }
-
-  // Fallback RSS — só para turismo, combinando múltiplos feeds do setor
-  if (segment === "turismo") {
-    try {
-      const rss = await fetchTurismoRss();
-      if (rss.length) return NextResponse.json(rss);
     } catch { /* cai pro hardcoded */ }
   }
 
