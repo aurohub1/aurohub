@@ -13,6 +13,7 @@ interface CanvasTemplate {
   updatedAt: string | null;
   licenseeNome: string;
   lojaNome: string;
+  thumbnail: string | null;
 }
 
 /* ── Types ───────────────────────────────────────── */
@@ -107,6 +108,32 @@ export default function EditorTemplatesPage() {
   const router = useRouter();
   const [canvasTemplates, setCanvasTemplates] = useState<CanvasTemplate[]>([]);
   const [canvasLoading, setCanvasLoading] = useState(true);
+  const [thumbUploadingKey, setThumbUploadingKey] = useState<string | null>(null);
+
+  async function handleThumbUpload(key: string, file: File) {
+    setThumbUploadingKey(key);
+    try {
+      const url = await uploadToCloudinary(file, "aurohubv2/thumbs");
+      // Lê JSON atual, atualiza .thumbnail, upsert
+      const { data: row } = await supabase
+        .from("system_config")
+        .select("value")
+        .eq("key", key)
+        .single();
+      const current = row?.value ? JSON.parse(row.value) : {};
+      current.thumbnail = url;
+      await supabase
+        .from("system_config")
+        .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
+      // Atualiza state local pra refletir imediato
+      setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, thumbnail: url } : t)));
+    } catch (err) {
+      console.error("[Thumb upload]", err);
+      alert("Falha no upload do thumbnail.");
+    } finally {
+      setThumbUploadingKey(null);
+    }
+  }
 
   const loadCanvasTemplates = useCallback(async () => {
     setCanvasLoading(true);
@@ -117,13 +144,14 @@ export default function EditorTemplatesPage() {
         .like("key", "tmpl_%")
         .order("updated_at", { ascending: false });
       const list: CanvasTemplate[] = (data || []).map((r: { key: string; value: string; updated_at: string }) => {
-        let format = "—", formType = "—", licenseeNome = "Sem marca", lojaNome = "Sem loja";
+        let format = "—", formType = "—", licenseeNome = "Sem marca", lojaNome = "Sem loja", thumbnail: string | null = null;
         try {
           const parsed = JSON.parse(r.value);
           format = parsed.format || "—";
           formType = parsed.formType || "—";
           licenseeNome = parsed.licenseeNome || "Sem marca";
           lojaNome = parsed.lojaNome || "Sem loja";
+          thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null;
         } catch {}
         return {
           key: r.key,
@@ -133,6 +161,7 @@ export default function EditorTemplatesPage() {
           updatedAt: r.updated_at,
           licenseeNome,
           lojaNome,
+          thumbnail,
         };
       });
       setCanvasTemplates(list);
@@ -455,8 +484,30 @@ export default function EditorTemplatesPage() {
                           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
                             {items.map(t => (
                               <div key={t.key} className="overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)]" style={{ background: "var(--bg1)" }}>
+                                {t.thumbnail ? (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img src={t.thumbnail} alt="" className="h-24 w-full object-cover" />
+                                ) : (
+                                  <div className="flex h-24 items-center justify-center" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">{t.format}</span>
+                                  </div>
+                                )}
                                 <div className="px-4 py-3">
                                   <div className="truncate text-[13px] font-bold text-[var(--txt)]" title={t.displayName}>{t.displayName}</div>
+
+                                  {/* Upload thumb — pequeno, abaixo do nome */}
+                                  <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)]">
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      disabled={thumbUploadingKey === t.key}
+                                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleThumbUpload(t.key, f); e.currentTarget.value = ""; }}
+                                    />
+                                    <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M2 11l3.5-4 2.5 3 2-2 4 5M2 4h12v8H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+                                    {thumbUploadingKey === t.key ? "Enviando…" : "Thumb"}
+                                  </label>
+
                                   <div className="mt-2 flex gap-1.5 text-[10px]">
                                     <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.formType}</span>
                                     <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.format}</span>
