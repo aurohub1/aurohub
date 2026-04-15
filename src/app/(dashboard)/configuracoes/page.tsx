@@ -438,8 +438,7 @@ export default function ConfiguracoesPage() {
                       glowTexto={config.adm_splash_texto_glow !== "false"}
                       glowIntensidade={getNum("adm_splash_texto_glow_intensidade", 5)}
                       userName="AUROVISTA"
-                      textoEfeito="typewriter"
-                      embedded={{ width: 1200, height: 514 }}
+                      textoEfeito={(config.adm_splash_texto_efeito as TextoEfeito) || "typewriter"}
                     />
                   </div>
 
