@@ -430,6 +430,7 @@ export default function ConfiguracoesPage() {
                           config.adm_splash_dispersao, config.adm_splash_velocidade_texto,
                           config.adm_splash_texto_glow, config.adm_splash_texto_glow_intensidade,
                           config.adm_splash_texto_efeito,
+                          config.adm_splash_texto_cor, config.adm_splash_glow_cor,
                         ])}`}
                         logoUrl={config.adm_splash_logo || ""}
                         effect={(config.adm_splash_effect as SplashEffect) || "aurovista_adm"}
@@ -449,6 +450,8 @@ export default function ConfiguracoesPage() {
                         velocidadeTexto={getNum("adm_splash_velocidade_texto", 5)}
                         glowTexto={config.adm_splash_texto_glow !== "false"}
                         glowIntensidade={getNum("adm_splash_texto_glow_intensidade", 5)}
+                        textoCor={config.adm_splash_texto_cor || "#FFFFFF"}
+                        glowCor={config.adm_splash_glow_cor || config.adm_splash_cor2 || "#FF7A1A"}
                         userName="AUROVISTA"
                         textoEfeito={(config.adm_splash_texto_efeito as TextoEfeito) || "typewriter"}
                         onDone={() => {}}
@@ -466,6 +469,9 @@ export default function ConfiguracoesPage() {
                     <OptionalColorSquare label="Cor 3" value={config.adm_splash_cor3} onChange={(v) => set("adm_splash_cor3", v)} onClear={() => set("adm_splash_cor3", "transparent")} />
                     <OptionalColorSquare label="Cor 4" value={config.adm_splash_cor4} onChange={(v) => set("adm_splash_cor4", v)} onClear={() => set("adm_splash_cor4", "transparent")} />
                     <OptionalColorSquare label="Cor 5" value={config.adm_splash_cor5} onChange={(v) => set("adm_splash_cor5", v)} onClear={() => set("adm_splash_cor5", "transparent")} />
+                    <div className="mx-1 h-12 w-px bg-[var(--bdr)]" />
+                    <ColorSquare label="Cor do texto" value={config.adm_splash_texto_cor || "#FFFFFF"} onChange={(v) => set("adm_splash_texto_cor", v)} />
+                    <ColorSquare label="Cor do glow" value={config.adm_splash_glow_cor || config.adm_splash_cor2 || "#FF7A1A"} onChange={(v) => set("adm_splash_glow_cor", v)} />
                   </div>
 
                   {/* Grid 2 colunas: Partículas | Ambiente */}

@@ -119,6 +119,7 @@ export default function LoginPage() {
     nebulosa?: number; opacidade?: number; dispersao?: number; velocidadeTexto?: number;
     textoEfeito?: string;
     glowTexto?: boolean; glowIntensidade?: number;
+    textoCor?: string; glowCor?: string;
   } | null>(null);
 
   useParticles(canvasRef);
@@ -239,6 +240,8 @@ export default function LoginPage() {
               textoEfeito: cfg.adm_splash_texto_efeito || "typewriter",
               glowTexto: cfg.adm_splash_texto_glow !== "false",
               glowIntensidade: num("adm_splash_texto_glow_intensidade", 5),
+              textoCor: cfg.adm_splash_texto_cor || "#FFFFFF",
+              glowCor: cfg.adm_splash_glow_cor || cfg.adm_splash_cor2 || "#FF7A1A",
             };
           }
         } else if (profile?.licensee_id) {
@@ -327,6 +330,8 @@ export default function LoginPage() {
         textoEfeito={splash.textoEfeito as TextoEfeito | undefined}
         glowTexto={splash.glowTexto}
         glowIntensidade={splash.glowIntensidade}
+        textoCor={splash.textoCor}
+        glowCor={splash.glowCor}
         userName={splash.name}
         onDone={() => router.push(splash.home)}
       />

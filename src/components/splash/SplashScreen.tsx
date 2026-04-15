@@ -53,6 +53,10 @@ interface Props {
   glowTexto?: boolean;
   /** aurovista_adm: intensidade do glow 1-10 (default 5 ≈ shadowBlur 14px). */
   glowIntensidade?: number;
+  /** aurovista_adm: cor do texto (default #FFFFFF). */
+  textoCor?: string;
+  /** aurovista_adm: cor do glow/drop-shadow (default = cor2). */
+  glowCor?: string;
 }
 
 export type TextoEfeito = "typewriter" | "fadein" | "slideup" | "glitch" | "reveal" | "blurtosharp" | "scalein";
@@ -78,7 +82,10 @@ export default function SplashScreen({
   opacidade = 8, dispersao = 4, velocidadeTexto = 5,
   textoEfeito = "typewriter",
   glowTexto = true, glowIntensidade = 5,
+  textoCor, glowCor,
 }: Props) {
+  const resolvedTextoCor = textoCor || "#FFFFFF";
+  const resolvedGlowCor = glowCor || cor2 || "#FF7A1A";
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [visible, setVisible] = useState(true);
@@ -1415,10 +1422,10 @@ export default function SplashScreen({
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
           fontSize: preview ? 12 : 18,
           fontWeight: 500,
-          color: "rgba(255,255,255,0.9)",
+          color: resolvedTextoCor,
           whiteSpace: "nowrap",
           textShadow: glowTexto
-            ? `0 0 ${4 + (glowIntensidade / 10) * 24}px ${cor2}`
+            ? `0 0 ${4 + (glowIntensidade / 10) * 24}px ${resolvedGlowCor}`
             : "none",
           zIndex: 11,
           margin: 0,

@@ -70,19 +70,17 @@ export default function VendedorTemplatesPage() {
       setProfile(p);
       if (!p?.licensee_id) { setLoading(false); return; }
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("system_config")
         .select("key, value, updated_at")
         .like("key", "tmpl_%")
+        .like("value", `%"licenseeId":"${p.licensee_id}"%`)
         .order("updated_at", { ascending: false });
-      console.log("RAW DATA:", data?.length, "ERROR:", error?.message);
 
       const rows: TemplateRow[] = [];
       for (const r of (data ?? []) as { key: string; value: string; updated_at: string }[]) {
         try {
           const parsed = JSON.parse(r.value);
-          const lid = parsed.licenseeId ?? parsed.licensee_id ?? null;
-          if (lid !== p.licensee_id) continue;
           const nome = parsed.nome || r.key.replace(/^tmpl_/, "");
           const formType = parsed.formType || parsed.schema?.formType || "pacote";
           const format = parsed.format || parsed.schema?.format || "stories";
