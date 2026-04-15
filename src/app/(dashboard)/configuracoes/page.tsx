@@ -365,10 +365,52 @@ export default function ConfiguracoesPage() {
                 <div className="flex flex-col gap-4">
                   <SectionTitle title="Splash ADM" desc="Animação de entrada do login do ADM. Salvo em system_config (adm_splash_*)." />
 
+                  {/* Dropdown de efeito — mesmo set de clientes/page.tsx */}
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Efeito</label>
+                    <select
+                      value={config.adm_splash_effect || "aurovista_adm"}
+                      onChange={(e) => set("adm_splash_effect", e.target.value)}
+                      className="h-9 w-full max-w-[320px] rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none"
+                    >
+                      <option value="random">🎲 Aleatório</option>
+                      <option value="aurovista_adm">✨ Aurovista ADM</option>
+                      <option value="particles">Partículas</option>
+                      <option value="cinematic">Cinemático</option>
+                      <option value="slideup">Slide Up</option>
+                      <option value="scalefade">Scale Fade</option>
+                      <option value="fadesuave">Fade Suave</option>
+                      <option value="ondas">Ondas</option>
+                      <option value="flutuacao">Flutuação</option>
+                      <option value="scanner">Scanner</option>
+                      <option value="holofote">Holofote</option>
+                      <option value="chuvapontos">Chuva de Pontos</option>
+                      <option value="gradiente">Gradiente</option>
+                      <option value="dissolve">Dissolve</option>
+                      <option value="bigbang">Big Bang</option>
+                      <option value="aurora">Aurora Boreal</option>
+                      <option value="tinta">Tinta</option>
+                      <option value="vagalumes">Vagalumes</option>
+                      <option value="aurora_espacial">Aurora Espacial</option>
+                      <option value="galaxia">🌀 Galáxia</option>
+                      <option value="vidro_janela">🪟 Vidro Janela</option>
+                      <option value="vidro_liquido">💧 Vidro Líquido</option>
+                      <option value="cidade_a">🏙️ Cidade A</option>
+                      <option value="cidade_b">🌃 Cidade B</option>
+                      <option value="restaurante">🍽️ Restaurante</option>
+                      <option value="saude">🧬 Saúde</option>
+                      <option value="moda">👗 Moda</option>
+                      <option value="imobiliaria">🏘️ Imobiliária</option>
+                      <option value="educacao">🎓 Educação</option>
+                      <option value="beleza">🌹 Beleza</option>
+                    </select>
+                  </div>
+
                   {/* Preview 21:9 full width */}
                   <div className="w-full overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ aspectRatio: "21 / 9" }}>
                     <SplashScreen
                       key={`adm-${splashReplayKey}-${JSON.stringify([
+                        config.adm_splash_effect,
                         config.adm_splash_logo,
                         config.adm_splash_cor1, config.adm_splash_cor2,
                         config.adm_splash_cor3, config.adm_splash_cor4, config.adm_splash_cor5,
@@ -378,7 +420,7 @@ export default function ConfiguracoesPage() {
                         config.adm_splash_texto_glow, config.adm_splash_texto_glow_intensidade,
                       ])}`}
                       logoUrl={config.adm_splash_logo || ""}
-                      effect="aurovista_adm"
+                      effect={(config.adm_splash_effect as SplashEffect) || "aurovista_adm"}
                       cor1={config.adm_splash_cor1 || "#D4A843"}
                       cor2={config.adm_splash_cor2 || "#FF7A1A"}
                       cor3={config.adm_splash_cor3 || "transparent"}
