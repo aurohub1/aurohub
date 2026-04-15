@@ -1327,124 +1327,7 @@ export default function SplashScreen({
             ctx.fill();
           });
 
-          // Texto (nome) — gate por greetVisible + fade-out 500ms após virar false
-          const previewMode = embedded || preview;
-          const textFadeOut = !previewMode && textEndMsRef.current != null
-            ? Math.max(0, 1 - (performance.now() - textEndMsRef.current) / 500)
-            : 1;
-          const shouldRenderText = userName && (previewMode || greetVisibleRef.current || textFadeOut > 0);
-          if (shouldRenderText) {
-            const greet = getGreeting();
-            const fullText = `${greet}, ${userName}!`;
-            const duration = 2.5 - (velocidadeTexto / 10) * 2; // 0.5s rápido → 2.5s lento
-            const loopLen = previewMode ? duration + 2 : Infinity;
-            // Non-preview: phase começa quando greetVisible vira true (textStartMsRef)
-            const textElapsed = previewMode
-              ? t
-              : ((performance.now() - (textStartMsRef.current ?? performance.now())) / 1000) * (0.3 + (velocidade / 10) * 1.7);
-            const phase = previewMode ? (textElapsed % loopLen) : textElapsed;
-            const progress = Math.max(0, Math.min(1, phase / duration));
-            const holdFade = phase > duration ? Math.max(0, 1 - (phase - duration) * 0.8) : 1;
-            const fontSize = previewMode ? 11 : Math.max(14, Math.round(H * 0.045));
-            const ty = cy + H * 0.22;
-
-            ctx.save();
-            ctx.font = `500 ${fontSize}px 'Helvetica Neue', Arial, sans-serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            if (glowTexto) {
-              ctx.shadowColor = `rgba(${c2.r},${c2.g},${c2.b},0.5)`;
-              ctx.shadowBlur = 4 + (glowIntensidade / 10) * 24; // 1→6.4px, 5→16px, 10→28px
-            } else {
-              ctx.shadowColor = "rgba(0,0,0,0)";
-              ctx.shadowBlur = 0;
-            }
-            const baseAlpha = 0.9 * textFadeOut;
-
-            switch (textoEfeito) {
-              case "typewriter": {
-                const chars = Math.floor(progress * fullText.length);
-                const text = fullText.slice(0, chars);
-                const cursorOn = Math.floor(t * 2) % 2 === 0;
-                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * holdFade})`;
-                ctx.fillText(text + (cursorOn && chars < fullText.length ? "▍" : ""), cx, ty);
-                break;
-              }
-              case "fadein": {
-                const eased = 1 - Math.pow(1 - progress, 3);
-                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * eased * holdFade})`;
-                ctx.fillText(fullText, cx, ty);
-                break;
-              }
-              case "slideup": {
-                const eased = 1 - Math.pow(1 - progress, 3);
-                const offset = (1 - eased) * fontSize * 1.2;
-                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * eased * holdFade})`;
-                ctx.fillText(fullText, cx, ty + offset);
-                break;
-              }
-              case "glitch": {
-                const settleProgress = Math.min(1, progress * 1.3);
-                const glitching = settleProgress < 1;
-                const chars = fullText.split("").map((c, i) => {
-                  if (!glitching) return c;
-                  const charProgress = Math.min(1, (settleProgress - (i / fullText.length) * 0.4) * 2);
-                  if (charProgress <= 0) return " ";
-                  if (charProgress >= 1) return c;
-                  const scrambleChars = "!@#$%^&*_+<>/\\|0123456789abcdefghijklmnopqrstuvwxyz";
-                  return scrambleChars[Math.floor((t * 40 + i * 13) % scrambleChars.length)];
-                }).join("");
-                if (glitching) {
-                  ctx.fillStyle = `rgba(${c1.r},${c1.g},${c1.b},${0.5 * baseAlpha * holdFade})`;
-                  ctx.fillText(chars, cx - 2, ty);
-                  ctx.fillStyle = `rgba(${c4.r},${c4.g},${c4.b},${0.5 * baseAlpha * holdFade})`;
-                  ctx.fillText(chars, cx + 2, ty);
-                }
-                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * holdFade})`;
-                ctx.fillText(chars, cx, ty);
-                break;
-              }
-              case "reveal": {
-                const eased = 1 - Math.pow(1 - progress, 2);
-                const metrics = ctx.measureText(fullText);
-                const textW = metrics.width;
-                const revealW = textW * eased;
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(cx - textW / 2, ty - fontSize, revealW, fontSize * 2);
-                ctx.clip();
-                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * holdFade})`;
-                ctx.fillText(fullText, cx, ty);
-                ctx.restore();
-                if (eased < 1) {
-                  const edgeX = cx - textW / 2 + revealW;
-                  ctx.fillStyle = `rgba(${c2.r},${c2.g},${c2.b},${baseAlpha * holdFade})`;
-                  ctx.fillRect(edgeX - 1, ty - fontSize * 0.8, 2, fontSize * 1.6);
-                }
-                break;
-              }
-              case "blurtosharp": {
-                const eased = 1 - Math.pow(1 - progress, 2);
-                const blur = (1 - eased) * 20;
-                ctx.filter = `blur(${blur}px)`;
-                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * holdFade})`;
-                ctx.fillText(fullText, cx, ty);
-                ctx.filter = "none";
-                break;
-              }
-              case "scalein": {
-                const eased = 1 - Math.pow(1 - progress, 3);
-                ctx.save();
-                ctx.translate(cx, ty);
-                ctx.scale(eased, eased);
-                ctx.fillStyle = `rgba(255,255,255,${baseAlpha * eased * holdFade})`;
-                ctx.fillText(fullText, 0, 0);
-                ctx.restore();
-                break;
-              }
-            }
-            ctx.restore();
-          }
+          // Texto renderizado via DOM (centralizado na tela, fora do canvas)
           break;
         }
 
@@ -1521,6 +1404,29 @@ export default function SplashScreen({
           </p>
         )}
       </div>
+      {userName && activeEffect === "aurovista_adm" && (
+        <p style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          opacity: (preview || embedded || greetVisible) ? 1 : 0,
+          transition: "opacity 0.4s ease",
+          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+          fontSize: preview ? 12 : 18,
+          fontWeight: 500,
+          color: "rgba(255,255,255,0.9)",
+          whiteSpace: "nowrap",
+          textShadow: glowTexto
+            ? `0 0 ${4 + (glowIntensidade / 10) * 24}px ${cor2}`
+            : "none",
+          zIndex: 11,
+          margin: 0,
+          pointerEvents: "none",
+        }}>
+          {getGreeting()}, {userName}!
+        </p>
+      )}
     </div>
   );
 }
