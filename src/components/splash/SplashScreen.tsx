@@ -82,6 +82,18 @@ export default function SplashScreen({
   const [visible, setVisible] = useState(true);
   const [logoVisible, setLogoVisible] = useState(false);
   const [greetVisible, setGreetVisible] = useState(false);
+  const greetVisibleRef = useRef(false);
+  const textStartMsRef = useRef<number | null>(null);
+  const textEndMsRef = useRef<number | null>(null);
+  useEffect(() => {
+    greetVisibleRef.current = greetVisible;
+    if (greetVisible) {
+      textStartMsRef.current = performance.now();
+      textEndMsRef.current = null;
+    } else if (textStartMsRef.current != null) {
+      textEndMsRef.current = performance.now();
+    }
+  }, [greetVisible]);
 
   // Som do splash: toca ao montar, para ao desmontar/embedded
   useEffect(() => {
@@ -160,15 +172,17 @@ export default function SplashScreen({
       });
     }
 
-    // Em modo embedded: sem timers (preview infinito, sem dismiss)
+    // Sequência: logo fade-in → 2s visível → fade-out → greeting fade-in → 2s visível → fade-out → onDone
+    // Canvas (partículas + nebulosa) roda continuamente durante toda a sequência como fundo.
+    // Em modo embedded: sem timers (preview infinito, sem dismiss).
     const logoInTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(true), 400);
-    const logoOutTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(false), 3400);
-    const greetInTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(true), 3900);
-    const greetOutTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(false), 5900);
+    const logoOutTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(false), 2900);   // 2s visível (400→900 fade-in, 900→2900 visível)
+    const greetInTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(true), 3500);   // 600ms após logo começar a sumir
+    const greetOutTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(false), 6000); // 2s visível
     const doneTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => {
       setVisible(false);
       onDone?.();
-    }, 6300);
+    }, 6800);
 
     function draw(now: number) {
       // velocidade: 1=0.3x, 5=1x, 10=2x — delta time para consistência em telas 30/60/120/144Hz
@@ -1301,13 +1315,21 @@ export default function SplashScreen({
             ctx.fill();
           });
 
-          // Texto (nome) com 7 efeitos
-          if (userName) {
+          // Texto (nome) — gate por greetVisible + fade-out 500ms após virar false
+          const textFadeOut = !embedded && textEndMsRef.current != null
+            ? Math.max(0, 1 - (performance.now() - textEndMsRef.current) / 500)
+            : 1;
+          const shouldRenderText = userName && (embedded || greetVisibleRef.current || textFadeOut > 0);
+          if (shouldRenderText) {
             const greet = getGreeting();
             const fullText = `${greet}, ${userName}!`;
             const duration = 2.5 - (velocidadeTexto / 10) * 2; // 0.5s rápido → 2.5s lento
             const loopLen = embedded ? duration + 2 : Infinity;
-            const phase = embedded ? (t % loopLen) : t;
+            // Non-embedded: phase começa quando greetVisible vira true (textStartMsRef)
+            const textElapsed = embedded
+              ? t
+              : ((performance.now() - (textStartMsRef.current ?? performance.now())) / 1000) * (0.3 + (velocidade / 10) * 1.7);
+            const phase = embedded ? (textElapsed % loopLen) : textElapsed;
             const progress = Math.max(0, Math.min(1, phase / duration));
             const holdFade = phase > duration ? Math.max(0, 1 - (phase - duration) * 0.8) : 1;
             const fontSize = Math.max(14, Math.round(H * 0.045));
@@ -1324,7 +1346,7 @@ export default function SplashScreen({
               ctx.shadowColor = "rgba(0,0,0,0)";
               ctx.shadowBlur = 0;
             }
-            const baseAlpha = 0.9;
+            const baseAlpha = 0.9 * textFadeOut;
 
             switch (textoEfeito) {
               case "typewriter": {
@@ -1446,8 +1468,14 @@ export default function SplashScreen({
   if (!visible) return null;
 
   return (
-    <div className={embedded ? "relative overflow-hidden flex items-center justify-center" : "fixed inset-0 z-[9999] flex items-center justify-center"}
-      style={{ background: corFundo, width: embedded?.width, height: embedded?.height }}>
+    <div
+      className={embedded ? "relative overflow-hidden flex items-center justify-center" : "fixed inset-0 z-[9999] flex items-center justify-center"}
+      style={{
+        background: corFundo,
+        width: embedded ? embedded.width : "100vw",
+        height: embedded ? embedded.height : "100dvh",
+      }}
+    >
       <canvas ref={canvasRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : undefined} />
       <div className="relative z-10 flex items-center justify-center"
         style={{ position: "relative", width: logoDims.width, height: logoDims.height + 40 }}>
