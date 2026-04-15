@@ -7,7 +7,23 @@ import {
   Users, DollarSign, Send, Camera, AlertTriangle,
   UserPlus, Palette, CalendarClock, UserCog, Gem, Calculator,
   ArrowRight,
+  Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
+import { useWeather } from "@/hooks/useWeather";
+
+/* ── Weather icon helper ─────────────────────────── */
+
+function WeatherIcon({ code, size = 22 }: { code: number | null; size?: number }) {
+  const color = "var(--orange)";
+  if (code === null) return <Cloud size={size} color={color} />;
+  if (code === 0) return <Sun size={size} color={color} />;
+  if (code <= 3) return <CloudSun size={size} color={color} />;
+  if (code <= 48) return <CloudFog size={size} color={color} />;
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return <CloudRain size={size} color={color} />;
+  if (code >= 71 && code <= 77) return <CloudSnow size={size} color={color} />;
+  if (code >= 95) return <CloudLightning size={size} color={color} />;
+  return <Cloud size={size} color={color} />;
+}
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -166,18 +182,47 @@ export default function InicioPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const { weather, cityName } = useWeather();
+
   if (loading) return <div className="flex flex-1 items-center justify-center text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
     <>
       {/* ═══ Header minimalista ═══ */}
-      <div className="flex items-end justify-between border-b border-[var(--bdr)] pb-5">
-        <div>
+      <div className="flex items-end justify-between gap-4 border-b border-[var(--bdr)] pb-5">
+        <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">ADM · {greeting()}</p>
           <h1 className="mt-1 font-[family-name:var(--font-dm-serif)] text-[26px] font-bold leading-tight text-[var(--txt)]">
             {userName ? `Olá, ${userName}` : "Painel administrativo"}
           </h1>
           <p className="mt-1 text-[12px] text-[var(--txt3)]">Visão geral da plataforma Aurohub.</p>
+        </div>
+
+        {/* Weather widget — só para ADM (sem quote) */}
+        <div
+          className="flex shrink-0 items-center gap-3 rounded-2xl border border-[var(--bdr)] px-4 py-2.5"
+          style={{
+            background: "linear-gradient(135deg, rgba(255,122,26,0.08), rgba(59,130,246,0.05))",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.14))",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <WeatherIcon code={weather?.code ?? null} />
+          </div>
+          <div>
+            <div className="font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-none text-[var(--txt)] tabular-nums">
+              {weather ? `${weather.temp}°` : "—"}
+            </div>
+            <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--txt3)]">
+              {cityName}
+            </div>
+          </div>
         </div>
       </div>
 
