@@ -74,7 +74,7 @@ export default function VendedorTemplatesPage() {
         .from("system_config")
         .select("key, value, updated_at")
         .like("key", "tmpl_%")
-        .like("value", `%"licenseeId":"${p.licensee_id}"%`)
+        .like("value", `%"licenseeId": "${p.licensee_id}"%`)
         .order("updated_at", { ascending: false });
 
       const rows: TemplateRow[] = [];
