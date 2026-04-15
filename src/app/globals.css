@@ -54,17 +54,18 @@
 
 /* ── Light ───────────────────────────────────────── */
 [data-theme="light"] {
-  --bg: #F0F4F8;            /* blue-tinted white */
+  --bg0: #F0F4F8;
+  --bg: #F0F4F8;
   --bg1: #FFFFFF;
-  --bg2: #EFF6FF;           /* active-menu bg, hover surfaces */
+  --bg2: #E8EDF2;
   --bg3: #E2E8F0;
 
-  --txt: #0F172A;           /* primary */
-  --txt2: #475569;          /* secondary */
-  --txt3: #64748B;
+  --txt: #0F172A;
+  --txt2: #475569;
+  --txt3: #94A3B8;
 
-  --bdr: #E2E8F0;
-  --bdr2: #CBD5E1;
+  --bdr: #CBD5E1;
+  --bdr2: #94A3B8;
 
   --sh: 0 1px 3px rgba(0, 0, 0, 0.08);
   --sh2: 0 8px 24px rgba(15, 23, 42, 0.10);

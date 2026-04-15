@@ -25,6 +25,8 @@ interface Props {
   onDone?: () => void;
   /** Modo embarcado: renderiza dentro de container relativo com tamanho custom e sem timers/dismiss */
   embedded?: { width: number; height: number };
+  /** Modo preview: position:absolute inset:0 (preenche o parent) — sem timers, sem dismiss. */
+  preview?: boolean;
   /** Velocidade da animação 1-10 (default 5 = normal). Escala o tempo base. */
   velocidade?: number;
   /** Suavidade 1-10 (default 7). Controla blur/alpha em efeitos aurora/vidro. */
@@ -71,7 +73,7 @@ export default function SplashScreen({
   logoUrl, logoOrientation = "horizontal",
   effect = "random", cor1 = "#D4A843", cor2 = "#FF7A1A", cor3 = "transparent",
   cor4 = "transparent", cor5 = "transparent", corFundo = "#060B16", userName, onDone,
-  embedded, velocidade = 5, suavidade = 7, somUrl,
+  embedded, preview, velocidade = 5, suavidade = 7, somUrl,
   quantidade = 5, tamanho = 5, raioOrbital = 5, nebulosa = 6,
   opacidade = 8, dispersao = 4, velocidadeTexto = 5,
   textoEfeito = "typewriter",
@@ -125,8 +127,17 @@ export default function SplashScreen({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d")!;
-    canvas.width = embedded ? embedded.width : window.innerWidth;
-    canvas.height = embedded ? embedded.height : window.innerHeight;
+    if (embedded) {
+      canvas.width = embedded.width;
+      canvas.height = embedded.height;
+    } else if (preview) {
+      const r = canvas.parentElement?.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(r?.width ?? window.innerWidth));
+      canvas.height = Math.max(1, Math.round(r?.height ?? window.innerHeight));
+    } else {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
     let animId: number;
     let lastFrame = performance.now();
     let simTime = 0;
@@ -175,11 +186,12 @@ export default function SplashScreen({
     // Sequência: logo fade-in → 2s visível → fade-out → greeting fade-in → 2s visível → fade-out → onDone
     // Canvas (partículas + nebulosa) roda continuamente durante toda a sequência como fundo.
     // Em modo embedded: sem timers (preview infinito, sem dismiss).
-    const logoInTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(true), 400);
-    const logoOutTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(false), 2900);   // 2s visível (400→900 fade-in, 900→2900 visível)
-    const greetInTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(true), 3500);   // 600ms após logo começar a sumir
-    const greetOutTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(false), 6000); // 2s visível
-    const doneTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => {
+    const noTimers = embedded || preview;
+    const logoInTimer = noTimers ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(true), 400);
+    const logoOutTimer = noTimers ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(false), 2900);
+    const greetInTimer = noTimers ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(true), 3500);
+    const greetOutTimer = noTimers ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setGreetVisible(false), 6000);
+    const doneTimer = noTimers ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => {
       setVisible(false);
       onDone?.();
     }, 6800);
@@ -1316,20 +1328,21 @@ export default function SplashScreen({
           });
 
           // Texto (nome) — gate por greetVisible + fade-out 500ms após virar false
-          const textFadeOut = !embedded && textEndMsRef.current != null
+          const previewMode = embedded || preview;
+          const textFadeOut = !previewMode && textEndMsRef.current != null
             ? Math.max(0, 1 - (performance.now() - textEndMsRef.current) / 500)
             : 1;
-          const shouldRenderText = userName && (embedded || greetVisibleRef.current || textFadeOut > 0);
+          const shouldRenderText = userName && (previewMode || greetVisibleRef.current || textFadeOut > 0);
           if (shouldRenderText) {
             const greet = getGreeting();
             const fullText = `${greet}, ${userName}!`;
             const duration = 2.5 - (velocidadeTexto / 10) * 2; // 0.5s rápido → 2.5s lento
-            const loopLen = embedded ? duration + 2 : Infinity;
-            // Non-embedded: phase começa quando greetVisible vira true (textStartMsRef)
-            const textElapsed = embedded
+            const loopLen = previewMode ? duration + 2 : Infinity;
+            // Non-preview: phase começa quando greetVisible vira true (textStartMsRef)
+            const textElapsed = previewMode
               ? t
               : ((performance.now() - (textStartMsRef.current ?? performance.now())) / 1000) * (0.3 + (velocidade / 10) * 1.7);
-            const phase = embedded ? (textElapsed % loopLen) : textElapsed;
+            const phase = previewMode ? (textElapsed % loopLen) : textElapsed;
             const progress = Math.max(0, Math.min(1, phase / duration));
             const holdFade = phase > duration ? Math.max(0, 1 - (phase - duration) * 0.8) : 1;
             const fontSize = Math.max(14, Math.round(H * 0.045));
@@ -1457,7 +1470,7 @@ export default function SplashScreen({
       clearTimeout(greetOutTimer);
       clearTimeout(doneTimer);
     };
-  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo, velocidade, suavidade, quantidade, tamanho, raioOrbital, nebulosa, opacidade, dispersao, velocidadeTexto, textoEfeito, glowTexto, glowIntensidade, userName, embedded]);
+  }, [activeEffect, cor1, cor2, cor3, cor4, cor5, corFundo, velocidade, suavidade, quantidade, tamanho, raioOrbital, nebulosa, opacidade, dispersao, velocidadeTexto, textoEfeito, glowTexto, glowIntensidade, userName, embedded, preview]);
 
   const logoDims = {
     horizontal: { width: 220, height: 80 },
@@ -1469,14 +1482,20 @@ export default function SplashScreen({
 
   return (
     <div
-      className={embedded ? "relative overflow-hidden flex items-center justify-center" : "fixed inset-0 z-[9999] flex items-center justify-center"}
+      className={
+        preview
+          ? "absolute inset-0 overflow-hidden flex items-center justify-center"
+          : embedded
+            ? "relative overflow-hidden flex items-center justify-center"
+            : "fixed inset-0 z-[9999] flex items-center justify-center"
+      }
       style={{
         background: corFundo,
-        width: embedded ? embedded.width : "100vw",
-        height: embedded ? embedded.height : "100dvh",
+        width: preview ? "100%" : embedded ? embedded.width : "100vw",
+        height: preview ? "100%" : embedded ? embedded.height : "100dvh",
       }}
     >
-      <canvas ref={canvasRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : undefined} />
+      <canvas ref={canvasRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : preview ? { width: "100%", height: "100%" } : undefined} />
       <div className="relative z-10 flex items-center justify-center"
         style={{ position: "relative", width: logoDims.width, height: logoDims.height + 40 }}>
         <img src={logoUrl} alt="Logo"

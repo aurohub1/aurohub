@@ -197,7 +197,7 @@ export default function UnidadePublicarPage() {
             duration: parsed.duration || 5,
             qtdDestinos: parsed.qtdDestinos,
           },
-          thumbnail: (parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || (schemaElements as Array<{ type?: string; src?: string }>).find((e) => e?.type === "image" && typeof e?.src === "string" && e.src.length > 0)?.src || null),
+          thumbnail: parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null,
         });
       } catch { /* skip */ }
     }

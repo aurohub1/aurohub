@@ -452,7 +452,7 @@ export default function ConfiguracoesPage() {
                         userName="AUROVISTA"
                         textoEfeito={(config.adm_splash_texto_efeito as TextoEfeito) || "typewriter"}
                         onDone={() => {}}
-                        embedded={{ width: 498, height: 280 }}
+                        preview
                       />
                     </div>
                   </div>

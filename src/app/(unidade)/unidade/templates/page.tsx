@@ -85,9 +85,7 @@ export default function UnidadeTemplatesPage() {
           const formType = parsed.formType || parsed.schema?.formType || "pacote";
           const format = parsed.format || parsed.schema?.format || "stories";
           const bgColor = parsed.bgColor || parsed.background || parsed.schema?.background || "#1E3A6E";
-          const els = (parsed.elements ?? parsed.schema?.elements ?? []) as Array<{ type?: string; src?: string }>;
-          const firstImg = els.find((e) => e?.type === "image" && typeof e?.src === "string" && e.src.length > 0)?.src;
-          const thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || firstImg || null;
+          const thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null;
           rows.push({
             key: r.key,
             id: r.key.replace(/^tmpl_/, ""),
