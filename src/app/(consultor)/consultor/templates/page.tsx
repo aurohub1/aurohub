@@ -85,7 +85,7 @@ export default function VendedorTemplatesPage() {
           const formType = parsed.formType || parsed.schema?.formType || "pacote";
           const format = parsed.format || parsed.schema?.format || "stories";
           const bgColor = parsed.bgColor || parsed.background || parsed.schema?.background || "#1E3A6E";
-          const thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null;
+          const thumbnail = parsed.thumbnail || parsed.image_url || parsed.thumb || parsed.schema?.thumbnail || parsed.schema?.image_url || null;
           rows.push({
             key: r.key,
             id: r.key.replace(/^tmpl_/, ""),

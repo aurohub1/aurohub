@@ -326,6 +326,47 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
     : rawSections;
   const initial = user.name.charAt(0).toUpperCase();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
+  const [cityName, setCityName] = useState<string>("Rio Preto");
+  const [quote, setQuote] = useState<string>("");
+
+  // Fetch weather via geolocation (fallback Rio Preto) + ler frase do dia do localStorage
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("ah_frase_do_dia") || "{}");
+      if (saved?.quote) setQuote(saved.quote as string);
+    } catch { /* silent */ }
+
+    (async () => {
+      let lat = -20.8116, lon = -49.3755;
+      try {
+        const pos = await new Promise<{ lat: number; lon: number } | null>((resolve) => {
+          if (typeof window === "undefined" || !navigator.geolocation) { resolve(null); return; }
+          navigator.geolocation.getCurrentPosition(
+            (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+            () => resolve(null),
+            { timeout: 5000, maximumAge: 600_000 }
+          );
+        });
+        if (pos) {
+          lat = pos.lat; lon = pos.lon;
+          try {
+            const rev = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=pt`);
+            if (rev.ok) {
+              const d = await rev.json();
+              const name = d?.results?.[0]?.name;
+              if (name) setCityName(name);
+            }
+          } catch { /* silent */ }
+        }
+        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=America/Sao_Paulo`);
+        if (w.ok) {
+          const d = await w.json();
+          if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code });
+        }
+      } catch { /* silent */ }
+    })();
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -422,6 +463,32 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
           {extraPanel}
         </div>
       )}
+
+      {/* ── Weather + Quote (compacto, todos os roles) ── */}
+      <div className="shrink-0 border-t border-[var(--bdr)] px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className="text-[15px]" aria-hidden>
+            {weather == null ? "…" :
+              weather.code === 0 ? "☀️" :
+              weather.code <= 3 ? "⛅" :
+              weather.code <= 48 ? "🌫️" :
+              (weather.code <= 67 || (weather.code >= 80 && weather.code <= 82)) ? "🌧️" :
+              (weather.code >= 71 && weather.code <= 77) ? "❄️" :
+              weather.code >= 95 ? "⛈️" : "☁️"}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-semibold text-[var(--txt)] tabular-nums leading-none">
+              {weather ? `${weather.temp}°` : "—"}
+              <span className="ml-1 text-[9px] font-normal text-[var(--txt3)]">{cityName}</span>
+            </div>
+            {quote && (
+              <div className="mt-1 truncate text-[10px] italic text-[var(--txt3)]" title={quote}>
+                &ldquo;{quote}&rdquo;
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ── Footer ──────────────────────────────── */}
       <div className="shrink-0 border-t border-[var(--bdr)] px-3 py-3">
