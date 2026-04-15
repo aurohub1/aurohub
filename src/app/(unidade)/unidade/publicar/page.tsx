@@ -173,12 +173,13 @@ export default function UnidadePublicarPage() {
     const { data } = await supabase
       .from("system_config")
       .select("key, value")
-      .like("key", "tmpl_%")
-      .like("value", `%"licenseeId": "${p.licensee_id}"%`);
+      .like("key", "tmpl_%");
     const rows: TemplateRow[] = [];
     for (const r of (data ?? []) as { key: string; value: string }[]) {
       try {
         const parsed = JSON.parse(r.value);
+        const lid = parsed.licenseeId ?? parsed.licensee_id ?? null;
+        if (lid && lid.trim() !== p.licensee_id.trim()) continue;
         const schemaElements = parsed.elements ?? parsed.schema?.elements;
         if (!schemaElements) continue;
         const format = parsed.format || parsed.schema?.format || "stories";
