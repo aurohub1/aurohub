@@ -1345,7 +1345,7 @@ export default function SplashScreen({
             const phase = previewMode ? (textElapsed % loopLen) : textElapsed;
             const progress = Math.max(0, Math.min(1, phase / duration));
             const holdFade = phase > duration ? Math.max(0, 1 - (phase - duration) * 0.8) : 1;
-            const fontSize = Math.max(14, Math.round(H * 0.045));
+            const fontSize = previewMode ? 11 : Math.max(14, Math.round(H * 0.045));
             const ty = cy + H * 0.22;
 
             ctx.save();
@@ -1484,7 +1484,7 @@ export default function SplashScreen({
     <div
       className={
         preview
-          ? "absolute inset-0 overflow-hidden flex items-center justify-center"
+          ? "absolute inset-0 z-[1] overflow-hidden flex items-center justify-center"
           : embedded
             ? "relative overflow-hidden flex items-center justify-center"
             : "fixed inset-0 z-[9999] flex items-center justify-center"
@@ -1512,7 +1512,7 @@ export default function SplashScreen({
             opacity: greetVisible ? 1 : 0,
             transition: "opacity 0.4s ease",
             fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-            fontSize: 18,
+            fontSize: preview ? 14 : 18,
             fontWeight: 500,
             color: "rgba(255,255,255,0.85)",
             whiteSpace: "nowrap",
