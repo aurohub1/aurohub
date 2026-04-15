@@ -174,7 +174,7 @@ export default function UnidadePublicarPage() {
       .from("system_config")
       .select("key, value")
       .like("key", "tmpl_%")
-      .like("value", `%"lojaId":"${p.store_id}"%`);
+      .like("value", `%"licenseeId":"${p.licensee_id}"%`);
     const rows: TemplateRow[] = [];
     for (const r of (data ?? []) as { key: string; value: string }[]) {
       try {
