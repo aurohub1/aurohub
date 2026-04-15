@@ -1,14 +1,22 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
+import FeriadosCard from "@/components/FeriadosCard";
 import {
-  Store, Users, BarChart3, FileText, Sparkles, CalendarClock, ArrowRight,
+  Store, BarChart3, FileText, Sparkles, CalendarClock, ArrowRight,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
+
+interface DataComemorativa { id: string; nome: string; data_mes: number; data_dia: number; tipo: string; }
+function daysUntil(iso: string): number {
+  const a = new Date(); a.setHours(0,0,0,0);
+  const b = new Date(iso + "T00:00:00");
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+}
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -122,6 +130,7 @@ export default function ClienteInicioPage() {
 
   const [stores, setStores] = useState<StoreRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [dbFeriados, setDbFeriados] = useState<DataComemorativa[]>([]);
   const [postsMes, setPostsMes] = useState(0);
   const [templatesCount, setTemplatesCount] = useState(0);
 
@@ -253,6 +262,42 @@ export default function ClienteInicioPage() {
         .like("value", `%"licenseeId":"${p.licensee_id}"%`);
       setTemplatesCount((tmpls ?? []).length);
 
+      // Datas comemorativas próximos 14 dias
+      try {
+        const hojeDt = new Date();
+        const mesAtual = hojeDt.getMonth() + 1;
+        const diaAtual = hojeDt.getDate();
+        const diaFim = diaAtual + 14;
+        if (diaFim <= 31) {
+          const { data: dc } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", mesAtual)
+            .gte("data_dia", diaAtual)
+            .lte("data_dia", diaFim)
+            .order("data_dia")
+            .limit(5);
+          setDbFeriados((dc ?? []) as DataComemorativa[]);
+        } else {
+          const { data: dc1 } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", mesAtual)
+            .gte("data_dia", diaAtual)
+            .order("data_dia")
+            .limit(5);
+          const proxMes = mesAtual === 12 ? 1 : mesAtual + 1;
+          const { data: dc2 } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", proxMes)
+            .lte("data_dia", diaFim - 31)
+            .order("data_dia")
+            .limit(5);
+          setDbFeriados([...((dc1 ?? []) as DataComemorativa[]), ...((dc2 ?? []) as DataComemorativa[])].slice(0, 5));
+        }
+      } catch { /* silent */ }
+
       // Notícias do setor
       try {
         const segmentName = SEGMENT_MAP[segmentId ?? ""] ?? "default";
@@ -281,10 +326,18 @@ export default function ClienteInicioPage() {
     : null;
   const unidadesAtivas = stores.filter((s) => s.active !== false).length;
 
+  const proximosFeriados = useMemo(() => {
+    const year = new Date().getFullYear();
+    return dbFeriados.slice(0, 5).map((d) => ({
+      nome: d.nome,
+      data: `${year}-${String(d.data_mes).padStart(2, "0")}-${String(d.data_dia).padStart(2, "0")}`,
+    }));
+  }, [dbFeriados]);
+
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
-    <>
+    <div className="flex min-w-0 flex-col gap-5 overflow-x-hidden">
       {/* ═══ HEADER ═════════════════════════════════ */}
       <div className="card-glass relative overflow-hidden px-6 py-6">
         <div
@@ -514,57 +567,14 @@ export default function ClienteInicioPage() {
           </div>
         </div>
 
-        {/* ── Usuários ──────────────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
-            <div className="flex items-center gap-2">
-              <Users size={15} className="text-[var(--orange)]" />
-              <h3 className="text-[14px] font-bold text-[var(--txt)]">Usuários</h3>
-              <span className="text-[11px] text-[var(--txt3)] tabular-nums">
-                {users.length}{maxUsers && maxUsers > 0 ? ` / ${maxUsers}` : ""}
-              </span>
-              {maxUsers && maxUsers > 0 && users.length >= maxUsers && (
-                <span className="rounded-full bg-[var(--red3)] px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-wider text-[var(--red)]">
-                  Limite
-                </span>
-              )}
-            </div>
-            <Link
-              href="/usuarios"
-              className="flex items-center gap-1 text-[11px] font-semibold text-[var(--orange)] hover:underline"
-            >
-              Gerenciar <ArrowRight size={11} />
-            </Link>
-          </div>
-          <div className="p-5">
-            {users.length === 0 ? (
-              <div className="py-6 text-center text-[12px] text-[var(--txt3)]">Nenhum usuário cadastrado.</div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {users.slice(0, 8).map((u) => (
-                  <div key={u.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-3 py-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-[12px] font-medium text-[var(--txt)]">{u.name || u.email || "—"}</div>
-                      <div className="truncate text-[10px] text-[var(--txt3)]">{u.email}</div>
-                    </div>
-                    <span className="ml-2 shrink-0 rounded-full bg-[var(--blue3)] px-2 py-0.5 text-[0.55rem] font-bold text-[var(--blue)]">
-                      {roleLabel(u.role)}
-                    </span>
-                  </div>
-                ))}
-                {users.length > 8 && (
-                  <div className="text-center text-[10px] text-[var(--txt3)]">+ {users.length - 8} usuários</div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        {/* ── Próximos feriados ──────────────────── */}
+        <FeriadosCard feriados={proximosFeriados} />
 
         {/* ── Notícias do setor ─────────────────── */}
         <div className="self-start">
           <NewsCard news={noticias} />
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
+import FeriadosCard from "@/components/FeriadosCard";
 import {
   Send, BarChart3, ArrowRight, Image as ImageIcon, CalendarDays,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
@@ -458,60 +459,7 @@ export default function GerenteInicioPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:col-span-2">
           {/* ── Próximos feriados ──────────────────── */}
-          <div className="card-glass flex h-[320px] flex-col overflow-hidden">
-            <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
-              <div className="flex items-center gap-2">
-                <CalendarDays size={15} className="text-[var(--orange)]" />
-                <h3 className="text-[14px] font-bold text-[var(--txt)]">Próximos feriados</h3>
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
-                {proximosFeriados.length}
-              </span>
-            </div>
-            <div className="flex flex-1 flex-col justify-center gap-2 p-4">
-              {proximosFeriados.length === 0 ? (
-                <div className="text-center text-[12px] text-[var(--txt3)]">Sem feriados próximos.</div>
-              ) : (
-                proximosFeriados.map((f) => {
-                  const diff = daysUntil(f.data);
-                  const d = new Date(f.data + "T00:00:00");
-                  const dia = String(d.getDate()).padStart(2, "0");
-                  const mes = d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "").toUpperCase();
-                  return (
-                    <div
-                      key={f.data + f.nome}
-                      className="flex items-center gap-3 rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 transition-colors hover:border-[rgba(59,130,246,0.4)]"
-                    >
-                      <div
-                        className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg text-white"
-                        style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #3B82F6 100%)" }}
-                      >
-                        <span className="font-[family-name:var(--font-dm-serif)] text-[16px] font-bold leading-none tabular-nums">
-                          {dia}
-                        </span>
-                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider opacity-90">
-                          {mes}
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[12px] font-semibold text-[var(--txt)]">{f.nome}</div>
-                      </div>
-                      <span
-                        className="shrink-0 rounded-full px-2 py-0.5 text-[0.55rem] font-bold tabular-nums"
-                        style={
-                          diff === 0
-                            ? { background: "var(--red3)", color: "var(--red)" }
-                            : { background: "var(--orange3)", color: "var(--orange)" }
-                        }
-                      >
-                        {diff === 0 ? "HOJE" : `em ${diff}d`}
-                      </span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <FeriadosCard feriados={proximosFeriados} />
 
           {/* ── Últimas publicações ──────────────── */}
           <div className="card-glass flex h-[320px] flex-col overflow-hidden">
