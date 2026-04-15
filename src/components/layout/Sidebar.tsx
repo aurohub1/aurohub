@@ -464,10 +464,11 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
         </div>
       )}
 
-      {/* ── Weather + Quote (compacto, todos os roles) ── */}
-      <div className="shrink-0 border-t border-[var(--bdr)] px-3 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="text-[15px]" aria-hidden>
+      {/* ── Weather + Quote (linhas separadas) ── */}
+      <div className="shrink-0 border-t border-[var(--bdr)] px-3 py-2">
+        {/* Linha 1: clima numa linha só */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[16px] leading-none" aria-hidden>
             {weather == null ? "…" :
               weather.code === 0 ? "☀️" :
               weather.code <= 3 ? "⛅" :
@@ -476,18 +477,18 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
               (weather.code >= 71 && weather.code <= 77) ? "❄️" :
               weather.code >= 95 ? "⛈️" : "☁️"}
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-semibold text-[var(--txt)] tabular-nums leading-none">
-              {weather ? `${weather.temp}°` : "—"}
-              <span className="ml-1 text-[9px] font-normal text-[var(--txt3)]">{cityName}</span>
-            </div>
-            {quote && (
-              <div className="mt-1 truncate text-[10px] italic text-[var(--txt3)]" title={quote}>
-                &ldquo;{quote}&rdquo;
-              </div>
-            )}
-          </div>
+          <span className="text-[13px] font-semibold text-[var(--txt)] tabular-nums leading-none">
+            {weather ? `${weather.temp}°` : "—"}
+          </span>
+          <span className="min-w-0 truncate text-[11px] text-[var(--txt3)] leading-none">{cityName}</span>
         </div>
+
+        {/* Linha 2: frase do dia, separada */}
+        {quote && (
+          <div className="mt-1.5 max-w-full truncate text-[11px] italic text-[var(--txt3)]" title={quote}>
+            &ldquo;{quote}&rdquo;
+          </div>
+        )}
       </div>
 
       {/* ── Footer ──────────────────────────────── */}
