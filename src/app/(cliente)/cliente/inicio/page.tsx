@@ -464,8 +464,8 @@ export default function ClienteInicioPage() {
         </div>
       </div>
 
-      {/* ═══ Unidades + Usuários ══════════════════════ */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      {/* ═══ Unidades + Usuários + Notícias ══════════════════════ */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* ── Unidades ──────────────────────────── */}
         <div className="card-glass flex flex-col">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
@@ -559,10 +559,12 @@ export default function ClienteInicioPage() {
             )}
           </div>
         </div>
-      </div>
 
-      {/* ═══ Notícias do setor — full width ══════════ */}
-      <NewsCard news={noticias} height={280} />
+        {/* ── Notícias do setor ─────────────────── */}
+        <div className="self-start">
+          <NewsCard news={noticias} />
+        </div>
+      </div>
     </>
   );
 }

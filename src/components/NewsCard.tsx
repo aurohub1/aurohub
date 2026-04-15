@@ -13,10 +13,16 @@ interface News {
 }
 
 const BRAND_GRADIENT = 'linear-gradient(135deg, #1E3A6E 0%, #3B82F6 50%, #1E3A6E 100%)';
+const CARD_SHELL = 'relative aspect-[4/3] max-h-[280px] w-full max-w-[373px] overflow-hidden rounded-xl shadow-lg';
+
+function hasImage(url: string | null | undefined): url is string {
+  return typeof url === 'string' && url.trim().length > 0;
+}
 
 export function NewsCard({ news, loading }: { news: News[]; loading?: boolean; height?: number }) {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [failed, setFailed] = useState<Set<number>>(new Set());
 
   const total = news.length;
   const canNavigate = total > 1;
@@ -27,10 +33,10 @@ export function NewsCard({ news, loading }: { news: News[]; loading?: boolean; h
     return () => clearTimeout(t);
   }, [current, total, canNavigate, paused]);
 
-  /* ── Loading skeleton — h fixa ───────────────── */
+  /* ── Loading skeleton ───────────────── */
   if (loading && !total) {
     return (
-      <div className="relative aspect-[4/3] max-h-[280px] w-full overflow-hidden rounded-xl bg-[var(--bg2)] shadow-lg">
+      <div className={`${CARD_SHELL} bg-[var(--bg2)]`}>
         <div className="absolute inset-0 animate-pulse bg-[var(--bg3)]" />
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-4">
           <div className="h-4 w-20 rounded-full bg-[var(--bg2)]/60" />
@@ -41,10 +47,10 @@ export function NewsCard({ news, loading }: { news: News[]; loading?: boolean; h
     );
   }
 
-  /* ── Empty state — h fixa ────────────────────── */
+  /* ── Empty state ────────────────────── */
   if (!total) {
     return (
-      <div className="relative aspect-[4/3] max-h-[280px] w-full overflow-hidden rounded-xl shadow-lg">
+      <div className={CARD_SHELL}>
         <div className="absolute inset-0" style={{ background: BRAND_GRADIENT }} />
         <div
           className="pointer-events-none absolute inset-0"
@@ -71,10 +77,11 @@ export function NewsCard({ news, loading }: { news: News[]; loading?: boolean; h
 
   const item = news[current];
   const go = (n: number) => setCurrent(((n % total) + total) % total);
+  const showImage = hasImage(item.image) && !failed.has(current);
 
   return (
     <div
-      className="group relative aspect-[4/3] max-h-[280px] w-full overflow-hidden rounded-xl shadow-lg"
+      className={`group ${CARD_SHELL}`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -89,26 +96,50 @@ export function NewsCard({ news, loading }: { news: News[]; loading?: boolean; h
         }
       `}</style>
 
-      {/* Base camada — imagem OU gradiente de fallback (sempre ocupa 100% do card) */}
-      {item.image ? (
+      {/* Gradient base — sempre presente, evita flash em erro de carregamento */}
+      <div
+        className="absolute inset-0"
+        style={{ background: BRAND_GRADIENT, animation: 'nc-fade-img 0.5s ease-out' }}
+      />
+
+      {/* Imagem por cima do gradiente — só renderiza se existe e não falhou */}
+      {showImage && (
         <Image
-          key={`img-${current}`}
-          src={item.image}
+          key={`img-${current}-${item.image}`}
+          src={item.image as string}
           alt={item.title}
           fill
           className="object-cover"
           style={{ animation: 'nc-fade-img 0.5s ease-out' }}
           unoptimized
-        />
-      ) : (
-        <div
-          key={`fallback-${current}`}
-          className="absolute inset-0"
-          style={{ background: BRAND_GRADIENT, animation: 'nc-fade-img 0.5s ease-out' }}
+          onError={() => {
+            setFailed((prev) => {
+              const next = new Set(prev);
+              next.add(current);
+              return next;
+            });
+          }}
         />
       )}
 
-      {/* Gradient overlay para legibilidade do título */}
+      {/* Ícone Newspaper quando não há imagem — sobre o gradiente */}
+      {!showImage && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            className="flex h-14 w-14 items-center justify-center rounded-2xl"
+            style={{
+              background: 'rgba(255,255,255,0.14)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            }}
+          >
+            <Newspaper size={24} className="text-white/90" />
+          </div>
+        </div>
+      )}
+
+      {/* Overlay de legibilidade */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -117,7 +148,7 @@ export function NewsCard({ news, loading }: { news: News[]; loading?: boolean; h
         }}
       />
 
-      {/* Dots — topo */}
+      {/* Dots */}
       {canNavigate && (
         <div className="absolute inset-x-0 top-3 z-10 flex justify-center gap-1.5">
           {news.map((_, i) => (
@@ -137,7 +168,7 @@ export function NewsCard({ news, loading }: { news: News[]; loading?: boolean; h
         </div>
       )}
 
-      {/* Arrows frosted-glass — hover */}
+      {/* Arrows */}
       {canNavigate && (
         <>
           <button
@@ -171,7 +202,7 @@ export function NewsCard({ news, loading }: { news: News[]; loading?: boolean; h
         </>
       )}
 
-      {/* Título + source + Leia — overlay inferior */}
+      {/* Título + source + Leia */}
       <div
         key={`content-${current}`}
         className="absolute inset-x-0 bottom-0 z-[5] flex flex-col gap-2 p-4"
