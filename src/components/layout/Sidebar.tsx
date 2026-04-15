@@ -96,16 +96,6 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "Embarques",
-        href: "/embarques",
-        icon: (
-          <svg viewBox="0 0 20 20" fill="none">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-          </svg>
-        ),
-      },
-      {
         label: "Central de Publicação",
         href: "/central-de-publicacao",
         icon: (
@@ -277,13 +267,20 @@ export const UNIDADE_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/unidade/inicio", icon: I.home },
       { label: "Publicar", href: "/unidade/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Calendário", href: "/unidade/calendario", icon: I.calendar },
       { label: "Consultores", href: "/unidade/vendedores", icon: I.vendors, feature: "vendedores" },
     ],
   },
+];
+
+export const GERENTE_SECTIONS: NavSection[] = [
   {
-    title: "Sistema",
+    title: "Operação",
     items: [
-      { label: "Configurações", href: "/unidade/configuracoes", icon: I.settings },
+      { label: "Início", href: "/gerente/inicio", icon: I.home },
+      { label: "Publicar", href: "/gerente/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Calendário", href: "/gerente/calendario", icon: I.calendar },
+      { label: "Consultores", href: "/gerente/vendedores", icon: I.vendors, feature: "vendedores" },
     ],
   },
 ];
@@ -306,6 +303,7 @@ function roleBadgeLabel(role: string): string {
     adm: "ADM RAIZ",
     cliente: "CLIENTE",
     unidade: "UNIDADE",
+    gerente: "GERENTE",
     vendedor: "CONSULTOR",
     licensee: "LICENCIADO",
     store: "LOJA",

@@ -12,7 +12,7 @@ export interface TourStep {
   targetSelector?: string;
 }
 
-type TourRole = "vendedor" | "cliente" | "unidade";
+type TourRole = "vendedor" | "cliente" | "unidade" | "gerente";
 
 interface Rect {
   top: number;
@@ -98,6 +98,7 @@ const STEPS_BY_ROLE: Record<TourRole, TourStep[]> = {
   vendedor: VENDEDOR_STEPS,
   cliente:  CLIENTE_STEPS,
   unidade:  UNIDADE_STEPS,
+  gerente:  UNIDADE_STEPS,
 };
 
 /* ── Storage ─────────────────────────────────────── */

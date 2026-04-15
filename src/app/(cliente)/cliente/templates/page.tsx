@@ -141,9 +141,9 @@ export default function ClienteTemplatesPage() {
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Central do Cliente · Biblioteca
             </p>
-            <h1 className="mt-1.5 flex items-center gap-3 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
-              Meus Templates
-              <span className="rounded-full bg-[var(--bg2)] px-3 py-1 text-[12px] font-semibold text-[var(--txt2)] tabular-nums">
+            <h1 className="mt-1.5 flex items-center gap-2 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
+              <span>Meus Templates</span>
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[var(--bdr)] bg-[var(--bg2)] px-1.5 text-[10px] font-bold text-[var(--txt2)] tabular-nums align-middle">
                 {templates.length}
               </span>
             </h1>

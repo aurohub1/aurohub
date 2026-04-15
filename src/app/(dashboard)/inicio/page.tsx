@@ -1,23 +1,32 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 import {
-  Sparkles, Calendar, CalendarClock, Palette, BarChart3,
-  Flag, Cake, PartyPopper,
-  Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
+  Users, DollarSign, Send, Camera, AlertTriangle,
+  UserPlus, Palette, CalendarClock, UserCog, Gem, Calculator,
+  ArrowRight,
 } from "lucide-react";
 
 /* ── Types ───────────────────────────────────────── */
 
-interface Profile { id: string; name: string | null; role: string; licensee_id: string | null; store_id: string | null; }
-interface Store { id: string; name: string; licensee_id: string; }
-interface Licensee { id: string; name: string; plan: string; status: string; expires_at: string | null; segment_id: string | null; }
-interface LogEntry { id: string; event_type: string; metadata: Record<string, unknown> | null; created_at: string; }
-interface Embarque { id: string; destino: string; data_embarque: string; cliente_nome: string; }
-interface PlanInfo { name: string; max_posts_day: number; }
-interface DataComemorativa { id: string; nome: string; data_mes: number; data_dia: number; tipo: string; cidade: string | null; estado: string | null; destaque: boolean; }
+interface LicenseeRow {
+  id: string;
+  name: string;
+  status: string | null;
+  plan: string | null;
+  plan_slug: string | null;
+  expires_at: string | null;
+  created_at: string;
+}
+interface PlanRow { slug: string; name: string; price_monthly: number; max_posts_day: number }
+interface LogRow {
+  id: string;
+  event_type: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
 
 /* ── Helpers ─────────────────────────────────────── */
 
@@ -28,479 +37,233 @@ function greeting(): string {
   return "Boa noite";
 }
 
-function monthStart(): string {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+function brl(n: number): string {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-const TIPO_ICON: Record<string, React.ComponentType<{ size?: number }>> = {
-  feriado: Flag,
-  aniversario: Cake,
-  evento: PartyPopper,
-};
-const TIPO_STYLE: Record<string, { bg: string; text: string }> = {
-  feriado:      { bg: "var(--red3)", text: "var(--red)" },
-  aniversario:  { bg: "var(--blue3)", text: "var(--blue)" },
-  evento:       { bg: "var(--gold3)", text: "var(--gold)" },
-};
-
-/* ── Quotes (fallback hardcoded caso segmento não tenha) ─ */
-const FALLBACK_QUOTES = [
-  "Cada destino começa com uma decisão.",
-  "Vender viagem é vender memórias.",
-  "Inspire primeiro, venda depois.",
-  "Destinos não se vendem — se sonham.",
-  "Cada post é um convite para sonhar.",
-];
-
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function relTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "agora";
+  if (m < 60) return `há ${m}min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24);
+  return `há ${d}d`;
 }
 
-/* ── Weather (open-meteo) ────────────────────────── */
-function WeatherIcon({ code, size = 28 }: { code: number | null; size?: number }) {
-  const color = "var(--orange)";
-  if (code === null) return <Cloud size={size} color={color} />;
-  if (code === 0) return <Sun size={size} color={color} />;
-  if (code <= 3) return <CloudSun size={size} color={color} />;
-  if (code <= 48) return <CloudFog size={size} color={color} />;
-  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return <CloudRain size={size} color={color} />;
-  if (code >= 71 && code <= 77) return <CloudSnow size={size} color={color} />;
-  if (code >= 95) return <CloudLightning size={size} color={color} />;
-  return <Cloud size={size} color={color} />;
+function shortDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
 /* ── Component ───────────────────────────────────── */
 
 export default function InicioPage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [store, setStore] = useState<Store | null>(null);
-  const [licensee, setLicensee] = useState<Licensee | null>(null);
-  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
 
-  // KPIs
-  const [postsMes, setPostsMes] = useState(0);
-  const [downloadsMes, setDownloadsMes] = useState(0);
-  const [seguidores, setSeguidores] = useState<number | null>(null);
-  const [engajamento, setEngajamento] = useState<string | null>(null);
+  const [clientesAtivos, setClientesAtivos] = useState(0);
+  const [mrr, setMrr] = useState(0);
+  const [postsHoje, setPostsHoje] = useState(0);
+  const [tokensAtivos, setTokensAtivos] = useState(0);
 
-  // Content
-  const [recentArts, setRecentArts] = useState<{ url: string; date: string }[]>([]);
-  const [embarques, setEmbarques] = useState<Embarque[]>([]);
-  const [datasComem, setDatasComem] = useState<DataComemorativa[]>([]);
-  const [igConnected, setIgConnected] = useState(false);
-  const [postsUsados, setPostsUsados] = useState(0);
+  const [ultimosClientes, setUltimosClientes] = useState<Array<LicenseeRow & { planName: string | null }>>([]);
+  const [atividade, setAtividade] = useState<Array<{ id: string; cliente: string; template: string; time: string }>>([]);
+  const [alertas, setAlertas] = useState<{ expiring: number; inactiveTokens: number; overLimit: number }>({ expiring: 0, inactiveTokens: 0, overLimit: 0 });
 
-  // Quote (carregado a partir do segmento do licensee no loadData)
-  const [quote, setQuote] = useState<string>("");
-
-  // Weather (open-meteo, Rio Preto SP default)
-  const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
-  useEffect(() => {
-    const url = "https://api.open-meteo.com/v1/forecast?latitude=-20.8116&longitude=-49.3755&current=temperature_2m,weather_code&timezone=America/Sao_Paulo";
-    fetch(url)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code });
-      })
-      .catch(() => { /* silent */ });
-  }, []);
-
-  /* ── Load ──────────────────────────────────────── */
-
-  const loadData = useCallback(async () => {
+  const load = useCallback(async () => {
     try {
-      // Nome via email do auth
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-      const email = user.email || "";
-      const nameFromEmail = email.split("@")[0];
-      setUserName(nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1));
-
-      // Profile (pode não existir para ADM)
-      const { data: prof } = await supabase.from("profiles").select("id, name, role, licensee_id, store_id").eq("id", user.id).single();
-      const p = prof as Profile | null;
-      if (p) setProfile(p);
-
-      // Store
-      let effectiveLicId = p?.licensee_id ?? null;
-      if (p?.store_id) {
-        const { data: s } = await supabase.from("stores").select("id, name, licensee_id").eq("id", p.store_id).single();
-        if (s) { setStore(s as Store); effectiveLicId = effectiveLicId ?? s.licensee_id; }
+      if (user?.email) {
+        const n = user.email.split("@")[0];
+        setUserName(n.charAt(0).toUpperCase() + n.slice(1));
       }
 
-      // Fallback AZV — sempre carrega licensee para mostrar dados
-      if (!effectiveLicId) {
-        effectiveLicId = "fd7cd9a7-2680-4682-a271-94b7dfe0a97e";
-      }
+      const [{ data: licData }, { data: plansData }, { data: igData }] = await Promise.all([
+        supabase.from("licensees").select("id, name, status, plan, plan_slug, expires_at, created_at"),
+        supabase.from("plans").select("slug, name, price_monthly, max_posts_day"),
+        supabase.from("instagram_credentials").select("licensee_id"),
+      ]);
 
-      // Licensee + Plan
-      const { data: licData } = await supabase
-        .from("licensees")
-        .select("id, name, plan, status, expires_at, segment_id")
-        .eq("id", effectiveLicId)
-        .single();
-      let segmentIdToLoad: string | null = null;
-      if (licData) {
-        const lic = licData as Licensee;
-        setLicensee(lic);
-        segmentIdToLoad = lic.segment_id;
-        if (lic.plan) {
-          const { data: pi } = await supabase.from("plans").select("name, max_posts_day").eq("slug", lic.plan).single();
-          if (pi) setPlanInfo(pi as PlanInfo);
-        }
-      }
+      const licensees = (licData as LicenseeRow[] | null) ?? [];
+      const plans = (plansData as PlanRow[] | null) ?? [];
+      const planBySlug = new Map(plans.map((p) => [p.slug, p]));
 
-      // Frases do segmento (fallback: Outros → hardcoded)
-      let segmentQuotes: string[] | null = null;
-      if (segmentIdToLoad) {
-        const { data: seg, error: segErr } = await supabase
-          .from("segments")
-          .select("quotes")
-          .eq("id", segmentIdToLoad)
-          .single();
-        if (!segErr && seg && Array.isArray((seg as { quotes?: unknown }).quotes)) {
-          const arr = (seg as { quotes: string[] }).quotes;
-          if (arr.length > 0) segmentQuotes = arr;
-        }
-      }
-      if (!segmentQuotes) {
-        const { data: outros, error: outrosErr } = await supabase
-          .from("segments")
-          .select("quotes")
-          .eq("name", "Outros")
-          .single();
-        if (!outrosErr && outros && Array.isArray((outros as { quotes?: unknown }).quotes)) {
-          const arr = (outros as { quotes: string[] }).quotes;
-          if (arr.length > 0) segmentQuotes = arr;
-        }
-      }
-      setQuote(pickRandom(segmentQuotes ?? FALLBACK_QUOTES));
+      const ativos = licensees.filter((l) => l.status === "active");
+      setClientesAtivos(ativos.length);
 
-      // Activity logs do mês
-      const inicio = monthStart();
-      const { data: logs } = await supabase
+      const mrrTotal = ativos.reduce((sum, l) => {
+        const slug = l.plan_slug || l.plan || "";
+        const p = planBySlug.get(slug);
+        return sum + (p?.price_monthly ?? 0);
+      }, 0);
+      setMrr(mrrTotal);
+
+      setTokensAtivos((igData as { licensee_id: string }[] | null)?.length ?? 0);
+
+      // Posts hoje
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const { data: logsHoje } = await supabase
+        .from("activity_logs")
+        .select("id")
+        .in("event_type", ["post_instagram", "post_scheduled"])
+        .gte("created_at", hoje.toISOString());
+      setPostsHoje((logsHoje as { id: string }[] | null)?.length ?? 0);
+
+      // Últimos clientes
+      const recentes = [...licensees]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5)
+        .map((l) => {
+          const slug = l.plan_slug || l.plan || "";
+          return { ...l, planName: planBySlug.get(slug)?.name ?? null };
+        });
+      setUltimosClientes(recentes);
+
+      // Atividade recente
+      const { data: logsRec } = await supabase
         .from("activity_logs")
         .select("id, event_type, metadata, created_at")
-        .gte("created_at", inicio)
+        .in("event_type", ["post_instagram", "post_scheduled", "download"])
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(10);
 
-      const allLogs = (logs as LogEntry[]) ?? [];
-      const userLogs = allLogs.filter((lg) => {
+      const licById = new Map(licensees.map((l) => [l.id, l.name]));
+      const recent = ((logsRec as LogRow[] | null) ?? []).slice(0, 5).map((lg) => {
         const m = lg.metadata ?? {};
-        if (p?.store_id && m.store_id) return m.store_id === p.store_id;
-        if (effectiveLicId && m.licensee_id) return m.licensee_id === effectiveLicId;
-        return true;
+        const licId = typeof m.licensee_id === "string" ? m.licensee_id : "";
+        const tmpl = (m.template_name as string) || (m.format as string) || (lg.event_type === "download" ? "Download" : "Post");
+        return {
+          id: lg.id,
+          cliente: licById.get(licId) ?? "—",
+          template: tmpl,
+          time: relTime(lg.created_at),
+        };
       });
+      setAtividade(recent);
 
-      const posts = userLogs.filter((lg) => lg.event_type === "post_instagram" || lg.event_type === "post_scheduled").length;
-      setPostsMes(posts);
-      setPostsUsados(posts);
-      setDownloadsMes(userLogs.filter((lg) => lg.event_type === "download").length);
+      // Alertas
+      const now = Date.now();
+      const in7d = now + 7 * 86400000;
+      const expiring = ativos.filter((l) => {
+        if (!l.expires_at) return false;
+        const t = new Date(l.expires_at).getTime();
+        return t >= now && t <= in7d;
+      }).length;
 
-      // Recent arts
-      setRecentArts(
-        userLogs
-          .filter((lg) => lg.event_type === "download" && lg.metadata?.image_url)
-          .slice(0, 4)
-          .map((lg) => ({ url: lg.metadata!.image_url as string, date: lg.created_at }))
-      );
+      const tokenLicIds = new Set(((igData as { licensee_id: string }[] | null) ?? []).map((i) => i.licensee_id));
+      const inactiveTokens = ativos.filter((l) => !tokenLicIds.has(l.id)).length;
 
-      // Instagram
-      if (effectiveLicId) {
-        const { data: ig } = await supabase.from("instagram_credentials").select("ig_user_id, access_token").eq("licensee_id", effectiveLicId).single();
-        if (ig) {
-          setIgConnected(true);
-          try {
-            const res = await fetch(`https://graph.instagram.com/${ig.ig_user_id}?fields=followers_count&access_token=${ig.access_token}`);
-            if (res.ok) {
-              const d = await res.json();
-              if (d.followers_count) setSeguidores(d.followers_count);
-            }
-          } catch { /* silent */ }
-
-          // Engajamento dos últimos posts
-          try {
-            const res = await fetch(`https://graph.instagram.com/${ig.ig_user_id}/media?fields=like_count,comments_count&limit=10&access_token=${ig.access_token}`);
-            if (res.ok) {
-              const d = await res.json();
-              const media = d.data as { like_count?: number; comments_count?: number }[];
-              if (media?.length > 0 && seguidores) {
-                const totalInteractions = media.reduce((s, m) => s + (m.like_count ?? 0) + (m.comments_count ?? 0), 0);
-                const rate = (totalInteractions / media.length / (seguidores || 1)) * 100;
-                setEngajamento(`${rate.toFixed(1)}%`);
-              }
-            }
-          } catch { /* silent */ }
-        }
-
-        // Embarques da semana
-        const hoje = new Date().toISOString().split("T")[0];
-        const semana = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
-        const { data: emb } = await supabase
-          .from("embarques")
-          .select("id, destino, data_embarque, cliente_nome")
-          .eq("licensee_id", effectiveLicId)
-          .gte("data_embarque", hoje)
-          .lte("data_embarque", semana)
-          .order("data_embarque")
-          .limit(5);
-        setEmbarques((emb as Embarque[]) ?? []);
-      }
-
-      // Datas comemorativas dos próximos 14 dias
-      const hojeDt = new Date();
-      const mesAtual = hojeDt.getMonth() + 1;
-      const diaAtual = hojeDt.getDate();
-      const diaFim = diaAtual + 14;
-
-      console.log("[Inicio] Buscando datas comemorativas:", { mesAtual, diaAtual, diaFim });
-      if (diaFim <= 31) {
-        const { data: dc, error: dcErr } = await supabase
-          .from("datas_comemorativas")
-          .select("*")
-          .eq("data_mes", mesAtual)
-          .gte("data_dia", diaAtual)
-          .lte("data_dia", diaFim)
-          .order("data_dia");
-        console.log("[Inicio] Datas encontradas:", dc?.length ?? 0, dcErr?.message ?? "OK");
-        setDatasComem((dc as DataComemorativa[]) ?? []);
-      } else {
-        // Virada de mês: busca fim do mês atual + início do próximo
-        const { data: dc1 } = await supabase
-          .from("datas_comemorativas")
-          .select("*")
-          .eq("data_mes", mesAtual)
-          .gte("data_dia", diaAtual)
-          .order("data_dia");
-        const proxMes = mesAtual === 12 ? 1 : mesAtual + 1;
-        const { data: dc2 } = await supabase
-          .from("datas_comemorativas")
-          .select("*")
-          .eq("data_mes", proxMes)
-          .lte("data_dia", diaFim - 31)
-          .order("data_dia");
-        setDatasComem([...((dc1 as DataComemorativa[]) ?? []), ...((dc2 as DataComemorativa[]) ?? [])]);
-      }
-    } catch (err) { console.error("[Inicio] load:", err); }
-    finally { setLoading(false); }
+      setAlertas({ expiring, inactiveTokens, overLimit: 0 });
+    } catch (err) {
+      console.error("[AdmInicio] load:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
-
-  /* ── Derived ───────────────────────────────────── */
-
-  const postsLimite = planInfo ? (planInfo.max_posts_day === -1 ? "Ilimitado" : `${planInfo.max_posts_day}/dia`) : "—";
-  const postsRestantes = planInfo && planInfo.max_posts_day > 0
-    ? Math.max(0, planInfo.max_posts_day * 30 - postsUsados)
-    : null;
-
-  /* ── Render ────────────────────────────────────── */
+  useEffect(() => { load(); }, [load]);
 
   if (loading) return <div className="flex flex-1 items-center justify-center text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
     <>
-      {/* ═══ HERO — quote + weather ═════════════════ */}
-      <div className="card-glass relative overflow-hidden px-8 py-7">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }} />
-        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">Aurohub · {greeting()}</p>
-            <h2 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-[1.25] text-[var(--txt)] max-w-[560px] min-h-[28px]">
-              {quote}
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            {/* Weather widget */}
-            <div
-              className="flex items-center gap-3 rounded-2xl border border-[var(--bdr)] px-4 py-2.5"
-              style={{
-                background: "linear-gradient(135deg, rgba(255,122,26,0.08), rgba(59,130,246,0.05))",
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-                marginTop: 10,
-              }}
-            >
-              <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                style={{
-                  background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.14))",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <WeatherIcon code={weather?.code ?? null} size={22} />
-              </div>
-              <div>
-                <div className="font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-none text-[var(--txt)] tabular-nums">
-                  {weather ? `${weather.temp}°` : "—"}
-                </div>
-                <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--txt3)]">Rio Preto</div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <Link href="/editor-de-templates" className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]" style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}>
-              <Sparkles size={15} />Criar arte
-            </Link>
-            <Link href="/central-de-publicacao" className="flex items-center gap-2 rounded-xl border border-[var(--bdr2)] px-4 py-2.5 text-[13px] font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]">
-              <Calendar size={14} />Agenda
-            </Link>
-          </div>
+      {/* ═══ Header minimalista ═══ */}
+      <div className="flex items-end justify-between border-b border-[var(--bdr)] pb-5">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">ADM · {greeting()}</p>
+          <h1 className="mt-1 font-[family-name:var(--font-dm-serif)] text-[26px] font-bold leading-tight text-[var(--txt)]">
+            {userName ? `Olá, ${userName}` : "Painel administrativo"}
+          </h1>
+          <p className="mt-1 text-[12px] text-[var(--txt3)]">Visão geral da plataforma Aurohub.</p>
         </div>
       </div>
 
-      {/* ═══ KPIs ═══════════════════════════════════ */}
+      {/* ═══ TOP STATS ═══ */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi label="Posts este mês" value={String(postsMes)} color="var(--orange)" icon={<svg viewBox="0 0 20 20" fill="none" className="h-5 w-5"><path d="M10 3v10M6 7l4-4 4 4M4 17h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
-        <Kpi label="Downloads este mês" value={String(downloadsMes)} color="var(--blue)" icon={<svg viewBox="0 0 20 20" fill="none" className="h-5 w-5"><path d="M10 3v10M6 9l4 4 4-4M4 17h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
-        <Kpi label="Seguidores IG" value={seguidores !== null ? seguidores.toLocaleString("pt-BR") : "—"} color="var(--purple)" icon={<svg viewBox="0 0 20 20" fill="none" className="h-5 w-5"><rect x="3" y="3" width="14" height="14" rx="4" stroke="currentColor" strokeWidth="1.5" /><circle cx="10" cy="10" r="3.5" stroke="currentColor" strokeWidth="1.5" /><circle cx="14.5" cy="5.5" r="1" fill="currentColor" /></svg>} />
-        <Kpi label="Engajamento médio" value={engajamento ?? "—"} color="var(--gold)" icon={<svg viewBox="0 0 20 20" fill="none" className="h-5 w-5"><path d="M2 14l4-4 4 4 4-6 4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
+        <StatCard label="Clientes ativos" value={String(clientesAtivos)} icon={<Users size={18} />} accent="#1E3A6E" />
+        <StatCard label="Receita MRR" value={brl(mrr)} icon={<DollarSign size={18} />} accent="#D4A843" />
+        <StatCard label="Posts publicados hoje" value={String(postsHoje)} icon={<Send size={18} />} accent="#3B82F6" />
+        <StatCard label="Tokens Instagram ativos" value={String(tokensAtivos)} icon={<Camera size={18} />} accent="#A78BFA" />
       </div>
 
-      {/* ═══ 3 COLUNAS ══════════════════════════════ */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-
-        {/* ── Últimas artes ──────────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="border-b border-[var(--bdr)] px-5 py-4">
-            <h3 className="text-[14px] font-bold text-[var(--txt)]">Últimas artes</h3>
-          </div>
-          <div className="flex-1 p-5">
-            {recentArts.length === 0 ? (
-              <Empty icon={<Palette size={22} />} text="Nenhuma arte criada ainda" action={{ label: "Criar primeira arte", href: "/editor-de-templates" }} />
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {recentArts.map((art, i) => (
-                  <div key={i} className="overflow-hidden rounded-xl border border-[var(--bdr)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={art.url} alt="" className="aspect-square w-full object-cover" />
-                    <div className="px-2 py-1.5 text-[10px] text-[var(--txt3)]">
-                      {new Date(art.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
-                    </div>
+      {/* ═══ MIDDLE 3 COLS ═══ */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Últimos clientes */}
+        <Panel title="Últimos clientes cadastrados">
+          {ultimosClientes.length === 0 ? (
+            <EmptyText>Nenhum cliente cadastrado.</EmptyText>
+          ) : (
+            <div className="flex flex-col">
+              {ultimosClientes.map((c) => (
+                <div key={c.id} className="flex items-center justify-between border-b border-[var(--bdr)] px-4 py-2.5 last:border-b-0">
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-medium text-[var(--txt)]">{c.name}</div>
+                    <div className="truncate text-[11px] text-[var(--txt3)]">{c.planName ?? "Sem plano"}</div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Sugestões ─────────────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="border-b border-[var(--bdr)] px-5 py-4">
-            <h3 className="text-[14px] font-bold text-[var(--txt)]">Sugestões da semana</h3>
-          </div>
-          <div className="flex-1 p-5">
-            {/* Embarques */}
-            {embarques.length > 0 && (
-              <div className="mb-4">
-                <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Embarques próximos</div>
-                <div className="flex flex-col gap-2">
-                  {embarques.map((e) => {
-                    const diff = Math.max(0, Math.round((new Date(e.data_embarque + "T00:00:00").getTime() - Date.now()) / 86400000));
-                    return (
-                      <div key={e.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-3 py-2">
-                        <div>
-                          <div className="text-[12px] font-medium text-[var(--txt)]">{e.destino}</div>
-                          <div className="text-[10px] text-[var(--txt3)]">{e.cliente_nome}</div>
-                        </div>
-                        <span className={`rounded-full px-2 py-0.5 text-[0.55rem] font-bold ${diff === 0 ? "bg-[var(--red3)] text-[var(--red)]" : "bg-[var(--orange3)] text-[var(--orange)]"}`}>
-                          {diff === 0 ? "HOJE" : `em ${diff}d`}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  <span className="shrink-0 text-[10px] text-[var(--txt3)] tabular-nums">{shortDate(c.created_at)}</span>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+          )}
+          <FooterLink href="/clientes">Ver todos</FooterLink>
+        </Panel>
 
-            {/* Datas comemorativas */}
-            {datasComem.length > 0 && (
-              <div className="mb-4">
-                <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Próximas datas</div>
-                <div className="flex flex-col gap-1.5">
-                  {datasComem.map((d) => {
-                    const Icon = TIPO_ICON[d.tipo] ?? PartyPopper;
-                    const style = TIPO_STYLE[d.tipo] ?? TIPO_STYLE.evento;
-                    const dataStr = `${String(d.data_dia).padStart(2, "0")}/${String(d.data_mes).padStart(2, "0")}`;
-                    return (
-                      <div key={d.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-3 py-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: style.bg, color: style.text }}>
-                            <Icon size={12} />
-                          </div>
-                          <div>
-                            <span className="text-[12px] text-[var(--txt)]">{dataStr} — {d.nome}</span>
-                            {d.cidade && <span className="ml-1 text-[10px] text-[var(--txt3)]">({d.cidade}/{d.estado})</span>}
-                          </div>
-                        </div>
-                        <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.5rem] font-bold" style={{ background: style.bg, color: style.text }}>
-                          {d.tipo === "feriado" ? "Feriado" : d.tipo === "aniversario" ? "Aniv." : "Evento"}
-                        </span>
-                      </div>
-                    );
-                  })}
+        {/* Atividade recente */}
+        <Panel title="Atividade recente">
+          {atividade.length === 0 ? (
+            <EmptyText>Sem atividade recente.</EmptyText>
+          ) : (
+            <div className="flex flex-col">
+              {atividade.map((a) => (
+                <div key={a.id} className="flex items-center justify-between border-b border-[var(--bdr)] px-4 py-2.5 last:border-b-0">
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-medium text-[var(--txt)]">{a.cliente}</div>
+                    <div className="truncate text-[11px] text-[var(--txt3)]">{a.template}</div>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-[var(--txt3)] tabular-nums">{a.time}</span>
                 </div>
-              </div>
-            )}
-
-            {/* Dicas rápidas */}
-            <div>
-              <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Dicas</div>
-              <div className="flex flex-col gap-1.5">
-                <Tip icon={<Palette size={13} />} text="Crie artes para os embarques da semana" />
-                <Tip icon={<BarChart3 size={13} />} text="Confira suas métricas do Instagram" />
-                <Tip icon={<CalendarClock size={13} />} text="Agende posts para as datas do mês" />
-              </div>
+              ))}
             </div>
-          </div>
-        </div>
+          )}
+          <FooterLink href="/logs">Ver logs</FooterLink>
+        </Panel>
 
-        {/* ── Sua conta ─────────────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="border-b border-[var(--bdr)] px-5 py-4">
-            <h3 className="text-[14px] font-bold text-[var(--txt)]">Sua conta</h3>
+        {/* Alertas */}
+        <Panel title="Alertas do sistema">
+          <div className="flex flex-col">
+            <AlertRow
+              label="Planos vencendo em 7 dias"
+              count={alertas.expiring}
+              critical={alertas.expiring > 0}
+            />
+            <AlertRow
+              label="Clientes sem token Instagram"
+              count={alertas.inactiveTokens}
+              critical={alertas.inactiveTokens > 3}
+            />
+            <AlertRow
+              label="Clientes acima do limite"
+              count={alertas.overLimit}
+              critical={alertas.overLimit > 0}
+            />
           </div>
-          <div className="flex-1 p-5">
-            <div className="flex flex-col gap-4">
-              <StatusRow
-                label="Plano atual"
-                value={planInfo?.name ?? "—"}
-                badge={licensee?.status === "active"
-                  ? { text: "Ativo", bg: "var(--green3)", color: "var(--green)" }
-                  : { text: "Inativo", bg: "var(--red3)", color: "var(--red)" }
-                }
-              />
-              <StatusRow label="Limite de posts" value={postsLimite} />
-              {postsRestantes !== null && (
-                <StatusRow label="Posts restantes (est. mês)" value={String(postsRestantes)} />
-              )}
-              <StatusRow label="Posts usados este mês" value={String(postsUsados)} />
-              <div className="h-px bg-[var(--bdr)]" />
-              <StatusRow
-                label="Instagram"
-                value={igConnected ? "Conectado" : "Não conectado"}
-                badge={igConnected
-                  ? { text: "OK", bg: "var(--green3)", color: "var(--green)" }
-                  : { text: "Conectar", bg: "var(--red3)", color: "var(--red)" }
-                }
-              />
-              <StatusRow
-                label="Próximo vencimento"
-                value={licensee?.expires_at
-                  ? new Date(licensee.expires_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
-                  : "—"
-                }
-              />
-              <div className="h-px bg-[var(--bdr)]" />
-              {store && <StatusRow label="Loja" value={store.name} />}
-              {licensee && <StatusRow label="Marca" value={licensee.name} />}
-            </div>
-          </div>
+          <FooterLink href="/clientes">Gerenciar clientes</FooterLink>
+        </Panel>
+      </div>
+
+      {/* ═══ AÇÕES RÁPIDAS ═══ */}
+      <div>
+        <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">Ações rápidas</h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+          <QuickAction href="/clientes" icon={<UserPlus size={18} />} label="Novo Cliente" subtitle="Cadastrar licenciado" />
+          <QuickAction href="/editor-de-templates" icon={<Palette size={18} />} label="Editor" subtitle="Templates visuais" />
+          <QuickAction href="/central-de-publicacao" icon={<CalendarClock size={18} />} label="Publicação" subtitle="Agenda central" />
+          <QuickAction href="/usuarios" icon={<UserCog size={18} />} label="Usuários" subtitle="Gerenciar acessos" />
+          <QuickAction href="/planos" icon={<Gem size={18} />} label="Planos" subtitle="Preços e limites" />
+          <QuickAction href="/calculadora" icon={<Calculator size={18} />} label="Calculadora" subtitle="Precificação" />
         </div>
       </div>
     </>
@@ -509,62 +272,80 @@ export default function InicioPage() {
 
 /* ── Sub-components ──────────────────────────────── */
 
-function Kpi({ label, value, color, icon }: { label: string; value: string; color: string; icon: React.ReactNode }) {
+function StatCard({ label, value, icon, accent }: { label: string; value: string; icon: React.ReactNode; accent: string }) {
   return (
-    <div className="card-glass flex items-center gap-4 px-5 py-5">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}>
-        {icon}
+    <div className="rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] px-5 py-4 transition-shadow hover:shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">{label}</div>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }}>
+          {icon}
+        </span>
       </div>
-      <div>
-        <div className="text-[0.65rem] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">{label}</div>
-        <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)]">{value}</div>
+      <div className="mt-2 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)] tabular-nums">
+        {value}
       </div>
     </div>
   );
 }
 
-function StatusRow({ label, value, badge }: { label: string; value: string; badge?: { text: string; bg: string; color: string } }) {
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <div className="text-[11px] font-medium text-[var(--txt3)]">{label}</div>
-        <div className="text-[13px] font-medium text-[var(--txt)]">{value}</div>
+    <div className="flex flex-col rounded-xl border border-[var(--bdr)] bg-[var(--bg1)]">
+      <div className="border-b border-[var(--bdr)] px-4 py-3">
+        <h3 className="text-[13px] font-semibold text-[var(--txt)]">{title}</h3>
       </div>
-      {badge && <span className="rounded-full px-2 py-0.5 text-[0.6rem] font-bold" style={{ background: badge.bg, color: badge.color }}>{badge.text}</span>}
+      <div className="flex-1">{children}</div>
     </div>
   );
 }
 
-function Tip({ icon, text }: { icon: React.ReactNode; text: string }) {
+function EmptyText({ children }: { children: React.ReactNode }) {
+  return <div className="px-4 py-8 text-center text-[12px] text-[var(--txt3)]">{children}</div>;
+}
+
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-[var(--bdr)] px-3 py-2 hover:bg-[var(--hover-bg)]">
+    <Link
+      href={href}
+      className="flex items-center justify-end gap-1 border-t border-[var(--bdr)] px-4 py-2.5 text-[11px] font-semibold text-[var(--orange)] hover:bg-[var(--hover-bg)]"
+    >
+      {children} <ArrowRight size={11} />
+    </Link>
+  );
+}
+
+function AlertRow({ label, count, critical }: { label: string; count: number; critical: boolean }) {
+  const bg = critical ? "var(--red3)" : count > 0 ? "var(--orange3)" : "var(--bg2)";
+  const color = critical ? "var(--red)" : count > 0 ? "var(--orange)" : "var(--txt3)";
+  return (
+    <div className="flex items-center justify-between border-b border-[var(--bdr)] px-4 py-3 last:border-b-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        {critical && <AlertTriangle size={13} className="shrink-0" style={{ color: "var(--red)" }} />}
+        <span className="truncate text-[12px] text-[var(--txt2)]">{label}</span>
+      </div>
       <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--orange)]"
-        style={{ background: "linear-gradient(135deg, rgba(255,122,26,0.14), rgba(30,58,110,0.10))" }}
+        className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
+        style={{ background: bg, color }}
       >
+        {count}
+      </span>
+    </div>
+  );
+}
+
+function QuickAction({ href, icon, label, subtitle }: { href: string; icon: React.ReactNode; label: string; subtitle: string }) {
+  return (
+    <Link
+      href={href}
+      className="group flex flex-col gap-2 rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] p-4 transition-all hover:-translate-y-0.5 hover:border-[var(--orange3)] hover:shadow-sm"
+    >
+      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--bg2)] text-[var(--txt2)] transition-colors group-hover:bg-[var(--orange3)] group-hover:text-[var(--orange)]">
         {icon}
       </span>
-      <span className="text-[12px] text-[var(--txt2)]">{text}</span>
-    </div>
-  );
-}
-
-function Empty({ icon, text, action }: { icon: React.ReactNode; text: string; action?: { label: string; href: string } }) {
-  return (
-    <div className="flex flex-col items-center gap-3 py-8">
-      <div
-        className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
-        style={{
-          background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-          border: "1px solid rgba(255,255,255,0.08)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-        }}
-      >
-        {icon}
+      <div>
+        <div className="text-[13px] font-semibold text-[var(--txt)]">{label}</div>
+        <div className="text-[11px] text-[var(--txt3)]">{subtitle}</div>
       </div>
-      <p className="text-[13px] text-[var(--txt3)]">{text}</p>
-      {action && <Link href={action.href} className="text-[12px] font-medium text-[var(--orange)] hover:underline">{action.label}</Link>}
-    </div>
+    </Link>
   );
 }

@@ -187,7 +187,7 @@ export default function LoginPage() {
           || "você";
         const role = profile?.role ?? null;
         const home = homeForRole(role);
-        const splashRoles = ["cliente", "unidade", "vendedor"];
+        const splashRoles = ["adm", "cliente", "unidade", "gerente", "vendedor"];
         const canShowSplash = role !== null && splashRoles.includes(role);
 
         if (!canShowSplash) {
@@ -197,7 +197,36 @@ export default function LoginPage() {
         }
 
         let splashConfig: Record<string, string | number | undefined> | null = null;
-        if (profile?.licensee_id) {
+
+        if (role === "adm") {
+          const admKeys = [
+            "adm_splash_effect",
+            "adm_splash_cor1",
+            "adm_splash_cor2",
+            "adm_splash_cor3",
+            "adm_splash_cor_fundo",
+            "adm_splash_logo",
+          ];
+          const { data: cfgRows } = await supabase
+            .from("system_config")
+            .select("key,value")
+            .in("key", admKeys);
+          const cfg: Record<string, string> = {};
+          for (const r of (cfgRows ?? []) as { key: string; value: string }[]) {
+            cfg[r.key] = r.value;
+          }
+          if (cfg.adm_splash_effect) {
+            splashConfig = {
+              logoUrl: cfg.adm_splash_logo || undefined,
+              effect: cfg.adm_splash_effect,
+              logoOrientation: "horizontal",
+              cor1: cfg.adm_splash_cor1 || "var(--orange)",
+              cor2: cfg.adm_splash_cor2 || "#D4A843",
+              cor3: cfg.adm_splash_cor3 || "#1E3A6E",
+              corFundo: cfg.adm_splash_cor_fundo || "#0E1520",
+            };
+          }
+        } else if (profile?.licensee_id) {
           const { data: lic } = await supabase
             .from("licensees")
             .select("logo_url,splash_effect,splash_logo_orientation,splash_velocidade,splash_suavidade,splash_som_url,cor_primaria,cor_secundaria,cor_acento,cor_fundo,cor4,cor5")

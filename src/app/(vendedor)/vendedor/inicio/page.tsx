@@ -242,7 +242,7 @@ export default function VendedorInicioPage() {
     // Preferência: tabela datas_comemorativas (tempo real do ADM). Fallback: hardcoded CALENDARIO_TURISMO.
     if (dbFeriados.length > 0) {
       const year = new Date().getFullYear();
-      return dbFeriados.slice(0, 5).map((d) => ({
+      return dbFeriados.slice(0, 4).map((d) => ({
         nome: d.nome,
         data: `${year}-${String(d.data_mes).padStart(2, "0")}-${String(d.data_dia).padStart(2, "0")}`,
         tipo: "feriado" as const,
@@ -251,7 +251,7 @@ export default function VendedorInicioPage() {
     return CALENDARIO_TURISMO
       .filter((d) => d.tipo === "feriado" && daysUntil(d.data) >= 0)
       .sort((a, b) => a.data.localeCompare(b.data))
-      .slice(0, 5);
+      .slice(0, 4);
   }, [dbFeriados]);
 
   /* ── Render ──────────────────────────────────── */
@@ -272,7 +272,11 @@ export default function VendedorInicioPage() {
               Painel do Consultor · {greeting()}
             </p>
             <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
-              Olá, {profile?.name?.split(" ")[0] || "consultor"}
+              Olá, {(() => {
+                const n = profile?.name?.split(" ")[0]?.trim();
+                if (!n || n.toLowerCase() === "vendedor") return "Consultor";
+                return n;
+              })()}
             </h1>
             <p className="mt-1.5 max-w-[560px] text-[13px] italic text-[var(--txt2)]">
               &ldquo;{quote}&rdquo;
@@ -308,38 +312,66 @@ export default function VendedorInicioPage() {
         </div>
       </div>
 
-      {/* ═══ Feriados + Notícias ═══════════════════ */}
+      {/* ═══ Feriados + Notícias — alturas alinhadas ═══ */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* ── Próximos feriados ───────────────────── */}
-        <div className="card-glass flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
+        <div className="card-glass flex h-[320px] flex-col overflow-hidden">
+          <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
             <div className="flex items-center gap-2">
               <CalendarDays size={15} className="text-[var(--orange)]" />
               <h3 className="text-[14px] font-bold text-[var(--txt)]">Próximos feriados</h3>
             </div>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+              {proximosFeriados.length}
+            </span>
           </div>
-          <div className="p-5">
+
+          <div className="flex flex-1 flex-col justify-center gap-2 p-4">
             {proximosFeriados.length === 0 ? (
-              <div className="py-6 text-center text-[12px] text-[var(--txt3)]">Sem feriados próximos.</div>
+              <div className="text-center text-[12px] text-[var(--txt3)]">Sem feriados próximos.</div>
             ) : (
-              <div className="flex flex-col gap-2">
-                {proximosFeriados.map((f) => {
-                  const diff = daysUntil(f.data);
-                  return (
-                    <div key={f.data + f.nome} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-3 py-2">
-                      <span className="truncate text-[12px] text-[var(--txt)]">{f.nome}</span>
-                      <span className="ml-2 shrink-0 rounded-full bg-[var(--orange3)] px-2 py-0.5 text-[0.55rem] font-bold text-[var(--orange)] tabular-nums">
-                        {diff === 0 ? "HOJE" : `em ${diff}d`}
+              proximosFeriados.map((f) => {
+                const diff = daysUntil(f.data);
+                const d = new Date(f.data + "T00:00:00");
+                const dia = String(d.getDate()).padStart(2, "0");
+                const mes = d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "").toUpperCase();
+                return (
+                  <div
+                    key={f.data + f.nome}
+                    className="flex items-center gap-3 rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 transition-colors hover:border-[rgba(59,130,246,0.4)]"
+                  >
+                    <div
+                      className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg text-white"
+                      style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #3B82F6 100%)" }}
+                    >
+                      <span className="font-[family-name:var(--font-dm-serif)] text-[16px] font-bold leading-none tabular-nums">
+                        {dia}
+                      </span>
+                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider opacity-90">
+                        {mes}
                       </span>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[12px] font-semibold text-[var(--txt)]">{f.nome}</div>
+                    </div>
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[0.55rem] font-bold tabular-nums"
+                      style={
+                        diff === 0
+                          ? { background: "var(--red3)", color: "var(--red)" }
+                          : { background: "var(--orange3)", color: "var(--orange)" }
+                      }
+                    >
+                      {diff === 0 ? "HOJE" : `em ${diff}d`}
+                    </span>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* ── Notícias do Setor — slideshow ──────── */}
+        {/* ── Notícias do Setor — slideshow (h-[320px] fixo) ── */}
         <div className="lg:col-span-2">
           <NewsCard news={noticias} />
         </div>

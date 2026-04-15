@@ -331,16 +331,32 @@ export default function ClienteInicioPage() {
                 </div>
               </div>
             </div>
-            <Link
-              href="/editor"
-              className="flex items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
-              style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
-            >
-              <Sparkles size={15} /> Criar arte
-            </Link>
           </div>
         </div>
       </div>
+
+      {/* ═══ Central de Publicação — compact row ═══ */}
+      <Link
+        href="/cliente/templates"
+        className="group flex items-center justify-between gap-4 rounded-xl border border-[var(--bdr)] p-4 transition-colors hover:border-[var(--orange3)]"
+        style={{ background: "linear-gradient(135deg, rgba(30,58,110,0.20), rgba(245,158,11,0.10))" }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--orange)]"
+            style={{ background: "rgba(255,122,26,0.14)" }}
+          >
+            <Sparkles size={16} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-medium text-[var(--txt)]">Central de Publicação</div>
+            <div className="text-[11px] text-[var(--txt3)]">Acesse a biblioteca de templates liberada para a sua marca.</div>
+          </div>
+        </div>
+        <span className="flex shrink-0 items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-1 text-[11px] font-semibold text-[var(--txt2)] transition-colors group-hover:border-[var(--orange3)] group-hover:text-[var(--orange)]">
+          Ver templates <ArrowRight size={12} />
+        </span>
+      </Link>
 
       {/* ═══ KPI Row — Plano, Posts do mês, Templates ══ */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -448,9 +464,8 @@ export default function ClienteInicioPage() {
         </div>
       </div>
 
-      {/* ═══ Unidades + Usuários + Notícias ══════════════════════ */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:col-span-2">
+      {/* ═══ Unidades + Usuários ══════════════════════ */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* ── Unidades ──────────────────────────── */}
         <div className="card-glass flex flex-col">
           <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
@@ -508,6 +523,11 @@ export default function ClienteInicioPage() {
               <span className="text-[11px] text-[var(--txt3)] tabular-nums">
                 {users.length}{maxUsers && maxUsers > 0 ? ` / ${maxUsers}` : ""}
               </span>
+              {maxUsers && maxUsers > 0 && users.length >= maxUsers && (
+                <span className="rounded-full bg-[var(--red3)] px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-wider text-[var(--red)]">
+                  Limite
+                </span>
+              )}
             </div>
             <Link
               href="/usuarios"
@@ -539,11 +559,10 @@ export default function ClienteInicioPage() {
             )}
           </div>
         </div>
-        </div>
-
-        {/* ── Notícias do setor ─────────────────── */}
-        <NewsCard news={noticias} />
       </div>
+
+      {/* ═══ Notícias do setor — full width ══════════ */}
+      <NewsCard news={noticias} height={280} />
     </>
   );
 }

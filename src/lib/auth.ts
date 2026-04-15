@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type Role = "adm" | "cliente" | "unidade" | "vendedor";
+export type Role = "adm" | "cliente" | "unidade" | "gerente" | "vendedor";
 
 export interface ProfileLicensee {
   id: string;
@@ -137,6 +137,7 @@ export function homeForRole(role: Role | string | null): string {
     case "adm": return "/inicio";
     case "cliente": return "/cliente/inicio";
     case "unidade": return "/unidade/inicio";
+    case "gerente": return "/gerente/inicio";
     case "vendedor": return "/vendedor/inicio";
     default: return "/login";
   }
