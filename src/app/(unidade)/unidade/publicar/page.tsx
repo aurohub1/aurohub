@@ -170,11 +170,15 @@ export default function UnidadePublicarPage() {
     const p = await getProfile(supabase);
     setProfile(p);
     if (!p?.licensee_id) { setLoadingTpl(false); return; }
-    const { data } = await supabase
+    // Unidade vê só templates da própria loja — filtra por lojaId no JSON
+    const lojaFilter = p.store_id ? `%"lojaId":"${p.store_id}"%` : null;
+    const baseQuery = supabase
       .from("system_config")
       .select("key, value")
-      .like("key", "tmpl_%")
-      .like("value", `%"lojaId":"${p.store_id}"%`);
+      .like("key", "tmpl_%");
+    const { data } = lojaFilter
+      ? await baseQuery.like("value", lojaFilter)
+      : await baseQuery.like("value", `%"licenseeId":"${p.licensee_id}"%`);
     const rows: TemplateRow[] = [];
     for (const r of (data ?? []) as { key: string; value: string }[]) {
       try {

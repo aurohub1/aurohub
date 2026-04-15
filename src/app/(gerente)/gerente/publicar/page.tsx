@@ -170,17 +170,34 @@ export default function GerentePublicarPage() {
     const p = await getProfile(supabase);
     setProfile(p);
     if (!p?.licensee_id) { setLoadingTpl(false); return; }
+
+    // Stores do licensee — usado pra destinos E pra filtrar templates por lojaId
+    const { data: storesData } = await supabase
+      .from("stores")
+      .select("id, name")
+      .eq("licensee_id", p.licensee_id)
+      .order("name");
+    const allStores = (storesData ?? []) as StoreOption[];
+    const storeIdSet = new Set(allStores.map((s) => s.id));
+
+    // Templates: busca todos tmpl_* e filtra em JS por lojaId pertencente ao licensee (ou licenseeId match)
     const { data } = await supabase
       .from("system_config")
       .select("key, value")
-      .like("key", "tmpl_%")
-      .like("value", `%"lojaId":"${p.store_id}"%`);
+      .like("key", "tmpl_%");
     const rows: TemplateRow[] = [];
     for (const r of (data ?? []) as { key: string; value: string }[]) {
       try {
         const parsed = JSON.parse(r.value);
         const schemaElements = parsed.elements ?? parsed.schema?.elements;
         if (!schemaElements) continue;
+
+        // Filtro: template pertence ao licensee se lojaId está nas stores OU licenseeId bate
+        const lojaId = parsed.lojaId ?? parsed.schema?.lojaId ?? null;
+        const licenseeId = parsed.licenseeId ?? parsed.schema?.licenseeId ?? null;
+        const belongs = (lojaId && storeIdSet.has(lojaId)) || licenseeId === p.licensee_id;
+        if (!belongs) continue;
+
         const format = parsed.format || parsed.schema?.format || "stories";
         const [defW, defH] = FORMAT_DIMS[format] || [1080, 1920];
         rows.push({
@@ -202,14 +219,6 @@ export default function GerentePublicarPage() {
       } catch { /* skip */ }
     }
     setTemplates(rows);
-
-    // Destinos de publicação (stores onde o gerente pode postar)
-    const { data: storesData } = await supabase
-      .from("stores")
-      .select("id, name")
-      .eq("licensee_id", p.licensee_id)
-      .order("name");
-    const allStores = (storesData ?? []) as StoreOption[];
 
     let targets: StoreOption[] = [];
     if (canPublishToAllAZV(p.store_id)) {
