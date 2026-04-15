@@ -276,12 +276,12 @@ export default function UnidadeInicioPage() {
   return (
     <>
       {/* ═══ HEADER ═════════════════════════════════ */}
-      <div className="card-glass relative overflow-hidden px-8 py-7">
+      <div className="card-glass relative overflow-hidden px-6 py-6">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
           style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
         />
-        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Painel da Unidade · {greeting()}
@@ -296,7 +296,7 @@ export default function UnidadeInicioPage() {
           </div>
 
           <div
-            className="flex shrink-0 items-center gap-3 rounded-2xl border border-[var(--bdr)] px-4 py-2.5"
+            className="ml-auto flex shrink-0 items-center gap-3 rounded-2xl border border-[var(--bdr)] px-4 py-2.5"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.08), rgba(59,130,246,0.05))",
               backdropFilter: "blur(10px)",
