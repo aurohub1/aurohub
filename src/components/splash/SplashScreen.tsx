@@ -65,8 +65,8 @@ const EFFECTS: SplashEffect[] = [
 
 export default function SplashScreen({
   logoUrl, logoOrientation = "horizontal",
-  effect = "random", cor1 = "#FF7A1A", cor2 = "#D4A843", cor3 = "#1E3A6E",
-  cor4, cor5, corFundo = "#0E1520", userName, onDone,
+  effect = "random", cor1 = "#D4A843", cor2 = "#FF7A1A", cor3 = "transparent",
+  cor4 = "transparent", cor5 = "transparent", corFundo = "#060B16", userName, onDone,
   embedded, velocidade = 5, suavidade = 7, somUrl,
   quantidade = 5, tamanho = 5, raioOrbital = 5, nebulosa = 6,
   opacidade = 8, dispersao = 4, velocidadeTexto = 5,
@@ -114,8 +114,17 @@ export default function SplashScreen({
     let lastFrame = performance.now();
     let simTime = 0;
 
-    // Helper
+    // Aurovista ADM: pool de cores (só hex válidos) e partículas
+    const isValidHex = (c: string | undefined): c is string =>
+      !!c && typeof c === "string" && c.startsWith("#") && c.length >= 7;
+    const aurovistaPool: string[] = [cor1, cor2, cor3 as string, cor4 as string, cor5 as string].filter(isValidHex);
+    if (aurovistaPool.length === 0) aurovistaPool.push("#D4A843", "#FF7A1A");
+    interface AurovistaPt { a: number; rad: number; spd: number; sz: number; col: string; al: number; pl: number; }
+    const aurovistaPts: AurovistaPt[] = [];
+
+    // Helper — "transparent"/inválido vira preto neutro (só impacta c4/c5 que são fallbacks opcionais)
     const hex2rgb = (hex: string) => {
+      if (!hex || !hex.startsWith("#") || hex.length < 7) return { r: 0, g: 0, b: 0 };
       const r = parseInt(hex.slice(1,3),16);
       const g = parseInt(hex.slice(3,5),16);
       const b = parseInt(hex.slice(5,7),16);
@@ -126,6 +135,19 @@ export default function SplashScreen({
     const c5 = cor5 ? hex2rgb(cor5) : c2;
 
     const W = canvas.width, H = canvas.height;
+
+    // Inicializa partículas do aurovista_adm (uma vez — portado do aurovista_splash_v2.html)
+    for (let i = 0; i < 150; i++) {
+      aurovistaPts.push({
+        a: Math.random() * Math.PI * 2,
+        rad: 50 + Math.random() * Math.min(W, H) * 0.45,
+        spd: 0.0015 + Math.random() * 0.003,
+        sz: 0.8 + Math.random() * 2.8,
+        col: aurovistaPool[Math.floor(Math.random() * aurovistaPool.length)],
+        al: 0.2 + Math.random() * 0.8,
+        pl: Math.random() * Math.PI * 2,
+      });
+    }
 
     // Em modo embedded: sem timers (preview infinito, sem dismiss)
     const logoInTimer = embedded ? 0 as unknown as ReturnType<typeof setTimeout> : setTimeout(() => setLogoVisible(true), 400);
@@ -1235,49 +1257,36 @@ export default function SplashScreen({
         }
 
         case "aurovista_adm": {
-          const cols = [c1, c2, c3, c4, c5];
+          // Port fiel de aurovista_splash_v2.html (60 fps de referência, convertido para delta-time)
           const cx = W / 2, cy = H / 2;
-          const globalAlpha = Math.max(0.1, Math.min(1, opacidade / 10));
-          const baseR = (H * 0.22) * (raioOrbital / 5);
-          const particleCount = Math.round(30 + (quantidade / 10) * 170);
-          const particleSize = 0.6 + (tamanho / 10) * 3.4;
-          const jitter = (dispersao / 10) * baseR * 0.35;
+          const dtScale = dt * 60; // converte unidades "por frame" em "por segundo"
+          const fr = simTime * 60;
 
-          // Nebulosa dourada pulsante (centralizada atrás do logo)
-          const pulse = 0.5 + 0.5 * Math.sin(t * 1.3);
-          const nebAlpha = (nebulosa / 10) * 0.55 * globalAlpha;
-          const nebR = H * 0.55 * (0.85 + pulse * 0.25);
-          const neb = ctx.createRadialGradient(cx, cy, 0, cx, cy, nebR);
-          neb.addColorStop(0, `rgba(${c2.r},${c2.g},${c2.b},${nebAlpha})`);
-          neb.addColorStop(0.35, `rgba(${c2.r},${c2.g},${c2.b},${nebAlpha * 0.55})`);
-          neb.addColorStop(0.7, `rgba(${c3.r},${c3.g},${c3.b},${nebAlpha * 0.2})`);
-          neb.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = neb;
+          // Radial nebula: cor1 (center) → cor2 (0.4) → transparent
+          const na = Math.min(0.18, fr * 0.0012);
+          const hexToRgbStr = (hex: string, a: number) => {
+            const rgb = hex2rgb(hex);
+            return `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
+          };
+          const g1 = ctx.createRadialGradient(cx, cy, 0, cx, cy, H * 0.55);
+          g1.addColorStop(0, hexToRgbStr(cor1, na));
+          g1.addColorStop(0.4, hexToRgbStr(cor2, na * 0.5));
+          g1.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = g1;
           ctx.fillRect(0, 0, W, H);
 
-          // Partículas em 5 cores orbitando
-          ctx.globalAlpha = globalAlpha;
-          for (let i = 0; i < particleCount; i++) {
-            const orbitIdx = i % 5;
-            const orbit = baseR * (0.55 + orbitIdx * 0.25);
-            const angle = (i / particleCount) * Math.PI * 2 + t * (0.5 + orbitIdx * 0.12);
-            const jx = Math.sin(i * 1.7 + t * 0.9) * jitter;
-            const jy = Math.cos(i * 2.3 + t * 0.7) * jitter;
-            const x = cx + Math.cos(angle) * orbit + jx;
-            const y = cy + Math.sin(angle) * orbit * 0.7 + jy;
-            const col = cols[i % cols.length];
-            const twinkle = 0.6 + 0.4 * Math.sin(i * 0.5 + t * 2);
-            const size = particleSize * (0.7 + twinkle * 0.6);
-            const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 4);
-            glow.addColorStop(0, `rgba(${col.r},${col.g},${col.b},${0.9 * twinkle})`);
-            glow.addColorStop(0.4, `rgba(${col.r},${col.g},${col.b},${0.35 * twinkle})`);
-            glow.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = glow;
+          // Partículas orbitando (150, velocidade/posição/alpha conforme anexo)
+          aurovistaPts.forEach((p) => {
+            p.a += p.spd * dtScale;
+            const px = cx + Math.cos(p.a) * p.rad;
+            const py = cy + Math.sin(p.a) * p.rad;
+            p.pl += 0.04 * dtScale;
+            const al = p.al * (0.5 + 0.5 * Math.sin(p.pl));
             ctx.beginPath();
-            ctx.arc(x, y, size * 4, 0, Math.PI * 2);
+            ctx.arc(px, py, p.sz, 0, Math.PI * 2);
+            ctx.fillStyle = p.col + Math.floor(al * 255).toString(16).padStart(2, "0");
             ctx.fill();
-          }
-          ctx.globalAlpha = 1;
+          });
 
           // Texto (nome) com 7 efeitos
           if (userName) {
@@ -1297,7 +1306,7 @@ export default function SplashScreen({
             ctx.textBaseline = "middle";
             ctx.shadowColor = `rgba(${c2.r},${c2.g},${c2.b},0.5)`;
             ctx.shadowBlur = 14;
-            const baseAlpha = 0.9 * globalAlpha;
+            const baseAlpha = 0.9;
 
             switch (textoEfeito) {
               case "typewriter": {

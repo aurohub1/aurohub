@@ -214,17 +214,17 @@ export default function LoginPage() {
             const v = Number(cfg[k]);
             return Number.isFinite(v) && v > 0 ? v : def;
           };
-          if (cfg.adm_splash_effect) {
+          {
             splashConfig = {
               logoUrl: cfg.adm_splash_logo || undefined,
-              effect: cfg.adm_splash_effect,
+              effect: cfg.adm_splash_effect || "aurovista_adm",
               logoOrientation: "horizontal",
-              cor1: cfg.adm_splash_cor1 || "var(--orange)",
-              cor2: cfg.adm_splash_cor2 || "#D4A843",
-              cor3: cfg.adm_splash_cor3 || "#1E3A6E",
-              cor4: cfg.adm_splash_cor4 || "#3B82F6",
-              cor5: cfg.adm_splash_cor5 || "#F472B6",
-              corFundo: cfg.adm_splash_cor_fundo || "#0E1520",
+              cor1: cfg.adm_splash_cor1 || "#D4A843",
+              cor2: cfg.adm_splash_cor2 || "#FF7A1A",
+              cor3: cfg.adm_splash_cor3 || "transparent",
+              cor4: cfg.adm_splash_cor4 || "transparent",
+              cor5: cfg.adm_splash_cor5 || "transparent",
+              corFundo: cfg.adm_splash_cor_fundo || "#060B16",
               velocidade: num("adm_splash_velocidade", 5),
               suavidade: num("adm_splash_suavidade", 7),
               somUrl: cfg.adm_splash_som || undefined,

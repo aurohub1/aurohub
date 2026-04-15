@@ -370,102 +370,34 @@ export default function ConfiguracoesPage() {
                     <div className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ width: "100%", maxWidth: 560, height: 300 }}>
                       <SplashScreen
                         key={`adm-${JSON.stringify([
-                          config.adm_splash_effect, config.adm_splash_texto_efeito, config.adm_splash_logo,
-                          config.adm_splash_cor1, config.adm_splash_cor2, config.adm_splash_cor3,
-                          config.adm_splash_cor4, config.adm_splash_cor5, config.adm_splash_cor_fundo,
-                          config.adm_splash_velocidade, config.adm_splash_quantidade, config.adm_splash_tamanho,
-                          config.adm_splash_raio_orbital, config.adm_splash_nebulosa, config.adm_splash_opacidade,
-                          config.adm_splash_dispersao, config.adm_splash_velocidade_texto,
+                          config.adm_splash_logo,
+                          config.adm_splash_cor1, config.adm_splash_cor2,
+                          config.adm_splash_cor3, config.adm_splash_cor4, config.adm_splash_cor5,
                         ])}`}
                         logoUrl={config.adm_splash_logo || ""}
-                        effect={(config.adm_splash_effect as SplashEffect) || "aurovista_adm"}
-                        cor1={config.adm_splash_cor1 || "#FF7A1A"}
-                        cor2={config.adm_splash_cor2 || "#D4A843"}
-                        cor3={config.adm_splash_cor3 || "#1E3A6E"}
-                        cor4={config.adm_splash_cor4 || "#3B82F6"}
-                        cor5={config.adm_splash_cor5 || "#F472B6"}
-                        corFundo={config.adm_splash_cor_fundo || "#0E1520"}
-                        velocidade={getNum("adm_splash_velocidade", 5)}
-                        quantidade={getNum("adm_splash_quantidade", 5)}
-                        tamanho={getNum("adm_splash_tamanho", 5)}
-                        raioOrbital={getNum("adm_splash_raio_orbital", 5)}
-                        nebulosa={getNum("adm_splash_nebulosa", 6)}
-                        opacidade={getNum("adm_splash_opacidade", 8)}
-                        dispersao={getNum("adm_splash_dispersao", 4)}
-                        velocidadeTexto={getNum("adm_splash_velocidade_texto", 5)}
-                        textoEfeito={(config.adm_splash_texto_efeito as TextoEfeito) || "typewriter"}
-                        userName="Duane"
+                        effect="aurovista_adm"
+                        cor1={config.adm_splash_cor1 || "#D4A843"}
+                        cor2={config.adm_splash_cor2 || "#FF7A1A"}
+                        cor3={config.adm_splash_cor3 || "transparent"}
+                        cor4={config.adm_splash_cor4 || "transparent"}
+                        cor5={config.adm_splash_cor5 || "transparent"}
+                        corFundo="#060B16"
+                        userName="AUROVISTA"
+                        textoEfeito="typewriter"
                         embedded={{ width: 560, height: 300 }}
                       />
                     </div>
                   </div>
 
-                  {/* Efeito */}
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Efeito visual</label>
-                      <select
-                        value={config.adm_splash_effect ?? "aurovista_adm"}
-                        onChange={(e) => set("adm_splash_effect", e.target.value)}
-                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none"
-                      >
-                        <option value="aurovista_adm">✨ Aurovista ADM (exclusivo)</option>
-                        <option value="particles">Partículas</option>
-                        <option value="cinematic">Cinemático</option>
-                        <option value="scalefade">Scale Fade</option>
-                        <option value="fadesuave">Fade Suave</option>
-                        <option value="aurora">Aurora Boreal</option>
-                        <option value="aurora_espacial">Aurora Espacial</option>
-                        <option value="galaxia">🌀 Galáxia</option>
-                        <option value="vagalumes">Vagalumes</option>
-                        <option value="holofote">Holofote</option>
-                        <option value="bigbang">Big Bang</option>
-                        <option value="vidro_liquido">💧 Vidro Líquido</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Efeito do texto</label>
-                      <select
-                        value={config.adm_splash_texto_efeito ?? "typewriter"}
-                        onChange={(e) => set("adm_splash_texto_efeito", e.target.value)}
-                        className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none"
-                      >
-                        <option value="typewriter">Typewriter (digitando)</option>
-                        <option value="fadein">Fade in</option>
-                        <option value="slideup">Slide up</option>
-                        <option value="glitch">Glitch</option>
-                        <option value="reveal">Reveal (cortina)</option>
-                        <option value="blurtosharp">Blur → Sharp</option>
-                        <option value="scalein">Scale in</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* 5 Color pickers (quadrados clicáveis) + fundo */}
+                  {/* Paleta de cores — 2 obrigatórias + 3 opcionais */}
                   <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Paleta de cores</label>
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Paleta — cores 1 e 2 obrigatórias (partícula escolhe aleatória entre as definidas)</label>
                     <div className="flex flex-wrap gap-3">
-                      <ColorSquare label="Cor 1" value={config.adm_splash_cor1 || "#FF7A1A"} onChange={(v) => set("adm_splash_cor1", v)} />
-                      <ColorSquare label="Cor 2" value={config.adm_splash_cor2 || "#D4A843"} onChange={(v) => set("adm_splash_cor2", v)} />
-                      <ColorSquare label="Cor 3" value={config.adm_splash_cor3 || "#1E3A6E"} onChange={(v) => set("adm_splash_cor3", v)} />
-                      <ColorSquare label="Cor 4" value={config.adm_splash_cor4 || "#3B82F6"} onChange={(v) => set("adm_splash_cor4", v)} />
-                      <ColorSquare label="Cor 5" value={config.adm_splash_cor5 || "#F472B6"} onChange={(v) => set("adm_splash_cor5", v)} />
-                      <ColorSquare label="Fundo" value={config.adm_splash_cor_fundo || "#0E1520"} onChange={(v) => set("adm_splash_cor_fundo", v)} />
-                    </div>
-                  </div>
-
-                  {/* 8 sliders */}
-                  <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Parâmetros</label>
-                    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                      <Slider label="Velocidade" value={getNum("adm_splash_velocidade", 5)} onChange={(v) => set("adm_splash_velocidade", String(v))} />
-                      <Slider label="Quantidade" value={getNum("adm_splash_quantidade", 5)} onChange={(v) => set("adm_splash_quantidade", String(v))} />
-                      <Slider label="Tamanho" value={getNum("adm_splash_tamanho", 5)} onChange={(v) => set("adm_splash_tamanho", String(v))} />
-                      <Slider label="Raio orbital" value={getNum("adm_splash_raio_orbital", 5)} onChange={(v) => set("adm_splash_raio_orbital", String(v))} />
-                      <Slider label="Nebulosa" value={getNum("adm_splash_nebulosa", 6)} onChange={(v) => set("adm_splash_nebulosa", String(v))} min={0} />
-                      <Slider label="Opacidade" value={getNum("adm_splash_opacidade", 8)} onChange={(v) => set("adm_splash_opacidade", String(v))} />
-                      <Slider label="Dispersão" value={getNum("adm_splash_dispersao", 4)} onChange={(v) => set("adm_splash_dispersao", String(v))} min={0} />
-                      <Slider label="Veloc. texto" value={getNum("adm_splash_velocidade_texto", 5)} onChange={(v) => set("adm_splash_velocidade_texto", String(v))} />
+                      <ColorSquare label="Cor 1" value={config.adm_splash_cor1 || "#D4A843"} onChange={(v) => set("adm_splash_cor1", v)} />
+                      <ColorSquare label="Cor 2" value={config.adm_splash_cor2 || "#FF7A1A"} onChange={(v) => set("adm_splash_cor2", v)} />
+                      <OptionalColorSquare label="Cor 3" value={config.adm_splash_cor3} onChange={(v) => set("adm_splash_cor3", v)} onClear={() => set("adm_splash_cor3", "transparent")} />
+                      <OptionalColorSquare label="Cor 4" value={config.adm_splash_cor4} onChange={(v) => set("adm_splash_cor4", v)} onClear={() => set("adm_splash_cor4", "transparent")} />
+                      <OptionalColorSquare label="Cor 5" value={config.adm_splash_cor5} onChange={(v) => set("adm_splash_cor5", v)} onClear={() => set("adm_splash_cor5", "transparent")} />
                     </div>
                   </div>
 
@@ -545,6 +477,31 @@ export default function ConfiguracoesPage() {
 }
 
 /* ── Sub-components ──────────────────────────────── */
+
+function OptionalColorSquare({ label, value, onChange, onClear }: { label: string; value: string | undefined; onChange: (v: string) => void; onClear: () => void }) {
+  const isTransparent = !value || value === "transparent" || !value.startsWith("#");
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-[var(--bdr)] shadow-inner" style={isTransparent ? {
+        background: "repeating-conic-gradient(#c0c0c0 0% 25%, #ffffff 0% 50%) 50% / 10px 10px",
+      } : { background: value }}>
+        <input type="color" value={isTransparent ? "#888888" : (value as string)} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+        {!isTransparent && (
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClear(); }}
+            className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--red)] text-[10px] font-bold text-white shadow-md hover:scale-110"
+            title="Limpar (torna transparente)"
+          >
+            ×
+          </button>
+        )}
+      </div>
+      <span className="text-[10px] font-medium text-[var(--txt3)]">{label}</span>
+      <span className="font-mono text-[9px] text-[var(--txt3)]">{isTransparent ? "transparent" : value}</span>
+    </div>
+  );
+}
 
 function ColorSquare({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
