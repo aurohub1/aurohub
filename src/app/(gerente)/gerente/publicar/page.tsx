@@ -40,7 +40,6 @@ interface PlanLimits {
   max_posts_day: number;
   max_feed_reels_day: number | null;
   max_stories_day: number | null;
-  max_downloads_day: number | null;
   can_schedule: boolean;
   can_ia_legenda: boolean;
   is_enterprise: boolean;
@@ -505,12 +504,14 @@ export default function GerentePublicarPage() {
       // Plano completo (limites por formato)
       const slug = p.plan?.slug || p.licensee?.plan_slug || p.licensee?.plan;
       if (slug) {
-        const { data: plan } = await supabase
-          .from("plans")
-          .select("slug, max_posts_day, max_feed_reels_day, max_stories_day, max_downloads_day, can_schedule, can_ia_legenda, is_enterprise")
-          .eq("slug", slug)
-          .single();
-        if (plan) setPlanLimits(plan as PlanLimits);
+        try {
+          const { data: plan } = await supabase
+            .from("plans")
+            .select("slug, max_posts_day, max_feed_reels_day, max_stories_day, can_schedule, can_ia_legenda, is_enterprise")
+            .eq("slug", slug)
+            .single();
+          if (plan) setPlanLimits(plan as PlanLimits);
+        } catch { /* silent — plano não encontrado não deve bloquear o carregamento */ }
       }
 
       // Features ativas para o licensee (override do ADM)
@@ -899,13 +900,7 @@ export default function GerentePublicarPage() {
   }
 
   async function handleDownload() {
-    // Verifica limite diário de downloads
-    const maxDl = planLimits?.max_downloads_day;
-    if (maxDl !== null && maxDl !== undefined && maxDl > 0 && downloadsToday >= maxDl) {
-      setStatus("error");
-      setStatusMsg(`Limite diário de downloads atingido (${downloadsToday}/${maxDl})`);
-      return;
-    }
+    // Downloads — sem limite por plano (coluna removida)
 
     const isVideo = format === "stories" || format === "reels";
     let fileUrl: string;
@@ -1689,7 +1684,7 @@ export default function GerentePublicarPage() {
                 visible={formatVisible}
                 current={format}
                 downloads={downloadsToday}
-                maxDownloads={planLimits?.max_downloads_day}
+                maxDownloads={null}
               />
             </div>
           )}
