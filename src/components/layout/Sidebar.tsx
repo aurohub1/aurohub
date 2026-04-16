@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sun, Moon } from "lucide-react";
+import {
+  Sun, Moon, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
+} from "lucide-react";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -312,6 +314,27 @@ function roleBadgeLabel(role: string): string {
   return map[role.toLowerCase()] ?? role.toUpperCase();
 }
 
+/* ── Clock / Weather helpers ─────────────────────── */
+
+function formatTime(d: Date): string {
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+function formatDateLong(d: Date): string {
+  return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" }).toUpperCase();
+}
+
+function WeatherIconLucide({ code, size = 13 }: { code: number | null; size?: number }) {
+  const color = "#FF7A1A";
+  if (code === null) return <Cloud size={size} color={color} />;
+  if (code === 0) return <Sun size={size} color={color} />;
+  if (code <= 3) return <CloudSun size={size} color={color} />;
+  if (code <= 48) return <CloudFog size={size} color={color} />;
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return <CloudRain size={size} color={color} />;
+  if (code >= 71 && code <= 77) return <CloudSnow size={size} color={color} />;
+  if (code >= 95) return <CloudLightning size={size} color={color} />;
+  return <Cloud size={size} color={color} />;
+}
+
 /* ── Component ───────────────────────────────────── */
 
 export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel }: SidebarProps) {
@@ -326,15 +349,23 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
     : rawSections;
   const initial = user.name.charAt(0).toUpperCase();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [now, setNow] = useState<Date>(new Date());
   const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
   const [cityName, setCityName] = useState<string>("Rio Preto");
   const [quote, setQuote] = useState<string>("");
+
+  // Relógio (tick 1s)
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   // Fetch weather via geolocation (fallback Rio Preto) + ler frase do dia do localStorage
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("ah_frase_do_dia") || "{}");
-      if (saved?.quote) setQuote(saved.quote as string);
+      if (saved?.frase) setQuote(saved.frase as string);
+      else if (saved?.quote) setQuote(saved.quote as string);
     } catch { /* silent */ }
 
     (async () => {
@@ -457,36 +488,49 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
         ))}
       </nav>
 
-      {/* ── Slot opcional (relógio/clima/contador) ── */}
+      {/* ── Slot opcional (contador de posts, etc) ── */}
       {extraPanel && (
         <div className="shrink-0 border-t border-[var(--bdr)]">
           {extraPanel}
         </div>
       )}
 
-      {/* ── Weather + Quote (linhas separadas) ── */}
-      <div className="shrink-0 border-t border-[var(--bdr)] px-3 py-2">
-        {/* Linha 1: clima numa linha só */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[16px] leading-none" aria-hidden>
-            {weather == null ? "…" :
-              weather.code === 0 ? "☀️" :
-              weather.code <= 3 ? "⛅" :
-              weather.code <= 48 ? "🌫️" :
-              (weather.code <= 67 || (weather.code >= 80 && weather.code <= 82)) ? "🌧️" :
-              (weather.code >= 71 && weather.code <= 77) ? "❄️" :
-              weather.code >= 95 ? "⛈️" : "☁️"}
-          </span>
-          <span className="text-[13px] font-semibold text-[var(--txt)] tabular-nums leading-none">
-            {weather ? `${weather.temp}°` : "—"}
-          </span>
-          <span className="min-w-0 truncate text-[11px] text-[var(--txt3)] leading-none">{cityName}</span>
+      {/* ── Clock + Weather + Quote ── */}
+      <div className="shrink-0 border-t border-[var(--bdr)] px-3 py-2 flex flex-col gap-2">
+        {/* Relógio + Clima */}
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2.5 py-2">
+          <div className="min-w-0">
+            <div className="font-mono text-[13px] font-bold text-[var(--txt)] tabular-nums">
+              {formatTime(now)}
+            </div>
+            <div className="text-[8px] uppercase tracking-wider text-[var(--txt3)]">
+              {formatDateLong(now)}
+            </div>
+          </div>
+          {weather && (
+            <div className="flex shrink-0 items-center gap-1">
+              <WeatherIconLucide code={weather.code} size={13} />
+              <div className="text-right">
+                <div className="text-[11px] font-bold text-[var(--txt)] tabular-nums leading-none">
+                  {weather.temp}°
+                </div>
+                <div className="mt-0.5 truncate max-w-[60px] text-[8px] text-[var(--txt3)]">
+                  {cityName}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Linha 2: frase do dia, separada */}
+        {/* Frase do dia */}
         {quote && (
-          <div className="mt-1.5 max-w-full truncate text-[11px] italic text-[var(--txt3)]" title={quote}>
-            &ldquo;{quote}&rdquo;
+          <div className="rounded-lg border border-[rgba(255,122,26,0.18)] bg-[rgba(255,122,26,0.05)] px-2.5 py-2">
+            <div className="mb-0.5 text-[8px] font-bold uppercase tracking-wider text-[#FF7A1A]">
+              Motivação
+            </div>
+            <p className="text-[10px] italic leading-snug text-[var(--txt2)]">
+              &ldquo;{quote}&rdquo;
+            </p>
           </div>
         )}
       </div>
