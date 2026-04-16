@@ -174,7 +174,7 @@ export default function ClienteUsuariosPage() {
             </p>
           </div>
 
-          <div className="group relative">
+          <div className={`group relative ${limitReached ? "cursor-not-allowed" : ""}`} title={limitReached ? "Limite de usuários do plano atingido" : undefined}>
             <button
               onClick={() => !limitReached && setCreating(true)}
               disabled={limitReached}
