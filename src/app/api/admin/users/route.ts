@@ -213,17 +213,27 @@ export async function PATCH(req: NextRequest) {
     if (extras && caller.role === "adm") {
       // Múltiplas lojas: salvar em user_stores (delete + insert)
       if (extras.store_ids && extras.store_ids.length > 0) {
-        await sb.from("user_stores").delete().eq("user_id", id);
-        const rows = extras.store_ids.filter(Boolean).map(sid => ({ user_id: id, store_id: sid }));
-        if (rows.length > 0) await sb.from("user_stores").insert(rows);
+        try {
+          await sb.from("user_stores").delete().eq("user_id", id);
+          const rows = extras.store_ids.filter(Boolean).map(sid => ({ user_id: id, store_id: sid }));
+          if (rows.length > 0) await sb.from("user_stores").insert(rows);
+        } catch (e) { console.warn("[admin/users] user_stores:", e); }
       }
 
-      // Metadados extras em profiles (se colunas existirem)
-      const meta: Record<string, unknown> = {};
-      if (extras.landing !== undefined) meta.landing = extras.landing;
-      if (extras.plan !== undefined) meta.plan = extras.plan;
-      if (Object.keys(meta).length > 0) {
-        await sb.from("profiles").update(meta).eq("id", id);
+      // Permissões individuais via licensee_feature_overrides
+      // (ai → can_ia_legenda, metrics → metricas, transmissao → transmissao)
+      const licenseeId = String(profile.licensee_id || "");
+      if (licenseeId) {
+        const overrides: { feature_key: string; enabled: boolean }[] = [];
+        if (extras.ai !== undefined) overrides.push({ feature_key: "ia_legenda", enabled: extras.ai });
+        if (extras.metrics !== undefined) overrides.push({ feature_key: "metricas", enabled: extras.metrics });
+        if (extras.transmissao !== undefined) overrides.push({ feature_key: "transmissao", enabled: extras.transmissao });
+        for (const ov of overrides) {
+          await sb.from("licensee_feature_overrides").upsert(
+            { licensee_id: licenseeId, feature_key: ov.feature_key, enabled: ov.enabled },
+            { onConflict: "licensee_id,feature_key" }
+          );
+        }
       }
 
       // Senha
