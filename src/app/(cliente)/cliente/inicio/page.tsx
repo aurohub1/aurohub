@@ -391,23 +391,20 @@ export default function ClienteInicioPage() {
       {/* ═══ Central de Publicação — compact row ═══ */}
       <Link
         href="/cliente/templates"
-        className="group flex items-center justify-between gap-4 rounded-xl border border-[var(--bdr)] p-4 transition-colors hover:border-[var(--orange3)]"
-        style={{ background: "linear-gradient(135deg, rgba(30,58,110,0.20), rgba(245,158,11,0.10))" }}
+        className="group flex items-center justify-between gap-4 rounded-xl p-5 transition-shadow duration-200 hover:shadow-md"
+        style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #3B82F6 100%)" }}
       >
         <div className="flex items-center gap-3">
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--orange)]"
-            style={{ background: "rgba(255,122,26,0.14)" }}
-          >
-            <Sparkles size={16} />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15">
+            <Sparkles size={18} className="text-white" />
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] font-medium text-[var(--txt)]">Central de Publicação</div>
-            <div className="text-[11px] text-[var(--txt3)]">Acesse a biblioteca de templates liberada para a sua marca.</div>
+            <div className="text-[14px] font-bold text-white">Central de Publicação</div>
+            <div className="text-[11px] text-white/70">Acesse a biblioteca de templates liberada para a sua marca.</div>
           </div>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-1 text-[11px] font-semibold text-[var(--txt2)] transition-colors group-hover:border-[var(--orange3)] group-hover:text-[var(--orange)]">
-          Ver templates <ArrowRight size={12} />
+        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-white/20 px-4 py-2 text-[12px] font-semibold text-white transition-colors group-hover:bg-white/30">
+          Ver templates <ArrowRight size={13} />
         </span>
       </Link>
 
