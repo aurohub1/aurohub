@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+
 import type { EditorSchema } from "@/components/editor/canvas-editor";
 import { QuickStartModal, STARTER_KEY_PREFIX, SaveTemplateModal, slugifyTemplateName } from "@/components/editor/modals";
 import type { SaveTemplateData } from "@/components/editor/modals";
@@ -131,15 +131,18 @@ function EditorInner() {
           onClose={() => { setPendingSave(null); setPendingVariants(null); }}
           onConfirm={async (meta: SaveTemplateData) => {
             setSaving(true);
-            // Auto-upload da thumbnail do canvas pra Cloudinary (base64 → URL CDN)
+            // Auto-upload da thumbnail do canvas pra Cloudinary via API route
             let thumbnail: string | null = null;
             const rawThumb = pendingSave.thumbnail;
             if (rawThumb && rawThumb.startsWith("data:")) {
               try {
-                const res = await fetch(rawThumb);
-                const blob = await res.blob();
-                const file = new File([blob], `thumb_${Date.now()}.jpg`, { type: "image/jpeg" });
-                thumbnail = await uploadToCloudinary(file, "aurohubv2/thumbs");
+                const res = await fetch("/api/upload-thumb", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ dataUrl: rawThumb, folder: "aurohubv2/thumbs" }),
+                });
+                const json = await res.json();
+                thumbnail = json.url ?? null;
               } catch (err) {
                 console.warn("[Editor] Thumb upload falhou, salvando sem thumb:", err);
               }

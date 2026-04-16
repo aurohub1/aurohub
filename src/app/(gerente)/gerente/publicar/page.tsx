@@ -478,8 +478,7 @@ export default function GerentePublicarPage() {
 
                 {/* Usar */}
                 <div
-                  className="w-full py-2 text-center text-[12px] font-semibold text-white"
-                  style={{ background: "linear-gradient(90deg, #3B82F6, #D4A843)" }}
+                  className="w-full py-1.5 text-[11px] font-semibold text-white rounded-b-xl bg-gradient-to-r from-[#3B82F6] to-[#D4A843]"
                 >
                   ✦ Usar
                 </div>

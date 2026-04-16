@@ -213,9 +213,9 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
       try {
         thumb = stageRef.current.toDataURL({
           x: 0, y: 0, width, height,
-          pixelRatio: 1,
+          pixelRatio: 0.6,
           mimeType: "image/jpeg",
-          quality: 0.85,
+          quality: 0.8,
         });
       } catch (err) { console.warn("[Thumbnail]", err); }
       stageRef.current.scale({ x: old, y: old });
