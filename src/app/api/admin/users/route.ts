@@ -51,7 +51,7 @@ async function requireCaller(): Promise<
 
   const p = profile as CallerProfile | null;
   if (!p) return { ok: false, status: 403, error: "Profile não encontrado" };
-  if (p.role !== "adm" && p.role !== "cliente" && p.role !== "unidade") {
+  if (!["adm", "operador", "cliente", "unidade", "gerente"].includes(p.role)) {
     return { ok: false, status: 403, error: "Sem permissão" };
   }
   return { ok: true, caller: p };
@@ -95,8 +95,8 @@ export async function POST(req: NextRequest) {
       profile.licensee_id = caller.licensee_id;
     }
 
-    // Escopo da unidade: força licensee_id + store_id, só cria vendedor
-    if (caller.role === "unidade") {
+    // Escopo da unidade/gerente: força licensee_id + store_id, só cria vendedor
+    if (caller.role === "unidade" || caller.role === "gerente") {
       if (!caller.licensee_id || !caller.store_id) {
         return NextResponse.json({ error: "Unidade sem vínculo" }, { status: 403 });
       }
@@ -169,8 +169,8 @@ export async function PATCH(req: NextRequest) {
       profile.licensee_id = caller.licensee_id;
     }
 
-    // Escopo da unidade: só edita vendedores da própria store
-    if (caller.role === "unidade") {
+    // Escopo da unidade/gerente: só edita vendedores da própria store
+    if (caller.role === "unidade" || caller.role === "gerente") {
       if (!caller.licensee_id || !caller.store_id) {
         return NextResponse.json({ error: "Unidade sem vínculo" }, { status: 403 });
       }
@@ -228,9 +228,9 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    if (caller.role === "unidade") {
+    if (caller.role === "unidade" || caller.role === "gerente") {
       if (!caller.store_id) {
-        return NextResponse.json({ error: "Unidade sem vínculo" }, { status: 403 });
+        return NextResponse.json({ error: "Unidade/Gerente sem vínculo" }, { status: 403 });
       }
       const { data: target } = await sb
         .from("profiles")

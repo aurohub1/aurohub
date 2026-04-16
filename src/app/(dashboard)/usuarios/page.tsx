@@ -205,7 +205,7 @@ export default function UsuariosPage() {
           body: JSON.stringify({ id: editId, profile }),
         });
         const data = await res.json();
-        if (!res.ok) { setModalError(data.error || "Erro ao atualizar"); return; }
+        if (!res.ok) { console.error("[handleSave PATCH]", res.status, data); setModalError(data.error || "Erro ao atualizar"); setSaving(false); return; }
       } else {
         const email = form.email.trim().toLowerCase();
         const password = form.password;
