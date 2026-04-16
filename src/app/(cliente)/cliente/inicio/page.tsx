@@ -466,6 +466,9 @@ export default function ClienteInicioPage() {
                   }}
                 />
               </div>
+              {users.length >= maxUsers && (
+                <div className="mt-1.5 text-xs text-red-500">⚠️ Limite atingido — entre em contato com o suporte</div>
+              )}
             </div>
           )}
           {maxUsers === -1 && (
