@@ -468,7 +468,10 @@ export default function UnidadeInicioPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-5">
               {ultimasPub.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-center text-[12px] text-[var(--txt3)]">Nenhuma publicação ainda.</div>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <ImageIcon className="mb-3 h-8 w-8 text-[var(--txt3)] opacity-40" />
+                  <p className="text-[13px] text-[var(--txt3)]">Nenhuma publicação ainda.</p>
+                </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   {ultimasPub.map((post) => {
