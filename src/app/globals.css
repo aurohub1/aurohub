@@ -10,6 +10,7 @@
 [data-theme="dark"] {
   --brand-primary: #1E3A6E;
   --brand-secondary: #3B82F6;
+  --brand-gradient: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
   --bg: #060B16;
   --bg1: #0A1020;
   --bg2: #0C1428;
@@ -58,6 +59,7 @@
 [data-theme="light"] {
   --brand-primary: #1E3A6E;
   --brand-secondary: #3B82F6;
+  --brand-gradient: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
   --bg0: #EEF2F7;
   --bg: #EEF2F7;
   --bg1: #FFFFFF;
