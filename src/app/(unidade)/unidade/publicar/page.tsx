@@ -439,15 +439,40 @@ export default function UnidadePublicarPage() {
               <button
                 key={t.key}
                 onClick={() => pickTemplate(t)}
-                className="card-glass group flex flex-col gap-3 p-4 text-left transition-transform hover:scale-[1.02]"
+                className="card-glass group flex flex-col overflow-hidden text-left transition-transform hover:-translate-y-0.5"
               >
-                <TemplateThumb thumb={t.thumbnail} label={FORMAT_LABELS[t.format] || t.format} nome={t.nome} />
-                <div>
-                  <div className="truncate text-[13px] font-semibold text-[var(--txt)]">{t.nome}</div>
-                  <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--txt3)]">
-                    <span>{FORMAT_LABELS[t.format] || t.format}</span>
-                    <span>·</span>
-                    <span className="capitalize">{t.formType}</span>
+                <div
+                  className="relative w-full overflow-hidden border-b border-[var(--bdr)]"
+                  style={{ height: 140 }}
+                >
+                  {t.thumbnail ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={t.thumbnail} alt={t.nome} className="h-full w-full object-cover" />
+                  ) : (
+                    <div
+                      className="flex h-full w-full items-center justify-center"
+                      style={{ background: "#1E3A6E" }}
+                    >
+                      <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/85">
+                        {(t.format || "—").toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <span className="absolute right-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
+                    {FORMAT_LABELS[t.format] || t.format}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col gap-2 p-2.5">
+                  <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={t.nome}>
+                    {t.nome}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span
+                      className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
+                      style={{ background: "var(--orange3)", color: "var(--orange)" }}
+                    >
+                      {t.formType}
+                    </span>
                   </div>
                 </div>
               </button>
