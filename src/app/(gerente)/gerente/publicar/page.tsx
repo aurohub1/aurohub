@@ -463,7 +463,7 @@ export default function GerentePublicarPage() {
             <div className="text-[11px] text-[var(--txt3)]">Entre em contato com o administrador.</div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {templates.map((t) => {
               const tMeta = typeMeta(t.formType);
               const fMeta = formatMeta(t.format);
