@@ -205,7 +205,7 @@ export default function UsuariosPage() {
           body: JSON.stringify({ id: editId, profile }),
         });
         const data = await res.json();
-        if (!res.ok) { console.error("[handleSave PATCH]", res.status, data); setModalError(data.error || "Erro ao atualizar"); setSaving(false); return; }
+        if (!res.ok) { setModalError(data.error || "Erro ao atualizar"); setSaving(false); return; }
       } else {
         const email = form.email.trim().toLowerCase();
         const password = form.password;
@@ -219,9 +219,12 @@ export default function UsuariosPage() {
           body: JSON.stringify({ email, password, profile }),
         });
         const data = await res.json();
-        if (!res.ok) { setModalError(data.error || "Erro ao criar usuário"); return; }
+        if (!res.ok) { setModalError(data.error || "Erro ao criar usuário"); setSaving(false); return; }
       }
-      setEditOpen(false); await loadData();
+      // Fecha modal, limpa estado e recarrega lista
+      setEditOpen(false);
+      setEditId(null);
+      await loadData();
     } catch (err) { console.error("[handleSave]", err); setModalError("Erro ao salvar."); } finally { setSaving(false); }
   }
 
