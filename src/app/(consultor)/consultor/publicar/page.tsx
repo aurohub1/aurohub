@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import type Konva from "konva";
 import { supabase } from "@/lib/supabase";
@@ -41,6 +40,7 @@ interface PlanLimits {
   max_posts_day: number;
   max_feed_reels_day: number | null;
   max_stories_day: number | null;
+  max_downloads_day: number | null;
   can_schedule: boolean;
   can_ia_legenda: boolean;
   is_enterprise: boolean;
@@ -230,9 +230,6 @@ function calcNoites(ida: string, volta: string): number {
 /* ── Component principal ─────────────────────────── */
 
 export default function PublicarPage() {
-  const searchParams = useSearchParams();
-  const templateParam = searchParams.get("template");
-
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [enabledForms, setEnabledForms] = useState<EnabledForms>(DEFAULT_ENABLED_FORMS);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
@@ -272,7 +269,6 @@ export default function PublicarPage() {
   // Template atual — match estrito por formType + format (sem fallback)
   // Se não existir template pra (tab, format), o preview mostra placeholder
   const currentTemplate = useMemo(() => {
-    console.log("FIND:", { tab, format, templates: templates.map(t => ({formType: t.formType, format: t.format, key: t.key})) });
     return templates.find((t) => t.formType === tab && t.format === format) ?? null;
   }, [templates, tab, format]);
 
@@ -441,19 +437,6 @@ export default function PublicarPage() {
       }
       setTemplates(rows);
 
-      // Auto-select tab/format do template via URL param ou primeiro disponível
-      if (templateParam) {
-        const match = rows.find(t => t.key.includes(templateParam) || t.id === templateParam);
-        if (match) {
-          setTab(match.formType as FormType);
-          setFormat(match.format);
-        }
-      } else if (rows.length > 0) {
-        const first = rows[0];
-        if (first.formType) setTab(first.formType as FormType);
-        if (first.format) setFormat(first.format);
-      }
-
       // Stores / publish targets
       const { data: storesData } = await supabase
         .from("stores")
@@ -489,14 +472,12 @@ export default function PublicarPage() {
       // Plano completo (limites por formato)
       const slug = p.plan?.slug || p.licensee?.plan_slug || p.licensee?.plan;
       if (slug) {
-        try {
-          const { data: plan } = await supabase
-            .from("plans")
-            .select("slug, max_posts_day, max_feed_reels_day, max_stories_day, can_schedule, can_ia_legenda, is_enterprise")
-            .eq("slug", slug)
-            .single();
-          if (plan) setPlanLimits(plan as PlanLimits);
-        } catch { /* silent — plano não encontrado não deve bloquear o carregamento */ }
+        const { data: plan } = await supabase
+          .from("plans")
+          .select("slug, max_posts_day, max_feed_reels_day, max_stories_day, max_downloads_day, can_schedule, can_ia_legenda, is_enterprise")
+          .eq("slug", slug)
+          .single();
+        if (plan) setPlanLimits(plan as PlanLimits);
       }
 
       // Features ativas para o licensee (override do ADM)
@@ -885,7 +866,13 @@ export default function PublicarPage() {
   }
 
   async function handleDownload() {
-    // Downloads — sem limite por plano (coluna removida)
+    // Verifica limite diário de downloads
+    const maxDl = planLimits?.max_downloads_day;
+    if (maxDl !== null && maxDl !== undefined && maxDl > 0 && downloadsToday >= maxDl) {
+      setStatus("error");
+      setStatusMsg(`Limite diário de downloads atingido (${downloadsToday}/${maxDl})`);
+      return;
+    }
 
     const isVideo = format === "stories" || format === "reels";
     let fileUrl: string;
@@ -1669,7 +1656,7 @@ export default function PublicarPage() {
                 visible={formatVisible}
                 current={format}
                 downloads={downloadsToday}
-                maxDownloads={null}
+                maxDownloads={planLimits?.max_downloads_day}
               />
             </div>
           )}
