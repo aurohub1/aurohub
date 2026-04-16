@@ -111,6 +111,10 @@ export default function CentralPublicacaoPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [pubType, setPubType] = useState<"stories" | "feed" | "reels" | "carrossel">("feed");
+  const [scheduleMode, setScheduleMode] = useState<"now" | "schedule">("now");
+  const [scheduledAt, setScheduledAt] = useState<string>("");
+
   const [caption, setCaption] = useState<string>("");
   const [generatingCaption, setGeneratingCaption] = useState(false);
 
@@ -465,7 +469,8 @@ export default function CentralPublicacaoPage() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*,video/*"
+                    accept={pubType === "reels" ? "video/*" : "image/*"}
+                    multiple={pubType === "carrossel"}
                     onChange={onFileInput}
                     className="hidden"
                   />
@@ -530,6 +535,37 @@ export default function CentralPublicacaoPage() {
             </div>
           </div>
 
+          {/* ═══ TIPO DE PUBLICAÇÃO ═══ */}
+          <div className="card-glass flex flex-col">
+            <div className="border-b border-[var(--bdr)] px-5 py-4">
+              <h3 className="text-[14px] font-bold text-[var(--txt)]">Tipo de Publicação</h3>
+            </div>
+            <div className="flex flex-wrap gap-2 p-5">
+              {([
+                { key: "stories" as const, label: "Stories", desc: "9:16" },
+                { key: "feed" as const, label: "Feed", desc: "1:1" },
+                { key: "reels" as const, label: "Reels", desc: "Vídeo 9:16" },
+                { key: "carrossel" as const, label: "Carrossel", desc: "Múltiplas imagens" },
+              ]).map(t => {
+                const active = pubType === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => { setPubType(t.key); if (t.key !== "reels") setMediaIsVideo(false); }}
+                    className="flex flex-col items-center gap-1 rounded-xl border px-4 py-3 text-center transition-colors"
+                    style={active
+                      ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }
+                      : { borderColor: "var(--bdr)", color: "var(--txt3)" }
+                    }
+                  >
+                    <span className="text-[12px] font-bold">{t.label}</span>
+                    <span className="text-[9px]">{t.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* ═══ LEGENDA ═══ */}
           <div className="card-glass flex flex-col">
             <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
@@ -557,16 +593,56 @@ export default function CentralPublicacaoPage() {
             </div>
           </div>
 
+          {/* ═══ AGENDAMENTO ═══ */}
+          <div className="card-glass flex flex-col">
+            <div className="border-b border-[var(--bdr)] px-5 py-4">
+              <h3 className="text-[14px] font-bold text-[var(--txt)]">Agendamento</h3>
+            </div>
+            <div className="flex flex-col gap-3 p-5">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setScheduleMode("now")}
+                  className="flex-1 rounded-lg border px-3 py-2 text-[12px] font-semibold transition-colors"
+                  style={scheduleMode === "now"
+                    ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }
+                    : { borderColor: "var(--bdr)", color: "var(--txt3)" }
+                  }
+                >
+                  Publicar agora
+                </button>
+                <button
+                  onClick={() => setScheduleMode("schedule")}
+                  className="flex-1 rounded-lg border px-3 py-2 text-[12px] font-semibold transition-colors"
+                  style={scheduleMode === "schedule"
+                    ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }
+                    : { borderColor: "var(--bdr)", color: "var(--txt3)" }
+                  }
+                >
+                  Agendar
+                </button>
+              </div>
+              {scheduleMode === "schedule" && (
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[13px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
+                />
+              )}
+            </div>
+          </div>
+
           {/* ═══ PUBLICAR ═══ */}
           <div className="card-glass flex flex-col gap-3 p-5">
             <button
               onClick={handlePublish}
-              disabled={!canPublish}
+              disabled={!canPublish || (scheduleMode === "schedule" && !scheduledAt)}
               className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14px] font-bold text-white shadow-lg transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
               style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
             >
               {busy ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-              {status === "uploading" ? "Enviando..." : status === "publishing" ? "Publicando..." : "Publicar agora"}
+              {status === "uploading" ? "Enviando..." : status === "publishing" ? "Publicando..." : scheduleMode === "schedule" ? "✦ Agendar publicação" : "✦ Publicar agora"}
             </button>
 
             {status !== "idle" && (
