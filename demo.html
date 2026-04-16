@@ -1,0 +1,714 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurohub — Demo Interativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue-deep: #0c1829;
+  --blue-mid:  #1a2d47;
+  --blue-light:#2d4a6e;
+  --gold:      #C9A84C;
+  --gold-dim:  rgba(201,168,76,0.15);
+  --orange:    #E8712B;
+  --txt:       #eef2f8;
+  --txt2:      #8aaac8;
+  --txt3:      #4d6882;
+  --border:    rgba(255,255,255,0.07);
+  --surface:   rgba(255,255,255,0.04);
+  --radius:    12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--blue-deep);
+  color:var(--txt);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── FUNDO ── */
+.bg-mesh {
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% -10%, rgba(29,58,110,0.6) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 110%, rgba(201,168,76,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(10,18,32,0.9) 0%, transparent 100%);
+  z-index:0;pointer-events:none;
+}
+canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;}
+
+/* ── NAV ── */
+nav {
+  position:relative;z-index:20;
+  height:60px;padding:0 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(12,24,41,0.8);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.nav-brand {
+  display:flex;align-items:center;gap:10px;
+  text-decoration:none;
+  font-size:15px;font-weight:700;color:var(--txt);
+}
+.nav-brand img{height:28px;width:28px;border-radius:8px;object-fit:contain;}
+.nav-brand .sep{color:var(--txt3);font-weight:300;margin:0 4px;}
+.nav-brand .page{font-size:13px;font-weight:500;color:var(--txt2);}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.btn-back {
+  display:inline-flex;align-items:center;gap:6px;
+  height:34px;padding:0 14px;
+  border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--txt2);
+  font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;
+  text-decoration:none;cursor:pointer;
+  transition:all .2s;
+}
+.btn-back:hover{color:var(--txt);border-color:rgba(255,255,255,0.15);}
+.btn-theme{
+  height:34px;padding:0 14px;border-radius:8px;
+  border:1px solid rgba(201,168,76,0.25);
+  background:rgba(201,168,76,0.06);
+  color:var(--gold);font-size:12px;font-weight:600;
+  cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .2s;
+}
+.btn-theme:hover{background:rgba(201,168,76,0.12);}
+.nav-badge{
+  font-size:10px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--orange);
+  background:rgba(232,113,43,0.1);
+  border:1px solid rgba(232,113,43,0.2);
+  padding:4px 12px;border-radius:99px;
+}
+
+/* ── HERO ── */
+.hero{
+  position:relative;z-index:10;
+  text-align:center;
+  padding:52px 5vw 36px;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--gold);
+  background:var(--gold-dim);border:1px solid rgba(201,168,76,0.2);
+  padding:5px 16px;border-radius:99px;
+  margin-bottom:20px;
+}
+.hero h1{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(28px,5vw,44px);
+  font-weight:400;line-height:1.15;
+  color:#fff;margin-bottom:14px;
+}
+.hero h1 em{font-style:italic;color:var(--gold);}
+.hero p{
+  font-size:15px;color:var(--txt2);
+  max-width:520px;margin:0 auto;line-height:1.65;
+}
+
+/* ── LAYOUT ── */
+.demo-wrap{
+  position:relative;z-index:10;
+  display:grid;
+  grid-template-columns:340px 1fr;
+  gap:24px;
+  padding:0 5vw 60px;
+  max-width:1080px;margin:0 auto;
+}
+
+/* ── FORM ── */
+.demo-form{
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--border);
+  border-radius:16px;padding:24px;
+  display:flex;flex-direction:column;gap:18px;
+  backdrop-filter:blur(8px);
+}
+.form-section-title{
+  font-size:10px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--gold);
+  display:flex;align-items:center;gap:8px;
+}
+.form-section-title::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(201,168,76,0.2),transparent);
+}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{
+  font-size:10px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;
+  color:var(--txt3);
+}
+.field input,.field select{
+  height:38px;padding:0 12px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;color:var(--txt);
+  font-size:13px;font-family:'DM Sans',sans-serif;
+  outline:none;transition:border-color .2s,background .2s;
+}
+.field input:focus,.field select:focus{
+  border-color:rgba(201,168,76,0.35);
+  background:rgba(0,0,0,0.4);
+}
+.field input::placeholder{color:var(--txt3);}
+.field select option{background:#0d1b2e;}
+
+/* ── DESTINOS ── */
+.destinos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.destino-card{
+  border-radius:8px;overflow:hidden;cursor:pointer;
+  border:2px solid transparent;
+  transition:all .25s;position:relative;
+}
+.destino-card img{width:100%;height:68px;object-fit:cover;display:block;filter:brightness(0.8);}
+.dest-label{
+  font-size:9px;font-weight:700;text-align:center;
+  padding:4px;background:rgba(0,0,0,0.6);
+  color:var(--txt2);letter-spacing:.04em;text-transform:uppercase;
+  transition:color .2s;
+}
+.destino-card:hover{border-color:rgba(201,168,76,0.4);}
+.destino-card.active{border-color:var(--gold);}
+.destino-card.active .dest-label{color:var(--gold);}
+.destino-card.active img{filter:brightness(1);}
+
+/* ── SERVIÇOS ── */
+.svc-list{display:flex;flex-direction:column;gap:6px;}
+.svc-item{display:flex;align-items:center;gap:8px;}
+.svc-num{
+  width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  background:var(--gold-dim);color:var(--gold);
+  font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.svc-item input{
+  flex:1;height:34px;padding:0 10px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;color:var(--txt);
+  font-size:12px;font-family:'DM Sans',sans-serif;outline:none;
+  transition:border-color .2s;
+}
+.svc-item input:focus{border-color:rgba(201,168,76,0.35);}
+.svc-item input::placeholder{color:var(--txt3);}
+
+/* ── VALOR ── */
+.valor-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* ── BOTÃO GERAR ── */
+.btn-gerar{
+  width:100%;height:46px;border-radius:10px;
+  font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;
+  cursor:pointer;border:none;
+  background:linear-gradient(135deg,#E8712B,#c45f20);
+  color:#fff;letter-spacing:.03em;
+  transition:all .25s;
+  position:relative;overflow:hidden;
+}
+.btn-gerar::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);
+  opacity:0;transition:opacity .2s;
+}
+.btn-gerar:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(232,113,43,0.35);}
+.btn-gerar:hover::before{opacity:1;}
+.btn-gerar:active{transform:translateY(0);}
+
+/* ── PREVIEW ── */
+.demo-preview{display:flex;flex-direction:column;align-items:center;gap:16px;}
+.canvas-wrap{
+  border-radius:12px;overflow:hidden;
+  box-shadow:
+    0 0 0 1px rgba(201,168,76,0.12),
+    0 2px 8px rgba(0,0,0,0.3),
+    0 16px 60px rgba(0,0,0,0.6);
+}
+canvas#demoCanvas{display:block;}
+
+/* ── DOWNLOAD ── */
+.download-wrap{
+  width:100%;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(201,168,76,0.12);
+  border-radius:14px;padding:20px;
+  display:none;
+  backdrop-filter:blur(8px);
+}
+.download-wrap.show{display:block;animation:fadeUp .3s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.dl-header{margin-bottom:14px;}
+.dl-title{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:3px;}
+.dl-sub{font-size:12px;color:var(--txt3);line-height:1.5;}
+.dl-fields{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.dl-fields input{
+  height:38px;padding:0 12px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;color:var(--txt);
+  font-size:13px;font-family:'DM Sans',sans-serif;
+  outline:none;width:100%;transition:border-color .2s;
+}
+.dl-fields input:focus{border-color:rgba(201,168,76,0.35);}
+.dl-fields input::placeholder{color:var(--txt3);}
+.btn-dl{
+  width:100%;height:42px;border-radius:8px;
+  font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;
+  cursor:pointer;border:none;
+  background:linear-gradient(135deg,var(--gold),#b8962d);
+  color:#000;letter-spacing:.02em;
+  transition:all .25s;
+}
+.btn-dl:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(201,168,76,0.3);}
+.btn-dl:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* ── INFO ── */
+.demo-info{
+  text-align:center;font-size:11px;color:var(--txt3);
+  padding:10px 16px;
+  background:var(--gold-dim);
+  border:1px solid rgba(201,168,76,0.1);
+  border-radius:8px;width:100%;
+}
+.demo-info a{color:var(--gold);text-decoration:none;}
+.demo-info a:hover{text-decoration:underline;}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+  background:rgba(13,27,46,0.95);
+  border:1px solid rgba(201,168,76,0.25);
+  color:var(--txt);padding:11px 22px;
+  border-radius:10px;font-size:13px;font-weight:600;
+  backdrop-filter:blur(16px);
+  z-index:999;opacity:0;
+  transition:opacity .3s;pointer-events:none;
+  white-space:nowrap;
+}
+#toast.show{opacity:1;}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --blue-deep:#f0f4fa;
+  --blue-mid:#e2e8f4;
+  --txt:#0d1829;
+  --txt2:#3d5270;
+  --txt3:#8a9ab5;
+  --border:rgba(0,0,0,0.08);
+  --surface:rgba(0,0,0,0.03);
+}
+[data-theme="light"] body{background:#f0f4fa;}
+[data-theme="light"] .bg-mesh{
+  background:
+    radial-gradient(ellipse 80% 60% at 20% -10%,rgba(180,200,240,0.5) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 110%,rgba(201,168,76,0.06) 0%,transparent 60%);
+}
+[data-theme="light"] nav{background:rgba(240,244,250,0.9);}
+[data-theme="light"] .field input,
+[data-theme="light"] .field select,
+[data-theme="light"] .svc-item input,
+[data-theme="light"] .dl-fields input{
+  background:rgba(255,255,255,0.8);
+  border-color:rgba(0,0,0,0.1);
+  color:var(--txt);
+}
+[data-theme="light"] .demo-form,
+[data-theme="light"] .download-wrap{
+  background:rgba(255,255,255,0.6);
+  border-color:rgba(0,0,0,0.08);
+}
+[data-theme="light"] #toast{
+  background:rgba(240,244,250,0.95);
+  color:var(--txt);
+}
+
+@media(max-width:768px){
+  .demo-wrap{grid-template-columns:1fr;}
+  .valor-row{grid-template-columns:1fr;}
+  .hero{padding:36px 5vw 24px;}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-mesh"></div>
+<canvas id="particles"></canvas>
+
+<nav>
+  <a href="dashboard.html" class="nav-brand">
+    <img src="https://res.cloudinary.com/dxgj4bcch/image/fetch/f_auto,q_auto/https://app.aurovista.com.br/img/logo.png?_a=BBFAAAAA0" alt="Aurohub" onerror="this.style.display='none'" loading="lazy">
+    Aurohub
+    <span class="sep">›</span>
+    <span class="page">Demo</span>
+  </a>
+  <div class="nav-right">
+    <a href="dashboard.html" class="btn-back">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L3.5 6l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Voltar
+    </a>
+    <button class="btn-theme" id="themeBtn" onclick="toggleTheme()">☀ Tema Claro</button>
+    <span class="nav-badge">✦ Demo</span>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">✦ Demonstração interativa</div>
+  <h1>Crie sua arte em<br><em>segundos</em></h1>
+  <p>Preencha o formulário ao lado, visualize sua arte em tempo real e faça o download gratuitamente.</p>
+</div>
+
+<div class="demo-wrap">
+  <div class="demo-form">
+
+    <div class="form-section-title">Destino</div>
+    <div class="field">
+      <div class="destinos-grid">
+        <div class="destino-card active" data-dest="CURITIBA" data-img="https://images.unsplash.com/photo-1694945464100-2875d3e05647?w=800&q=80" onclick="selectDest(this)">
+          <img src="https://res.cloudinary.com/dxgj4bcch/image/fetch/f_auto,q_auto/https://images.unsplash.com/photo-1694945464100-2875d3e05647%3Fw%3D400%26q%3D70?_a=BBFAAAAA0" alt="Curitiba" crossorigin="anonymous" loading="lazy">
+          <div class="dest-label">Curitiba</div>
+        </div>
+        <div class="destino-card" data-dest="MADRID" data-img="https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&q=80" onclick="selectDest(this)">
+          <img src="https://res.cloudinary.com/dxgj4bcch/image/fetch/f_auto,q_auto/https://images.unsplash.com/photo-1539037116277-4db20889f2d4%3Fw%3D400%26q%3D70?_a=BBFAAAAA0" alt="Madrid" crossorigin="anonymous" loading="lazy">
+          <div class="dest-label">Madrid</div>
+        </div>
+        <div class="destino-card" data-dest="ORLANDO" data-img="https://images.unsplash.com/photo-1618945372420-2470ece5277c?w=800&q=80" onclick="selectDest(this)">
+          <img src="https://res.cloudinary.com/dxgj4bcch/image/fetch/f_auto,q_auto/https://images.unsplash.com/photo-1618945372420-2470ece5277c%3Fw%3D400%26q%3D70?_a=BBFAAAAA0" alt="Orlando" crossorigin="anonymous" loading="lazy">
+          <div class="dest-label">Orlando</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section-title">Detalhes</div>
+
+    <div class="field">
+      <label>Hotel / Resort</label>
+      <input type="text" id="hotel" placeholder="ex: Gran Meliá" oninput="schedulePreview()">
+    </div>
+
+    <div class="valor-row">
+      <div class="field"><label>Data de Ida</label><input type="date" id="data_ida" oninput="schedulePreview()"></div>
+      <div class="field"><label>Data de Volta</label><input type="date" id="data_volta" oninput="schedulePreview()"></div>
+    </div>
+
+    <div class="form-section-title">Serviços Inclusos</div>
+    <div class="svc-list">
+      <div class="svc-item"><span class="svc-num">1</span><input type="text" placeholder="Passagem aérea" oninput="schedulePreview()"></div>
+      <div class="svc-item"><span class="svc-num">2</span><input type="text" placeholder="Hotel 5 noites" oninput="schedulePreview()"></div>
+      <div class="svc-item"><span class="svc-num">3</span><input type="text" placeholder="Café da manhã" oninput="schedulePreview()"></div>
+    </div>
+
+    <div class="form-section-title">Valor</div>
+    <div class="valor-row">
+      <div class="field">
+        <label>Parcelas</label>
+        <select id="parcelas" onchange="schedulePreview()">
+          <option>6x</option><option>8x</option><option>10x</option><option selected>12x</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Valor da Parcela</label>
+        <input type="text" id="valor" placeholder="890,00" oninput="schedulePreview()">
+      </div>
+    </div>
+
+    <button class="btn-gerar" onclick="generateArt()">✦ Gerar Arte</button>
+  </div>
+
+  <div class="demo-preview">
+    <div class="canvas-wrap">
+      <canvas id="demoCanvas" width="480" height="854"></canvas>
+    </div>
+    <div class="download-wrap" id="downloadWrap">
+      <div class="dl-header">
+        <div class="dl-title">📥 Baixar sua arte</div>
+        <div class="dl-sub">Informe seu nome e e-mail para receber o arquivo.</div>
+      </div>
+      <div class="dl-fields">
+        <input type="text" id="dl-nome" placeholder="Seu nome completo">
+        <input type="email" id="dl-email" placeholder="seu@email.com.br">
+      </div>
+      <button class="btn-dl" id="btnDl" onclick="doDownload()">⬇ Baixar Imagem Grátis</button>
+    </div>
+    <div class="demo-info">
+      Demonstração do Aurohub &nbsp;·&nbsp;
+      <a href="https://aurovista.com.br" target="_blank">Conheça a Aurovista →</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx_DvYW8Snl6UWarJkuq50EG4d81RnOsiRJC5QU8LciHpaodgrCg8wA47VqHkCUFoe9yQ/exec';
+const W = 480, H = 854;
+const canvas = document.getElementById('demoCanvas');
+const ctx = canvas.getContext('2d');
+const imgCache = {};
+let previewTimer = null;
+let state = {
+  destino: 'CURITIBA',
+  destImg: 'https://images.unsplash.com/photo-1694945464100-2875d3e05647?w=800&q=80',
+};
+
+// ── TEMA ──
+function toggleTheme() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  document.documentElement.setAttribute('data-theme', isLight ? '' : 'light');
+  document.getElementById('themeBtn').textContent = isLight ? '☀ Tema Claro' : '🌙 Tema Escuro';
+  localStorage.setItem('demo-theme', isLight ? 'dark' : 'light');
+}
+if (localStorage.getItem('demo-theme') === 'light') {
+  document.documentElement.setAttribute('data-theme', 'light');
+  document.getElementById('themeBtn').textContent = '🌙 Tema Escuro';
+}
+
+// ── PARTÍCULAS ──
+const pCanvas = document.getElementById('particles');
+const pCtx = pCanvas.getContext('2d');
+let pW, pH, parts = [];
+function pResize() { pW = pCanvas.width = window.innerWidth; pH = pCanvas.height = window.innerHeight; }
+pResize(); window.addEventListener('resize', pResize);
+for (let i = 0; i < 55; i++) parts.push(newPart());
+function newPart() {
+  return { x: Math.random()*pW, y: Math.random()*pH,
+    size: Math.random()*1.2+0.3, sx: (Math.random()-.5)*.25,
+    sy: -Math.random()*.35-.1, op: Math.random()*.3+.08,
+    col: Math.random()>.5?'201,168,76':'232,113,43' };
+}
+function pLoop() {
+  pCtx.clearRect(0,0,pW,pH);
+  parts.forEach(p => {
+    p.x+=p.sx; p.y+=p.sy;
+    if(p.y<-5){ Object.assign(p, newPart()); p.y=pH; }
+    pCtx.beginPath(); pCtx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    pCtx.fillStyle=`rgba(${p.col},${p.op})`; pCtx.fill();
+  });
+  requestAnimationFrame(pLoop);
+}
+pLoop();
+
+// ── DESTINO ──
+function selectDest(el) {
+  document.querySelectorAll('.destino-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  state.destino = el.dataset.dest;
+  state.destImg = el.dataset.img;
+  schedulePreview();
+}
+
+function getData() {
+  return {
+    destino:    state.destino,
+    hotel:      document.getElementById('hotel').value || 'Hotel Exemplo',
+    data_ida:   document.getElementById('data_ida').value,
+    data_volta: document.getElementById('data_volta').value,
+    servicos:   [...document.querySelectorAll('.svc-item input')].map(i=>i.value.trim()).filter(Boolean),
+    parcelas:   document.getElementById('parcelas').value,
+    valor:      document.getElementById('valor').value || '890,00',
+  };
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function loadImg(src) {
+  return new Promise(res => {
+    if (imgCache[src]) { res(imgCache[src]); return; }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => { imgCache[src] = img; res(img); };
+    img.onerror = () => { imgCache[src] = null; res(null); };
+    img.src = src;
+  });
+}
+
+function schedulePreview() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => drawCanvas(getData()), 300);
+}
+
+async function drawCanvas(d) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Fundo
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#0a1628'); bg.addColorStop(1,'#040c18');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+  // Imagem fundo
+  const bgImg = await loadImg(state.destImg);
+  if (bgImg) {
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    const sc = Math.max(W/bgImg.naturalWidth, H/bgImg.naturalHeight);
+    const dw = bgImg.naturalWidth*sc, dh = bgImg.naturalHeight*sc;
+    ctx.drawImage(bgImg, (W-dw)/2, (H-dh)/2, dw, dh);
+    ctx.restore();
+  }
+
+  // Overlay
+  const ov = ctx.createLinearGradient(0,0,0,H);
+  ov.addColorStop(0,'rgba(7,15,28,0.55)');
+  ov.addColorStop(0.45,'rgba(7,15,28,0.2)');
+  ov.addColorStop(1,'rgba(7,15,28,0.93)');
+  ctx.fillStyle = ov; ctx.fillRect(0,0,W,H);
+
+  // Linha dourada topo
+  const lg = ctx.createLinearGradient(0,0,W,0);
+  lg.addColorStop(0,'transparent'); lg.addColorStop(0.5,'#C9A84C'); lg.addColorStop(1,'transparent');
+  ctx.fillStyle = lg; ctx.fillRect(0,0,W,2);
+
+  // Logo
+  ctx.font = '700 11px DM Sans,sans-serif';
+  ctx.fillStyle = 'rgba(201,168,76,0.75)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('AUROVISTA', W/2, 20);
+
+  // Destino
+  ctx.font = '800 64px DM Sans,sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(d.destino, W/2, 175);
+
+  // Hotel
+  if (d.hotel) {
+    ctx.font = '400 17px DM Sans,sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.fillText(d.hotel, W/2, 228);
+  }
+
+  // Datas
+  if (d.data_ida && d.data_volta) {
+    ctx.font = '600 14px DM Sans,sans-serif';
+    ctx.fillStyle = 'rgba(201,168,76,0.9)';
+    ctx.fillText(`${fmtDate(d.data_ida)}  →  ${fmtDate(d.data_volta)}`, W/2, 262);
+  }
+
+  // Separador
+  ctx.strokeStyle = 'rgba(201,168,76,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(50,288); ctx.lineTo(W-50,288); ctx.stroke();
+
+  // Serviços
+  let sy = 312;
+  d.servicos.slice(0,3).forEach(s => {
+    ctx.font = '500 13px DM Sans,sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.textAlign = 'left';
+    ctx.fillText('✦  ' + s, 52, sy);
+    sy += 30;
+  });
+
+  // Painel preço
+  const px = 32, py = H - 210, pw = W - 64, ph = 168;
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(px, py, pw, ph, 12);
+  ctx.fillStyle = 'rgba(10,22,40,0.88)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(201,168,76,0.18)';
+  ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
+
+  // Parcelas
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.font = '400 12px DM Sans,sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillText(d.parcelas + ' de', W/2, py + 18);
+
+  // Valor
+  const val = d.valor || '890,00';
+  const partes = val.replace('R$','').trim().split(',');
+  const intStr = partes[0].trim() || '890';
+  const centsStr = ',' + (partes[1] || '00');
+
+  const fsR = 22, fsInt = 56, fsCents = 26;
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+
+  ctx.font = `600 ${fsR}px DM Sans,sans-serif`;
+  const wR = ctx.measureText('R$ ').width;
+  ctx.font = `800 ${fsInt}px DM Sans,sans-serif`;
+  const wInt = ctx.measureText(intStr).width;
+  ctx.font = `600 ${fsCents}px DM Sans,sans-serif`;
+  const wCents = ctx.measureText(centsStr).width;
+
+  const gap = 4;
+  const totalW = wR + wInt + gap + wCents;
+  const startX = W/2 - totalW/2;
+  const baseY  = py + 108;
+
+  ctx.font = `800 ${fsInt}px DM Sans,sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(intStr, startX + wR, baseY);
+
+  ctx.font = `600 ${fsR}px DM Sans,sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('R$ ', startX, baseY);
+
+  ctx.font = `600 ${fsCents}px DM Sans,sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillText(centsStr, startX + wR + wInt + gap, baseY);
+
+  ctx.strokeStyle = 'rgba(201,168,76,0.12)';
+  ctx.beginPath(); ctx.moveTo(px+16,py+122); ctx.lineTo(px+pw-16,py+122); ctx.stroke();
+
+  ctx.font = '500 12px DM Sans,sans-serif';
+  ctx.fillStyle = 'rgba(201,168,76,0.7)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('Consulte condições e disponibilidade', W/2, py + 146);
+
+  ctx.font = '400 10px DM Sans,sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.fillText('aurovista.com.br', W/2, H - 16);
+}
+
+async function generateArt() {
+  await drawCanvas(getData());
+  document.getElementById('downloadWrap').classList.add('show');
+  showToast('✦ Arte gerada! Informe seus dados para baixar.');
+}
+
+async function doDownload() {
+  const nome  = document.getElementById('dl-nome').value.trim();
+  const email = document.getElementById('dl-email').value.trim();
+  if (!nome)  { showToast('Informe seu nome.'); return; }
+  if (!email || !email.includes('@')) { showToast('Informe um e-mail válido.'); return; }
+
+  const btn = document.getElementById('btnDl');
+  btn.disabled = true; btn.textContent = 'Aguarde...';
+
+  try {
+    const payload = { action:'logAtividade', usuario:nome, lojas:['Demo'], acao:'DEMO_DOWNLOAD',
+      form:'demo', format:'stories', data:{ destino:state.destino, email } };
+    fetch(GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload))).catch(()=>{});
+  } catch(e){}
+
+  const link = document.createElement('a');
+  link.download = `aurovista-${state.destino.toLowerCase()}.jpg`;
+  link.href = canvas.toDataURL('image/jpeg', 0.92);
+  link.click();
+
+  btn.disabled = false; btn.textContent = '⬇ Baixar Imagem Grátis';
+  showToast('✦ Download iniciado! Obrigado, ' + nome.split(' ')[0] + '.');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+drawCanvas(getData());
+</script>
+</body></html>

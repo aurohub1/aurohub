@@ -47,6 +47,7 @@ const I = {
   vendors: (<svg viewBox="0 0 20 20" fill="none"><circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" /><path d="M1 17c0-3.3 2.7-6 6-6s6 2.7 6 6M13 6a3 3 0 110 6M19 17c0-2-1-3.5-3-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
   calendar: (<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.5" /><path d="M7 2v4M13 2v4M3 8h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
   bell: (<svg viewBox="0 0 20 20" fill="none"><path d="M5 9a5 5 0 0110 0v4l1.5 2h-13L5 13V9zM8 17a2 2 0 004 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+  support: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" /><path d="M8 8a2 2 0 012-2 2 2 0 012 2c0 1-1 1.5-2 2M10 14h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
 };
 
 /* ── ADM Sections (default) ───────────────────── */
@@ -259,6 +260,7 @@ export const CLIENTE_SECTIONS: NavSection[] = [
     title: "Sistema",
     items: [
       { label: "Configurações", href: "/cliente/configuracoes", icon: I.settings },
+      { label: "Suporte", href: "/cliente/suporte", icon: I.support },
     ],
   },
 ];
@@ -271,6 +273,7 @@ export const UNIDADE_SECTIONS: NavSection[] = [
       { label: "Publicar", href: "/unidade/publicar", icon: I.publish, feature: "publicar" },
       { label: "Calendário", href: "/unidade/calendario", icon: I.calendar },
       { label: "Consultores", href: "/unidade/vendedores", icon: I.vendors, feature: "vendedores" },
+      { label: "Suporte", href: "/unidade/suporte", icon: I.support },
     ],
   },
 ];
@@ -282,6 +285,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
       { label: "Publicar", href: "/gerente/publicar", icon: I.publish, feature: "publicar" },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
+      { label: "Suporte", href: "/gerente/suporte", icon: I.support },
     ],
   },
 ];
@@ -292,6 +296,7 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/consultor/inicio", icon: I.home },
       { label: "Templates", href: "/consultor/templates", icon: I.templates, feature: "templates" },
+      { label: "Suporte", href: "/consultor/suporte", icon: I.support },
     ],
   },
 ];
@@ -305,6 +310,7 @@ export const OPERADOR_SECTIONS: NavSection[] = [
       { label: "Usuários", href: "/operador/usuarios", icon: I.users },
       { label: "Logs", href: "/operador/logs", icon: I.settings },
       { label: "Métricas", href: "/operador/metricas", icon: I.metrics },
+      { label: "Suporte", href: "/operador/suporte", icon: I.support },
     ],
   },
 ];
