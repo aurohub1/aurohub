@@ -272,7 +272,7 @@ function StoreCard({
             </h3>
             <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--txt3)]">
               <MapPin size={11} />
-              <span className="truncate">{store.city || "Sem cidade"}</span>
+              <span className="truncate">{store.city || "—"}</span>
             </div>
           </div>
         </div>
