@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import type { EditorSchema } from "@/components/editor/canvas-editor";
 import { QuickStartModal, STARTER_KEY_PREFIX, SaveTemplateModal, slugifyTemplateName } from "@/components/editor/modals";
 import type { SaveTemplateData } from "@/components/editor/modals";
@@ -130,16 +131,21 @@ function EditorInner() {
           onClose={() => { setPendingSave(null); setPendingVariants(null); }}
           onConfirm={async (meta: SaveTemplateData) => {
             setSaving(true);
-            // Fallback: se toDataURL falhou (CORS), tenta usar 1ª imagem do schema ou background url
-            const fallbackThumb = (() => {
-              const els = (schema?.elements ?? []) as Array<{ type?: string; src?: string }>;
-              const firstImg = els.find((e) => e?.type === "image" && typeof e?.src === "string" && e.src!.length > 0)?.src;
-              if (firstImg) return firstImg;
-              const bg = (schema as { background?: string })?.background;
-              if (bg && typeof bg === "string" && (bg.startsWith("http") || bg.startsWith("data:"))) return bg;
-              return null;
-            })();
-            const thumbnail = pendingSave.thumbnail || fallbackThumb || null;
+            // Auto-upload da thumbnail do canvas pra Cloudinary (base64 → URL CDN)
+            let thumbnail: string | null = null;
+            const rawThumb = pendingSave.thumbnail;
+            if (rawThumb && rawThumb.startsWith("data:")) {
+              try {
+                const res = await fetch(rawThumb);
+                const blob = await res.blob();
+                const file = new File([blob], `thumb_${Date.now()}.png`, { type: "image/png" });
+                thumbnail = await uploadToCloudinary(file, "aurohubv2/thumbs");
+              } catch (err) {
+                console.warn("[Editor] Thumb upload falhou, salvando sem thumb:", err);
+              }
+            } else if (rawThumb) {
+              thumbnail = rawThumb;
+            }
             try {
               // Fluxo de variantes: salva cada uma com meta do modal
               if (pendingVariants && pendingVariants.length > 0) {
