@@ -138,7 +138,7 @@ function EditorInner() {
               try {
                 const res = await fetch(rawThumb);
                 const blob = await res.blob();
-                const file = new File([blob], `thumb_${Date.now()}.png`, { type: "image/png" });
+                const file = new File([blob], `thumb_${Date.now()}.jpg`, { type: "image/jpeg" });
                 thumbnail = await uploadToCloudinary(file, "aurohubv2/thumbs");
               } catch (err) {
                 console.warn("[Editor] Thumb upload falhou, salvando sem thumb:", err);

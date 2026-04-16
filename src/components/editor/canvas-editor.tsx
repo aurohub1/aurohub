@@ -203,7 +203,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
     onExport(uri);
   }, [width, height, onExport]);
 
-  // Save com thumbnail (declarado antes do keyboard useEffect)
+  // Save com thumbnail JPEG do canvas real (pixelRatio 1, quality 0.85)
   const handleSaveClick = useCallback(() => {
     if (!onSave) return;
     let thumb: string | undefined;
@@ -211,8 +211,12 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
       const old = stageRef.current.scaleX();
       stageRef.current.scale({ x: 1, y: 1 });
       try {
-        const pr = 150 / Math.max(width, height);
-        thumb = stageRef.current.toDataURL({ x: 0, y: 0, width, height, pixelRatio: pr });
+        thumb = stageRef.current.toDataURL({
+          x: 0, y: 0, width, height,
+          pixelRatio: 1,
+          mimeType: "image/jpeg",
+          quality: 0.85,
+        });
       } catch (err) { console.warn("[Thumbnail]", err); }
       stageRef.current.scale({ x: old, y: old });
     }
