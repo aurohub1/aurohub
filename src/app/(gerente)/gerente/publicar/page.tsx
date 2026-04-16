@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import type Konva from "konva";
 import { supabase } from "@/lib/supabase";
@@ -244,6 +245,9 @@ function filterAZVGroup(stores: StoreOption[]): StoreOption[] {
 }
 
 export default function GerentePublicarPage() {
+  const searchParams = useSearchParams();
+  const templateParam = searchParams.get("template");
+
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [enabledForms, setEnabledForms] = useState<EnabledForms>(DEFAULT_ENABLED_FORMS);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
@@ -451,8 +455,14 @@ export default function GerentePublicarPage() {
       }
       setTemplates(rows);
 
-      // Auto-select tab/format do primeiro template disponível
-      if (rows.length > 0) {
+      // Auto-select tab/format do template via URL param ou primeiro disponível
+      if (templateParam) {
+        const match = rows.find(t => t.key.includes(templateParam) || t.id === templateParam);
+        if (match) {
+          setTab(match.formType as FormType);
+          setFormat(match.format);
+        }
+      } else if (rows.length > 0) {
         const first = rows[0];
         if (first.formType) setTab(first.formType as FormType);
         if (first.format) setFormat(first.format);
