@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import type { EditorSchema, EditorElement } from "@/components/editor/types";
 import {
-  Sparkles, Download, Send, ArrowLeft, Image as ImageIcon, Check, X, Loader2,
+  Sparkles, Download, Send, ArrowLeft, Image as ImageIcon, Check, X, Loader2, CalendarClock,
 } from "lucide-react";
 
 const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
@@ -24,6 +24,7 @@ interface TemplateRow {
   height: number;
   schema: EditorSchema;
   thumbnail: string | null;
+  updatedAt: string;
 }
 
 type BindType = "text" | "image" | "date" | "number";
@@ -71,6 +72,33 @@ const FORMAT_LABELS: Record<string, string> = {
   feed: "Feed",
   tv: "TV",
 };
+
+const TYPE_META: Record<string, { label: string; color: string }> = {
+  pacote:    { label: "Pacote",    color: "var(--orange)" },
+  campanha:  { label: "Campanha",  color: "#D4A843" },
+  passagem:  { label: "Passagem",  color: "#3B82F6" },
+  cruzeiro:  { label: "Cruzeiro",  color: "#06B6D4" },
+  anoiteceu: { label: "Anoiteceu", color: "#1E3A6E" },
+  lamina:    { label: "Lâmina",    color: "#8B5CF6" },
+};
+
+const FORMAT_META: Record<string, { label: string; aspect: string }> = {
+  stories: { label: "Stories", aspect: "9 / 16" },
+  feed:    { label: "Feed",    aspect: "1 / 1"  },
+  tv:      { label: "TV",      aspect: "16 / 9" },
+};
+
+function typeMeta(t: string) {
+  return TYPE_META[t] ?? { label: t || "—", color: "#6B7280" };
+}
+function formatMeta(f: string) {
+  return FORMAT_META[f] ?? { label: f || "—", aspect: "1 / 1" };
+}
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 const BIND_LABELS: Record<string, string> = {
   imgfundo: "Imagem de fundo",
@@ -172,10 +200,10 @@ export default function GerentePublicarPage() {
     if (!p?.licensee_id) { setLoadingTpl(false); return; }
     const { data } = await supabase
       .from("system_config")
-      .select("key, value")
+      .select("key, value, updated_at")
       .like("key", "tmpl_%");
     const rows: TemplateRow[] = [];
-    for (const r of (data ?? []) as { key: string; value: string }[]) {
+    for (const r of (data ?? []) as { key: string; value: string; updated_at: string }[]) {
       try {
         const parsed = JSON.parse(r.value);
         const lid = parsed.licenseeId ?? parsed.licensee_id ?? null;
@@ -199,6 +227,7 @@ export default function GerentePublicarPage() {
             qtdDestinos: parsed.qtdDestinos,
           },
           thumbnail: parsed.thumbnail || null,
+          updatedAt: r.updated_at,
         });
       } catch { /* skip */ }
     }
@@ -435,55 +464,68 @@ export default function GerentePublicarPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {templates.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => pickTemplate(t)}
-                className="card-glass group flex flex-col overflow-hidden text-left transition-transform hover:-translate-y-0.5"
-              >
-                <div
-                  className="relative w-full overflow-hidden border-b border-[var(--bdr)]"
-                  style={{ height: 140 }}
-                >
-                  {t.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={t.thumbnail} alt={t.nome} className="h-full w-full object-cover" />
-                  ) : (
-                    <div
-                      className="flex h-full w-full items-center justify-center"
-                      style={{ background: "#1E3A6E" }}
-                    >
-                      <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/85">
-                        {(t.format || "—").toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                  <span className="absolute right-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
-                    {FORMAT_LABELS[t.format] || t.format}
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col gap-2 p-2.5">
-                  <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={t.nome}>
-                    {t.nome}
-                  </h3>
-                  <div className="flex flex-wrap items-center gap-1">
-                    <span
-                      className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
-                      style={{ background: "var(--orange3)", color: "var(--orange)" }}
-                    >
-                      {t.formType}
+            {templates.map((t) => {
+              const tMeta = typeMeta(t.formType);
+              const fMeta = formatMeta(t.format);
+              return (
+                <div key={t.key} className="card-glass group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5">
+                  {/* Thumbnail — altura fixa menor, object-cover mantém proporção */}
+                  <div
+                    className="relative w-full overflow-hidden border-b border-[var(--bdr)]"
+                    style={{ height: 140 }}
+                  >
+                    {t.thumbnail ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={t.thumbnail} alt={t.nome} className="h-full w-full object-cover" />
+                    ) : (
+                      <div
+                        className="flex h-full w-full items-center justify-center"
+                        style={{ background: "#1E3A6E" }}
+                      >
+                        <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/85">
+                          {(t.format || "—").toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Formato badge (sobreposto) */}
+                    <span className="absolute right-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
+                      {fMeta.label}
                     </span>
                   </div>
-                </div>
 
-                {/* Usar */}
-                <div
-                  className="w-full py-1.5 text-[11px] font-semibold text-white rounded-b-xl bg-gradient-to-r from-[#3B82F6] to-[#D4A843]"
-                >
-                  ✦ Usar
+                  {/* Body */}
+                  <div className="flex flex-1 flex-col gap-2 p-2.5">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={t.nome}>
+                        {t.nome}
+                      </h3>
+                      <div className="mt-0.5 flex items-center gap-1 text-[9px] text-[var(--txt3)]">
+                        <CalendarClock size={9} />
+                        {formatDate(t.updatedAt)}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span
+                        className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
+                        style={{ background: `${tMeta.color}22`, color: tMeta.color }}
+                      >
+                        {tMeta.label}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => pickTemplate(t)}
+                      className="mt-auto flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
+                      style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+                    >
+                      <Sparkles size={11} /> Usar
+                    </button>
+                  </div>
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </>
