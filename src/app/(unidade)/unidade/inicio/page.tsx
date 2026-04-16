@@ -419,7 +419,7 @@ export default function UnidadeInicioPage() {
         <Link
           href="/unidade/publicar"
           className="group relative flex items-center gap-4 overflow-hidden rounded-2xl px-5 py-5 text-white shadow-lg transition-transform hover:scale-[1.015]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #3B82F6 45%, #D4A843 100%)" }}
+          style={{ background: "linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 45%, #D4A843 100%)" }}
         >
           <div
             className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"

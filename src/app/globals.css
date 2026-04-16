@@ -8,6 +8,8 @@
 /* ── Dark (default) ──────────────────────────────── */
 :root,
 [data-theme="dark"] {
+  --brand-primary: #1E3A6E;
+  --brand-secondary: #3B82F6;
   --bg: #060B16;
   --bg1: #0A1020;
   --bg2: #0C1428;
@@ -54,6 +56,8 @@
 
 /* ── Light ───────────────────────────────────────── */
 [data-theme="light"] {
+  --brand-primary: #1E3A6E;
+  --brand-secondary: #3B82F6;
   --bg0: #EEF2F7;
   --bg: #EEF2F7;
   --bg1: #FFFFFF;

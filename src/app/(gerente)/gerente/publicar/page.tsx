@@ -508,7 +508,7 @@ export default function GerentePublicarPage() {
                 </div>
                 <button
                   onClick={() => pickTemplate(t)}
-                  style={{ width: "100%", padding: 7, fontSize: 11, fontWeight: 600, color: "#fff", background: "linear-gradient(to right, #1e3a8a, #3B82F6)", border: "none", borderRadius: "0 0 12px 12px", cursor: "pointer" }}
+                  style={{ width: "100%", padding: 7, fontSize: 11, fontWeight: 600, color: "#fff", background: "linear-gradient(to right, var(--brand-primary), var(--brand-secondary))", border: "none", borderRadius: "0 0 12px 12px", cursor: "pointer" }}
                 >
                   ✦ Usar
                 </button>

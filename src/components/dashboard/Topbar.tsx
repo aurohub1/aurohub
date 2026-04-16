@@ -88,7 +88,7 @@ export default function Topbar() {
         </button>
 
         {/* Avatar */}
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1E3A6E] to-[#3B82F6] text-[12px] font-bold text-white">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-secondary)] text-[12px] font-bold text-white">
           D
         </div>
       </div>

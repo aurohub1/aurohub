@@ -236,7 +236,7 @@ export default function ClienteUsuariosPage() {
                     <tr key={u.id} className="border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)]">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1E3A6E] to-[#3B82F6] text-[11px] font-bold text-white">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-secondary)] text-[11px] font-bold text-white">
                             {(u.name || u.email || "?").charAt(0).toUpperCase()}
                           </div>
                           <span className="truncate font-semibold text-[var(--txt)]">{u.name || "Sem nome"}</span>

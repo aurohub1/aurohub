@@ -392,7 +392,7 @@ export default function ClienteInicioPage() {
       <Link
         href="/cliente/templates"
         className="group flex items-center justify-between gap-4 rounded-xl p-5 transition-shadow duration-200 hover:shadow-md"
-        style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #3B82F6 100%)" }}
+        style={{ background: "linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%)" }}
       >
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15">

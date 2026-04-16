@@ -37,6 +37,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ lice
 
   const css = `
 html[data-theme="dark"] {
+  --brand-primary: ${accent};
+  --brand-secondary: ${accent2};
   --orange: ${accent};
   --orange2: ${accent2};
   --orange3: ${accent}1f;
@@ -54,6 +56,8 @@ html[data-theme="dark"] {
   --topbar-bg: ${bgDark}e6;
 }
 html[data-theme="light"] {
+  --brand-primary: ${accent};
+  --brand-secondary: ${accent2};
   --orange: ${accent};
   --orange2: ${accent2};
   --orange3: ${accent}1f;
