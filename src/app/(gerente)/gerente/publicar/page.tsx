@@ -452,6 +452,13 @@ export default function GerentePublicarPage() {
       }
       setTemplates(rows);
 
+      // Auto-select tab/format do primeiro template disponível
+      if (rows.length > 0) {
+        const first = rows[0];
+        if (first.formType) setTab(first.formType as FormType);
+        if (first.format) setFormat(first.format);
+      }
+
       // Stores / publish targets
       const { data: storesData } = await supabase
         .from("stores")

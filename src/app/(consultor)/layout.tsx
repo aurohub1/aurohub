@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
 import Sidebar, { VENDEDOR_SECTIONS } from "@/components/layout/Sidebar";
-import VendorPublishPanel from "@/components/layout/VendorPublishPanel";
+
 import { useContentProtection } from "@/hooks/useContentProtection";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 
@@ -81,7 +81,6 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
         sections={VENDEDOR_SECTIONS}
         activeFeatures={features}
         brandLabel="Painel do Consultor"
-        extraPanel={pathname === "/consultor/publicar" ? <VendorPublishPanel /> : undefined}
       />
       <div className="ml-[220px] flex min-h-dvh flex-1 flex-col overflow-x-hidden pb-10">
         <main className="flex flex-1 flex-col gap-5 p-6">{children}</main>
