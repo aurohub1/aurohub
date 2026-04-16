@@ -76,6 +76,12 @@ text-xs font-medium px-2 py-0.5 rounded-full
 ```
 Variantes: `bg-blue-100 text-blue-700` / `bg-green-100 text-green-700` / `bg-amber-100 text-amber-700`
 
+### Banner de destaque (Central de Publicação)
+```
+background: var(--brand-gradient)
+```
+Botão interno: `background: transparent`, `color: #1E3A6E`, `border: 1.5px solid #1E3A6E`, `font-weight: 500`, `px-5 py-2`, `rounded-lg`
+
 ### Empty State (obrigatório em toda lista vazia)
 ```jsx
 <div className="flex flex-col items-center justify-center py-12 text-center">
