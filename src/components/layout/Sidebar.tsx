@@ -536,7 +536,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
       {/* ── Footer ──────────────────────────────── */}
       <div className="shrink-0 border-t border-[var(--bdr)] px-3 py-3">
         {/* User row */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 overflow-hidden">
           {/* Avatar */}
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--navy)] to-[var(--blue)] text-[12px] font-bold text-white">
             {initial}
@@ -544,7 +544,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
 
           {/* Name + role */}
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-semibold text-[var(--txt)]">
+            <div className="truncate text-[13px] font-semibold text-[var(--txt)]" title={user.name}>
               {user.name}
             </div>
             <span className="inline-block rounded-full bg-[var(--gold3)] px-2 py-px text-[9px] font-bold uppercase tracking-wider text-[var(--gold)]">

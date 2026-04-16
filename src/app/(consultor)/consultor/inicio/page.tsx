@@ -273,11 +273,7 @@ export default function VendedorInicioPage() {
               Painel do Consultor · {greeting()}
             </p>
             <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
-              Olá, {(() => {
-                const n = profile?.name?.split(" ")[0]?.trim();
-                if (!n || n.toLowerCase() === "vendedor") return "Consultor";
-                return n;
-              })()}
+              Olá, {profile?.name?.split(" ")[0]?.trim() || "Consultor"}
             </h1>
             <p className="mt-1.5 max-w-[560px] text-[13px] italic text-[var(--txt2)]">
               &ldquo;{quote}&rdquo;
