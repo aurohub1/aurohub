@@ -39,7 +39,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('ah_theme');document.documentElement.setAttribute('data-theme',t||'light');})();`,
+            __html: `(function(){var t=localStorage.getItem('ah_theme');if(!t){var h=new Date().getHours();t=(h>=6&&h<19)?'light':'dark';}document.documentElement.setAttribute('data-theme',t);})();`,
           }}
         />
       </head>

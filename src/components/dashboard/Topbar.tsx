@@ -29,9 +29,12 @@ export default function Topbar() {
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    const saved = (localStorage.getItem("ah_theme") as "dark" | "light") || "dark";
-    setTheme(saved);
-    document.documentElement.setAttribute("data-theme", saved);
+    const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
+    const h = new Date().getHours();
+    const auto = (h >= 6 && h < 19) ? "light" : "dark";
+    const resolved = saved || auto;
+    setTheme(resolved);
+    document.documentElement.setAttribute("data-theme", resolved);
 
     setDateStr(
       new Date().toLocaleDateString("pt-BR", {
