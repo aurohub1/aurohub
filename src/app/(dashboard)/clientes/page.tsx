@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import ImageCropModal from "@/components/ImageCropModal";
 import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/splash/SplashScreen";
 import {
   ALL_FEATURES,
@@ -71,6 +72,7 @@ export default function ClientesPage() {
   const [uploadingSom, setUploadingSom] = useState(false);
   const somFileRef = useRef<HTMLInputElement>(null);
   const [uploadingLottie, setUploadingLottie] = useState(false);
+  const [logoCropSrc, setLogoCropSrc] = useState<string | null>(null);
   const lottieFileRef = useRef<HTMLInputElement>(null);
 
   async function handleLottieUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -337,11 +339,20 @@ export default function ClientesPage() {
     setDeleteId(null); await loadData();
   }
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setLogoCropSrc(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  async function handleLogoCropped(blob: Blob) {
+    setLogoCropSrc(null);
     setUploading(true);
     try {
+      const file = new File([blob], "logo.png", { type: "image/png" });
       const url = await uploadToCloudinary(file, "aurohubv2/logos");
       setForm((prev) => ({ ...prev, logo_url: url }));
     } catch (err) {
@@ -488,6 +499,7 @@ export default function ClientesPage() {
 
   return (
     <>
+      {logoCropSrc && <ImageCropModal src={logoCropSrc} shape="square" onClose={() => setLogoCropSrc(null)} onConfirm={handleLogoCropped} />}
       {/* ── KPIs ─────────────────────────────────── */}
       <div className="flex flex-wrap gap-6">
         <KI label="Total" value={String(kpis.total)} />
@@ -698,7 +710,7 @@ export default function ClientesPage() {
                         </div>
                       )}
                       <div className="flex flex-col gap-1.5">
-                        <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                        <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoSelect} className="hidden" />
                         <button type="button" onClick={() => logoInputRef.current?.click()} disabled={uploading} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
                           {uploading ? "Enviando..." : "Upload logo"}
                         </button>

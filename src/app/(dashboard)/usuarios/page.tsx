@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import ImageCropModal from "@/components/ImageCropModal";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -64,6 +65,7 @@ export default function UsuariosPage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState("");
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
 
   // Config modal
   const [cfgOpen, setCfgOpen] = useState(false);
@@ -153,11 +155,20 @@ export default function UsuariosPage() {
     setEditTab("dados"); setModalError(""); setEditOpen(true);
   }
 
-  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  async function handleAvatarCropped(blob: Blob) {
+    setCropSrc(null);
     setUploading(true);
     try {
+      const file = new File([blob], "avatar.png", { type: "image/png" });
       const url = await uploadToCloudinary(file, "aurohubv2/profile");
       setForm((prev) => ({ ...prev, avatar_url: url }));
     } catch (err) {
@@ -292,6 +303,7 @@ export default function UsuariosPage() {
 
   return (
     <>
+      {cropSrc && <ImageCropModal src={cropSrc} shape="circle" onClose={() => setCropSrc(null)} onConfirm={handleAvatarCropped} />}
       {/* ── KPIs ─────────────────────────────────── */}
       <div className="flex flex-wrap gap-6">
         <KI label="Total" value={String(kpis.total)} />
@@ -440,7 +452,7 @@ export default function UsuariosPage() {
                         </div>
                       )}
                       <div className="flex flex-col gap-1.5">
-                        <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                        <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarSelect} className="hidden" />
                         <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={uploading} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
                           {uploading ? "Enviando..." : "Upload foto"}
                         </button>
