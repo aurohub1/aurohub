@@ -420,35 +420,31 @@ export default function UnidadePublicarPage() {
         console.warn("[Publicar] falha ao carregar permissões de formulários, usando defaults", err);
       }
 
-      // Templates do licensee
+      // Templates — busca todos tmpl_* e filtra por licensee em JS
       const { data: tplData } = await supabase
         .from("system_config")
         .select("key, value")
-        .like("key", "tmpl_%")
-        .like("value", p.licensee_id ? `%"licenseeId":"${p.licensee_id}"%` : `%"licenseeId":%`);
+        .like("key", "tmpl_%");
 
       const rows: TemplateRow[] = [];
       for (const r of (tplData ?? []) as { key: string; value: string }[]) {
         try {
           const parsed = JSON.parse(r.value);
-          const schemaElements = parsed.elements ?? parsed.schema?.elements;
-          if (!schemaElements) continue;
-          const fmt = (parsed.format || parsed.schema?.format || "stories") as Format;
-          const [defW, defH] = FORMAT_DIMS[fmt] || [1080, 1920];
+          const lid = parsed.licenseeId ?? parsed.licensee_id ?? null;
+          if (lid && p.licensee_id && lid.trim() !== p.licensee_id.trim()) continue;
           rows.push({
             key: r.key,
             id: r.key.replace(/^tmpl_/, ""),
             nome: parsed.nome || r.key.replace(/^tmpl_/, ""),
-            format: fmt,
-            formType: parsed.formType || parsed.schema?.formType || "pacote",
-            width: parsed.width || parsed.schema?.width || defW,
-            height: parsed.height || parsed.schema?.height || defH,
+            format: (parsed.format || "stories") as Format,
+            formType: parsed.formType || "pacote",
+            width: parsed.width || 1080,
+            height: parsed.height || 1920,
             schema: {
-              elements: schemaElements,
-              background: parsed.bgColor || parsed.background || parsed.schema?.background || "#FFFFFF",
+              elements: parsed.elements ?? [],
+              background: parsed.background || "#0E1520",
               duration: parsed.duration || 5,
               qtdDestinos: parsed.qtdDestinos,
-              formType: parsed.formType || parsed.schema?.formType || "pacote",
             },
           });
         } catch { /* skip */ }
