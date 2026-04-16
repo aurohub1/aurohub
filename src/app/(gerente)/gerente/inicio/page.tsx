@@ -7,7 +7,7 @@ import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
 import {
-  Send, BarChart3, Image as ImageIcon, CalendarDays,
+  Send, BarChart3, Image as ImageIcon, ImageOff, CalendarDays,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
 
@@ -449,8 +449,8 @@ export default function GerenteInicioPage() {
             <div className="flex-1 overflow-y-auto p-5">
               {ultimasPub.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <ImageIcon className="mb-3 h-8 w-8 text-[var(--txt3)] opacity-40" />
-                  <p className="text-[13px] text-[var(--txt3)]">Nenhuma publicação ainda.</p>
+                  <ImageOff className="mb-3 h-8 w-8 text-slate-300" />
+                  <p className="text-sm text-slate-400">Nenhuma publicação ainda.</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
