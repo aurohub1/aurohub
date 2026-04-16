@@ -7,6 +7,7 @@ import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
 import Sidebar, { UNIDADE_SECTIONS } from "@/components/layout/Sidebar";
 import { useContentProtection } from "@/hooks/useContentProtection";
+import { useBrandTheme } from "@/hooks/useBrandTheme";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 
 export default function UnidadeLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,7 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
   const [checking, setChecking] = useState(true);
   const [tickerItems, setTickerItems] = useState<string[]>([]);
 
+  useBrandTheme(profile?.licensee_id);
   // useContentProtection();
 
   useEffect(() => {
@@ -46,17 +48,6 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
       const feats = await getFeatures(supabase, p);
       setFeatures(feats);
 
-      // Injeta CSS do tema do licensee
-      if (p.licensee_id) {
-        let link = document.getElementById("brand-theme-css") as HTMLLinkElement | null;
-        if (!link) {
-          link = document.createElement("link");
-          link.id = "brand-theme-css";
-          link.rel = "stylesheet";
-          document.head.appendChild(link);
-        }
-        link.href = `/api/theme/${p.licensee_id}`;
-      }
 
       setChecking(false);
     })();
