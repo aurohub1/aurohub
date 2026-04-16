@@ -403,7 +403,7 @@ export default function ClienteInicioPage() {
             <div className="text-[11px] text-white/70">Acesse a biblioteca de templates liberada para a sua marca.</div>
           </div>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-white/20 backdrop-blur-sm border border-white/40 px-5 py-2 text-[12px] font-semibold text-white transition-all group-hover:bg-white/30">
+        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-transparent backdrop-blur-sm px-5 py-2 text-[12px] font-semibold text-[#1E3A6E] transition-all group-hover:bg-white/10" style={{ border: "1.5px solid #1E3A6E" }}>
           Ver templates <ArrowRight size={13} />
         </span>
       </Link>
