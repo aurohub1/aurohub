@@ -124,8 +124,7 @@ export default function ClienteUnidadesPage() {
 
           <button
             onClick={() => setCreating(true)}
-            className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+            className="flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-800 to-blue-500 px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
           >
             <Plus size={15} /> Nova unidade
           </button>
@@ -152,8 +151,7 @@ export default function ClienteUnidadesPage() {
           </p>
           <button
             onClick={() => setCreating(true)}
-            className="mt-2 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+            className="mt-2 flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-800 to-blue-500 px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
           >
             <Plus size={13} /> Nova unidade
           </button>
