@@ -1,716 +1,283 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import type Konva from "konva";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
-import { getFeatures } from "@/lib/features";
-import type { EditorSchema } from "@/components/editor/types";
+import type { EditorSchema, EditorElement } from "@/components/editor/types";
 import {
-  Sparkles, Download, Send, Check, X, Loader2, Trash2,
-  Image as ImageIcon, Search as SearchIcon, ChevronDown,
+  Sparkles, Download, Send, ArrowLeft, Image as ImageIcon, Check, X, Loader2,
 } from "lucide-react";
 
 const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
 
 /* ── Tipos ───────────────────────────────────────── */
 
-type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu";
-type EnabledForms = Record<FormType, boolean>;
-const DEFAULT_ENABLED_FORMS: EnabledForms = { pacote: true, campanha: true, passagem: true, cruzeiro: true, anoiteceu: true };
-type Format = "stories" | "feed" | "reels" | "tv";
-type PublishStatus = "idle" | "generating" | "uploading" | "publishing" | "success" | "error";
-
 interface TemplateRow {
   key: string;
   id: string;
   nome: string;
-  format: Format;
-  formType: FormType | string;
+  format: string;
+  formType: string;
   width: number;
   height: number;
   schema: EditorSchema;
+  thumbnail: string | null;
 }
 
-interface StoreOption { id: string; name: string; }
+type BindType = "text" | "image" | "date" | "number";
 
-interface PlanLimits {
-  slug: string;
-  max_posts_day: number;
-  max_feed_reels_day: number | null;
-  max_stories_day: number | null;
-  max_downloads_day: number | null;
-  can_schedule: boolean;
-  can_ia_legenda: boolean;
-  is_enterprise: boolean;
+interface BindField {
+  name: string;
+  label: string;
+  type: BindType;
 }
 
-/** Derivado do PlanLimits — limite por formato ou null=escondido. */
-interface FormatLimits {
-  stories: number | null; // null = ilimitado (mas visível)
-  feed: number | null;
-  reels: number | null;
-  tv: number | null;
+type PublishStatus = "idle" | "generating" | "uploading" | "publishing" | "success" | "error";
+
+interface StoreOption {
+  id: string;
+  name: string;
 }
-/** Null pra "escondido" (plano não libera). */
-type FormatVisibility = Record<Format, boolean>;
 
-interface PostsByFormat { stories: number; feed: number; reels: number; tv: number; }
+/* ── Regras de publicação multi-store (AZV) ─────── */
+const RIO_PRETO_STORE_ID = "efab2a24-3c34-4d2b-82ee-5fef8018c589";
+const RIO_PRETO_GROUP_MATCHERS = ["rio preto", "barretos", "damha"];
 
-/* ── Constantes ──────────────────────────────────── */
+function canPublishToAllAZV(storeId: string | null | undefined): boolean {
+  return storeId === RIO_PRETO_STORE_ID;
+}
 
-const FORMAT_DIMS: Record<Format, [number, number]> = {
+function filterAZVGroup(stores: StoreOption[]): StoreOption[] {
+  return stores.filter((s) => {
+    const n = s.name.toLowerCase();
+    return RIO_PRETO_GROUP_MATCHERS.some((m) => n.includes(m));
+  });
+}
+
+/* ── Helpers ─────────────────────────────────────── */
+
+const FORMAT_DIMS: Record<string, [number, number]> = {
   stories: [1080, 1920],
   reels:   [1080, 1920],
   feed:    [1080, 1350],
   tv:      [1920, 1080],
 };
 
-const FORMAT_LABELS: Record<Format, string> = {
-  stories: "Stories", reels: "Reels", feed: "Feed", tv: "TV",
+const FORMAT_LABELS: Record<string, string> = {
+  stories: "Stories",
+  reels: "Reels",
+  feed: "Feed",
+  tv: "TV",
 };
 
-const FORM_LABELS: Record<FormType, string> = {
-  pacote: "Pacote", campanha: "Campanha", passagem: "Passagem",
-  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu",
+const BIND_LABELS: Record<string, string> = {
+  imgfundo: "Imagem de fundo",
+  imgdestino: "Imagem do destino",
+  imghotel: "Imagem do hotel",
+  imgaviao: "Imagem do avião",
+  imgciamaritima: "Imagem da cia marítima",
+  imgloja: "Imagem da loja",
+  destino: "Destino",
+  saida: "Saída",
+  tipovoo: "Tipo de voo",
+  dataida: "Data de ida",
+  datavolta: "Data de volta",
+  noites: "Noites",
+  feriado: "Feriado",
+  hotel: "Hotel",
+  navio: "Navio",
+  categoria: "Categoria",
+  itinerario: "Itinerário",
+  incluso: "Incluso",
+  servico1: "Serviço 1",
+  servico2: "Serviço 2",
+  servico3: "Serviço 3",
+  servico4: "Serviço 4",
+  servico5: "Serviço 5",
+  servico6: "Serviço 6",
+  preco: "Preço",
+  parcelas: "Parcelas",
+  valorparcela: "Valor da parcela",
+  desconto: "Desconto",
+  formapagamento: "Forma de pagamento",
+  totalduplo: "Total duplo",
+  totalcruzeiro: "Total cruzeiro",
+  loja: "Loja",
+  agente: "Agente",
+  fone: "Telefone",
+  titulo: "Título",
+  subtitulo: "Subtítulo",
+  texto1: "Texto 1",
+  texto2: "Texto 2",
+  texto3: "Texto 3",
 };
 
-const FORM_ORDER: FormType[] = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu"];
-
-const FERIADOS_FIXOS = [
-  "Carnaval", "Páscoa", "Tiradentes", "Trabalho", "Corpus Christi",
-  "Independência", "Nossa Senhora", "Finados", "República", "Natal", "Réveillon",
-];
-
-const FORMA_PGTO_OPTS = ["Cartão de Crédito", "Boleto"];
-const PARCELAS_OPTS = Array.from({ length: 25 }, (_, i) => `${i + 2}x`);
-const DESCONTO_OPTS = ["", "5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
-
-/** Normaliza string para matching: lowercase + remove acentos */
-function normalizar(s: string): string {
-  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+function classifyBind(name: string, elType: string): BindType {
+  if (elType === "image" || name.startsWith("img")) return "image";
+  if (name === "dataida" || name === "datavolta" || name === "inicio" || name === "fim") return "date";
+  if (["preco", "valorparcela", "desconto", "noites", "totalduplo", "totalcruzeiro"].includes(name)) return "number";
+  return "text";
 }
 
-/* ── Helpers ─────────────────────────────────────── */
-
-/** Fila rotativa persistida em localStorage — retorna próxima URL de um pool. */
-function proximaImagem(chave: string, urls: string[]): string | null {
-  if (!urls || urls.length === 0) return null;
-  if (urls.length === 1) return urls[0];
-  const storageKey = `aurohub_imgfila_${chave}`;
-  try {
-    const idx = parseInt(localStorage.getItem(storageKey) || "0", 10) % urls.length;
-    localStorage.setItem(storageKey, String((idx + 1) % urls.length));
-    return urls[idx];
-  } catch {
-    return urls[0];
+function collectBindFields(elements: EditorElement[]): BindField[] {
+  const seen = new Set<string>();
+  const fields: BindField[] = [];
+  for (const el of elements) {
+    if (!el.bindParam || seen.has(el.bindParam)) continue;
+    seen.add(el.bindParam);
+    fields.push({
+      name: el.bindParam,
+      label: BIND_LABELS[el.bindParam] ?? el.bindParam,
+      type: classifyBind(el.bindParam, el.type),
+    });
   }
+  return fields;
 }
 
-function slugify(s: string): string {
-  return s.toLowerCase().trim().replace(/\s+/g, "_");
+function fileToDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
 }
 
-/** YYYY-MM-DD de hoje (horário local) */
-function todayISO(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-/** Formata string de dígitos como moeda pt-BR (salva só números, exibe "1.234,56"). */
-function formatMoeda(raw: string): string {
-  const nums = raw.replace(/\D/g, "");
-  if (!nums) return "";
-  const cents = parseInt(nums, 10);
-  const reais = Math.floor(cents / 100);
-  const centavos = cents % 100;
-  return reais.toLocaleString("pt-BR") + "," + String(centavos).padStart(2, "0");
-}
-
-/** Dicionário de substituição completa de frases de serviço (v1 Dict.servicos). */
-const DICT_SERVICOS: [RegExp, string][] = [
-  [/^traslado(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
-  [/^translado(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
-  [/^transfer(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
-  [/^café\s+da\s+manhã\s+e\s+(almoço|jantar)$/i, "Meia Pensão"],
-  [/^meia\s+pensão$/i, "Meia Pensão"],
-  [/^(café\s+da\s+manhã,?\s+almoço\s+e\s+jantar|pensão\s+completa)$/i, "Pensão Completa"],
-  [/^café\s+da\s+manhã$/i, "Café da Manhã"],
-  [/^all\s+inclusive$/i, "All Inclusive"],
-  [/^tudo\s+incluído$/i, "All Inclusive"],
-];
-
-/** Correções ortográficas inline (v1 Dict.ortho). */
-const DICT_ORTHO: [RegExp, string][] = [
-  [/\bcafe\b/gi, "Café"],
-  [/\bmanha\b/gi, "Manhã"],
-  [/\balmoco\b/gi, "Almoço"],
-  [/\bpensao\b/gi, "Pensão"],
-  [/\binclusao\b/gi, "Inclusão"],
-  [/\bexcursao\b/gi, "Excursão"],
-  [/\bnavegacao\b/gi, "Navegação"],
-  [/\baeroporo\b/gi, "Aeroporto"],
-  [/\bpassagen\b/gi, "Passagem"],
-  [/\bbagagen\b/gi, "Bagagem"],
-  [/\bconexao\b/gi, "Conexão"],
-  [/\bSao\b/g, "São"],
-  [/\bSAO\b/g, "SÃO"],
-];
-
-/** Preposições que devem permanecer minúsculas na capitalização (v1 Fmt.PREPS). */
-const PREPS = new Set([
-  "da","de","di","do","dos","das","em","a","e","o","os","as",
-  "na","no","nas","nos","ao","à","às","aos","por","para","com",
-  "sem","sob","sobre","entre","até","num","numa","du",
-]);
-
-/** Abreviações automáticas de destino (v1 Fmt._abrevDest). */
-const ABREV: [RegExp, string][] = [
-  [/\bSanto\b/g, "Sto."],
-  [/\bSanta\b/g, "Sta."],
-  [/\bSão\b/g, "S."],
-  [/\bNossa\s+Senhora\b/g, "N. Sra."],
-  [/\bDoutor\b/g, "Dr."],
-  [/\bDoutora\b/g, "Dra."],
-  [/\bGovernador\b/g, "Gov."],
-  [/\bPresidente\b/g, "Pres."],
-  [/\bMarechal\b/g, "Mal."],
-];
-
-function applyServico(v: string): string {
-  const s = v.trim();
-  if (!s) return s;
-  // Primeiro tenta match exato de frase completa
-  for (const [re, rep] of DICT_SERVICOS) {
-    if (re.test(s)) return rep;
-  }
-  // Senão aplica só correções ortográficas inline
-  let r = s;
-  for (const [re, rep] of DICT_ORTHO) r = r.replace(re, rep);
-  return r.charAt(0).toUpperCase() + r.slice(1);
-}
-
-function isAllInclusive(v: string): boolean {
-  return /all\s*inclusive|tudo\s*inclu[ií]do/i.test(v);
-}
-
-/** Capitaliza cada palavra, mantendo preposições minúsculas (v1 Fmt.capitalize). */
-function capitalizeBR(s: string): string {
-  if (!s) return "";
-  return s.trim().split(/\s+/).map((w, i) =>
-    i > 0 && PREPS.has(w.toLowerCase())
-      ? w.toLowerCase()
-      : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-  ).join(" ");
-}
-
-/** Destino TUDO MAIÚSCULO + abreviações + preposições minúsculas (v1 Fmt.destino). */
-function destinoUpper(s: string): string {
-  if (!s) return "";
-  let d = s;
-  for (const [re, rep] of ABREV) d = d.replace(re, rep);
-  return d.split(/\s+/).map(w =>
-    PREPS.has(w.toLowerCase()) ? w.toLowerCase() : w.toUpperCase()
-  ).join(" ");
-}
-
-/** Calcula noites entre 2 datas YYYY-MM-DD (Volta - Ida). */
-function calcNoites(ida: string, volta: string): number {
-  if (!ida || !volta) return 0;
-  const a = new Date(ida + "T00:00:00");
-  const b = new Date(volta + "T00:00:00");
-  const diff = Math.round((b.getTime() - a.getTime()) / 86400000);
-  return diff > 0 ? diff : 0;
-}
-
-/* ── Component principal ─────────────────────────── */
+/* ── Component ──────────────────────────────────── */
 
 export default function GerentePublicarPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
-  const [enabledForms, setEnabledForms] = useState<EnabledForms>(DEFAULT_ENABLED_FORMS);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingTpl, setLoadingTpl] = useState(true);
+  const [selected, setSelected] = useState<TemplateRow | null>(null);
 
-  // Estado por aba
-  const [tab, setTab] = useState<FormType>("pacote");
-  const [format, setFormat] = useState<Format>("stories");
-
-  // Auto-switch: se a aba atual foi desabilitada para este cliente, seleciona a primeira habilitada
-  useEffect(() => {
-    if (!enabledForms[tab]) {
-      const firstEnabled = (Object.keys(enabledForms) as FormType[]).find(k => enabledForms[k]);
-      if (firstEnabled) setTab(firstEnabled);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabledForms]);
-
-  // Cache de dados por aba (preserva ao trocar)
-  const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>(() => {
-    const defaults = { formapagamento: "Cartão de Crédito", tipovoo: "( Voo Direto )" };
-    return {
-      pacote: { ...defaults },
-      campanha: { ...defaults },
-      passagem: { ...defaults },
-      cruzeiro: { ...defaults },
-      anoiteceu: { ...defaults },
-    };
-  });
-  const [badgeCache, setBadgeCache] = useState<Record<FormType, Record<string, boolean>>>({
-    pacote: {}, campanha: {}, passagem: {}, cruzeiro: {}, anoiteceu: {},
-  });
-
-  const values = formCache[tab];
-  const badges = badgeCache[tab];
-
-  // Template atual — match estrito por formType + format (sem fallback)
-  // Se não existir template pra (tab, format), o preview mostra placeholder
-  const currentTemplate = useMemo(() => {
-    return templates.find((t) => t.formType === tab && t.format === format) ?? null;
-  }, [templates, tab, format]);
-
-  // Legenda
+  const [values, setValues] = useState<Record<string, string>>({});
   const [caption, setCaption] = useState<string>("");
-
-  // Video processing modal
-  const [videoProcessing, setVideoProcessing] = useState<{ msg: string; stage: "polling" | "publishing" | "done" | "error" } | null>(null);
-
-  // Música (stories/reels)
-  const [musicasDisponiveis, setMusicasDisponiveis] = useState<{ id: string; nome: string; artista: string; cloudinary_url: string; inicio_segundos: number; duracao_segundos: number | null }[]>([]);
-  const [musicaSearch, setMusicaSearch] = useState("");
-  const [musicaOpen, setMusicaOpen] = useState(false);
-  const [selectedMusicaId, setSelectedMusicaId] = useState<string>("");
-  const [musicaPlaying, setMusicaPlaying] = useState(false);
-  const musicaAudioRef = useRef<HTMLAudioElement | null>(null);
   const [generatingCaption, setGeneratingCaption] = useState(false);
 
-  // Stores / publish targets
-  const [publishTargets, setPublishTargets] = useState<StoreOption[]>([]);
-  const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
-
-  // Daily counter
-  const [postsByFormat, setPostsByFormat] = useState<PostsByFormat>({ stories: 0, feed: 0, reels: 0, tv: 0 });
-  const [downloadsToday, setDownloadsToday] = useState(0);
-  const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
-  const [features, setFeatures] = useState<Set<string>>(new Set());
-
-  // Limites e visibilidade por formato derivados do plano
-  const formatLimits = useMemo<FormatLimits>(() => {
-    if (!planLimits) return { stories: null, feed: null, reels: null, tv: null };
-    const fr = planLimits.max_feed_reels_day ?? 0;
-    const st = planLimits.max_stories_day ?? 0;
-    return {
-      // stories: 99 = ilimitado (convenção herdada do schema); null aqui = sem barra de limite
-      stories: st >= 99 ? null : st,
-      feed:  fr > 0 ? fr : 0,
-      reels: fr > 0 ? fr : 0,
-      tv:    planLimits.is_enterprise ? (planLimits.max_posts_day || 999) : 0,
-    };
-  }, [planLimits]);
-
-  const formatVisible = useMemo<FormatVisibility>(() => {
-    if (!planLimits) return { stories: true, feed: true, reels: true, tv: false };
-    return {
-      stories: (planLimits.max_stories_day ?? 0) !== 0,
-      feed:    (planLimits.max_feed_reels_day ?? 0) > 0,
-      reels:   (planLimits.max_feed_reels_day ?? 0) > 0,
-      tv:      !!planLimits.is_enterprise,
-    };
-  }, [planLimits]);
-
-  // Feature "publicar" — se ausente, esconde botão de publicar IG
-  const canPublishFeature = features.has("publicar");
-  // "drive" ainda não é feature liberada — mantemos hardcode false
-  const canDriveFeature = features.has("drive");
-
-  // Publish status
   const [status, setStatus] = useState<PublishStatus>("idle");
   const [statusMsg, setStatusMsg] = useState<string>("");
 
-  // Datasets completos (nome + url) — usados por autocomplete E pela busca de imagem
-  const destinoDataRef = useRef<{ nome: string; url: string }[] | null>(null);
-  const hotelDataRef = useRef<{ nome: string; url: string }[] | null>(null);
-  const navioDataRef = useRef<{ nome: string; url: string }[] | null>(null);
+  const [publishTargets, setPublishTargets] = useState<StoreOption[]>([]);
+  const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
 
   const stageRef = useRef<Konva.Stage | null>(null);
 
-  /* ── Load inicial ──────────────────────────────── */
-
-  const loadDailyCount = useCallback(async (storeId: string) => {
-    const start = new Date(); start.setHours(0, 0, 0, 0);
-    const { data } = await supabase
-      .from("activity_logs")
-      .select("metadata, created_at")
-      .gte("created_at", start.toISOString())
-      .eq("event_type", "post_instagram")
-      .limit(500);
-    const counts: PostsByFormat = { stories: 0, feed: 0, reels: 0, tv: 0 };
-    for (const row of (data ?? []) as { metadata: Record<string, unknown> | null }[]) {
-      const m = row.metadata ?? {};
-      if (m.store_id !== storeId) continue;
-      // Prioriza `format` explícito (salvo pelo publicar do vendedor);
-      // fallback pro `media_type` (STORIES/REELS/IMAGE) da API do IG.
-      let f = (m.format as string) || "";
-      if (!f) {
-        const mt = (m.media_type as string) || "";
-        if (mt === "STORIES") f = "stories";
-        else if (mt === "REELS") f = "reels";
-        else f = "feed"; // IMAGE vira feed por padrão
-      }
-      if (f === "stories" || f === "feed" || f === "reels" || f === "tv") counts[f]++;
-    }
-    setPostsByFormat(counts);
-  }, []);
-
-  const loadDailyDownloads = useCallback(async (licenseeId: string) => {
-    const start = new Date(); start.setHours(0, 0, 0, 0);
-    const { count } = await supabase
-      .from("activity_logs")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", start.toISOString())
-      .eq("event_type", "download_arte")
-      .like("metadata->>licensee_id", licenseeId);
-    setDownloadsToday(count ?? 0);
-  }, []);
-
+  /* ── Load profile + templates ─────────────────── */
   const loadData = useCallback(async () => {
-    try {
-      const p = await getProfile(supabase);
-      setProfile(p);
-      if (!p?.licensee_id) { setLoading(false); return; }
-
-      // Permissões de formulários do licensee
+    const p = await getProfile(supabase);
+    setProfile(p);
+    if (!p?.licensee_id) { setLoadingTpl(false); return; }
+    const { data } = await supabase
+      .from("system_config")
+      .select("key, value")
+      .like("key", "tmpl_%");
+    const rows: TemplateRow[] = [];
+    for (const r of (data ?? []) as { key: string; value: string }[]) {
       try {
-        const { data: licForms } = await supabase
-          .from("licensees")
-          .select("form_pacote, form_campanha, form_passagem, form_cruzeiro, form_anoiteceu")
-          .eq("id", p.licensee_id)
-          .single();
-        if (licForms) {
-          setEnabledForms({
-            pacote:    licForms.form_pacote    ?? true,
-            campanha:  licForms.form_campanha  ?? true,
-            passagem:  licForms.form_passagem  ?? true,
-            cruzeiro:  licForms.form_cruzeiro  ?? true,
-            anoiteceu: licForms.form_anoiteceu ?? true,
-          });
-        }
-      } catch (err) {
-        console.warn("[Publicar] falha ao carregar permissões de formulários, usando defaults", err);
-      }
-
-      // Templates do licensee
-      const { data: tplData } = await supabase
-        .from("system_config")
-        .select("key, value")
-        .like("key", "tmpl_%")
-        .like("value", p.licensee_id ? `%"licenseeId":"${p.licensee_id}"%` : `%"licenseeId":%`);
-
-      const rows: TemplateRow[] = [];
-      for (const r of (tplData ?? []) as { key: string; value: string }[]) {
-        try {
-          const parsed = JSON.parse(r.value);
-          const schemaElements = parsed.elements ?? parsed.schema?.elements;
-          if (!schemaElements) continue;
-          const fmt = (parsed.format || parsed.schema?.format || "stories") as Format;
-          const [defW, defH] = FORMAT_DIMS[fmt] || [1080, 1920];
-          rows.push({
-            key: r.key,
-            id: r.key.replace(/^tmpl_/, ""),
-            nome: parsed.nome || r.key.replace(/^tmpl_/, ""),
-            format: fmt,
-            formType: parsed.formType || parsed.schema?.formType || "pacote",
-            width: parsed.width || parsed.schema?.width || defW,
-            height: parsed.height || parsed.schema?.height || defH,
-            schema: {
-              elements: schemaElements,
-              background: parsed.bgColor || parsed.background || parsed.schema?.background || "#FFFFFF",
-              duration: parsed.duration || 5,
-              qtdDestinos: parsed.qtdDestinos,
-              formType: parsed.formType || parsed.schema?.formType || "pacote",
-            },
-          });
-        } catch { /* skip */ }
-      }
-      setTemplates(rows);
-
-      // Stores / publish targets
-      const { data: storesData } = await supabase
-        .from("stores")
-        .select("id, name")
-        .eq("licensee_id", p.licensee_id)
-        .order("name");
-      const allStores = (storesData ?? []) as StoreOption[];
-      setPublishTargets(allStores);
-      setSelectedTargetIds(allStores.length > 0 ? [allStores[0].id] : []);
-
-      // Auto-load imgloja
-      if (p?.store_id) {
-        try {
-          const { data: storeData } = await supabase
-            .from("stores")
-            .select("logo_url")
-            .eq("id", p.store_id)
-            .single();
-          const logoUrl = (storeData as { logo_url?: string } | null)?.logo_url;
-          if (logoUrl) {
-            setFormCache(c => ({
-              ...c,
-              pacote: { ...c.pacote, imgloja: logoUrl },
-              campanha: { ...c.campanha, imgloja: logoUrl },
-              passagem: { ...c.passagem, imgloja: logoUrl },
-              cruzeiro: { ...c.cruzeiro, imgloja: logoUrl },
-              anoiteceu: { ...c.anoiteceu, imgloja: logoUrl },
-            }));
-          }
-        } catch { /* silent */ }
-      }
-
-      // Plano completo (limites por formato)
-      const slug = p.plan?.slug || p.licensee?.plan_slug || p.licensee?.plan;
-      if (slug) {
-        const { data: plan } = await supabase
-          .from("plans")
-          .select("slug, max_posts_day, max_feed_reels_day, max_stories_day, max_downloads_day, can_schedule, can_ia_legenda, is_enterprise")
-          .eq("slug", slug)
-          .single();
-        if (plan) setPlanLimits(plan as PlanLimits);
-      }
-
-      // Features ativas para o licensee (override do ADM)
-      try {
-        const feats = await getFeatures(supabase, p);
-        setFeatures(feats);
-      } catch { /* noop */ }
-
-      // Músicas disponíveis (públicas + exclusivas do licensee)
-      if (p.licensee_id) {
-        const { data: mData } = await supabase
-          .from("musicas")
-          .select("id, nome, artista, cloudinary_url, inicio_segundos, duracao_segundos")
-          .eq("ativa", true)
-          .or(`licensee_id.is.null,licensee_id.eq.${p.licensee_id}`)
-          .order("nome");
-        setMusicasDisponiveis(mData ?? []);
-      }
-
-      // Daily counters
-      if (allStores[0]) await loadDailyCount(allStores[0].id);
-      if (p.licensee_id) await loadDailyDownloads(p.licensee_id);
-
-      // Avião inicial pra passagem
-      if (!formCache.passagem.imgaviao) {
-        const { data: aviao } = await supabase.from("imgaviao").select("url").limit(50);
-        const urls = ((aviao ?? []) as { url: string }[]).map((r) => r.url);
-        if (urls.length > 0) {
-          const pick = urls[Math.floor(Math.random() * urls.length)];
-          setFormCache((c) => ({ ...c, passagem: { ...c.passagem, imgaviao: pick } }));
-        }
-      }
-    } catch (err) {
-      console.error("[Publicar] load:", err);
-    } finally {
-      setLoading(false);
+        const parsed = JSON.parse(r.value);
+        const lid = parsed.licenseeId ?? parsed.licensee_id ?? null;
+        if (lid && lid.trim() !== p.licensee_id.trim()) continue;
+        const schemaElements = parsed.elements ?? parsed.schema?.elements;
+        if (!schemaElements) continue;
+        const format = parsed.format || parsed.schema?.format || "stories";
+        const [defW, defH] = FORMAT_DIMS[format] || [1080, 1920];
+        rows.push({
+          key: r.key,
+          id: r.key.replace(/^tmpl_/, ""),
+          nome: parsed.nome || r.key.replace(/^tmpl_/, ""),
+          format,
+          formType: parsed.formType || parsed.schema?.formType || "pacote",
+          width: parsed.width || parsed.schema?.width || defW,
+          height: parsed.height || parsed.schema?.height || defH,
+          schema: {
+            elements: schemaElements,
+            background: parsed.bgColor || parsed.background || parsed.schema?.background || "#FFFFFF",
+            duration: parsed.duration || 5,
+            qtdDestinos: parsed.qtdDestinos,
+          },
+          thumbnail: parsed.thumbnail || null,
+        });
+      } catch { /* skip */ }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadDailyCount]);
+    setTemplates(rows);
+
+    // Destinos de publicação (stores onde a unidade pode postar)
+    const { data: storesData } = await supabase
+      .from("stores")
+      .select("id, name")
+      .eq("licensee_id", p.licensee_id)
+      .order("name");
+    const allStores = (storesData ?? []) as StoreOption[];
+
+    let targets: StoreOption[] = [];
+    if (canPublishToAllAZV(p.store_id)) {
+      targets = filterAZVGroup(allStores);
+      if (targets.length === 0) {
+        // fallback: se o filtro por nome não casar, usa todas do licensee
+        targets = allStores;
+      }
+    } else if (p.store_id) {
+      const own = allStores.find((s) => s.id === p.store_id);
+      targets = own ? [own] : [];
+    }
+    setPublishTargets(targets);
+    setSelectedTargetIds(targets.length > 0 ? [targets[0].id] : []);
+
+    setLoadingTpl(false);
+  }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  /* ── Dataset loaders (completos nome+url, cacheados) ── */
+  const bindFields = useMemo(
+    () => (selected ? collectBindFields(selected.schema.elements) : []),
+    [selected]
+  );
 
-  async function loadDestinoData(): Promise<{ nome: string; url: string }[]> {
-    if (destinoDataRef.current) return destinoDataRef.current;
-    const { data } = await supabase.from("imgfundo").select("nome, url").limit(1000);
-    const rows = ((data ?? []) as { nome: string; url: string }[]);
-    destinoDataRef.current = rows;
-    return rows;
-  }
-  async function loadHotelData(): Promise<{ nome: string; url: string }[]> {
-    if (hotelDataRef.current) return hotelDataRef.current;
-    const { data } = await supabase.from("imghotel").select("nome, url").limit(1000);
-    const rows = ((data ?? []) as { nome: string; url: string }[]);
-    hotelDataRef.current = rows;
-    return rows;
-  }
-  async function loadNavioData(): Promise<{ nome: string; url: string }[]> {
-    if (navioDataRef.current) return navioDataRef.current;
-    const { data } = await supabase.from("imgcruise").select("nome, url").limit(1000);
-    const rows = ((data ?? []) as { nome: string; url: string }[]);
-    navioDataRef.current = rows;
-    return rows;
+  /* ── Handlers ─────────────────────────────────── */
+
+  function pickTemplate(t: TemplateRow) {
+    setSelected(t);
+    // Seed imgfundo com thumbnail do template para que o canvas não apareça preto
+    // antes do usuário preencher os campos dinâmicos.
+    setValues(t.thumbnail ? { imgfundo: t.thumbnail } : {});
+    setCaption("");
+    setStatus("idle");
+    setStatusMsg("");
   }
 
-  // Autocomplete apenas com nomes únicos, derivado do dataset completo
-  async function loadDestinos(): Promise<string[]> {
-    const rows = await loadDestinoData();
-    const seen = new Set<string>();
-    return rows.map((r) => r.nome).filter((n) => { const k = normalizar(n); if (seen.has(k)) return false; seen.add(k); return true; }).sort();
+  function reset() {
+    setSelected(null);
+    setValues({});
+    setCaption("");
+    setStatus("idle");
+    setStatusMsg("");
   }
-  async function loadHoteis(): Promise<string[]> {
-    const rows = await loadHotelData();
-    const seen = new Set<string>();
-    return rows.map((r) => r.nome).filter((n) => { const k = normalizar(n); if (seen.has(k)) return false; seen.add(k); return true; }).sort();
-  }
-  async function loadNavios(): Promise<string[]> {
-    const rows = await loadNavioData();
-    const seen = new Set<string>();
-    return rows.map((r) => r.nome).filter((n) => { const k = normalizar(n); if (seen.has(k)) return false; seen.add(k); return true; }).sort();
-  }
-
-  /* ── Busca de imagem automática (client-side filter) ── */
-
-  async function fetchImgFundo(destino: string): Promise<string | null> {
-    const rows = await loadDestinoData();
-    const target = normalizar(destino);
-    const matches = rows.filter((r) => normalizar(r.nome) === target);
-    if (matches.length === 0) return null;
-    return proximaImagem("dest_" + slugify(destino), matches.map((r) => r.url));
-  }
-  async function fetchImgHotel(hotel: string): Promise<string | null> {
-    const rows = await loadHotelData();
-    const target = normalizar(hotel);
-    const matches = rows.filter((r) => normalizar(r.nome) === target);
-    if (matches.length === 0) return null;
-    return proximaImagem("hotel_" + slugify(hotel), matches.map((r) => r.url));
-  }
-  async function fetchImgCruise(navio: string): Promise<string | null> {
-    const rows = await loadNavioData();
-    const target = normalizar(navio);
-    const matches = rows.filter((r) => normalizar(r.nome) === target);
-    if (matches.length === 0) return null;
-    return proximaImagem("navio_" + slugify(navio), matches.map((r) => r.url));
-  }
-
-  /* ── Handlers de campo ─────────────────────────── */
 
   function setField(name: string, v: string) {
-    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], [name]: v } }));
-  }
-  function setBadge(name: string, v: boolean) {
-    setBadgeCache((c) => ({ ...c, [tab]: { ...c[tab], [name]: v } }));
+    setValues((prev) => ({ ...prev, [name]: v }));
   }
 
-  /** V1: ao mudar ida, volta = max(volta, ida); ao mudar volta, se < ida, força = ida. */
-  function setDateIda(v: string) {
-    setFormCache((c) => {
-      const cur: Record<string, string> = c[tab];
-      const next: Record<string, string> = { ...cur, dataida: v };
-      if (cur.datavolta && cur.datavolta < v) next.datavolta = v;
-      return { ...c, [tab]: next };
-    });
+  async function onFileChange(name: string, file: File | null) {
+    if (!file) return;
+    const dataUrl = await fileToDataURL(file);
+    setField(name, dataUrl);
   }
-  /** Data Volta: só salva raw — validação acontece no onBlur. */
-  function setDateVolta(v: string) {
-    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], datavolta: v } }));
-  }
-  /** onBlur da Volta: se for data válida e menor que ida, força = ida. */
-  function blurDateVolta() {
-    setFormCache((c) => {
-      const cur: Record<string, string> = c[tab];
-      const volta = cur.datavolta || "";
-      const ida = cur.dataida || "";
-      if (!volta || !ida) return c;
-      // Aceita apenas strings YYYY-MM-DD completas (evita correção durante digitação parcial)
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(volta)) return c;
-      if (volta < ida) {
-        return { ...c, [tab]: { ...cur, datavolta: ida } };
-      }
-      return c;
-    });
-  }
-
-  function setDateInicio(v: string) {
-    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], inicio: v } }));
-  }
-  /** Data Fim (Anoiteceu): só salva raw — validação no onBlur. */
-  function setDateFim(v: string) {
-    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], fim: v } }));
-  }
-  function blurDateFim() {
-    setFormCache((c) => {
-      const cur: Record<string, string> = c[tab];
-      const fim = cur.fim || "";
-      const ini = cur.inicio || "";
-      if (!fim || !ini) return c;
-      // datetime-local vem como YYYY-MM-DDTHH:MM
-      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(fim)) return c;
-      if (fim < ini) {
-        return { ...c, [tab]: { ...cur, fim: ini } };
-      }
-      return c;
-    });
-  }
-
-  // Noites calculado (readonly) — sincroniza no cache sempre que ida/volta mudam
-  useEffect(() => {
-    const n = calcNoites(values.dataida || "", values.datavolta || "");
-    const key = String(n || "");
-    if (values.noites !== key) {
-      setFormCache((c) => ({ ...c, [tab]: { ...c[tab], noites: key } }));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.dataida, values.datavolta, tab]);
-
-  const hoje = todayISO();
-
-  /**
-   * Recebe `override` quando o usuário seleciona da lista do Combobox —
-   * evita o stale-closure onde `values` ainda é o state antigo no momento do setTimeout.
-   */
-  async function onDestinoBlur(override?: string) {
-    const destino = (override ?? values.destino)?.trim();
-    if (!destino) return;
-    // Não sobrescreve se já tem imagem (ex.: usuário subiu manual ou hotel já resolveu)
-    if (values.imgfundo) return;
-    const url = await fetchImgFundo(destino);
-    if (url) setField("imgfundo", url);
-  }
-  async function onHotelBlur(override?: string) {
-    const hotel = (override ?? values.hotel)?.trim();
-    if (!hotel) return;
-    // Capitaliza antes de salvar (com preposições minúsculas)
-    const hotelCap = capitalizeBR(hotel);
-    if (hotelCap !== values.hotel) setField("hotel", hotelCap);
-    // Hotel SEMPRE sobrescreve quando acha imagem própria
-    const hUrl = await fetchImgHotel(hotel);
-    if (hUrl) { setField("imgfundo", hUrl); return; }
-    // Fallback pro destino só se ainda não há imagem
-    if (values.imgfundo) return;
-    const destino = values.destino?.trim();
-    if (destino) {
-      const dUrl = await fetchImgFundo(destino);
-      if (dUrl) setField("imgfundo", dUrl);
-    }
-  }
-  async function onNavioBlur(override?: string) {
-    const navio = (override ?? values.navio)?.trim();
-    if (!navio) return;
-    const url = await fetchImgCruise(navio);
-    if (url) setField("imgfundo", url);
-  }
-
-  /* ── Legenda IA ─────────────────────────────────── */
 
   async function generateCaption() {
-    if (!planLimits?.can_ia_legenda && profile?.role !== "adm") {
-      alert("Seu plano não inclui geração de legenda por IA.");
-      return;
-    }
     setGeneratingCaption(true);
     try {
-      const payload: Record<string, unknown> = {
-        destino: values.destino || currentTemplate?.nome || "seu destino",
+      const payload = {
+        destino: values.destino || selected?.nome || "seu destino",
         hotel: values.hotel,
         servicos: [values.servico1, values.servico2, values.servico3].filter(Boolean).join(", "),
-        preco: values.preco || values.valorparcela,
+        preco: values.preco,
         parcelas: values.parcelas,
         datas: values.dataida && values.datavolta ? `${values.dataida} a ${values.datavolta}` : undefined,
         noites: values.noites,
-        tipo: tab,
+        tipo: selected?.formType,
       };
       const res = await fetch("/api/ai/legenda", {
         method: "POST",
@@ -728,318 +295,63 @@ export default function GerentePublicarPage() {
     }
   }
 
-  /* ── Publish flow ──────────────────────────────── */
-
   function getPNGDataURL(): string | null {
     const stage = stageRef.current;
     if (!stage) return null;
     const scale = stage.scaleX() || 1;
-    return stage.toDataURL({ pixelRatio: 1 / scale, mimeType: "image/jpeg", quality: 0.92 });
-  }
-
-  async function waitAndPublishVideo(payload: {
-    creation_id: string;
-    ig_user_id: string;
-    access_token: string;
-    licensee_id: string;
-    store_id?: string;
-    video_url: string;
-    media_type: "REELS" | "STORIES";
-    format: Format;
-    caption: string;
-  }): Promise<boolean> {
-    const maxPolls = 36; // 36 × 5s = 180s (3 minutos)
-    for (let i = 0; i < maxPolls; i++) {
-      await new Promise(r => setTimeout(r, 5000));
-      const statusUrl = `/api/instagram/status?creation_id=${payload.creation_id}&access_token=${encodeURIComponent(payload.access_token)}`;
-      const sRes = await fetch(statusUrl);
-      const sData = await sRes.json();
-      const code = sData.status_code as string;
-
-      if (code === "FINISHED") {
-        setVideoProcessing({ msg: "Publicando...", stage: "publishing" });
-        const pubRes = await fetch("/api/instagram/publish", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const pubData = await pubRes.json();
-        if (pubData.success) {
-          setVideoProcessing({ msg: "Publicado!", stage: "done" });
-          setTimeout(() => setVideoProcessing(null), 2000);
-          return true;
-        }
-        setVideoProcessing({ msg: pubData.error || "Falha ao publicar", stage: "error" });
-        return false;
-      }
-
-      if (code === "ERROR" || code === "EXPIRED") {
-        setVideoProcessing({ msg: `Instagram rejeitou o vídeo (${code})`, stage: "error" });
-        return false;
-      }
-
-      setVideoProcessing({ msg: `Processando no Instagram... (${i + 1})`, stage: "polling" });
-    }
-
-    setVideoProcessing({ msg: "Timeout (3 min). Tente novamente.", stage: "error" });
-    return false;
-  }
-
-  async function recordCanvasWithAudio(durationSec: number): Promise<Blob | null> {
-    const stage = stageRef.current;
-    if (!stage) return null;
-
-    const [W, H] = FORMAT_DIMS[format];
-    const recCanvas = document.createElement("canvas");
-    recCanvas.width = W;
-    recCanvas.height = H;
-    const recCtx = recCanvas.getContext("2d");
-    if (!recCtx) return null;
-
-    // Render loop: copia frame do Konva no canvas de gravação
-    const scale = stage.scaleX() || 1;
-    let rafId = 0;
-    const drawFrame = () => {
-      const srcCanvas = stage.toCanvas({ pixelRatio: 1 / scale });
-      recCtx.drawImage(srcCanvas, 0, 0, W, H);
-      rafId = requestAnimationFrame(drawFrame);
-    };
-    drawFrame();
-
-    // Stream de vídeo
-    const fps = 30;
-    const videoStream = (recCanvas as HTMLCanvasElement).captureStream(fps);
-
-    // Áudio opcional (música selecionada)
-    let finalStream: MediaStream = videoStream;
-    let audioContext: AudioContext | null = null;
-    let audioEl: HTMLAudioElement | null = null;
-    const sel = selectedMusicaId ? musicasDisponiveis.find(m => m.id === selectedMusicaId) : null;
-    if (sel) {
-      try {
-        audioContext = new AudioContext();
-        audioEl = new Audio();
-        audioEl.crossOrigin = "anonymous";
-        audioEl.src = sel.cloudinary_url;
-        audioEl.currentTime = sel.inicio_segundos;
-        await new Promise<void>((resolve, reject) => {
-          audioEl!.oncanplay = () => resolve();
-          audioEl!.onerror = () => reject(new Error("Falha ao carregar áudio"));
-          setTimeout(() => reject(new Error("Timeout áudio")), 10000);
-        });
-        const source = audioContext.createMediaElementSource(audioEl);
-        const dest = audioContext.createMediaStreamDestination();
-        source.connect(dest);
-        finalStream = new MediaStream([
-          ...videoStream.getVideoTracks(),
-          ...dest.stream.getAudioTracks(),
-        ]);
-      } catch (err) {
-        console.warn("[Audio] Sem áudio no vídeo:", err);
-      }
-    }
-
-    // MediaRecorder
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
-      ? "video/webm;codecs=vp9,opus"
-      : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
-      ? "video/webm;codecs=vp8,opus"
-      : "video/webm";
-    const recorder = new MediaRecorder(finalStream, { mimeType, videoBitsPerSecond: 4_000_000 });
-    const chunks: Blob[] = [];
-    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-    const done = new Promise<Blob>((resolve) => {
-      recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
-    });
-
-    recorder.start(100);
-    if (audioEl) await audioEl.play().catch(() => {});
-
-    await new Promise(r => setTimeout(r, durationSec * 1000));
-
-    recorder.stop();
-    cancelAnimationFrame(rafId);
-    audioEl?.pause();
-    if (audioContext) await audioContext.close();
-
-    return done;
+    return stage.toDataURL({ pixelRatio: 1 / scale, mimeType: "image/png" });
   }
 
   async function handleDownload() {
-    // Verifica limite diário de downloads
-    const maxDl = planLimits?.max_downloads_day;
-    if (maxDl !== null && maxDl !== undefined && maxDl > 0 && downloadsToday >= maxDl) {
-      setStatus("error");
-      setStatusMsg(`Limite diário de downloads atingido (${downloadsToday}/${maxDl})`);
-      return;
-    }
-
-    const isVideo = format === "stories" || format === "reels";
-    let fileUrl: string;
-    let publicId: string | null = null;
-
-    if (isVideo) {
-      // Calcula duração: maior animDelay+animDuration dos elementos, ou 15s
-      const els = (currentTemplate?.schema?.elements ?? []) as Array<{ animDelay?: number; animDuration?: number }>;
-      const maxAnim = els.reduce((m, el) => Math.max(m, (el.animDelay || 0) + (el.animDuration || 0.6)), 0);
-      const durationSec = Math.min(15, Math.max(5, Math.ceil(maxAnim + 2)));
-
-      setStatus("generating"); setStatusMsg(`Gravando vídeo ${durationSec}s...`);
-      const blob = await recordCanvasWithAudio(durationSec);
-      if (!blob) { setStatus("error"); setStatusMsg("Falha ao gravar vídeo"); return; }
-
-      // Download local
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${currentTemplate?.nome || "arte"}_${Date.now()}.webm`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      // Upload para Cloudinary como vídeo
-      setStatus("uploading"); setStatusMsg("Enviando vídeo...");
-      try {
-        const signRes = await fetch("/api/cloudinary/sign", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folder: `aurohubv2/videos/${profile?.licensee_id || "anon"}` }),
-        });
-        const signData = await signRes.json();
-        const fd = new FormData();
-        fd.append("file", blob, "video.webm");
-        fd.append("api_key", signData.api_key);
-        fd.append("timestamp", String(signData.timestamp));
-        fd.append("folder", signData.folder);
-        fd.append("signature", signData.signature);
-        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`, { method: "POST", body: fd });
-        const upData = await upRes.json();
-        if (upData.secure_url) {
-          publicId = upData.public_id;
-          // Cloudinary entrega MP4 via transformation f_mp4 — compatível com Instagram
-          fileUrl = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${publicId}.mp4`;
-        }
-        else throw new Error(upData.error?.message || "Upload falhou");
-      } catch (err) {
-        console.warn("[Cloudinary video]", err);
-        fileUrl = "local://blob";
-      }
-    } else {
-      setStatus("generating"); setStatusMsg("Gerando imagem...");
-      const dataUrl = getPNGDataURL();
-      if (!dataUrl) { setStatus("error"); setStatusMsg("Falha ao gerar imagem"); return; }
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `${currentTemplate?.nome || "arte"}_${Date.now()}.jpg`;
-      a.click();
-      fileUrl = "local://jpeg";
-    }
-
-    // Registra download na activity_logs
-    if (profile?.licensee_id) {
-      await supabase.from("activity_logs").insert({
-        event_type: "download_arte",
-        metadata: {
-          licensee_id: profile.licensee_id,
-          store_id: profile.store_id,
-          template: currentTemplate?.nome || "manual",
-          format,
-          file_type: isVideo ? "video" : "image",
-          cloudinary_url: fileUrl,
-          cloudinary_public_id: publicId,
-        },
-      });
-      setDownloadsToday(d => d + 1);
-    }
-
-    setStatus("success"); setStatusMsg(isVideo ? "Vídeo baixado" : "Imagem baixada");
-    setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2500);
+    setStatus("generating");
+    const dataUrl = getPNGDataURL();
+    if (!dataUrl) { setStatus("error"); setStatusMsg("Falha ao gerar imagem"); return; }
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `${selected?.nome || "arte"}_${Date.now()}.png`;
+    a.click();
+    setStatus("success");
+    setStatusMsg("Imagem baixada");
+    setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
   }
 
-  function limparFormulario() {
-    setFormCache((c) => ({ ...c, [tab]: {} }));
-    setBadgeCache((c) => ({ ...c, [tab]: {} }));
-    setCaption("");
+  async function handleGenerate() {
+    setStatus("generating");
+    const dataUrl = getPNGDataURL();
+    if (!dataUrl) { setStatus("error"); setStatusMsg("Falha ao gerar imagem"); return; }
+    const w = window.open();
+    if (w) w.document.write(`<img src="${dataUrl}" style="max-width:100%"/>`);
+    setStatus("success");
+    setStatusMsg("Arte gerada");
+    setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
   }
 
-  async function handlePublish() {
+  async function handlePublishInstagram() {
     if (!profile?.licensee_id) { setStatus("error"); setStatusMsg("Sem licensee"); return; }
     if (selectedTargetIds.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
-    // Checa limite diário do formato atual (derivado do plano)
-    const limiteFormat = formatLimits[format];
-    const usado = postsByFormat[format] || 0;
-    if (limiteFormat !== null && limiteFormat > 0 && usado >= limiteFormat) {
-      setStatus("error");
-      setStatusMsg(`Limite diário de ${format} atingido (${usado}/${limiteFormat})`);
-      return;
-    }
-
     try {
-      const isVideo = format === "stories" || format === "reels";
-      let mediaUrl: string;
+      setStatus("generating");
+      setStatusMsg("Gerando imagem...");
+      const dataUrl = getPNGDataURL();
+      if (!dataUrl) throw new Error("Falha ao gerar imagem");
 
-      if (isVideo) {
-        // Grava vídeo WebM com áudio
-        setStatus("generating"); setStatusMsg("Gravando vídeo 15s...");
-        const els = (currentTemplate?.schema?.elements ?? []) as Array<{ animDelay?: number; animDuration?: number }>;
-        const maxAnim = els.reduce((m, el) => Math.max(m, (el.animDelay || 0) + (el.animDuration || 0.6)), 0);
-        const durationSec = Math.min(15, Math.max(5, Math.ceil(maxAnim + 2)));
-        const blob = await recordCanvasWithAudio(durationSec);
-        if (!blob) throw new Error("Falha ao gravar vídeo");
-
-        // Upload como video para Cloudinary
-        setStatus("uploading"); setStatusMsg("Enviando vídeo...");
-        const folder = `aurohubv2/publicacoes/${profile.licensee_id}`;
-        const signRes = await fetch("/api/cloudinary/sign", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folder }),
-        });
-        const signData = await signRes.json();
-        if (!signData.signature) throw new Error("Falha ao assinar upload");
-        const fd = new FormData();
-        fd.append("file", blob, "video.webm");
-        fd.append("api_key", signData.api_key);
-        fd.append("timestamp", String(signData.timestamp));
-        fd.append("folder", signData.folder);
-        fd.append("signature", signData.signature);
-        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`, { method: "POST", body: fd });
-        const upData = await upRes.json();
-        if (!upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
-        // MP4 H264/AAC via transformation URL (compatível Instagram)
-        mediaUrl = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${upData.public_id}.mp4`;
-      } else {
-        setStatus("generating"); setStatusMsg("Gerando imagem...");
-        const dataUrl = getPNGDataURL();
-        if (!dataUrl) throw new Error("Falha ao gerar imagem");
-
-        setStatus("uploading"); setStatusMsg("Enviando para Cloudinary...");
-        const folder = `aurohubv2/publicacoes/${profile.licensee_id}`;
-        const signRes = await fetch("/api/cloudinary/sign", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folder }),
-        });
-        const signData = await signRes.json();
-        if (!signRes.ok || !signData.signature) throw new Error(signData.error || "Falha ao assinar upload");
-
-        const fd = new FormData();
-        fd.append("file", dataUrl);
-        fd.append("api_key", signData.api_key);
-        fd.append("timestamp", String(signData.timestamp));
-        fd.append("folder", signData.folder);
-        fd.append("signature", signData.signature);
-
-        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/image/upload`, {
-          method: "POST",
-          body: fd,
-        });
-        const upData = await upRes.json();
-        if (!upRes.ok || !upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
-        mediaUrl = upData.secure_url;
+      setStatus("uploading");
+      setStatusMsg("Enviando para Cloudinary...");
+      const upRes = await fetch("/api/cloudinary/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl, folder: `aurohubv2/publicacoes/${profile.licensee_id}` }),
+      });
+      const upData = await upRes.json();
+      if (!upRes.ok || !upData.secure_url) {
+        throw new Error(upData.error || "Upload falhou");
       }
 
       setStatus("publishing");
-      const targets = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
+
+      const targetsToPublish = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
       const resultados: { store: StoreOption; ok: boolean; error?: string }[] = [];
-      for (const target of targets) {
+      for (const target of targetsToPublish) {
         setStatusMsg(`Publicando em ${target.name}...`);
         try {
           const pubRes = await fetch("/api/instagram/post", {
@@ -1048,41 +360,13 @@ export default function GerentePublicarPage() {
             body: JSON.stringify({
               licensee_id: profile.licensee_id,
               store_id: target.id,
-              image_url: isVideo ? undefined : mediaUrl,
-              video_url: isVideo ? mediaUrl : undefined,
+              image_url: upData.secure_url,
               caption,
-              media_type: format === "stories" ? "STORIES" : format === "reels" ? "REELS" : "IMAGE",
-              format, // stories | feed | reels | tv — lido pelo contador diário
             }),
           });
           const pubData = await pubRes.json();
           if (!pubRes.ok || !pubData.success) {
-            const rawErr: string = pubData.detail || pubData.error || "Falhou";
-            const isFormatErr = /unsupported|format|aspect|ratio|codec|duration|invalid.*video|resolution/i.test(rawErr);
-            const friendlyErr = isFormatErr && isVideo
-              ? "Formato não suportado pelo Instagram. Use o botão Download."
-              : rawErr;
-            resultados.push({ store: target, ok: false, error: friendlyErr });
-          } else if (pubData.queued) {
-            // Vídeo: polling até FINISHED → publish
-            setVideoProcessing({ msg: "Enviando para o Instagram...", stage: "polling" });
-            try {
-              const ok = await waitAndPublishVideo({
-                creation_id: pubData.creation_id,
-                ig_user_id: pubData.ig_user_id,
-                access_token: pubData.access_token,
-                licensee_id: profile.licensee_id,
-                store_id: target.id,
-                video_url: mediaUrl,
-                media_type: format === "stories" ? "STORIES" : "REELS",
-                format,
-                caption,
-              });
-              if (ok) resultados.push({ store: target, ok: true });
-              else resultados.push({ store: target, ok: false, error: "Falha no processamento" });
-            } catch (err) {
-              resultados.push({ store: target, ok: false, error: err instanceof Error ? err.message : "Erro" });
-            }
+            resultados.push({ store: target, ok: false, error: pubData.error || "Falhou" });
           } else {
             resultados.push({ store: target, ok: true });
           }
@@ -1093,1105 +377,329 @@ export default function GerentePublicarPage() {
 
       const okCount = resultados.filter((r) => r.ok).length;
       const falhas = resultados.filter((r) => !r.ok);
-      const queuedCount = resultados.filter((r) => r.ok && r.error === "Vídeo em processamento...").length;
-      if (okCount === 0) throw new Error(`Nenhuma publicação concluída. ${falhas[0]?.error ?? ""}`);
+      if (okCount === 0) {
+        throw new Error(`Nenhuma publicação concluída. ${falhas[0]?.error ?? ""}`);
+      }
 
       setStatus("success");
-      setStatusMsg(queuedCount > 0
-        ? `Vídeo em processamento — publicará em ~1 min`
-        : falhas.length === 0
-        ? `Publicado em ${okCount} loja${okCount === 1 ? "" : "s"}!`
-        : `${okCount} ok · ${falhas.length} falha${falhas.length === 1 ? "" : "s"}`);
-      // Recarrega contador
-      if (targets[0]) await loadDailyCount(targets[0].id);
+      if (falhas.length === 0) {
+        setStatusMsg(`Publicado em ${okCount} loja${okCount === 1 ? "" : "s"}!`);
+      } else {
+        setStatusMsg(`${okCount} ok · ${falhas.length} falha${falhas.length === 1 ? "" : "s"}: ${falhas.map((f) => f.store.name).join(", ")}`);
+      }
       setTimeout(() => {
-        limparFormulario();
-        setStatus("idle");
-        setStatusMsg("");
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        reset();
       }, 3000);
     } catch (err) {
-      console.error("[Publicar]", err);
+      console.error("[Publicar IG]", err);
       setStatus("error");
       setStatusMsg(err instanceof Error ? err.message : "Erro desconhecido");
     }
   }
 
   function toggleTarget(id: string) {
-    setSelectedTargetIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+    setSelectedTargetIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   }
 
-  /* ── Render ────────────────────────────────────── */
+  /* ── Render ───────────────────────────────────── */
 
   const busy = status === "generating" || status === "uploading" || status === "publishing";
-  const [defW, defH] = FORMAT_DIMS[format];
-  const width = currentTemplate?.width ?? defW;
-  const height = currentTemplate?.height ?? defH;
-  const schema: EditorSchema = currentTemplate?.schema ?? { elements: [], background: "#0E1520", duration: 5 };
+  const unidadeLabel = profile?.store?.name || profile?.licensee?.name || "Unidade";
 
-  if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
+  if (loadingTpl) return <div className="text-[13px] text-[var(--txt3)]">Carregando templates...</div>;
 
-  return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr]">
-      {/* ═══ MODAL PROCESSAMENTO VÍDEO ═══ */}
-      {videoProcessing && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="mx-6 max-w-md rounded-2xl border border-[var(--bdr)] bg-[var(--bg1)] p-8 shadow-2xl">
-            <div className="mb-5 flex justify-center">
-              {videoProcessing.stage === "done" ? (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--green3)]">
-                  <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="var(--green)" strokeWidth="3" strokeLinecap="round"><path d="M5 12l5 5L20 7" /></svg>
-                </div>
-              ) : videoProcessing.stage === "error" ? (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--red3)]">
-                  <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="var(--red)" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-                </div>
-              ) : (
-                <div className="relative flex h-14 w-14 items-center justify-center">
-                  <div className="absolute inset-0 animate-spin rounded-full border-[3px] border-[var(--bdr)] border-t-[var(--orange)]" />
-                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="var(--orange)"><path d="M8 5v14l11-7z" /></svg>
-                </div>
-              )}
-            </div>
-            <h3 className="mb-2 text-center text-[16px] font-bold text-[var(--txt)]">
-              {videoProcessing.stage === "done" ? "Publicado!" : videoProcessing.stage === "error" ? "Erro" : "Processando vídeo"}
-            </h3>
-            <p className="mb-4 text-center text-[12px] text-[var(--txt2)]">{videoProcessing.msg}</p>
-            {videoProcessing.stage === "polling" || videoProcessing.stage === "publishing" ? (
-              <>
-                <p className="mb-4 text-center text-[11px] text-[var(--txt3)]">
-                  Seu vídeo está sendo processado pelo Instagram.<br />Não feche esta tela.
-                </p>
-                <div className="relative h-1 overflow-hidden rounded-full bg-[var(--bg2)]">
-                  <div className="absolute inset-y-0 w-1/3 animate-[slide_1.5s_linear_infinite] rounded-full bg-[var(--orange)]" />
-                </div>
-                <style>{`@keyframes slide{from{left:-33%}to{left:100%}}`}</style>
-              </>
-            ) : (
+  // Etapa 1: selecionar template
+  if (!selected) {
+    return (
+      <>
+        <div className="card-glass relative overflow-hidden px-8 py-6">
+          <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }} />
+          <div className="relative z-10">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">Central do Gerente</p>
+            <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-tight text-[var(--txt)]">
+              Publicar — {unidadeLabel}
+            </h1>
+            <p className="mt-1 text-[12px] text-[var(--txt3)]">
+              {templates.length} template{templates.length === 1 ? "" : "s"} disponíve{templates.length === 1 ? "l" : "is"} · Escolha um para começar
+            </p>
+          </div>
+        </div>
+
+        {templates.length === 0 ? (
+          <div className="card-glass flex flex-col items-center gap-3 px-6 py-10 text-center">
+            <ImageIcon size={28} className="text-[var(--txt3)]" />
+            <div className="text-[13px] text-[var(--txt2)]">Nenhum template disponível para sua agência ainda.</div>
+            <div className="text-[11px] text-[var(--txt3)]">Entre em contato com o administrador.</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {templates.map((t) => (
               <button
-                onClick={() => setVideoProcessing(null)}
-                className="mx-auto block rounded-lg bg-[var(--bg2)] px-4 py-2 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--bg3)]"
+                key={t.key}
+                onClick={() => pickTemplate(t)}
+                className="card-glass group flex flex-col overflow-hidden text-left transition-transform hover:-translate-y-0.5"
               >
-                Fechar
+                <div
+                  className="relative w-full overflow-hidden border-b border-[var(--bdr)]"
+                  style={{ height: 140 }}
+                >
+                  {t.thumbnail ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={t.thumbnail} alt={t.nome} className="h-full w-full object-cover" />
+                  ) : (
+                    <div
+                      className="flex h-full w-full items-center justify-center"
+                      style={{ background: "#1E3A6E" }}
+                    >
+                      <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/85">
+                        {(t.format || "—").toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <span className="absolute right-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
+                    {FORMAT_LABELS[t.format] || t.format}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col gap-2 p-2.5">
+                  <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={t.nome}>
+                    {t.nome}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span
+                      className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
+                      style={{ background: "var(--orange3)", color: "var(--orange)" }}
+                    >
+                      {t.formType}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Usar */}
+                <div
+                  className="w-full py-2 text-center text-[12px] font-semibold text-white"
+                  style={{ background: "linear-gradient(90deg, #3B82F6, #D4A843)" }}
+                >
+                  ✦ Usar
+                </div>
               </button>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // Etapa 2: formulário + preview
+  return (
+    <>
+      <div className="card-glass flex items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={reset}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
+          >
+            <ArrowLeft size={14} />
+          </button>
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
+              Publicar — {unidadeLabel}
+            </div>
+            <div className="text-[14px] font-bold text-[var(--txt)]">{selected.nome}</div>
+          </div>
+        </div>
+        <div className="text-[11px] text-[var(--txt3)]">
+          {FORMAT_LABELS[selected.format]} · {selected.width}×{selected.height}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr]">
+        {/* ── Formulário ─────────────────────────── */}
+        <div className="card-glass flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden">
+          <div className="shrink-0 border-b border-[var(--bdr)] px-5 py-4">
+            <h3 className="text-[14px] font-bold text-[var(--txt)]">Preencher dados</h3>
+          </div>
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-5">
+            {bindFields.length === 0 ? (
+              <div className="py-4 text-center text-[12px] text-[var(--txt3)]">
+                Este template não tem campos dinâmicos.
+              </div>
+            ) : (
+              bindFields.map((f) => (
+                <div key={f.name} className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">
+                    {f.label}
+                  </label>
+                  {f.type === "image" ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => onFileChange(f.name, e.target.files?.[0] ?? null)}
+                        className="text-[11px] text-[var(--txt2)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--bg2)] file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-[var(--txt)]"
+                      />
+                      {values[f.name] && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={values[f.name]} alt="" className="h-10 w-10 rounded border border-[var(--bdr)] object-cover" />
+                      )}
+                    </div>
+                  ) : f.type === "date" ? (
+                    <input
+                      type="date"
+                      value={values[f.name] || ""}
+                      onChange={(e) => setField(f.name, e.target.value)}
+                      className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
+                    />
+                  ) : f.type === "number" ? (
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={values[f.name] || ""}
+                      onChange={(e) => setField(f.name, e.target.value)}
+                      placeholder={f.name === "preco" || f.name === "valorparcela" ? "R$ 0,00" : "0"}
+                      className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={values[f.name] || ""}
+                      onChange={(e) => setField(f.name, e.target.value)}
+                      className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
+                    />
+                  )}
+                </div>
+              ))
+            )}
+
+            {/* Legenda */}
+            <div className="mt-2 flex flex-col gap-1 border-t border-[var(--bdr)] pt-4">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">
+                  Legenda (Instagram)
+                </label>
+                <button
+                  onClick={generateCaption}
+                  disabled={generatingCaption}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-[var(--orange)] hover:underline disabled:opacity-50"
+                >
+                  {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                  Gerar com IA
+                </button>
+              </div>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={4}
+                placeholder="Digite ou gere a legenda com IA..."
+                className="resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
+              />
+            </div>
+
+            {/* Destinos de publicação */}
+            {publishTargets.length > 0 && (
+              <div className="mt-2 flex flex-col gap-2 border-t border-[var(--bdr)] pt-4">
+                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">
+                  Publicar em {publishTargets.length > 1 ? "(selecione uma ou mais)" : ""}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {publishTargets.map((t) => {
+                    const active = selectedTargetIds.includes(t.id);
+                    const single = publishTargets.length === 1;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => !single && toggleTarget(t.id)}
+                        disabled={single}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                          active
+                            ? "border-[var(--orange)] bg-[rgba(255,122,26,0.12)] text-[var(--orange)]"
+                            : "border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
+                        } ${single ? "cursor-default" : ""}`}
+                      >
+                        <span
+                          className={`flex h-4 w-4 items-center justify-center rounded border ${
+                            active ? "border-[var(--orange)] bg-[var(--orange)] text-white" : "border-[var(--bdr2)]"
+                          }`}
+                        >
+                          {active && <Check size={10} />}
+                        </span>
+                        {t.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Ações */}
+            <div className="mt-2 grid grid-cols-1 gap-2 border-t border-[var(--bdr)] pt-4 sm:grid-cols-3">
+              <button
+                onClick={handleGenerate}
+                disabled={busy}
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--bdr2)] px-3 py-2.5 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--hover-bg)] disabled:opacity-50"
+              >
+                <Sparkles size={13} /> Gerar arte
+              </button>
+              <button
+                onClick={handleDownload}
+                disabled={busy}
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--bdr2)] px-3 py-2.5 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--hover-bg)] disabled:opacity-50"
+              >
+                <Download size={13} /> Download
+              </button>
+              <button
+                onClick={handlePublishInstagram}
+                disabled={busy}
+                className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white shadow-lg disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+              >
+                <Send size={13} /> Publicar
+              </button>
+            </div>
+
+            {/* Status */}
+            {status !== "idle" && (
+              <div
+                className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+                style={
+                  status === "success"
+                    ? { background: "var(--green3)", color: "var(--green)" }
+                    : status === "error"
+                      ? { background: "var(--red3)", color: "var(--red)" }
+                      : { background: "var(--blue3)", color: "var(--blue)" }
+                }
+              >
+                {status === "success" ? <Check size={13} /> : status === "error" ? <X size={13} /> : <Loader2 size={13} className="animate-spin" />}
+                <span>{statusMsg}</span>
+              </div>
             )}
           </div>
         </div>
-      )}
 
-      {/* ═══ COLUNA ESQUERDA — FORM ═══ */}
-      <div
-        className="flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden rounded-2xl border border-[var(--bdr)] shadow-xl"
-        style={{ background: "var(--bg1)" }}
-      >
-        {/* Header */}
-        <div className="shrink-0 border-b border-[var(--bdr)] px-5 pt-5 pb-4">
-          <h1 className="truncate font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-tight text-[var(--txt)]">
-            {profile?.store?.name || profile?.licensee?.name || "Minha unidade"}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span
-              className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em]"
-              style={{ background: "rgba(255,122,26,0.14)", color: "var(--orange)" }}
-            >
-              {FORMAT_LABELS[format]}
-            </span>
-            <span
-              className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em]"
-              style={{ background: "var(--bg2)", color: "var(--txt2)" }}
-            >
-              {FORM_LABELS[tab]}
-            </span>
-          </div>
-        </div>
-
-        {/* Tabs — linha única, sem quebra */}
-        <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-2">
-          <div className="flex flex-nowrap items-center gap-0.5" style={{ whiteSpace: "nowrap" }}>
-            {FORM_ORDER.filter((f) => enabledForms[f]).map((f) => {
-              const active = tab === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setTab(f)}
-                  className="flex h-7 flex-1 items-center justify-center whitespace-nowrap rounded-full px-2 text-[10px] font-semibold transition-all"
-                  style={
-                    active
-                      ? { background: "var(--orange)", color: "#FFFFFF", boxShadow: "0 2px 6px rgba(255,122,26,0.35)" }
-                      : { background: "transparent", color: "var(--txt2)" }
-                  }
-                  onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt2)";
-                  }}
-                >
-                  {FORM_LABELS[f]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Scroll dos campos */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {!currentTemplate && (
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <ImageIcon size={24} className="text-[var(--txt3)]" />
-              <div className="text-[12px] text-[var(--txt3)]">
-                Nenhum template de <strong>{FORM_LABELS[tab]}</strong> para <strong>{FORMAT_LABELS[format]}</strong>.
-              </div>
+        {/* ── Preview ──────────────────────────────── */}
+        <div className="card-glass relative flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden lg:sticky lg:top-4 lg:self-start">
+          <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
+            <h3 className="text-[14px] font-bold text-[var(--txt)]">Preview ao vivo</h3>
+            <div className="text-[10px] text-[var(--txt3)] tabular-nums">
+              {selected.width}×{selected.height}
             </div>
-          )}
-
-          {currentTemplate && (
-            <div className="flex flex-col gap-4">
-              {(tab === "pacote" || tab === "campanha") && (
-                <>
-                  <Section title="Destino & Saída">
-                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
-                    <Row2>
-                      <Field label="Saída">
-                        <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" />
-                      </Field>
-                      <Field label="Tipo de voo">
-                        <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
-                      </Field>
-                    </Row2>
-                  </Section>
-
-                  <Section title="Datas">
-                    <Row2>
-                      <Field label="Data ida">
-                        <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
-                      </Field>
-                      <Field label="Data volta">
-                        <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
-                      </Field>
-                    </Row2>
-                    {values.noites && parseInt(values.noites) > 0 && (
-                      <div className="text-[10px] text-[var(--txt3)]">
-                        Duração: <span className="font-bold text-[var(--txt2)]">{values.noites} noite{parseInt(values.noites) === 1 ? "" : "s"}</span>
-                      </div>
-                    )}
-                    <Field label="Feriado">
-                      <Select value={values.feriado || ""} onChange={(v) => setField("feriado", v)} options={["", ...FERIADOS_FIXOS]} />
-                    </Field>
-                  </Section>
-
-                  <Section title="Hotel">
-                    <Combobox label="Nome do hotel" value={values.hotel || ""} onChange={(v) => setField("hotel", v)} onBlur={onHotelBlur} loader={loadHoteis} placeholder="Nome do hotel" />
-                  </Section>
-
-                  <Section title="Serviços inclusos" defaultOpen={true}>
-                    <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={6} />
-                  </Section>
-
-                  <Section title="Selos" defaultOpen={false}>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <BadgeBtn label="Última chamada" on={!!badges.ultima_chamada_badge} onClick={() => setBadge("ultima_chamada_badge", !badges.ultima_chamada_badge)} />
-                      <BadgeBtn label="Últimos lugares" on={!!badges.ultimos_lugares_badge} onClick={() => setBadge("ultimos_lugares_badge", !badges.ultimos_lugares_badge)} />
-                      <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
-                    </div>
-                  </Section>
-
-                  <Section title="Pagamento">
-                    <Field label="Forma de pagamento">
-                      <Select
-                        value={values.formapagamento || FORMA_PGTO_OPTS[0]}
-                        onChange={(v) => setField("formapagamento", v)}
-                        options={FORMA_PGTO_OPTS}
-                      />
-                    </Field>
-                    {values.formapagamento === "Boleto" && (
-                      <Field label="Valor de entrada">
-                        <TextInput
-                          value={formatMoeda(values.entrada || "")}
-                          inputMode="decimal"
-                          onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
-                          placeholder="R$ 0,00"
-                        />
-                      </Field>
-                    )}
-                    <Row2>
-                      <Field label="Parcelas">
-                        <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
-                      </Field>
-                      <Field label="Valor parcela">
-                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                    <Row2>
-                      <Field label="% Desconto">
-                        <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
-                      </Field>
-                      <Field label="Total">
-                        <TextInput value={formatMoeda(values.totalduplo || "")} inputMode="decimal" onChange={(v) => setField("totalduplo", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                  </Section>
-                </>
-              )}
-
-              {tab === "passagem" && (
-                <>
-                  <Section title="Destino & Saída">
-                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: LISBOA" />
-                    <Row2>
-                      <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" /></Field>
-                      <Field label="Tipo de voo">
-                        <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
-                      </Field>
-                    </Row2>
-                  </Section>
-                  <Section title="Datas">
-                    <Row2>
-                      <Field label="Data ida">
-                        <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
-                      </Field>
-                      <Field label="Data volta">
-                        <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
-                      </Field>
-                    </Row2>
-                  </Section>
-                  <Section title="Serviços inclusos" defaultOpen={true}>
-                    <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={3} />
-                  </Section>
-                  <Section title="Pagamento">
-                    <Row2>
-                      <Field label="Parcelas">
-                        <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
-                      </Field>
-                      <Field label="Valor parcela">
-                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                  </Section>
-                </>
-              )}
-
-              {tab === "cruzeiro" && (
-                <>
-                  <Section title="Navio">
-                    <Combobox label="Nome do navio *" value={values.navio || ""} onChange={(v) => setField("navio", v)} onBlur={onNavioBlur} loader={loadNavios} placeholder="Ex.: COSTA DELICIOZA" />
-                  </Section>
-                  <Section title="Datas">
-                    <Row2>
-                      <Field label="Embarque">
-                        <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
-                      </Field>
-                      <Field label="Desembarque">
-                        <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
-                      </Field>
-                    </Row2>
-                    {values.noites && parseInt(values.noites) > 0 && (
-                      <div className="text-[10px] text-[var(--txt3)]">
-                        Duração: <span className="font-bold text-[var(--txt2)]">{values.noites} noite{parseInt(values.noites) === 1 ? "" : "s"}</span>
-                      </div>
-                    )}
-                  </Section>
-                  <Section title="Itinerário">
-                    <Field label="Roteiro">
-                      <TextArea value={values.itinerario || ""} onChange={(v) => setField("itinerario", v)} rows={3} placeholder="Porto de Santos → Rio → Ilhabela..." />
-                    </Field>
-                    <Field label="Incluso (opcional)">
-                      <TextArea value={values.incluso || ""} onChange={(v) => setField("incluso", v)} rows={2} />
-                    </Field>
-                  </Section>
-                  <Section title="Pagamento">
-                    <Field label="Forma de pagamento">
-                      <Select
-                        value={values.formapagamento || FORMA_PGTO_OPTS[0]}
-                        onChange={(v) => setField("formapagamento", v)}
-                        options={FORMA_PGTO_OPTS}
-                      />
-                    </Field>
-                    {values.formapagamento === "Boleto" && (
-                      <Field label="Valor de entrada">
-                        <TextInput
-                          value={formatMoeda(values.entrada || "")}
-                          inputMode="decimal"
-                          onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
-                          placeholder="R$ 0,00"
-                        />
-                      </Field>
-                    )}
-                    <Row2>
-                      <Field label="Parcelas">
-                        <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
-                      </Field>
-                      <Field label="Valor parcela">
-                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                    <Row2>
-                      <Field label="% Desconto">
-                        <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
-                      </Field>
-                      <Field label="Total cruzeiro">
-                        <TextInput value={formatMoeda(values.totalcruzeiro || "")} inputMode="decimal" onChange={(v) => setField("totalcruzeiro", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                  </Section>
-                </>
-              )}
-
-              {tab === "anoiteceu" && (
-                <>
-                  <Section title="Promoção">
-                    <Field label="% Desconto">
-                      <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS.slice(1)} />
-                    </Field>
-                  </Section>
-                  <Section title="Período da campanha">
-                    <Row2>
-                      <Field label="Início">
-                        <input
-                          type="datetime-local" value={values.inicio || ""}
-                          onChange={(e) => setDateInicio(e.target.value)}
-                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
-                        />
-                      </Field>
-                      <Field label="Fim">
-                        <input
-                          type="datetime-local" value={values.fim || ""}
-                          onChange={(e) => setDateFim(e.target.value)}
-                          onBlur={blurDateFim}
-                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
-                        />
-                      </Field>
-                    </Row2>
-                    <Field label="Para viagens até">
-                      <DateInput value={values.paraviagens || ""} min={hoje} onChange={(v) => setField("paraviagens", v)} />
-                    </Field>
-                  </Section>
-                </>
-              )}
-
-              {/* Música — Stories e Reels */}
-              {(format === "stories" || format === "reels") && (
-                <div className="border-t border-[var(--bdr)] pt-4">
-                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-                    Música
-                  </label>
-                  {musicasDisponiveis.length === 0 ? (
-                    <p className="text-[11px] text-[var(--txt3)]">Nenhuma música disponível.</p>
-                  ) : (() => {
-                    const sel = musicasDisponiveis.find(m => m.id === selectedMusicaId);
-                    const fmtDur = (s: number | null) => s ? `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}` : "";
-                    const q = musicaSearch.trim().toLowerCase();
-                    const filtered = q
-                      ? musicasDisponiveis.filter(m =>
-                          m.nome.toLowerCase().includes(q) || m.artista.toLowerCase().includes(q))
-                      : musicasDisponiveis;
-                    return (
-                      <div className="relative">
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <input
-                              type="text"
-                              value={sel && !musicaOpen ? `${sel.nome} — ${sel.artista}` : musicaSearch}
-                              onChange={e => { setMusicaSearch(e.target.value); setMusicaOpen(true); }}
-                              onFocus={() => { setMusicaOpen(true); setMusicaSearch(""); }}
-                              onBlur={() => setTimeout(() => setMusicaOpen(false), 150)}
-                              placeholder="Buscar música..."
-                              className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 pr-8 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
-                            />
-                            {selectedMusicaId && (
-                              <button
-                                type="button"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setSelectedMusicaId("");
-                                  setMusicaSearch("");
-                                  if (musicaAudioRef.current) { musicaAudioRef.current.pause(); setMusicaPlaying(false); }
-                                }}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--txt3)] hover:text-[var(--red)]"
-                              >
-                                ✕
-                              </button>
-                            )}
-                            {musicaOpen && (
-                              <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] shadow-lg">
-                                <button
-                                  type="button"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    setSelectedMusicaId("");
-                                    setMusicaSearch("");
-                                    setMusicaOpen(false);
-                                    if (musicaAudioRef.current) { musicaAudioRef.current.pause(); setMusicaPlaying(false); }
-                                  }}
-                                  className="block w-full border-b border-[var(--bdr)] px-3 py-2 text-left text-[11px] italic text-[var(--txt3)] hover:bg-[var(--hover-bg)]"
-                                >
-                                  Sem música
-                                </button>
-                                {filtered.length === 0 ? (
-                                  <p className="px-3 py-2 text-[11px] text-[var(--txt3)]">Nada encontrado.</p>
-                                ) : filtered.map(m => (
-                                  <button
-                                    key={m.id}
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      setSelectedMusicaId(m.id);
-                                      setMusicaSearch("");
-                                      setMusicaOpen(false);
-                                      if (musicaAudioRef.current) { musicaAudioRef.current.pause(); setMusicaPlaying(false); }
-                                    }}
-                                    className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-[var(--hover-bg)] ${m.id === selectedMusicaId ? "bg-[var(--orange3)]" : ""}`}
-                                  >
-                                    <div className="min-w-0 flex-1">
-                                      <div className="truncate text-[12px] font-semibold text-[var(--txt)]">{m.nome}</div>
-                                      <div className="truncate text-[10px] text-[var(--txt3)]">{m.artista}</div>
-                                    </div>
-                                    <span className="shrink-0 text-[10px] font-mono text-[var(--txt3)]">{fmtDur(m.duracao_segundos)}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          {sel && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (musicaPlaying) {
-                                  musicaAudioRef.current?.pause();
-                                  setMusicaPlaying(false);
-                                } else {
-                                  if (musicaAudioRef.current) musicaAudioRef.current.pause();
-                                  const audio = new Audio(sel.cloudinary_url);
-                                  audio.currentTime = sel.inicio_segundos;
-                                  audio.play();
-                                  audio.onended = () => setMusicaPlaying(false);
-                                  musicaAudioRef.current = audio;
-                                  setMusicaPlaying(true);
-                                }
-                              }}
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--bdr)] text-[var(--txt2)] hover:bg-[var(--orange3)] hover:text-[var(--orange)]"
-                            >
-                              {musicaPlaying ? (
-                                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><rect x="3" y="2" width="4" height="12" rx="1" /><rect x="9" y="2" width="4" height="12" rx="1" /></svg>
-                              ) : (
-                                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><path d="M4 2l10 6-10 6V2z" /></svg>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                        {sel && (
-                          <p className="mt-1 text-[10px] text-[var(--txt3)]">
-                            Início em {sel.inicio_segundos}s{sel.duracao_segundos ? ` · duração ${fmtDur(sel.duracao_segundos)}` : ""}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* Legenda — só em Reels e Feed */}
-              {(format === "reels" || format === "feed") && (
-                <div className="border-t border-[var(--bdr)] pt-4">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-                      Legenda Instagram
-                    </label>
-                    <button
-                      onClick={generateCaption}
-                      disabled={generatingCaption}
-                      className="flex items-center gap-1 text-[11px] font-semibold text-[var(--orange)] hover:underline disabled:opacity-50"
-                    >
-                      {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                      Gerar IA
-                    </button>
-                  </div>
-                  <TextArea value={caption} onChange={setCaption} rows={4} placeholder="Legenda do post..." />
-                  <div className="mt-1 text-right text-[9px] text-[var(--txt3)] tabular-nums">
-                    {caption.length} / 2200
-                  </div>
-                </div>
-              )}
-
-              {/* Lojas */}
-              {publishTargets.length > 0 && (
-                <div className="border-t border-[var(--bdr)] pt-4">
-                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-                    Publicar em
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {publishTargets.map((t) => {
-                      const active = selectedTargetIds.includes(t.id);
-                      const single = publishTargets.length === 1;
-                      return (
-                        <button
-                          key={t.id} type="button"
-                          onClick={() => !single && toggleTarget(t.id)}
-                          disabled={single}
-                          className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors"
-                          style={
-                            active
-                              ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.12)", color: "var(--orange)" }
-                              : { borderColor: "var(--bdr)", color: "var(--txt3)" }
-                          }
-                        >
-                          <span
-                            className="flex h-3 w-3 items-center justify-center rounded border"
-                            style={active ? { borderColor: "var(--orange)", background: "var(--orange)" } : { borderColor: "var(--bdr2)" }}
-                          >
-                            {active && <Check size={8} />}
-                          </span>
-                          {t.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Contador diário */}
-              <DailyCounter
-                posts={postsByFormat}
-                limits={formatLimits}
-                visible={formatVisible}
-                current={format}
-                downloads={downloadsToday}
-                maxDownloads={planLimits?.max_downloads_day}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Footer com ações */}
-        <div className="shrink-0 border-t border-[var(--bdr)] bg-[var(--bg1)] p-3">
-          {(() => {
-            const limiteAtual = formatLimits[format];
-            const usadoAtual = postsByFormat[format] || 0;
-            const limiteAtingido = limiteAtual !== null && limiteAtual > 0 && usadoAtual >= limiteAtual;
-            const canShowPublish = canPublishFeature && format !== "tv";
-            const cols = 2 + (canDriveFeature ? 1 : 0); // Limpar + Download [+ Drive]
-
-            return (
-              <>
-                <div
-                  className="mb-2 grid gap-1.5"
-                  style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-                >
-                  <button
-                    onClick={limparFormulario}
-                    className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.06)] px-3 py-2 text-[11px] font-semibold text-[#EF4444] transition-colors hover:bg-[rgba(239,68,68,0.12)]"
-                  >
-                    <Trash2 size={11} /> Limpar
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    disabled={busy || !currentTemplate}
-                    className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(34,211,153,0.2)] bg-[rgba(34,211,153,0.06)] px-3 py-2 text-[11px] font-semibold text-[#22D399] transition-colors hover:bg-[rgba(34,211,153,0.12)] disabled:opacity-50"
-                  >
-                    <Download size={11} /> Download
-                  </button>
-                  {canDriveFeature && (
-                    <button
-                      disabled
-                      title="Em breve"
-                      className="flex items-center justify-center gap-1 rounded-lg border border-[rgba(59,130,246,0.2)] bg-[rgba(59,130,246,0.06)] px-3 py-2 text-[11px] font-semibold text-[#60A5FA] opacity-60"
-                    >
-                      📁 Drive
-                    </button>
-                  )}
-                </div>
-                {canShowPublish && (
-                  <button
-                    onClick={handlePublish}
-                    disabled={busy || !currentTemplate || limiteAtingido}
-                    title={limiteAtingido ? `Limite diário atingido (${usadoAtual}/${limiteAtual})` : undefined}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                    style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
-                  >
-                    {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                    {status === "uploading"
-                      ? "Enviando..."
-                      : status === "publishing"
-                        ? "Publicando..."
-                        : limiteAtingido
-                          ? "Limite atingido"
-                          : "Publicar no Instagram"}
-                  </button>
-                )}
-                {!canPublishFeature && (
-                  <div className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-center text-[10px] text-[var(--txt3)]">
-                    Publicação no Instagram não está ativa no seu plano.
-                  </div>
-                )}
-                {canPublishFeature && format === "tv" && (
-                  <div className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-center text-[10px] text-[var(--txt3)]">
-                    Formato TV é apenas para exibição local — não publica no Instagram.
-                  </div>
-                )}
-              </>
-            );
-          })()}
-          {status !== "idle" && (
-            <div
-              className="mt-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-medium"
-              style={
-                status === "success"
-                  ? { background: "var(--green3)", color: "var(--green)" }
-                  : status === "error"
-                    ? { background: "var(--red3)", color: "var(--red)" }
-                    : { background: "var(--blue3)", color: "var(--blue)" }
-              }
-            >
-              {status === "success" ? <Check size={11} /> : status === "error" ? <X size={11} /> : <Loader2 size={11} className="animate-spin" />}
-              <span className="truncate">{statusMsg}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ═══ COLUNA DIREITA — PREVIEW ═══ */}
-      <div className="card-glass relative flex flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
-          <h3 className="text-[14px] font-bold text-[var(--txt)]">Preview ao vivo</h3>
-          <div className="text-[10px] text-[var(--txt3)] tabular-nums">
-            {width}×{height}
           </div>
-        </div>
-        <div className="h-full flex flex-1 items-center justify-center p-5 overflow-hidden">
-          {currentTemplate ? (
+          <div className="h-full flex flex-1 items-center justify-center p-5 overflow-hidden">
             <div style={{ filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.18)) drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}>
-            <PreviewStage
-              key={`${tab}-${format}-${currentTemplate.key}`}
-              schema={schema}
-              width={width}
-              height={height}
-              values={values}
-              maxDisplay={Math.round((typeof window !== "undefined" ? window.innerHeight : 900) * 0.82)}
-              onReady={(s) => { stageRef.current = s; }}
-            />
+              <PreviewStage
+                schema={selected.schema}
+                width={selected.width}
+                height={selected.height}
+                values={values}
+                maxDisplay={Math.round((typeof window !== "undefined" ? window.innerHeight : 900) * 0.82)}
+                onReady={(s) => { stageRef.current = s; }}
+              />
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2 text-center">
-              <ImageIcon size={32} className="text-[var(--txt3)]" />
-              <div className="text-[12px] text-[var(--txt3)]">
-                Sem template {FORM_LABELS[tab]} / {FORMAT_LABELS[format]}
-              </div>
-            </div>
-          )}
-        </div>
-        {/* Format pills flutuantes */}
-        <div className="pointer-events-none absolute bottom-5 left-0 right-0 flex justify-center">
-          <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg1)] p-1 shadow-xl">
-            {(Object.keys(FORMAT_LABELS) as Format[]).map((f) => {
-              const active = format === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setFormat(f)}
-                  className="rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
-                  style={
-                    active
-                      ? { background: "#D4A843", color: "#060B16" }
-                      : { color: "var(--txt3)" }
-                  }
-                >
-                  {FORMAT_LABELS[f]}
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ── Sub-components ──────────────────────────────── */
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function Row2({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-2">{children}</div>;
-}
-
-function Section({
-  title,
-  defaultOpen = true,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="overflow-hidden rounded-xl border border-[var(--bdr)] bg-[var(--bg2)]">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-[var(--hover-bg)]"
-      >
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--txt2)]">
-          {title}
-        </span>
-        <ChevronDown
-          size={13}
-          className="text-[var(--txt3)] transition-transform"
-          style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}
-        />
-      </button>
-      {open && (
-        <div className="flex flex-col gap-3 border-t border-[var(--bdr)] p-3">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TextInput({
-  value, onChange, placeholder, inputMode, onBlur,
-}: {
-  value: string; onChange: (v: string) => void;
-  placeholder?: string; inputMode?: "text" | "numeric" | "decimal"; onBlur?: () => void;
-}) {
-  return (
-    <input
-      type="text"
-      inputMode={inputMode}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={onBlur}
-      placeholder={placeholder}
-      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
-    />
-  );
-}
-
-function TextArea({
-  value, onChange, rows = 3, placeholder,
-}: { value: string; onChange: (v: string) => void; rows?: number; placeholder?: string }) {
-  return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      rows={rows}
-      placeholder={placeholder}
-      className="w-full resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
-    />
-  );
-}
-
-function DateInput({
-  value, onChange, min, onBlur,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  min?: string;
-  onBlur?: () => void;
-}) {
-  return (
-    <input
-      type="date"
-      value={value}
-      min={min}
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={onBlur}
-      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
-    />
-  );
-}
-
-function Select({
-  value, onChange, options,
-}: { value: string; onChange: (v: string) => void; options: string[] }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
-    >
-      {options.map((o) => <option key={o} value={o}>{o || "— nenhum —"}</option>)}
-    </select>
-  );
-}
-
-function BadgeBtn({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button" onClick={onClick}
-      className="rounded-md border px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors"
-      style={
-        on
-          ? { borderColor: "#D4A843", background: "rgba(212,168,67,0.12)", color: "#D4A843" }
-          : { borderColor: "var(--bdr)", color: "var(--txt3)" }
-      }
-    >
-      {label}
-    </button>
-  );
-}
-
-function ServicosBlock({
-  values, setField, setBadge, count,
-}: {
-  values: Record<string, string>;
-  setField: (k: string, v: string) => void;
-  setBadge: (k: string, v: boolean) => void;
-  count: number;
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-        Serviços inclusos
-      </label>
-      <div className="flex flex-col gap-1">
-        {Array.from({ length: count }, (_, i) => i + 1).map((n) => {
-          const key = `servico${n}`;
-          return (
-            <div key={key} className="flex items-center gap-2">
-              <span className="w-4 text-[9px] font-bold tabular-nums text-[var(--txt3)]">{n}.</span>
-              <input
-                type="text"
-                value={values[key] || ""}
-                onChange={(e) => setField(key, e.target.value)}
-                onBlur={(e) => {
-                  const v = applyServico(e.target.value);
-                  setField(key, v);
-                  if (isAllInclusive(v)) setBadge("all_inclusive_badge", true);
-                }}
-                placeholder={`Serviço ${n}`}
-                className="h-7 flex-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
-              />
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function DailyCounter({
-  posts, limits, visible, current, downloads, maxDownloads,
-}: {
-  posts: PostsByFormat;
-  limits: FormatLimits;
-  visible: FormatVisibility;
-  current: Format;
-  downloads: number;
-  maxDownloads: number | null | undefined;
-}) {
-  // Combina feed+reels em uma única barra
-  type Row = { label: string; count: number; max: number | null; keys: Format[] };
-  const rows: Row[] = [];
-
-  if (visible.stories) rows.push({ label: "Stories", count: posts.stories || 0, max: limits.stories, keys: ["stories"] });
-  if (visible.feed || visible.reels) {
-    const feedReelsCount = (posts.feed || 0) + (posts.reels || 0);
-    const feedMax = limits.feed;
-    const reelsMax = limits.reels;
-    const combinedMax = feedMax !== null && reelsMax !== null ? feedMax + reelsMax : feedMax ?? reelsMax;
-    rows.push({ label: "Feed/Reels", count: feedReelsCount, max: combinedMax, keys: ["feed", "reels"] });
-  }
-  if (visible.tv) rows.push({ label: "TV", count: posts.tv || 0, max: limits.tv, keys: ["tv"] });
-
-  // Downloads
-  const dlMax = maxDownloads ?? null;
-  rows.push({ label: "Downloads", count: downloads, max: dlMax, keys: [] });
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div className="border-t border-[var(--bdr)] pt-4">
-      <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-        Posts de hoje
-      </label>
-      <div className="flex flex-col gap-1.5">
-        {rows.map(({ label, count, max, keys }) => {
-          const unlimited = max === null;
-          const pct = !unlimited && max && max > 0 ? Math.min(100, (count / max) * 100) : 0;
-          const danger = !unlimited && max !== null && count >= max;
-          const warn = !unlimited && max !== null && max > 0 && count >= max * 0.8;
-          const isActive = keys.includes(current);
-          return (
-            <div key={label} className="flex items-center gap-2">
-              <span className="w-16 text-[9px] font-bold uppercase text-[var(--txt3)]">{label}</span>
-              <div className="flex-1 h-[3px] overflow-hidden rounded-full bg-[var(--bg2)]">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: unlimited ? "0%" : `${pct}%`,
-                    background: danger ? "var(--red)" : warn ? "#F59E0B" : "var(--gold)",
-                  }}
-                />
-              </div>
-              <span
-                className="w-14 text-right text-[9px] font-bold tabular-nums"
-                style={{ color: danger ? "var(--red)" : "var(--txt3)" }}
-              >
-                {unlimited ? `${count} ∞` : `${count}/${max}`}
-              </span>
-              {isActive && <span className="h-1.5 w-1.5 rounded-full bg-[var(--orange)]" />}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* ── Combobox (autocomplete) ─────────────────────── */
-
-function Combobox({
-  label, value, onChange, onBlur, loader, placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  /** Recebe `freshValue` quando vem de um select da lista (evita stale closure). */
-  onBlur?: (freshValue?: string) => void;
-  loader: () => Promise<string[]>;
-  placeholder?: string;
-}) {
-  const [items, setItems] = useState<string[]>([]);
-  const [open, setOpen] = useState(false);
-  const [focused, setFocused] = useState(-1);
-  const [ddPos, setDdPos] = useState<{ top: number; left: number; width: number; openAbove: boolean } | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  async function loadOnce() {
-    if (items.length > 0) return;
-    const list = await loader();
-    setItems(list);
-  }
-
-  const filtered = useMemo(() => {
-    const q = value.trim().toLowerCase();
-    if (!q) return items.slice(0, 60);
-    return items.filter((i) => {
-      const il = i.toLowerCase();
-      return il.startsWith(q) || il.split(" ").some((w) => w.startsWith(q));
-    }).slice(0, 60);
-  }, [items, value]);
-
-  const updatePosition = useCallback(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - r.bottom - 12;
-    const openAbove = spaceBelow < 200 && r.top > 220;
-    setDdPos({
-      top: openAbove ? r.top - 4 : r.bottom + 4,
-      left: r.left,
-      width: Math.max(r.width, 220),
-      openAbove,
-    });
-  }, []);
-
-  // Atualiza posição ao abrir + em scroll/resize
-  useEffect(() => {
-    if (!open) return;
-    updatePosition();
-    const onScroll = () => updatePosition();
-    const onResize = () => updatePosition();
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [open, updatePosition]);
-
-  // Click fora fecha
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      const el = inputRef.current;
-      if (!el) return;
-      const target = e.target as Node;
-      if (el.contains(target)) return;
-      // Checa se clicou dentro do dropdown (que está em body via position fixed)
-      const dd = document.getElementById("ah-combobox-dd");
-      if (dd && dd.contains(target)) return;
-      setOpen(false);
-    }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
-
-  function select(v: string) {
-    onChange(v);
-    setOpen(false);
-    setFocused(-1);
-    // Passa o valor fresco — não depende do closure de `values` do caller
-    setTimeout(() => onBlur?.(v), 0);
-  }
-
-  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!open) return;
-    if (e.key === "ArrowDown") { e.preventDefault(); setFocused((f) => Math.min(f + 1, filtered.length - 1)); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); setFocused((f) => Math.max(f - 1, 0)); }
-    else if (e.key === "Enter" && focused >= 0) { e.preventDefault(); select(filtered[focused]); }
-    else if (e.key === "Escape") setOpen(false);
-  }
-
-  return (
-    <div className="relative">
-      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-        {label}
-      </label>
-      <div className="relative">
-        <SearchIcon size={12} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--txt3)]" />
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={(e) => { onChange(e.target.value); setOpen(true); loadOnce(); }}
-          onFocus={() => { loadOnce(); setOpen(true); }}
-          onBlur={() => { setTimeout(() => { setOpen(false); onBlur?.(); }, 180); }}
-          onKeyDown={onKey}
-          placeholder={placeholder}
-          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-7 pr-3 text-[11.5px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
-        />
-      </div>
-      {open && filtered.length > 0 && ddPos && (
-        <div
-          id="ah-combobox-dd"
-          className="overflow-y-auto rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] shadow-2xl"
-          style={{
-            position: "fixed",
-            top: ddPos.openAbove ? "auto" : ddPos.top,
-            bottom: ddPos.openAbove ? window.innerHeight - ddPos.top : "auto",
-            left: ddPos.left,
-            width: ddPos.width,
-            maxHeight: 280,
-            zIndex: 9999,
-          }}
-        >
-          {filtered.map((it, i) => (
-            <div
-              key={it}
-              onMouseDown={(e) => { e.preventDefault(); select(it); }}
-              className="cursor-pointer truncate px-3 py-1.5 text-[12px] transition-colors"
-              style={
-                focused === i
-                  ? { background: "rgba(255,122,26,0.12)", color: "var(--orange)" }
-                  : { color: "var(--txt2)" }
-              }
-            >
-              {it}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 }
