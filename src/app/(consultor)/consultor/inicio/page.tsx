@@ -6,7 +6,7 @@ import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
 import {
-  CalendarDays,
+  CalendarDays, Send, BarChart3,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
 
@@ -127,6 +127,8 @@ export default function VendedorInicioPage() {
   const [noticias, setNoticias] = useState<Noticia[]>([]);
 
   const [dbFeriados, setDbFeriados] = useState<DataComemorativa[]>([]);
+  const [postsHoje, setPostsHoje] = useState(0);
+  const [postsMes, setPostsMes] = useState(0);
 
   /* ── Load profile, posts, quote, weather ─────── */
   const loadData = useCallback(async () => {
@@ -175,6 +177,26 @@ export default function VendedorInicioPage() {
       if (w.ok) {
         const d = await w.json();
         if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code });
+      }
+
+      // Posts hoje / mês do consultor (filtrado por user_id no metadata)
+      if (p?.id) {
+        const inicioDia = new Date(); inicioDia.setHours(0, 0, 0, 0);
+        const inicioMes = new Date(inicioDia.getFullYear(), inicioDia.getMonth(), 1);
+        try {
+          const [hojeRes, mesRes] = await Promise.all([
+            supabase.from("activity_logs").select("id, metadata")
+              .gte("created_at", inicioDia.toISOString())
+              .in("event_type", ["post_instagram", "post_scheduled"]),
+            supabase.from("activity_logs").select("id, metadata")
+              .gte("created_at", inicioMes.toISOString())
+              .in("event_type", ["post_instagram", "post_scheduled"]),
+          ]);
+          const mine = (rows: { metadata: Record<string, unknown> | null }[] | null) =>
+            (rows ?? []).filter((l) => l.metadata?.user_id === p.id).length;
+          setPostsHoje(mine(hojeRes.data));
+          setPostsMes(mine(mesRes.data));
+        } catch { /* silent */ }
       }
 
       // Datas comemorativas próximos 14 dias (tabela datas_comemorativas)
@@ -305,6 +327,40 @@ export default function VendedorInicioPage() {
                 {cityName}
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ KPIs — Posts de Hoje / Mês ═══ */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="card-glass flex items-center gap-4 px-5 py-5">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
+            style={{ background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))", border: "1px solid rgba(255,255,255,0.08)" }}
+          >
+            <Send size={22} />
+          </div>
+          <div>
+            <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts de hoje</div>
+            <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)] tabular-nums">
+              {postsHoje}
+            </div>
+            <div className="mt-1 text-[11px] text-[var(--txt3)]">Suas publicações</div>
+          </div>
+        </div>
+        <div className="card-glass flex items-center gap-4 px-5 py-5">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--blue)]"
+            style={{ background: "var(--blue3)", border: "1px solid rgba(255,255,255,0.08)" }}
+          >
+            <BarChart3 size={22} />
+          </div>
+          <div>
+            <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts do mês</div>
+            <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)] tabular-nums">
+              {postsMes}
+            </div>
+            <div className="mt-1 text-[11px] text-[var(--txt3)]">Suas publicações</div>
           </div>
         </div>
       </div>
