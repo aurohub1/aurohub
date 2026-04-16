@@ -6,6 +6,7 @@ import type Konva from "konva";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import type { EditorSchema, EditorElement } from "@/components/editor/types";
+import PubTypeAndSchedule, { type PubType, type ScheduleMode } from "@/components/PubTypeAndSchedule";
 import {
   Sparkles, Download, Send, ArrowLeft, Image as ImageIcon, Check, X, Loader2,
 } from "lucide-react";
@@ -152,6 +153,9 @@ export default function GerentePublicarPage() {
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loadingTpl, setLoadingTpl] = useState(true);
   const [selected, setSelected] = useState<TemplateRow | null>(null);
+  const [pubType, setPubType] = useState<PubType>("feed");
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("now");
+  const [scheduledAt, setScheduledAt] = useState("");
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [caption, setCaption] = useState<string>("");
@@ -625,6 +629,13 @@ export default function GerentePublicarPage() {
               />
             </div>
 
+            {/* Tipo + Agendamento */}
+            <PubTypeAndSchedule
+              pubType={pubType} onPubTypeChange={setPubType}
+              scheduleMode={scheduleMode} onScheduleModeChange={setScheduleMode}
+              scheduledAt={scheduledAt} onScheduledAtChange={setScheduledAt}
+            />
+
             {/* Destinos de publicação */}
             {publishTargets.length > 0 && (
               <div className="mt-2 flex flex-col gap-2 border-t border-[var(--bdr)] pt-4">
@@ -684,7 +695,7 @@ export default function GerentePublicarPage() {
                 className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white shadow-lg disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
               >
-                <Send size={13} /> Publicar
+                <Send size={13} /> {scheduleMode === "schedule" ? "✦ Agendar" : "✦ Publicar"}
               </button>
             </div>
 

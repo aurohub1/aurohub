@@ -284,6 +284,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
       { label: "Publicar", href: "/gerente/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
       { label: "Suporte", href: "/gerente/suporte", icon: I.support },
     ],
@@ -296,6 +297,7 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/consultor/inicio", icon: I.home },
       { label: "Templates", href: "/consultor/templates", icon: I.templates, feature: "templates" },
+      { label: "Agendamentos", href: "/consultor/agendamentos", icon: I.calendar },
       { label: "Suporte", href: "/consultor/suporte", icon: I.support },
     ],
   },
