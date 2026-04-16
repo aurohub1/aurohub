@@ -39,6 +39,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ lice
 html[data-theme="dark"] {
   --brand-primary: ${accent};
   --brand-secondary: ${accent2};
+  --brand-gradient: linear-gradient(135deg, ${accent}, ${accent2});
   --orange: ${accent};
   --orange2: ${accent2};
   --orange3: ${accent}1f;
@@ -58,6 +59,7 @@ html[data-theme="dark"] {
 html[data-theme="light"] {
   --brand-primary: ${accent};
   --brand-secondary: ${accent2};
+  --brand-gradient: linear-gradient(135deg, ${accent}, ${accent2});
   --orange: ${accent};
   --orange2: ${accent2};
   --orange3: ${accent}1f;
