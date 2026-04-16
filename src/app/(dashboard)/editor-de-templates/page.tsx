@@ -8,13 +8,17 @@ import { uploadToCloudinary } from "@/lib/cloudinary";
 interface CanvasTemplate {
   key: string;
   displayName: string;
+  nome: string;
   format: string;
   formType: string;
+  segmento: string;
   updatedAt: string | null;
   licenseeNome: string;
   lojaNome: string;
   thumbnail: string | null;
 }
+
+const SEGMENTOS = ["Turismo", "Eventos", "Gastronomia", "Imobiliário", "Saúde", "Educação", "Geral"];
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -110,6 +114,29 @@ export default function EditorTemplatesPage() {
   const [canvasLoading, setCanvasLoading] = useState(true);
   const [thumbUploadingKey, setThumbUploadingKey] = useState<string | null>(null);
 
+  async function persistField(key: string, field: string, value: string) {
+    const { data: row } = await supabase
+      .from("system_config")
+      .select("value")
+      .eq("key", key)
+      .single();
+    const current = row?.value ? JSON.parse(row.value) : {};
+    current[field] = value;
+    await supabase
+      .from("system_config")
+      .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
+  }
+
+  async function saveNome(key: string, nome: string) {
+    await persistField(key, "nome", nome);
+    setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, nome } : t)));
+  }
+
+  async function saveSegmento(key: string, segmento: string) {
+    await persistField(key, "segmento", segmento);
+    setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, segmento } : t)));
+  }
+
   async function persistThumb(key: string, url: string) {
     const { data: row } = await supabase
       .from("system_config")
@@ -174,11 +201,13 @@ export default function EditorTemplatesPage() {
         .like("key", "tmpl_%")
         .order("updated_at", { ascending: false });
       const list: CanvasTemplate[] = (data || []).map((r: { key: string; value: string; updated_at: string }) => {
-        let format = "—", formType = "—", licenseeNome = "Sem marca", lojaNome = "Sem loja", thumbnail: string | null = null;
+        let nome = "", format = "—", formType = "—", segmento = "Geral", licenseeNome = "Sem marca", lojaNome = "Sem loja", thumbnail: string | null = null;
         try {
           const parsed = JSON.parse(r.value);
+          nome = parsed.nome || "";
           format = parsed.format || "—";
           formType = parsed.formType || "—";
+          segmento = parsed.segmento || "Geral";
           licenseeNome = parsed.licenseeNome || "Sem marca";
           lojaNome = parsed.lojaNome || "Sem loja";
           thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null;
@@ -186,8 +215,10 @@ export default function EditorTemplatesPage() {
         return {
           key: r.key,
           displayName: r.key.replace(/^tmpl_/, ""),
+          nome,
           format,
           formType,
+          segmento,
           updatedAt: r.updated_at,
           licenseeNome,
           lojaNome,
@@ -523,7 +554,24 @@ export default function EditorTemplatesPage() {
                                   </div>
                                 )}
                                 <div className="px-4 py-3">
-                                  <div className="truncate text-[13px] font-bold text-[var(--txt)]" title={t.displayName}>{t.displayName}</div>
+                                  {/* Nome editável */}
+                                  <input
+                                    type="text"
+                                    defaultValue={t.nome || t.displayName}
+                                    onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.nome) saveNome(t.key, v); }}
+                                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                                    className="w-full truncate border-b border-transparent bg-transparent text-[13px] font-bold text-[var(--txt)] outline-none hover:border-[var(--bdr)] focus:border-[var(--orange)]"
+                                    title={t.nome || t.displayName}
+                                  />
+
+                                  {/* Segmento */}
+                                  <select
+                                    value={t.segmento}
+                                    onChange={(e) => saveSegmento(t.key, e.target.value)}
+                                    className="mt-1 w-full rounded bg-[var(--bg2)] px-1.5 py-0.5 text-[10px] text-[var(--txt2)] outline-none focus:ring-1 focus:ring-[var(--orange)]"
+                                  >
+                                    {SEGMENTOS.map((s) => <option key={s} value={s}>{s}</option>)}
+                                  </select>
 
                                   {/* Thumb — upload ou capturar */}
                                   <div className="mt-1.5 flex items-center gap-3">
