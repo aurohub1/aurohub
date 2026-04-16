@@ -174,15 +174,22 @@ export default function ClienteUsuariosPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => !limitReached && setCreating(true)}
-            disabled={limitReached}
-            title={limitReached ? "Limite do plano atingido" : "Criar novo usuário"}
-            className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-            style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
-          >
-            <Plus size={15} /> Novo usuário
-          </button>
+          <div className="group relative">
+            <button
+              onClick={() => !limitReached && setCreating(true)}
+              disabled={limitReached}
+              className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+              style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+            >
+              <Plus size={15} /> Novo usuário
+            </button>
+            {limitReached && (
+              <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-800 px-3 py-1.5 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                Limite de usuários do plano atingido
+                <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
