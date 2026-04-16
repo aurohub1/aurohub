@@ -45,7 +45,6 @@ export default function Topbar() {
       })
     );
 
-    const h = new Date().getHours();
     setGreeting(h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite");
 
     supabase.auth.getUser().then(({ data }) => {

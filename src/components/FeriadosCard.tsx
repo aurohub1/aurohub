@@ -126,7 +126,7 @@ export default function FeriadosCard({ feriados }: { feriados: FeriadoItem[] }) 
             return (
               <div
                 key={f.data + f.nome}
-                className="flex items-center gap-3 rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 transition-colors hover:border-[rgba(59,130,246,0.4)]"
+                className="flex items-center gap-3 rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 transition-shadow duration-200 hover:shadow-md hover:border-[rgba(59,130,246,0.4)]"
               >
                 <div
                   className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg text-white"
