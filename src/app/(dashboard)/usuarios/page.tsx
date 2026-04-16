@@ -198,11 +198,26 @@ export default function UsuariosPage() {
         avatar_url: form.avatar_url || null,
       };
 
+      // Dados extras das abas Lojas & Acesso + Limites
+      const extras = {
+        store_ids: form.store_ids,
+        landing: form.landing,
+        ai: form.ai,
+        metrics: form.metrics,
+        transmissao: form.transmissao,
+        plan: form.plan || null,
+        stories_limit: form.stories_limit,
+        feed_limit: form.feed_limit,
+        reels_limit: form.reels_limit,
+        tv_limit: form.tv_limit,
+        password: newPassword || undefined,
+      };
+
       if (editId) {
         const res = await fetch("/api/admin/users", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: editId, profile }),
+          body: JSON.stringify({ id: editId, profile, extras }),
         });
         const data = await res.json();
         if (!res.ok) { setModalError(data.error || "Erro ao atualizar"); setSaving(false); return; }
@@ -224,6 +239,8 @@ export default function UsuariosPage() {
       // Fecha modal, limpa estado e recarrega lista
       setEditOpen(false);
       setEditId(null);
+      setNewPassword("");
+      setPasswordMsg("");
       await loadData();
     } catch (err) { console.error("[handleSave]", err); setModalError("Erro ao salvar."); } finally { setSaving(false); }
   }

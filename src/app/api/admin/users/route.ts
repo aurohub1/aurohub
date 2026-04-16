@@ -144,7 +144,23 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, profile } = body as { id: string; profile: Record<string, unknown> };
+    const { id, profile, extras } = body as {
+      id: string;
+      profile: Record<string, unknown>;
+      extras?: {
+        store_ids?: string[];
+        landing?: string;
+        ai?: boolean;
+        metrics?: boolean;
+        transmissao?: boolean;
+        plan?: string | null;
+        stories_limit?: string;
+        feed_limit?: string;
+        reels_limit?: string;
+        tv_limit?: string;
+        password?: string;
+      };
+    };
     if (!id || !profile) return NextResponse.json({ error: "id e profile obrigatórios" }, { status: 400 });
 
     // Escopo do cliente: só pode editar usuários do próprio licensee e manter roles permitidas
@@ -192,6 +208,31 @@ export async function PATCH(req: NextRequest) {
 
     const { error } = await sb.from("profiles").update(profile).eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Processar extras (apenas ADM pode salvar tudo; outros roles ignoram)
+    if (extras && caller.role === "adm") {
+      // Múltiplas lojas: salvar em user_stores (delete + insert)
+      if (extras.store_ids && extras.store_ids.length > 0) {
+        await sb.from("user_stores").delete().eq("user_id", id);
+        const rows = extras.store_ids.filter(Boolean).map(sid => ({ user_id: id, store_id: sid }));
+        if (rows.length > 0) await sb.from("user_stores").insert(rows);
+      }
+
+      // Metadados extras em profiles (se colunas existirem)
+      const meta: Record<string, unknown> = {};
+      if (extras.landing !== undefined) meta.landing = extras.landing;
+      if (extras.plan !== undefined) meta.plan = extras.plan;
+      if (Object.keys(meta).length > 0) {
+        await sb.from("profiles").update(meta).eq("id", id);
+      }
+
+      // Senha
+      if (extras.password && extras.password.length >= 6) {
+        const { error: pwErr } = await sb.auth.admin.updateUserById(id, { password: extras.password });
+        if (pwErr) console.warn("[admin/users] password update:", pwErr.message);
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[admin/users]", err);
