@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type Role = "adm" | "cliente" | "unidade" | "gerente" | "vendedor";
+export type Role = "adm" | "operador" | "cliente" | "unidade" | "gerente" | "vendedor";
 
 export interface ProfileLicensee {
   id: string;
@@ -135,6 +135,7 @@ export function canIA(profile: FullProfile | null): boolean {
 export function homeForRole(role: Role | string | null): string {
   switch (role) {
     case "adm": return "/inicio";
+    case "operador": return "/operador/inicio";
     case "cliente": return "/cliente/inicio";
     case "unidade": return "/unidade/inicio";
     case "gerente": return "/gerente/inicio";

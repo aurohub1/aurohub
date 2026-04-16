@@ -28,6 +28,7 @@ const ADM_ROUTES = [
   "/editor-landing",
   "/calculadora",
 ];
+const OPERADOR_PREFIX = "/operador";
 const CLIENTE_PREFIX = "/cliente";
 const UNIDADE_PREFIX = "/unidade";
 const GERENTE_PREFIX = "/gerente";
@@ -44,6 +45,7 @@ function isAdmRoute(pathname: string): boolean {
 function homeForRole(role: string | null): string {
   switch (role) {
     case "adm": return "/inicio";
+    case "operador": return "/operador/inicio";
     case "cliente": return "/cliente/inicio";
     case "unidade": return "/unidade/inicio";
     case "gerente": return "/gerente/inicio";
@@ -61,6 +63,11 @@ function homeForRole(role: string | null): string {
  */
 function isAllowed(role: string, pathname: string): boolean {
   if (role === "adm") return true;
+
+  if (role === "operador") {
+    // Operador acessa apenas /operador/* — nunca ADM routes
+    return pathname.startsWith(OPERADOR_PREFIX);
+  }
 
   if (isAdmRoute(pathname)) return false;
 

@@ -192,7 +192,7 @@ export default function LoginPage() {
           || "você";
         const role = profile?.role ?? null;
         const home = homeForRole(role);
-        const splashRoles = ["adm", "cliente", "unidade", "gerente", "vendedor"];
+        const splashRoles = ["adm", "operador", "cliente", "unidade", "gerente", "vendedor"];
         const canShowSplash = role !== null && splashRoles.includes(role);
 
         if (!canShowSplash) {

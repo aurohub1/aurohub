@@ -296,11 +296,25 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
   },
 ];
 
+export const OPERADOR_SECTIONS: NavSection[] = [
+  {
+    title: "Operações",
+    items: [
+      { label: "Início", href: "/operador/inicio", icon: I.home },
+      { label: "Clientes", href: "/operador/clientes", icon: I.stores },
+      { label: "Usuários", href: "/operador/usuarios", icon: I.users },
+      { label: "Logs", href: "/operador/logs", icon: I.settings },
+      { label: "Métricas", href: "/operador/metricas", icon: I.metrics },
+    ],
+  },
+];
+
 /* ── Role badge label ────────────────────────────── */
 
 function roleBadgeLabel(role: string): string {
   const map: Record<string, string> = {
     adm: "ADM RAIZ",
+    operador: "OPERADOR",
     cliente: "CLIENTE",
     unidade: "UNIDADE",
     gerente: "GERENTE",

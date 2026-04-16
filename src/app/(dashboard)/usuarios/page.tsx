@@ -21,6 +21,7 @@ type ModalTab = "dados" | "acesso" | "limites" | "senha";
 const ROLE_MAP: Record<string, { label: string; color: string }> = {
   adm:      { label: "ADM",       color: "#D4A843" },
   cliente:  { label: "Cliente",   color: "#3B82F6" },
+  operador: { label: "Operador",  color: "#F59E0B" },
   unidade:  { label: "Unidade",   color: "#22C55E" },
   gerente:  { label: "Gerente",   color: "#14B8A6" },
   vendedor: { label: "Consultor",  color: "#A78BFA" },
@@ -465,6 +466,7 @@ export default function UsuariosPage() {
                     <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Nível</label>
                     <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none">
                       <option value="cliente">Cliente</option>
+                      <option value="operador">Operador</option>
                       <option value="unidade">Unidade</option>
                       <option value="gerente">Gerente</option>
                       <option value="vendedor">Consultor</option>
