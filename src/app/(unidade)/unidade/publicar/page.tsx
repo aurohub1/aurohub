@@ -434,25 +434,18 @@ export default function UnidadePublicarPage() {
             <div className="text-[11px] text-[var(--txt3)]">Entre em contato com o administrador.</div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {templates.map((t) => (
-              <button
+              <div
                 key={t.key}
-                onClick={() => pickTemplate(t)}
-                className="card-glass group flex flex-col overflow-hidden text-left transition-transform hover:-translate-y-0.5"
+                className="group flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] transition-transform hover:-translate-y-0.5"
               >
-                <div
-                  className="relative w-full overflow-hidden border-b border-[var(--bdr)]"
-                  style={{ height: 140 }}
-                >
+                <div className="relative w-full overflow-hidden" style={{ height: 160 }}>
                   {t.thumbnail ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={t.thumbnail} alt={t.nome} className="h-full w-full object-cover" />
                   ) : (
-                    <div
-                      className="flex h-full w-full items-center justify-center"
-                      style={{ background: "#1E3A6E" }}
-                    >
+                    <div className="flex h-full w-full items-center justify-center" style={{ background: "#1E3A6E" }}>
                       <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/85">
                         {(t.format || "—").toUpperCase()}
                       </span>
@@ -462,28 +455,26 @@ export default function UnidadePublicarPage() {
                     {FORMAT_LABELS[t.format] || t.format}
                   </span>
                 </div>
-                <div className="flex flex-1 flex-col gap-2 p-2.5">
-                  <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={t.nome}>
+                <div className="flex flex-1 flex-col gap-2 p-3">
+                  <h3 className="truncate text-[13px] font-semibold text-[var(--txt)]" title={t.nome}>
                     {t.nome}
                   </h3>
                   <div className="flex flex-wrap items-center gap-1">
                     <span
-                      className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
+                      className="rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
                       style={{ background: "var(--orange3)", color: "var(--orange)" }}
                     >
                       {t.formType}
                     </span>
                   </div>
                 </div>
-
-                {/* Usar */}
-                <div
-                  className="w-full py-2 text-center text-[12px] font-semibold text-white"
-                  style={{ background: "linear-gradient(90deg, #3B82F6, #D4A843)" }}
+                <button
+                  onClick={() => pickTemplate(t)}
+                  className="w-full rounded-b-xl py-2 text-[12px] font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#D4A843]"
                 >
                   ✦ Usar
-                </div>
-              </button>
+                </button>
+              </div>
             ))}
           </div>
         )}

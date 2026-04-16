@@ -221,7 +221,7 @@ export default function VendedorTemplatesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filtered.map((t) => (
             <TemplateCard key={t.key} tpl={t} onUse={() => useTemplate(t.id)} />
           ))}
@@ -264,36 +264,25 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
   const fMeta = formatMeta(tpl.format);
 
   return (
-    <div className="card-glass group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5">
-      {/* Thumbnail — altura fixa menor, object-cover mantém proporção */}
-      <div
-        className="relative w-full overflow-hidden border-b border-[var(--bdr)]"
-        style={{ height: 140 }}
-      >
+    <div className="group flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] transition-transform hover:-translate-y-0.5">
+      <div className="relative w-full overflow-hidden" style={{ height: 160 }}>
         {tpl.thumbnail ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={tpl.thumbnail} alt={tpl.nome} className="h-full w-full object-cover" />
         ) : (
-          <div
-            className="flex h-full w-full items-center justify-center"
-            style={{ background: "#1E3A6E" }}
-          >
+          <div className="flex h-full w-full items-center justify-center" style={{ background: "#1E3A6E" }}>
             <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/85">
               {(tpl.format || "—").toUpperCase()}
             </span>
           </div>
         )}
-
-        {/* Formato badge (sobreposto) */}
         <span className="absolute right-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
           {fMeta.label}
         </span>
       </div>
-
-      {/* Body */}
-      <div className="flex flex-1 flex-col gap-2 p-2.5">
+      <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="min-w-0">
-          <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={tpl.nome}>
+          <h3 className="truncate text-[13px] font-semibold text-[var(--txt)]" title={tpl.nome}>
             {tpl.nome}
           </h3>
           <div className="mt-0.5 flex items-center gap-1 text-[9px] text-[var(--txt3)]">
@@ -301,24 +290,21 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
             {formatDate(tpl.updatedAt)}
           </div>
         </div>
-
         <div className="flex flex-wrap items-center gap-1">
           <span
-            className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
+            className="rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
             style={{ background: `${tMeta.color}22`, color: tMeta.color }}
           >
             {tMeta.label}
           </span>
         </div>
-
-        <button
-          onClick={onUse}
-          className="mt-auto flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
-          style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
-        >
-          <Sparkles size={11} /> Usar
-        </button>
       </div>
+      <button
+        onClick={onUse}
+        className="w-full rounded-b-xl py-2 text-[12px] font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#D4A843]"
+      >
+        ✦ Usar
+      </button>
     </div>
   );
 }
