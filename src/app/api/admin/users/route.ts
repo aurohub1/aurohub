@@ -209,15 +209,17 @@ export async function PATCH(req: NextRequest) {
     const { error } = await sb.from("profiles").update(profile).eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Processar extras (apenas ADM pode salvar tudo; outros roles ignoram)
-    if (extras && caller.role === "adm") {
+    // Processar extras (ADM e operador podem salvar extras)
+    if (extras && (caller.role === "adm" || caller.role === "operador")) {
       // Múltiplas lojas: salvar em user_stores (delete + insert)
       if (extras.store_ids && extras.store_ids.length > 0) {
         try {
           await sb.from("user_stores").delete().eq("user_id", id);
           const rows = extras.store_ids.filter(Boolean).map(sid => ({ user_id: id, store_id: sid }));
-          if (rows.length > 0) await sb.from("user_stores").insert(rows);
-        } catch (e) { console.warn("[admin/users] user_stores:", e); }
+          if (rows.length > 0) {
+            await sb.from("user_stores").insert(rows);
+          }
+        } catch (e) { console.warn("[PATCH] user_stores exception:", e); }
       }
 
       // Permissões individuais via licensee_feature_overrides
@@ -239,7 +241,7 @@ export async function PATCH(req: NextRequest) {
       // Senha
       if (extras.password && extras.password.length >= 6) {
         const { error: pwErr } = await sb.auth.admin.updateUserById(id, { password: extras.password });
-        if (pwErr) console.warn("[admin/users] password update:", pwErr.message);
+        if (pwErr) console.warn("[admin/users] password:", pwErr.message);
       }
     }
 
