@@ -311,14 +311,13 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
           </span>
         </div>
 
-        <button
-          onClick={onUse}
-          className="mt-auto flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
-          style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
-        >
-          <Sparkles size={11} /> Usar
-        </button>
       </div>
+      <button
+        onClick={onUse}
+        style={{ width: "100%", padding: 7, fontSize: 11, fontWeight: 600, color: "#fff", background: "linear-gradient(to right, var(--brand-primary), var(--brand-secondary))", border: "none", borderRadius: "0 0 12px 12px", cursor: "pointer" }}
+      >
+        ✦ Usar
+      </button>
     </div>
   );
 }
