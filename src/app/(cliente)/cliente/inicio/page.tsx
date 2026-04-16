@@ -486,10 +486,10 @@ export default function ClienteInicioPage() {
           </div>
           <div>
             <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts do mês</div>
-            <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)] tabular-nums">
+            <div className="font-[family-name:var(--font-dm-serif)] text-4xl font-bold leading-none text-[var(--txt)] tabular-nums">
               {postsMes}
             </div>
-            <div className="mt-1 text-[11px] text-[var(--txt3)]">Todas as unidades</div>
+            <div className="mt-1.5 text-[11px] text-[var(--txt3)]">Publicações de todas as unidades</div>
           </div>
         </div>
 
@@ -506,10 +506,10 @@ export default function ClienteInicioPage() {
           </div>
           <div>
             <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Templates</div>
-            <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)] tabular-nums">
+            <div className="font-[family-name:var(--font-dm-serif)] text-4xl font-bold leading-none text-[var(--txt)] tabular-nums">
               {templatesCount}
             </div>
-            <div className="mt-1 text-[11px] text-[var(--txt3)]">Disponíveis no editor</div>
+            <div className="mt-1.5 text-[11px] text-[var(--txt3)]">Disponíveis para publicação</div>
           </div>
         </div>
       </div>
