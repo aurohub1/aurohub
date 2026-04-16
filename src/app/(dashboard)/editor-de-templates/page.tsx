@@ -239,9 +239,11 @@ export default function EditorTemplatesPage() {
   const groupedCanvasTemplates = useMemo(() => {
     const map: Record<string, Record<string, CanvasTemplate[]>> = {};
     for (const t of canvasTemplates) {
-      if (!map[t.licenseeNome]) map[t.licenseeNome] = {};
-      if (!map[t.licenseeNome][t.lojaNome]) map[t.licenseeNome][t.lojaNome] = [];
-      map[t.licenseeNome][t.lojaNome].push(t);
+      const lic = t.licenseeNome;
+      const seg = t.segmento || "Sem segmento";
+      if (!map[lic]) map[lic] = {};
+      if (!map[lic][seg]) map[lic][seg] = [];
+      map[lic][seg].push(t);
     }
     return map;
   }, [canvasTemplates]);
@@ -520,8 +522,8 @@ export default function EditorTemplatesPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {Object.entries(groupedCanvasTemplates).map(([licName, lojas]) => {
-              const licTotal = Object.values(lojas).reduce((a, arr) => a + arr.length, 0);
+            {Object.entries(groupedCanvasTemplates).map(([licName, segments]) => {
+              const licTotal = Object.values(segments).reduce((a, arr) => a + arr.length, 0);
               return (
                 <details key={licName} open className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
                   <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-[14px] font-bold text-[var(--txt)] hover:bg-[var(--hover-bg)]">
@@ -532,11 +534,11 @@ export default function EditorTemplatesPage() {
                     <span className="text-[11px] font-semibold text-[var(--txt3)]">{licTotal} template{licTotal !== 1 ? "s" : ""}</span>
                   </summary>
                   <div className="flex flex-col gap-3 border-t border-[var(--bdr)] px-4 py-4">
-                    {Object.entries(lojas).map(([lojaName, items]) => (
-                      <div key={lojaName}>
+                    {Object.entries(segments).map(([segName, items]) => (
+                      <div key={segName}>
                         <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
-                          <svg viewBox="0 0 16 16" className="h-3 w-3"><path d="M2 6l6-3 6 3v8H2V6z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round" /></svg>
-                          {lojaName}
+                          <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M8 1l2.5 5H14l-4 3.5 1.5 5.5L8 12l-3.5 3 1.5-5.5L2 6h3.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>
+                          {segName}
                           <span className="text-[10px] font-normal text-[var(--txt3)]">· {items.length}</span>
                         </div>
                         {items.length === 0 ? (
