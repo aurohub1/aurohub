@@ -707,28 +707,6 @@ export default function ClientesPage() {
                       </div>
                     </div>
                   </div>
-                  {/* Cores da Marca */}
-                  <div className="border-t border-[var(--bdr)] pt-4 mt-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)] mb-3">Cores da Marca</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center gap-2">
-                        <input type="color" value={form.cor_primaria || "#1E3A6E"} onChange={e => setForm(f => ({...f, cor_primaria: e.target.value}))} className="h-8 w-12 rounded cursor-pointer border border-[var(--bdr)]" />
-                        <div>
-                          <label className="text-[11px] font-medium text-[var(--txt)]">Cor Primária</label>
-                          <div className="text-[9px] text-[var(--txt3)]">{form.cor_primaria || "#1E3A6E"}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="color" value={form.cor_secundaria || "#3B82F6"} onChange={e => setForm(f => ({...f, cor_secundaria: e.target.value}))} className="h-8 w-12 rounded cursor-pointer border border-[var(--bdr)]" />
-                        <div>
-                          <label className="text-[11px] font-medium text-[var(--txt)]">Cor Secundária</label>
-                          <div className="text-[9px] text-[var(--txt3)]">{form.cor_secundaria || "#3B82F6"}</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2 h-3 w-full rounded-full" style={{ background: `linear-gradient(to right, ${form.cor_primaria || "#1E3A6E"}, ${form.cor_secundaria || "#3B82F6"})` }} />
-                  </div>
-
                   {/* Splash Screen */}
                   <div className="border-t border-[var(--bdr)] pt-4 mt-2">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)] mb-3">Splash Screen</label>
