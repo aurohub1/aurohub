@@ -245,7 +245,7 @@ export default function CalculadoraPage() {
   if (loading) return <div className="flex flex-1 items-center justify-center text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
-    <div className="flex flex-1 items-start justify-center">
+    <div className="flex flex-1 items-start justify-center page-fade">
       <div className="w-full max-w-[560px] overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
 
         {/* Header */}
