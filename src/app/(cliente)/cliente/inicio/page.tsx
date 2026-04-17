@@ -120,6 +120,25 @@ function roleLabel(role: string | null): string {
   }
 }
 
+/** Conta de 0 até target com easeOutCubic. Usado pros KPIs numéricos. */
+function useCountUp(target: number, duration = 600): number {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (!target || target <= 0) { setV(0); return; }
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setV(Math.round(target * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return v;
+}
+
 /* ── Component ───────────────────────────────────── */
 
 export default function ClienteInicioPage() {
@@ -140,6 +159,8 @@ export default function ClienteInicioPage() {
   const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -326,6 +347,12 @@ export default function ClienteInicioPage() {
     : null;
   const unidadesAtivas = stores.filter((s) => s.active !== false).length;
 
+  // Counters animados dos KPIs (easeOutCubic, 600ms) — mantém valores originais, só anima display
+  const postsMesAnim = useCountUp(postsMes);
+  const templatesAnim = useCountUp(templatesCount);
+  const usersAnim = useCountUp(users.length);
+  const unidadesAnim = useCountUp(unidadesAtivas);
+
   const proximosFeriados = useMemo(() => {
     const year = new Date().getFullYear();
     return dbFeriados.slice(0, 5).map((d) => ({
@@ -337,12 +364,19 @@ export default function ClienteInicioPage() {
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
-    <div className="flex min-w-0 flex-col gap-5 overflow-x-hidden">
+    <div
+      className="flex min-w-0 flex-col gap-5 overflow-x-hidden"
+      style={{
+        opacity: mounted ? 1 : 0,
+        transform: mounted ? "translateY(0)" : "translateY(8px)",
+        transition: "opacity 400ms ease, transform 400ms ease",
+      }}
+    >
       {/* ═══ HEADER ═════════════════════════════════ */}
       <div className="card-glass relative overflow-hidden px-6 py-6">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
+          style={{ background: "linear-gradient(135deg, var(--brand-primary) 0%, var(--orange) 50%, var(--gold) 100%)" }}
         />
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
@@ -370,7 +404,8 @@ export default function ClienteInicioPage() {
                 className="flex h-11 w-11 items-center justify-center rounded-xl"
                 style={{
                   background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.14))",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  border: "1px solid var(--bdr2)",
+                  boxShadow: "0 0 24px rgba(255,122,26,0.22)",
                 }}
               >
                 <WeatherIcon code={weather?.code ?? null} />
@@ -417,7 +452,9 @@ export default function ClienteInicioPage() {
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
               style={{
                 background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: "1px solid var(--bdr2)",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 0 24px rgba(255,122,26,0.22)",
               }}
             >
               <BarChart3 size={22} />
@@ -451,7 +488,7 @@ export default function ClienteInicioPage() {
             <div>
               <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--txt3)]">
                 <span>Usuários usados</span>
-                <span className="tabular-nums">{users.length} / {maxUsers}</span>
+                <span className="tabular-nums">{usersAnim} / {maxUsers}</span>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg2)]">
                 <div
@@ -462,12 +499,12 @@ export default function ClienteInicioPage() {
                       ? "var(--red)"
                       : (usersUsedPct ?? 0) > 70
                         ? "var(--orange)"
-                        : "linear-gradient(90deg, var(--orange), #D4A843)",
+                        : "linear-gradient(90deg, var(--orange), var(--gold))",
                   }}
                 />
               </div>
               {users.length >= maxUsers && (
-                <div className="mt-1.5 text-xs text-red-500">⚠️ Limite atingido — entre em contato com o suporte</div>
+                <div className="mt-1.5 text-xs" style={{ color: "var(--red)" }}>⚠️ Limite atingido — entre em contato com o suporte</div>
               )}
             </div>
           )}
@@ -482,7 +519,9 @@ export default function ClienteInicioPage() {
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid var(--bdr2)",
+              backdropFilter: "blur(8px)",
+              boxShadow: "0 0 24px rgba(255,122,26,0.22)",
             }}
           >
             <BarChart3 size={22} />
@@ -490,7 +529,7 @@ export default function ClienteInicioPage() {
           <div>
             <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts do mês</div>
             <div className="font-[family-name:var(--font-dm-serif)] text-4xl font-bold leading-none text-[var(--txt)] tabular-nums">
-              {postsMes}
+              {postsMesAnim}
             </div>
             <div className="mt-1.5 text-[11px] text-[var(--txt3)]">Publicações de todas as unidades</div>
           </div>
@@ -502,7 +541,9 @@ export default function ClienteInicioPage() {
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid var(--bdr2)",
+              backdropFilter: "blur(8px)",
+              boxShadow: "0 0 24px rgba(255,122,26,0.22)",
             }}
           >
             <FileText size={22} />
@@ -510,7 +551,7 @@ export default function ClienteInicioPage() {
           <div>
             <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Templates</div>
             <div className="font-[family-name:var(--font-dm-serif)] text-4xl font-bold leading-none text-[var(--txt)] tabular-nums">
-              {templatesCount}
+              {templatesAnim}
             </div>
             <div className="mt-1.5 text-[11px] text-[var(--txt3)]">Disponíveis para publicação</div>
           </div>
@@ -526,7 +567,7 @@ export default function ClienteInicioPage() {
               <Store size={15} className="text-[var(--orange)]" />
               <h3 className="text-[14px] font-bold text-[var(--txt)]">Unidades</h3>
               <span className="rounded-full bg-[var(--green3)] px-2 py-0.5 text-[0.55rem] font-bold text-[var(--green)]">
-                {unidadesAtivas} ativa{unidadesAtivas === 1 ? "" : "s"}
+                {unidadesAnim} ativa{unidadesAtivas === 1 ? "" : "s"}
               </span>
             </div>
             <Link
