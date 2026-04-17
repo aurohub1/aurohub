@@ -611,7 +611,7 @@ export default function ConfiguracoesPage() {
 function OptionalColorSquare({ label, value, onChange, onClear }: { label: string; value: string | undefined; onChange: (v: string) => void; onClear: () => void }) {
   const isTransparent = !value || value === "transparent" || !value.startsWith("#");
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-1.5 page-fade">
       <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-[var(--bdr)] shadow-inner" style={isTransparent ? {
         background: "repeating-conic-gradient(#c0c0c0 0% 25%, #ffffff 0% 50%) 50% / 10px 10px",
       } : { background: value }}>
