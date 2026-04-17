@@ -148,6 +148,7 @@ export async function PATCH(req: NextRequest) {
       id: string;
       profile: Record<string, unknown>;
       extras?: {
+        licensee_id?: string | null;
         store_ids?: string[];
         landing?: string;
         ai?: boolean;
@@ -223,18 +224,25 @@ export async function PATCH(req: NextRequest) {
       }
 
       // Permissões individuais via licensee_feature_overrides
-      // (ai → can_ia_legenda, metrics → metricas, transmissao → transmissao)
-      const licenseeId = String(profile.licensee_id || "");
+      const licenseeId = extras.licensee_id || String(profile.licensee_id || "");
       if (licenseeId) {
-        const overrides: { feature_key: string; enabled: boolean }[] = [];
-        if (extras.ai !== undefined) overrides.push({ feature_key: "ia_legenda", enabled: extras.ai });
-        if (extras.metrics !== undefined) overrides.push({ feature_key: "metricas", enabled: extras.metrics });
-        if (extras.transmissao !== undefined) overrides.push({ feature_key: "transmissao", enabled: extras.transmissao });
-        for (const ov of overrides) {
-          await sb.from("licensee_feature_overrides")
-            .update({ enabled: ov.enabled })
+        const featureMap: [string, boolean | undefined][] = [
+          ["ia_legenda", extras.ai],
+          ["metricas", extras.metrics],
+          ["transmissao", extras.transmissao],
+        ];
+        for (const [key, enabled] of featureMap) {
+          if (enabled === undefined) continue;
+          // Tenta update primeiro; se não existir row, faz insert
+          const { data } = await sb.from("licensee_feature_overrides")
+            .update({ enabled })
             .eq("licensee_id", licenseeId)
-            .eq("feature_key", ov.feature_key);
+            .eq("feature_key", key)
+            .select();
+          if (!data || data.length === 0) {
+            await sb.from("licensee_feature_overrides")
+              .insert({ licensee_id: licenseeId, feature_key: key, enabled });
+          }
         }
       }
 

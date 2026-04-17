@@ -140,15 +140,32 @@ export default function UsuariosPage() {
     return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6).toUpperCase();
   }
 
-  function openEdit(p: Profile) {
+  async function openEdit(p: Profile) {
     setEditId(p.id);
     const licId = p.licensee_id ?? (p.store_id ? storeMap[p.store_id]?.licensee_id : "") ?? "";
     const lic = licId ? licMap[licId] : null;
+
+    // Carrega permissões atuais do licensee
+    let ai = false, metrics = false, transmissao = false;
+    if (licId) {
+      try {
+        const { data: ovs } = await supabase
+          .from("licensee_feature_overrides")
+          .select("feature_key, enabled")
+          .eq("licensee_id", licId);
+        for (const ov of (ovs ?? []) as { feature_key: string; enabled: boolean }[]) {
+          if (ov.feature_key === "ia_legenda") ai = ov.enabled;
+          if (ov.feature_key === "metricas") metrics = ov.enabled;
+          if (ov.feature_key === "transmissao") transmissao = ov.enabled;
+        }
+      } catch { /* silent */ }
+    }
+
     setForm({
       name: p.name ?? "", email: "", password: "", role: p.role, status: p.status,
       segment_id: lic?.segment_id ?? "", licensee_id: licId,
       store_ids: p.store_id ? [p.store_id] : [],
-      landing: "client", ai: false, metrics: false, transmissao: false, avulso: p.sub_role === "avulso",
+      landing: "client", ai, metrics, transmissao, avulso: p.sub_role === "avulso",
       plan: "", stories_limit: "0", feed_limit: "0", reels_limit: "0", tv_limit: "0",
       avatar_url: p.avatar_url ?? "",
     });
@@ -200,6 +217,7 @@ export default function UsuariosPage() {
 
       // Dados extras das abas Lojas & Acesso + Limites
       const extras = {
+        licensee_id: form.licensee_id || null,
         store_ids: form.store_ids,
         landing: form.landing,
         ai: form.ai,
