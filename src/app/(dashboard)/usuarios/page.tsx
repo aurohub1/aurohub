@@ -552,7 +552,22 @@ export default function UsuariosPage() {
               {editTab === "acesso" && (
                 <div className="flex flex-col gap-5">
                   <div>
-                    <div className="mb-2 text-[11px] font-medium text-[var(--txt3)]">Lojas vinculadas</div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-[var(--txt3)]">Lojas vinculadas</span>
+                      {storesForLic.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const allIds = storesForLic.map(s => s.id);
+                            const allSelected = allIds.every(id => form.store_ids.includes(id));
+                            setForm({ ...form, store_ids: allSelected ? [] : allIds });
+                          }}
+                          className="text-[10px] font-semibold text-[var(--orange)] hover:underline"
+                        >
+                          {storesForLic.every(s => form.store_ids.includes(s.id)) ? "Limpar" : "Todas"}
+                        </button>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {storesForLic.map((s) => {
                         const sel = form.store_ids.includes(s.id);
