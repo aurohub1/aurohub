@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
 import type { EditorSchema } from "@/components/editor/types";
-import PubTypeAndSchedule, { type PubType, type ScheduleMode } from "@/components/PubTypeAndSchedule";
+
 import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
   Image as ImageIcon, Search as SearchIcon, ChevronDown,
@@ -235,9 +235,6 @@ export default function PublicarPage() {
   const searchParams = useSearchParams();
   const templateParam = searchParams.get("template");
 
-  const [pubType, setPubType] = useState<PubType>("feed");
-  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("now");
-  const [scheduledAt, setScheduledAt] = useState("");
 
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [enabledForms, setEnabledForms] = useState<EnabledForms>(DEFAULT_ENABLED_FORMS);
@@ -1668,13 +1665,6 @@ export default function PublicarPage() {
                 </div>
               )}
 
-              {/* Tipo + Agendamento */}
-              <PubTypeAndSchedule
-                pubType={pubType} onPubTypeChange={setPubType}
-                scheduleMode={scheduleMode} onScheduleModeChange={setScheduleMode}
-                scheduledAt={scheduledAt} onScheduledAtChange={setScheduledAt}
-              />
-
               {/* Contador diário */}
               <DailyCounter
                 posts={postsByFormat}
@@ -1741,7 +1731,7 @@ export default function PublicarPage() {
                         ? "Publicando..."
                         : limiteAtingido
                           ? "Limite atingido"
-                          : scheduleMode === "schedule" ? "✦ Agendar publicação" : "✦ Publicar agora"}
+                          : "Publicar no Instagram"}
                   </button>
                 )}
                 {!canPublishFeature && (
