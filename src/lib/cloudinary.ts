@@ -1,6 +1,13 @@
 const CLOUD = "dxgj4bcch";
 const UPLOAD_PRESET = "aurohub17";
 const UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`;
+const DELIVERY_BASE = `https://res.cloudinary.com/${CLOUD}/image/upload/`;
+
+export function cldUrl(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (/^https?:\/\//i.test(path)) return path;
+  return DELIVERY_BASE + path.replace(/^\/+/, "");
+}
 
 export async function uploadToCloudinary(file: File, folder = "aurohubv2/profile"): Promise<string> {
   const fd = new FormData();

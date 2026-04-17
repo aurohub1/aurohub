@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Rect, Circle, Text as KText, Image as KImage, Group } from "react-konva";
 import type Konva from "konva";
-import { applySmartLinks, BADGE_FOLDERS, type EditorElement, type EditorSchema } from "@/components/editor/types";
+import { applySmartLinks, type EditorElement, type EditorSchema } from "@/components/editor/types";
+import { useBadges } from "@/hooks/useBadges";
+import { resolveBadgeUrl } from "@/lib/badges";
 
 /* ── Helpers ─────────────────────────────────────── */
 
@@ -187,17 +189,34 @@ function fitFontSize(
   return 8;
 }
 
-function resolveImage(el: EditorElement, values: Record<string, string>): string | undefined {
-  if (el.bindParam) {
-    const val = values[el.bindParam];
-    // Badge: quando valor é "true", usa imagem da pasta Cloudinary
-    if (val === "true" && el.bindParam.endsWith("_badge")) {
-      const folder = BADGE_FOLDERS[el.bindParam];
-      if (folder) return `https://res.cloudinary.com/dxgj4bcch/image/upload/${folder}/badge.png`;
-      return el.src;
+const BOOLEAN_BADGES = new Set([
+  "all_inclusive_badge",
+  "ultima_chamada_badge",
+  "ultimos_lugares_badge",
+  "ofertas_azul_badge",
+]);
+
+function resolveImage(
+  el: EditorElement,
+  values: Record<string, string>,
+  badgeUrls: Record<string, string>,
+  feriadoUrls: Record<string, string>,
+): string | undefined {
+  if (!el.bindParam) return el.src;
+  const bp = el.bindParam;
+  const val = values[bp];
+
+  if (bp.endsWith("_badge")) {
+    if (BOOLEAN_BADGES.has(bp) && val !== "true") return undefined;
+    const url = resolveBadgeUrl(bp, badgeUrls, feriadoUrls, values);
+    if (url) return url;
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[badges] alias não bate para "${bp}"`);
     }
-    if (val) return val;
+    return undefined;
   }
+
+  if (val) return val;
   return el.src;
 }
 
@@ -332,7 +351,8 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
 }
 
 function RenderImage({ el, values }: { el: EditorElement; values: Record<string, string> }) {
-  const src = resolveImage(el, values);
+  const { badges, feriados } = useBadges();
+  const src = resolveImage(el, values, badges, feriados);
   const img = useImage(src);
   if (!img) {
     return (
