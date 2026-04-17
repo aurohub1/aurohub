@@ -162,10 +162,22 @@ export default function UsuariosPage() {
       } catch { /* silent */ }
     }
 
+    // Carrega múltiplas lojas de user_stores
+    let storeIds: string[] = p.store_id ? [p.store_id] : [];
+    try {
+      const { data: userStores } = await supabase
+        .from("user_stores")
+        .select("store_id")
+        .eq("user_id", p.id);
+      if (userStores && userStores.length > 0) {
+        storeIds = userStores.map((s: { store_id: string }) => s.store_id);
+      }
+    } catch { /* silent — tabela pode não existir */ }
+
     setForm({
       name: p.name ?? "", email: "", password: "", role: p.role, status: p.status,
       segment_id: lic?.segment_id ?? "", licensee_id: licId,
-      store_ids: p.store_id ? [p.store_id] : [],
+      store_ids: storeIds,
       landing: "client", ai, metrics, transmissao, avulso: p.sub_role === "avulso",
       plan: "", stories_limit: String(p.stories_limit ?? 0), feed_limit: String(p.feed_limit ?? 0), reels_limit: String(p.reels_limit ?? 0), tv_limit: String(p.tv_limit ?? 0),
       avatar_url: p.avatar_url ?? "",
