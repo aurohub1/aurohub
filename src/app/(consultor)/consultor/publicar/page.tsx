@@ -2041,7 +2041,7 @@ function DailyCounter({
       </label>
       <div className="flex flex-col gap-1.5">
         {rows.map(({ label, count, max, keys }) => {
-          const unlimited = max === null;
+          const unlimited = max === null || max <= 0;
           const pct = !unlimited && max && max > 0 ? Math.min(100, (count / max) * 100) : 0;
           const danger = !unlimited && max !== null && count >= max;
           const warn = !unlimited && max !== null && max > 0 && count >= max * 0.8;
