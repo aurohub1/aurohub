@@ -278,14 +278,7 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
             style={{
               background: `linear-gradient(135deg, ${tMeta.color}cc, ${tpl.bgColor})`,
             }}
-          >
-            <div className="flex flex-col items-center gap-1 text-white/90">
-              <FileText size={28} strokeWidth={1.5} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em]">
-                {tMeta.label}
-              </span>
-            </div>
-          </div>
+          />
         )}
 
         {/* Formato badge (sobreposto) */}
@@ -300,6 +293,9 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
           <h3 className="truncate text-[13px] font-bold text-[var(--txt)]" title={tpl.nome}>
             {tpl.nome}
           </h3>
+          <span style={{ display: "inline-block", marginTop: 4, fontSize: 10, color: "#3B82F6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
+            {tMeta.label}
+          </span>
         </div>
 
         <button

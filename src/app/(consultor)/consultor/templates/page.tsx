@@ -283,6 +283,9 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
         <div style={{ fontSize: 13, fontWeight: 500, color: "var(--txt)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={tpl.nome}>
           {tpl.nome}
         </div>
+        <span style={{ display: "inline-block", marginTop: 4, fontSize: 10, color: "#3B82F6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
+          {tMeta.label}
+        </span>
       </div>
       <button
         onClick={onUse}
