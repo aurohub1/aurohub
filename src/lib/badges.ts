@@ -32,25 +32,23 @@ export function findBadgeUrl(
   return null;
 }
 
-// v1 utils.js:589-591 — detecção case-insensitive + português
-function isAllInclusive(val: string | undefined): boolean {
-  return /all\s*inclusive|tudo\s*inclu[ií]do/i.test(val || "");
-}
-
 /**
  * Decide se um badge deve renderizar, espelhando as condições do v1
- * (client.js:909-973 + 1337/1347). Retorna true/false para os 6 badges
- * suportados. Os outros bindParams são tratados fora desta função.
+ * (client.js:909-973). Os outros bindParams são tratados fora desta função.
+ *
+ * all_inclusive_badge: o form faz a detecção "all inclusive" no onBlur dos
+ * serviços (page.tsx) e seta o flag values.all_inclusive_badge="true" via
+ * badgeCache → previewValues. Aqui só consumimos o flag — idem v1
+ * (S.badges.all_inclusive_badge, client.js:915-919).
  */
 export function shouldRenderBadge(paramID: string, values: Record<string, string>): boolean {
   switch (paramID) {
-    // automático: qualquer servico_1..6 contém "all inclusive" / "tudo incluído"
-    case "all_inclusive_badge": {
-      for (let i = 1; i <= 6; i++) {
-        if (isAllInclusive(values[`servico_${i}`])) return true;
-      }
-      return false;
-    }
+    // toggles on/off — valor esperado "true" (inclui all_inclusive setado pelo form)
+    case "all_inclusive_badge":
+    case "ultima_chamada_badge":
+    case "ultimos_lugares_badge":
+    case "ofertas_azul_badge":
+      return values[paramID] === "true";
     // condicional pelo campo `desconto`
     case "desconto_badge": {
       const d = values.desconto;
@@ -61,11 +59,6 @@ export function shouldRenderBadge(paramID: string, values: Record<string, string
       const f = values.feriado;
       return !!(f && f !== "– nenhum –");
     }
-    // toggles on/off — valor esperado "true"
-    case "ultima_chamada_badge":
-    case "ultimos_lugares_badge":
-    case "ofertas_azul_badge":
-      return values[paramID] === "true";
     default:
       return false;
   }
