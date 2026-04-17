@@ -475,29 +475,30 @@ export default function GerentePublicarPage() {
         .order("name");
       const allStores = (storesData ?? []) as StoreOption[];
 
+      const { data: userStoresData } = await supabase
+        .from("user_stores")
+        .select("store_id")
+        .eq("user_id", p.id);
+
       let targets: StoreOption[] = [];
-      if (canPublishToAllAZV(p.store_id)) {
-        targets = filterAZVGroup(allStores);
-        if (targets.length === 0) targets = allStores;
-      } else {
-        // Busca lojas vinculadas via user_stores
-        try {
-          const { data: userStores } = await supabase
-            .from("user_stores")
-            .select("store_id")
-            .eq("user_id", p.id);
-          if (userStores && userStores.length > 0) {
-            const ids = new Set(userStores.map((s: { store_id: string }) => s.store_id));
-            targets = allStores.filter(s => ids.has(s.id));
-          }
-        } catch { /* silent */ }
-        if (targets.length === 0 && p.store_id) {
-          const own = allStores.find((s) => s.id === p.store_id);
-          targets = own ? [own] : allStores;
-        } else if (targets.length === 0) {
-          targets = allStores;
-        }
+
+      if (userStoresData && userStoresData.length > 0) {
+        const ids = new Set(userStoresData.map((s: { store_id: string }) => s.store_id));
+        targets = allStores.filter(s => ids.has(s.id));
       }
+
+      if (targets.length === 0) {
+        targets = allStores;
+      }
+
+      // Ordenar: Rio Preto, Damha, Barretos
+      const ORDER = ["rio preto", "damha", "barretos"];
+      targets.sort((a, b) => {
+        const ai = ORDER.findIndex(o => a.name.toLowerCase().includes(o));
+        const bi = ORDER.findIndex(o => b.name.toLowerCase().includes(o));
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      });
+
       setPublishTargets(targets);
       setSelectedTargetIds(targets.length > 0 ? [targets[0].id] : []);
 
