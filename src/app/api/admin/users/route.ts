@@ -246,6 +246,16 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
+      // Limites por formato
+      if (extras.stories_limit !== undefined || extras.feed_limit !== undefined || extras.reels_limit !== undefined || extras.tv_limit !== undefined) {
+        await sb.from("profiles").update({
+          stories_limit: parseInt(extras.stories_limit || "0"),
+          feed_limit: parseInt(extras.feed_limit || "0"),
+          reels_limit: parseInt(extras.reels_limit || "0"),
+          tv_limit: parseInt(extras.tv_limit || "0"),
+        }).eq("id", id);
+      }
+
       // Senha
       if (extras.password && extras.password.length >= 6) {
         const { error: pwErr } = await sb.auth.admin.updateUserById(id, { password: extras.password });

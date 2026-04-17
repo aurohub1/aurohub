@@ -11,6 +11,7 @@ interface Profile {
   id: string; name: string | null; role: string; sub_role: string | null;
   status: string; licensee_id: string | null; store_id: string | null; created_at: string;
   avatar_url: string | null;
+  stories_limit: number | null; feed_limit: number | null; reels_limit: number | null; tv_limit: number | null;
 }
 interface Licensee { id: string; name: string; segment_id: string | null; }
 interface Store { id: string; name: string; licensee_id: string; }
@@ -80,7 +81,7 @@ export default function UsuariosPage() {
   const loadData = useCallback(async () => {
     try {
       const [pR, lR, sR, segR, plR] = await Promise.all([
-        supabase.from("profiles").select("id, name, role, sub_role, status, licensee_id, store_id, created_at, avatar_url").order("created_at", { ascending: false }),
+        supabase.from("profiles").select("id, name, role, sub_role, status, licensee_id, store_id, created_at, avatar_url, stories_limit, feed_limit, reels_limit, tv_limit").order("created_at", { ascending: false }),
         supabase.from("licensees").select("id, name, segment_id").order("name"),
         supabase.from("stores").select("id, name, licensee_id").order("name"),
         supabase.from("segments").select("id, name, icon"),
@@ -166,7 +167,7 @@ export default function UsuariosPage() {
       segment_id: lic?.segment_id ?? "", licensee_id: licId,
       store_ids: p.store_id ? [p.store_id] : [],
       landing: "client", ai, metrics, transmissao, avulso: p.sub_role === "avulso",
-      plan: "", stories_limit: "0", feed_limit: "0", reels_limit: "0", tv_limit: "0",
+      plan: "", stories_limit: String(p.stories_limit ?? 0), feed_limit: String(p.feed_limit ?? 0), reels_limit: String(p.reels_limit ?? 0), tv_limit: String(p.tv_limit ?? 0),
       avatar_url: p.avatar_url ?? "",
     });
     setEditTab("dados"); setModalError(""); setEditOpen(true);
