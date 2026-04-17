@@ -1164,6 +1164,14 @@ export default function GerentePublicarPage() {
   const height = currentTemplate?.height ?? defH;
   const schema: EditorSchema = currentTemplate?.schema ?? { elements: [], background: "#0E1520", duration: 5 };
 
+  const previewValues = useMemo(() => {
+    const merged: Record<string, string> = { ...values };
+    for (const [k, v] of Object.entries(badges)) {
+      merged[k] = v ? "true" : "";
+    }
+    return merged;
+  }, [values, badges]);
+
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
@@ -1691,7 +1699,7 @@ export default function GerentePublicarPage() {
                 visible={formatVisible}
                 current={format}
                 downloads={downloadsToday}
-                maxDownloads={planLimits?.max_downloads_day}
+                maxDownloads={null}
               />
             </div>
           )}
@@ -1800,7 +1808,7 @@ export default function GerentePublicarPage() {
               schema={schema}
               width={width}
               height={height}
-              values={values}
+              values={previewValues}
               maxDisplay={Math.round((typeof window !== "undefined" ? window.innerHeight : 900) * 0.82)}
               onReady={(s) => { stageRef.current = s; }}
             />

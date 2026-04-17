@@ -1170,6 +1170,14 @@ export default function UnidadePublicarPage() {
   const height = currentTemplate?.height ?? defH;
   const schema: EditorSchema = currentTemplate?.schema ?? { elements: [], background: "#0E1520", duration: 5 };
 
+  const previewValues = useMemo(() => {
+    const merged: Record<string, string> = { ...values };
+    for (const [k, v] of Object.entries(badges)) {
+      merged[k] = v ? "true" : "";
+    }
+    return merged;
+  }, [values, badges]);
+
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
@@ -1806,7 +1814,7 @@ export default function UnidadePublicarPage() {
               schema={schema}
               width={width}
               height={height}
-              values={values}
+              values={previewValues}
               maxDisplay={Math.round((typeof window !== "undefined" ? window.innerHeight : 900) * 0.82)}
               onReady={(s) => { stageRef.current = s; }}
             />
