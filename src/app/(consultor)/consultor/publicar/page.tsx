@@ -1231,7 +1231,7 @@ export default function PublicarPage() {
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr] page-fade">
       {/* ═══ MODAL PROCESSAMENTO VÍDEO ═══ */}
       {videoProcessing && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
