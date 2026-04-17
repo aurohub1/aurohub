@@ -126,6 +126,7 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
 
     default: {
       const raw = values[bindParam] ?? "";
+      if (raw === "– nenhum –") return "";
       if (["valorparcela","totalduplo","totalcruzeiro","entrada"].includes(bindParam)) {
         const nums = raw.replace(/\D/g, "");
         if (!nums) return "";
@@ -281,6 +282,8 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
 
   if (el.type === "text") {
     const txt = resolveText(el, values);
+    // Reforço da regra: texto com bindParam mas sem valor resolvido não renderiza nada
+    if (el.bindParam && !txt) return null;
     const baseFont = el.fontSize ?? 24;
     const fSize = el.linhas
       ? fitFontSize(
