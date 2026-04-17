@@ -210,7 +210,7 @@ export async function PATCH(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     // Processar extras (ADM e operador podem salvar extras)
-    if (extras && (caller.role === "adm" || caller.role === "operador")) {
+    if (extras) {
       // Múltiplas lojas: salvar em user_stores (delete + insert)
       if (extras.store_ids && extras.store_ids.length > 0) {
         try {
