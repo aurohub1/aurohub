@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Sun, Moon, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
+import { useSupportDrawer } from "@/components/support/SupportDrawerProvider";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -239,7 +240,7 @@ const ADM_SECTIONS: NavSection[] = [
           </svg>
         ),
       },
-      { label: "Suporte", href: "/suporte", icon: I.support },
+      { label: "Suporte", href: "/adm/suporte", icon: I.support },
     ],
   },
 ];
@@ -314,7 +315,7 @@ export const OPERADOR_SECTIONS: NavSection[] = [
       { label: "Usuários", href: "/operador/usuarios", icon: I.users },
       { label: "Logs", href: "/operador/logs", icon: I.settings },
       { label: "Métricas", href: "/operador/metricas", icon: I.metrics },
-      { label: "Suporte", href: "/operador/suporte", icon: I.support },
+      { label: "Suporte", href: "/adm/suporte", icon: I.support },
     ],
   },
 ];
@@ -360,6 +361,7 @@ function WeatherIconLucide({ code, size = 13 }: { code: number | null; size?: nu
 /* ── Component ───────────────────────────────────── */
 
 export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel }: SidebarProps) {
+  const supportDrawer = useSupportDrawer(); // null fora do provider (ex: ADM) → renderiza Link
   const rawSections = sections ?? ADM_SECTIONS;
   const navSections = activeFeatures
     ? rawSections
@@ -477,22 +479,19 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
             <div className="flex flex-col gap-0.5">
               {section.items.map((item) => {
                 const active = activePath === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
-                      active
-                        ? "bg-[var(--orange3)] text-[var(--orange)]"
-                        : "text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
-                    }`}
-                  >
-                    {/* Active indicator */}
+                // "Suporte" dentro do provider (cliente/consultor/gerente/unidade): abre drawer.
+                // Fora do provider (ADM/operador): href normal pra /adm/suporte.
+                const isSupportButton = item.label === "Suporte" && !!supportDrawer;
+                const shared = `group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors text-left w-full ${
+                  active
+                    ? "bg-[var(--orange3)] text-[var(--orange)]"
+                    : "text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
+                }`;
+                const inner = (
+                  <>
                     {active && (
                       <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-[var(--orange)]" />
                     )}
-
-                    {/* Icon */}
                     <span
                       className={`flex h-4 w-4 shrink-0 items-center justify-center ${
                         active ? "text-[var(--orange)]" : "text-[var(--txt3)] group-hover:text-[var(--txt2)]"
@@ -500,8 +499,21 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
                     >
                       {item.icon}
                     </span>
-
                     <span className="truncate">{item.label}</span>
+                  </>
+                );
+                return isSupportButton ? (
+                  <button
+                    key={item.href}
+                    type="button"
+                    onClick={() => supportDrawer?.open()}
+                    className={shared}
+                  >
+                    {inner}
+                  </button>
+                ) : (
+                  <Link key={item.href} href={item.href} className={shared}>
+                    {inner}
                   </Link>
                 );
               })}

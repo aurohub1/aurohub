@@ -11,10 +11,12 @@ interface SupportDrawerCtx {
 
 const Ctx = createContext<SupportDrawerCtx | null>(null);
 
-export function useSupportDrawer(): SupportDrawerCtx {
-  const c = useContext(Ctx);
-  // No-op quando usado fora do provider (ex: layout do ADM que não tem drawer)
-  return c ?? { open: () => {}, close: () => {}, isOpen: false };
+/**
+ * Retorna o contexto do drawer. Fora do provider (ex: layout ADM) retorna null —
+ * caller usa isso pra decidir entre abrir drawer vs navegar por href.
+ */
+export function useSupportDrawer(): SupportDrawerCtx | null {
+  return useContext(Ctx);
 }
 
 export function SupportDrawerProvider({ children }: { children: ReactNode }) {

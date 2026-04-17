@@ -9,7 +9,7 @@ import Sidebar, { CLIENTE_SECTIONS } from "@/components/layout/Sidebar";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import WelcomeTour from "@/components/tour/WelcomeTour";
-import SupportWidget from "@/components/SupportWidget";
+import { SupportDrawerProvider } from "@/components/support/SupportDrawerProvider";
 
 export default function ClienteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -65,7 +65,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <>
+    <SupportDrawerProvider>
       <Sidebar
         activePath={pathname}
         user={{ name: profile?.name || "Cliente", role: "cliente" }}
@@ -98,7 +98,6 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         )}
       </footer>
       <WelcomeTour role="cliente" />
-      <SupportWidget />
-    </>
+    </SupportDrawerProvider>
   );
 }

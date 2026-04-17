@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import AdminSupportBadge from "@/components/support/AdminSupportBadge";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -78,6 +79,8 @@ export default function Topbar() {
 
       {/* Right: theme toggle + avatar */}
       <div className="flex items-center gap-3">
+        {/* Support badge (realtime) */}
+        <AdminSupportBadge />
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
