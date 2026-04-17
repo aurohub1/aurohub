@@ -1747,7 +1747,7 @@ export default function UnidadePublicarPage() {
                     disabled={busy || !currentTemplate || limiteAtingido}
                     title={limiteAtingido ? `Limite diário atingido (${usadoAtual}/${limiteAtual})` : undefined}
                     className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                    style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+                    style={{ background: "linear-gradient(135deg, #1E3A6E, #3B82F6)" }}
                   >
                     {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     {status === "uploading"
