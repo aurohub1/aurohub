@@ -10,41 +10,51 @@ interface Props {
 }
 
 const ACCENT: Record<NonNullable<Props["accent"]>, string> = {
+  blue:   "var(--blue)",
+  gold:   "var(--gold)",
+  green:  "var(--green)",
+  orange: "var(--orange)",
+};
+
+const ACCENT_HEX: Record<NonNullable<Props["accent"]>, string> = {
   blue:   "#3B82F6",
   gold:   "#D4A843",
-  green:  "#10B981",
+  green:  "#22C55E",
   orange: "#FF7A1A",
 };
 
 export default function MetricCard({ label, value, icon, accent = "blue" }: Props) {
-  const color = ACCENT[accent];
+  const colorVar = ACCENT[accent];
+  const colorHex = ACCENT_HEX[accent];
   return (
     <div
       className="relative overflow-hidden p-6"
       style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--input-bg)",
+        border: "1px solid var(--bdr2)",
         borderRadius: 20,
       }}
     >
       <div className="flex items-start justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.4)" }}>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--txt3)" }}>
           {label}
         </span>
         {icon && (
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
             style={{
-              background: `${color}1A`,
-              color,
-              boxShadow: `0 0 24px ${color}33`,
+              background: `${colorHex}1A`,
+              color: colorVar,
+              boxShadow: `0 0 24px ${colorHex}33`,
             }}
           >
             {icon}
           </div>
         )}
       </div>
-      <div className="mt-4 text-[40px] font-bold leading-none tabular-nums text-white">{value}</div>
+      <div className="mt-4 text-[40px] font-bold leading-none tabular-nums" style={{ color: "var(--txt)" }}>
+        {value}
+      </div>
     </div>
   );
 }

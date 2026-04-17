@@ -31,11 +31,11 @@ function Pill<T extends string | number>({
             className="px-3.5 py-1.5 text-xs font-medium rounded-full transition-all"
             style={
               active
-                ? { background: "#3B82F6", color: "#fff", border: "1px solid transparent" }
-                : { background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)" }
+                ? { background: "var(--blue)", color: "#fff", border: "1px solid transparent" }
+                : { background: "transparent", color: "var(--txt2)", border: "1px solid var(--bdr2)" }
             }
             onMouseEnter={(e) => {
-              if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+              if (!active) e.currentTarget.style.background = "var(--hover-bg)";
             }}
             onMouseLeave={(e) => {
               if (!active) e.currentTarget.style.background = "transparent";

@@ -30,19 +30,19 @@ export default function ActivityFeed({ rows, limit = 8 }: Props) {
     <div
       className="p-5"
       style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--input-bg)",
+        border: "1px solid var(--bdr2)",
         borderRadius: 20,
       }}
     >
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-white">Atividade recente</h3>
-        <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>Últimos {limit} registros</p>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--txt)" }}>Atividade recente</h3>
+        <p className="text-xs" style={{ color: "var(--txt3)" }}>Últimos {limit} registros</p>
       </div>
       {view.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Rocket className="w-6 h-6 mb-2" style={{ color: "rgba(255,255,255,0.2)" }} />
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>Sem atividade ainda.</p>
+          <Rocket className="w-6 h-6 mb-2" style={{ color: "var(--txt3)" }} />
+          <p className="text-xs" style={{ color: "var(--txt3)" }}>Sem atividade ainda.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-1.5">
@@ -53,7 +53,7 @@ export default function ActivityFeed({ rows, limit = 8 }: Props) {
                 key={r.id}
                 className="flex items-center gap-3 rounded-xl p-2.5 transition-colors"
                 style={{ background: "transparent" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover-bg)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
                 <div
@@ -63,10 +63,10 @@ export default function ActivityFeed({ rows, limit = 8 }: Props) {
                   {iconForFormato(r.formato)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm text-white">
+                  <div className="truncate text-sm" style={{ color: "var(--txt)" }}>
                     {r.template_nome || "(sem nome)"}
                   </div>
-                  <div className="flex items-center gap-2 text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  <div className="flex items-center gap-2 text-xs" style={{ color: "var(--txt3)" }}>
                     <span>{FORMATO_LABEL[r.formato]}</span>
                     <span>·</span>
                     <span>{relativeTime(r.created_at)}</span>
@@ -76,8 +76,8 @@ export default function ActivityFeed({ rows, limit = 8 }: Props) {
                   className="shrink-0 rounded-full p-1"
                   style={
                     r.tipo === "publicado"
-                      ? { background: "rgba(59,130,246,0.15)", color: "#60A5FA" }
-                      : { background: "rgba(255,122,26,0.15)", color: "#FFB380" }
+                      ? { background: "var(--blue3)", color: "var(--blue)" }
+                      : { background: "var(--orange3)", color: "var(--orange)" }
                   }
                   title={r.tipo === "publicado" ? "Publicado" : "Download"}
                 >

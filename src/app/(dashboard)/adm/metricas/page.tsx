@@ -98,12 +98,12 @@ export default function AdmMetricasPage() {
         className="h-8 rounded-full px-4 text-xs outline-none"
         style={{
           background: "transparent",
-          border: "1px solid rgba(255,255,255,0.15)",
-          color: "rgba(255,255,255,0.7)",
+          border: "1px solid var(--bdr2)",
+          color: "var(--txt2)",
         }}
       >
-        <option value="all" style={{ background: "#0a0f1e" }}>Todos os licensees</option>
-        {licensees.map(l => <option key={l.id} value={l.id} style={{ background: "#0a0f1e" }}>{l.name || "—"}</option>)}
+        <option value="all" style={{ background: "var(--card-bg)" }}>Todos os licensees</option>
+        {licensees.map(l => <option key={l.id} value={l.id} style={{ background: "var(--card-bg)" }}>{l.name || "—"}</option>)}
       </select>
       <select
         value={lojaFilter}
@@ -111,22 +111,22 @@ export default function AdmMetricasPage() {
         className="h-8 rounded-full px-4 text-xs outline-none"
         style={{
           background: "transparent",
-          border: "1px solid rgba(255,255,255,0.15)",
-          color: "rgba(255,255,255,0.7)",
+          border: "1px solid var(--bdr2)",
+          color: "var(--txt2)",
         }}
       >
-        <option value="all" style={{ background: "#0a0f1e" }}>Todas as lojas</option>
-        {lojasFiltradas.map(l => <option key={l.id} value={l.id} style={{ background: "#0a0f1e" }}>{l.name || "—"}</option>)}
+        <option value="all" style={{ background: "var(--card-bg)" }}>Todas as lojas</option>
+        {lojasFiltradas.map(l => <option key={l.id} value={l.id} style={{ background: "var(--card-bg)" }}>{l.name || "—"}</option>)}
       </select>
     </>
   );
 
   return (
-    <div className="rounded-2xl overflow-hidden p-6 text-white" style={{ background: "#0a0f1e" }}>
-      <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+    <>
+      <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid var(--bdr)" }}>
         <div>
-          <h2 className="text-2xl font-bold text-white">Métricas da plataforma</h2>
-          <p className="mt-0.5 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <h2 className="text-2xl font-bold" style={{ color: "var(--txt)" }}>Métricas da plataforma</h2>
+          <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>
             Agregado de todos os clientes, lojas e consultores
           </p>
         </div>
@@ -134,8 +134,8 @@ export default function AdmMetricasPage() {
 
       {loading ? (
         <div className="mt-6 flex flex-col gap-4">
-          <div className="animate-pulse rounded-[20px] h-28 w-full" style={{ background: "rgba(255,255,255,0.04)" }} />
-          <div className="animate-pulse rounded-[20px] h-80 w-full" style={{ background: "rgba(255,255,255,0.04)" }} />
+          <div className="animate-pulse rounded-[20px] h-28 w-full" style={{ background: "var(--input-bg)" }} />
+          <div className="animate-pulse rounded-[20px] h-80 w-full" style={{ background: "var(--input-bg)" }} />
         </div>
       ) : (
         <>
@@ -169,6 +169,6 @@ export default function AdmMetricasPage() {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }

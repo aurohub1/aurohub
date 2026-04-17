@@ -77,47 +77,47 @@ export default function UserMetricsPage() {
     return { today, week, month, downloadsMonth };
   }, [rows]);
 
-  // Feature off → tela de upgrade (dark)
+  // Feature off → tela de upgrade
   if (!loading && profile && !features.has("metricas")) {
     return (
-      <div className="rounded-2xl overflow-hidden p-6 text-white" style={{ background: "#0a0f1e" }}>
-        <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+      <>
+        <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid var(--bdr)" }}>
           <div>
-            <h2 className="text-2xl font-bold text-white">Métricas</h2>
-            <p className="mt-0.5 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>Publicações e downloads do seu perfil</p>
+            <h2 className="text-2xl font-bold" style={{ color: "var(--txt)" }}>Métricas</h2>
+            <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>Publicações e downloads do seu perfil</p>
           </div>
         </div>
         <div
           className="mt-8 flex flex-col items-center justify-center py-16 text-center"
           style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px dashed rgba(255,255,255,0.15)",
+            background: "var(--input-bg)",
+            border: "1px dashed var(--bdr2)",
             borderRadius: 20,
           }}
         >
-          <Sparkles className="w-8 h-8 mb-3" style={{ color: "#D4A843" }} />
-          <h3 className="text-base font-semibold text-white">Recurso premium</h3>
-          <p className="mt-1 max-w-sm text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <Sparkles className="w-8 h-8 mb-3" style={{ color: "var(--gold)" }} />
+          <h3 className="text-base font-semibold" style={{ color: "var(--txt)" }}>Recurso premium</h3>
+          <p className="mt-1 max-w-sm text-sm" style={{ color: "var(--txt2)" }}>
             As métricas estão disponíveis em planos superiores. Fale com o ADM para liberar.
           </p>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden p-6 text-white" style={{ background: "#0a0f1e" }}>
-      <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+    <>
+      <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid var(--bdr)" }}>
         <div>
-          <h2 className="text-2xl font-bold text-white">Métricas</h2>
-          <p className="mt-0.5 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>Publicações e downloads do seu perfil</p>
+          <h2 className="text-2xl font-bold" style={{ color: "var(--txt)" }}>Métricas</h2>
+          <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>Publicações e downloads do seu perfil</p>
         </div>
       </div>
 
       {loading ? (
         <div className="mt-6 flex flex-col gap-4">
-          <div className="animate-pulse rounded-[20px] h-28 w-full" style={{ background: "rgba(255,255,255,0.04)" }} />
-          <div className="animate-pulse rounded-[20px] h-80 w-full" style={{ background: "rgba(255,255,255,0.04)" }} />
+          <div className="animate-pulse rounded-[20px] h-28 w-full" style={{ background: "var(--input-bg)" }} />
+          <div className="animate-pulse rounded-[20px] h-80 w-full" style={{ background: "var(--input-bg)" }} />
         </div>
       ) : (
         <>
@@ -153,6 +153,6 @@ export default function UserMetricsPage() {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }

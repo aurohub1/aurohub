@@ -37,14 +37,14 @@ export default function BarsByDay({ rows, days }: Props) {
     <div
       className="p-6"
       style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--input-bg)",
+        border: "1px solid var(--bdr2)",
         borderRadius: 20,
       }}
     >
       <div className="mb-4">
-        <h3 className="text-sm font-semibold text-white">Publicações e downloads por dia</h3>
-        <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>Últimos {days} dias</p>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--txt)" }}>Publicações e downloads por dia</h3>
+        <p className="text-xs" style={{ color: "var(--txt3)" }}>Últimos {days} dias</p>
       </div>
       <div style={{ width: "100%", height: 320 }}>
         <ResponsiveContainer>
@@ -59,34 +59,34 @@ export default function BarsByDay({ rows, days }: Props) {
                 <stop offset="95%" stopColor="#FF7A1A" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--bdr)" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11, fill: "rgba(255,255,255,0.4)" }}
+              tick={{ fontSize: 11, fill: "var(--txt3)" }}
               tickLine={false}
-              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+              axisLine={{ stroke: "var(--bdr)" }}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "rgba(255,255,255,0.4)" }}
+              tick={{ fontSize: 11, fill: "var(--txt3)" }}
               tickLine={false}
-              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+              axisLine={{ stroke: "var(--bdr)" }}
               allowDecimals={false}
             />
             <Tooltip
               contentStyle={{
-                background: "rgba(10,15,30,0.92)",
+                background: "var(--card-bg)",
                 backdropFilter: "blur(12px)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                border: "1px solid var(--bdr2)",
                 borderRadius: 10,
                 fontSize: 12,
-                color: "#fff",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                color: "var(--txt)",
+                boxShadow: "var(--sh2)",
               }}
-              labelStyle={{ color: "rgba(255,255,255,0.7)", fontWeight: 600, marginBottom: 4 }}
-              cursor={{ stroke: "rgba(255,255,255,0.1)" }}
+              labelStyle={{ color: "var(--txt2)", fontWeight: 600, marginBottom: 4 }}
+              cursor={{ stroke: "var(--bdr2)" }}
             />
             <Legend
-              wrapperStyle={{ fontSize: 12, paddingTop: 12, color: "rgba(255,255,255,0.7)" }}
+              wrapperStyle={{ fontSize: 12, paddingTop: 12, color: "var(--txt2)" }}
               iconType="circle"
             />
             <Area
@@ -97,7 +97,7 @@ export default function BarsByDay({ rows, days }: Props) {
               strokeWidth={2}
               fill="url(#fillPublicado)"
               dot={false}
-              activeDot={{ r: 5, stroke: "#3B82F6", strokeWidth: 2, fill: "#0a0f1e" }}
+              activeDot={{ r: 5, stroke: "#3B82F6", strokeWidth: 2, fill: "var(--card-bg)" }}
               style={{ filter: "drop-shadow(0 0 6px #3B82F6)" }}
             />
             <Area
@@ -108,7 +108,7 @@ export default function BarsByDay({ rows, days }: Props) {
               strokeWidth={2}
               fill="url(#fillDownload)"
               dot={false}
-              activeDot={{ r: 5, stroke: "#FF7A1A", strokeWidth: 2, fill: "#0a0f1e" }}
+              activeDot={{ r: 5, stroke: "#FF7A1A", strokeWidth: 2, fill: "var(--card-bg)" }}
               style={{ filter: "drop-shadow(0 0 6px #FF7A1A)" }}
             />
           </AreaChart>

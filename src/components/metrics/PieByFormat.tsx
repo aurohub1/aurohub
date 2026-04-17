@@ -18,18 +18,18 @@ export default function PieByFormat({ rows }: Props) {
     <div
       className="p-5"
       style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--input-bg)",
+        border: "1px solid var(--bdr2)",
         borderRadius: 20,
       }}
     >
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-white">Distribuição por formato</h3>
-        <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>Total do período</p>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--txt)" }}>Distribuição por formato</h3>
+        <p className="text-xs" style={{ color: "var(--txt3)" }}>Total do período</p>
       </div>
       <div style={{ width: "100%", height: 200 }}>
         {data.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <div className="flex h-full items-center justify-center text-sm" style={{ color: "var(--txt3)" }}>
             Sem dados no período.
           </div>
         ) : (
@@ -42,17 +42,17 @@ export default function PieByFormat({ rows }: Props) {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  background: "rgba(10,15,30,0.92)",
+                  background: "var(--card-bg)",
                   backdropFilter: "blur(12px)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  border: "1px solid var(--bdr2)",
                   borderRadius: 10,
                   fontSize: 12,
-                  color: "#fff",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                  color: "var(--txt)",
+                  boxShadow: "var(--sh2)",
                 }}
               />
               <Legend
-                wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}
+                wrapperStyle={{ fontSize: 11, color: "var(--txt2)" }}
                 iconType="circle"
                 iconSize={8}
               />
