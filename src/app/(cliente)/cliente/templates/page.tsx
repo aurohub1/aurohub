@@ -221,7 +221,7 @@ export default function ClienteTemplatesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
           {filtered.map((t) => (
             <TemplateCard key={t.key} tpl={t} onUse={() => useTemplate(t.id)} />
           ))}

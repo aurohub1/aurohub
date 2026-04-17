@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
-import { FileText, Search, Sparkles, CalendarClock } from "lucide-react";
+import { FileText, Search, CalendarClock } from "lucide-react";
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -220,7 +220,7 @@ export default function UnidadeTemplatesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
           {filtered.map((t) => (
             <TemplateCard key={t.key} tpl={t} onUse={() => useTemplate(t.id)} />
           ))}
@@ -267,7 +267,7 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
       {/* Thumbnail */}
       <div
         className="relative w-full overflow-hidden border-b border-[var(--bdr)]"
-        style={{ aspectRatio: fMeta.aspect }}
+        style={{ height: 140 }}
       >
         {tpl.thumbnail ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -292,22 +292,12 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
         </span>
       </div>
 
-      {/* Body */}
-      <div className="flex flex-1 flex-col gap-2.5 p-4">
-        <div className="min-w-0">
-          <h3 className="truncate text-[13px] font-bold text-[var(--txt)]" title={tpl.nome}>
-            {tpl.nome}
-          </h3>
-        </div>
-
-        <button
-          onClick={onUse}
-          className="mt-auto flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
-          style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
-        >
-          <Sparkles size={13} /> Usar
-        </button>
-      </div>
+      <button
+        onClick={onUse}
+        style={{ width: "100%", padding: 7, fontSize: 11, fontWeight: 600, color: "#fff", background: "linear-gradient(135deg, var(--orange), #D4A843)", border: "none", borderRadius: "0 0 12px 12px", cursor: "pointer" }}
+      >
+        ✦ Usar
+      </button>
     </div>
   );
 }
