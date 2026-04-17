@@ -431,7 +431,7 @@ export default function LogsPage() {
 
 function KpiMini({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="card-glass flex flex-col gap-1 p-4">
+    <div className="card-glass flex flex-col gap-1 p-4 page-fade">
       <div className="text-[0.6rem] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">{label}</div>
       <span className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none" style={{ color }}>
         {value}
