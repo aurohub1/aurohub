@@ -469,7 +469,7 @@ export default function UsuariosPage() {
 
             {/* Tabs */}
             <div className="flex border-b border-[var(--bdr)] px-6">
-              {(["dados", "acesso", "limites", ...(editId ? ["senha"] : [])] as ModalTab[]).map((t) => (
+              {(["dados", "acesso", ...(editId ? ["senha"] : [])] as ModalTab[]).map((t) => (
                 <button key={t} onClick={() => setEditTab(t)} className={`border-b-2 px-4 py-2.5 text-[12px] font-medium ${editTab === t ? "border-[var(--txt)] text-[var(--txt)]" : "border-transparent text-[var(--txt3)]"}`}>
                   {t === "dados" ? "Dados" : t === "acesso" ? "Lojas & Acesso" : t === "limites" ? "Limites & Plano" : "Senha"}
                 </button>
