@@ -200,7 +200,7 @@ export default function ClienteUsuariosPage() {
             className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid var(--bdr2)",
             }}
           >
             <Users size={24} />
@@ -395,7 +395,7 @@ function ModalShell({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm page-fade"
       onClick={onClose}
     >
       <div
