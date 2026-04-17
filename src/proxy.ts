@@ -27,6 +27,7 @@ const ADM_ROUTES = [
   "/central-de-publicacao",
   "/editor-landing",
   "/calculadora",
+  "/suporte",
 ];
 const OPERADOR_PREFIX = "/operador";
 const CLIENTE_PREFIX = "/cliente";

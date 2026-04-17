@@ -239,6 +239,7 @@ const ADM_SECTIONS: NavSection[] = [
           </svg>
         ),
       },
+      { label: "Suporte", href: "/suporte", icon: I.support },
     ],
   },
 ];

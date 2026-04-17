@@ -296,21 +296,7 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
           <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={tpl.nome}>
             {tpl.nome}
           </h3>
-          <div className="mt-0.5 flex items-center gap-1 text-[9px] text-[var(--txt3)]">
-            <CalendarClock size={9} />
-            {formatDate(tpl.updatedAt)}
-          </div>
         </div>
-
-        <div className="flex flex-wrap items-center gap-1">
-          <span
-            className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
-            style={{ background: `${tMeta.color}22`, color: tMeta.color }}
-          >
-            {tMeta.label}
-          </span>
-        </div>
-
       </div>
       <button
         onClick={onUse}
