@@ -40,6 +40,7 @@ function EditorInner() {
   const [loadedNome, setLoadedNome] = useState<string>("");
   const [loadedLicenseeId, setLoadedLicenseeId] = useState<string | undefined>(undefined);
   const [loadedLojaId, setLoadedLojaId] = useState<string | undefined>(undefined);
+  const [loadedThumbnail, setLoadedThumbnail] = useState<string | null>(null);
   const FMTS: Record<string, [number,number]> = { stories: [1080,1920], reels: [1080,1920], feed: [1080,1350], tv: [1920,1080] };
   const [cW, cH] = FMTS[format] || [1080, 1920];
 
@@ -73,6 +74,7 @@ function EditorInner() {
             if (parsed.nome) setLoadedNome(parsed.nome);
             if (parsed.licenseeId) setLoadedLicenseeId(parsed.licenseeId);
             if (parsed.lojaId) setLoadedLojaId(parsed.lojaId);
+            setLoadedThumbnail(parsed.thumbnail ?? parsed.thumb ?? parsed.schema?.thumbnail ?? null);
           }
         }
       } catch (err) { console.error("[Editor] load:", err); }
@@ -129,6 +131,7 @@ function EditorInner() {
           initialLicenseeId={loadedLicenseeId}
           initialLojaId={loadedLojaId}
           captureThumb={pendingSave.thumbnail ?? null}
+          existingThumb={loadedThumbnail}
           onClose={() => { setPendingSave(null); setPendingVariants(null); }}
           onConfirm={async (meta: SaveTemplateData) => {
             setSaving(true);
@@ -257,6 +260,7 @@ function EditorInner() {
               setFormType(meta.formType);
               setLoadedLicenseeId(meta.licenseeId);
               setLoadedLojaId(meta.lojaId);
+              setLoadedThumbnail(thumbnail);
               setSaved(true);
               setTimeout(() => setSaved(false), 2000);
               setPendingSave(null);

@@ -539,15 +539,17 @@ function sortLojasPriority<T extends { name: string }>(rows: T[]): T[] {
   });
 }
 
-export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, initialLojaIds, captureThumb, onClose, onConfirm }: {
+export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, initialLojaIds, captureThumb, existingThumb, onClose, onConfirm }: {
   initialName?: string;
   initialFormType: string;
   initialFormat: string;
   initialLicenseeId?: string;
   initialLojaId?: string;
   initialLojaIds?: string[];
-  /** dataURL capturado do canvas — usado no modo "capture" (default) */
+  /** dataURL capturado do canvas — usado no modo "capture" */
   captureThumb?: string | null;
+  /** URL da thumb já salva do template (vinda do banco) — usado no modo "existing" (default em edição) */
+  existingThumb?: string | null;
   onClose: () => void;
   onConfirm: (data: SaveTemplateData) => void | Promise<void>;
 }) {
@@ -562,11 +564,19 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
   );
   const [saving, setSaving] = useState(false);
 
-  // Thumbnail — captura automática (padrão) ou upload manual
-  const [thumbMode, setThumbMode] = useState<"capture" | "upload">("capture");
+  // Thumbnail — 3 modos:
+  //  existing: usa URL já salva no banco (default quando template tem thumb)
+  //  capture:  usa screenshot do canvas (default quando template é novo)
+  //  upload:   usa arquivo escolhido pelo user
+  const [thumbMode, setThumbMode] = useState<"existing" | "capture" | "upload">(
+    existingThumb ? "existing" : "capture"
+  );
   const [manualThumb, setManualThumb] = useState<string | null>(null);
   const thumbFileRef = useRef<HTMLInputElement>(null);
-  const effectiveThumb = thumbMode === "upload" ? manualThumb : (captureThumb ?? null);
+  const effectiveThumb =
+    thumbMode === "existing" ? (existingThumb ?? null) :
+    thumbMode === "upload"   ? manualThumb :
+    (captureThumb ?? null);
 
   function handleThumbFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -725,14 +735,19 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
               )}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              {(["capture", "upload"] as const).map(m => {
-                const active = thumbMode === m;
-                const disabled = m === "capture" && !captureThumb;
-                const onClick = m === "capture"
-                  ? () => setThumbMode("capture")
-                  : () => thumbFileRef.current?.click();
+              {([
+                ...(existingThumb ? [{ mode: "existing" as const, label: "Manter atual" }] : []),
+                { mode: "capture" as const, label: "Usar captura" },
+                { mode: "upload" as const,  label: "Fazer upload" },
+              ]).map(({ mode, label }) => {
+                const active = thumbMode === mode;
+                const disabled = mode === "capture" && !captureThumb;
+                const onClick =
+                  mode === "existing" ? () => setThumbMode("existing") :
+                  mode === "capture"  ? () => setThumbMode("capture") :
+                  () => thumbFileRef.current?.click();
                 return (
-                  <button key={m} type="button" onClick={onClick} disabled={disabled}
+                  <button key={mode} type="button" onClick={onClick} disabled={disabled}
                     style={{
                       flex: 1, padding: "7px 12px", borderRadius: 6,
                       border: `1px solid ${active ? "#FF7A1A" : "var(--ed-bdr)"}`,
@@ -741,7 +756,7 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
                       cursor: disabled ? "not-allowed" : "pointer",
                       fontSize: 11, fontWeight: 600, opacity: disabled ? 0.5 : 1,
                     }}>
-                    {m === "capture" ? "Usar captura" : "Fazer upload"}
+                    {label}
                   </button>
                 );
               })}
