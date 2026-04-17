@@ -272,7 +272,7 @@ export default function PlanosPage() {
           return (
             <div
               key={slug}
-              className={`relative flex flex-col overflow-hidden rounded-2xl border transition-shadow ${isPro ? "border-[var(--bdr2)] shadow-[0_0_0_1px_rgba(59,130,246,0.2),0_8px_32px_rgba(0,0,0,0.25)]" : "border-[var(--bdr)] shadow-[0_2px_8px_rgba(0,0,0,0.15)]"}`}
+              className={`${`relative flex flex-col overflow-hidden rounded-2xl border transition-shadow ${isPro ? "border-[var(--bdr2)] shadow-[0_0_0_1px_rgba(59,130,246,0.2),0_8px_32px_rgba(0,0,0,0.25)]" : "border-[var(--bdr)] shadow-[0_2px_8px_rgba(0,0,0,0.15)]"} page-fade`}`}
               style={{
                 borderTop: `2px solid ${info.border}`,
                 background: isPro ? "linear-gradient(180deg, var(--blue3) 0%, transparent 40%), var(--card-bg)" : "var(--card-bg)",
