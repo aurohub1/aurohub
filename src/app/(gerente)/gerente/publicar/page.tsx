@@ -270,7 +270,7 @@ export default function GerentePublicarPage() {
 
   // Cache de dados por aba (preserva ao trocar)
   const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>(() => {
-    const defaults = { formapagamento: "Cartão de Crédito", tipovoo: "( Voo Direto )" };
+    const defaults = { formapagamento: "Cartão de Crédito", tipovoo: "Voo Direto" };
     return {
       pacote: { ...defaults },
       campanha: { ...defaults },
@@ -1306,7 +1306,7 @@ export default function GerentePublicarPage() {
                         <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" />
                       </Field>
                       <Field label="Tipo de voo">
-                        <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
+                        <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Com Conexão"]} />
                       </Field>
                     </Row2>
                   </Section>
@@ -1391,7 +1391,7 @@ export default function GerentePublicarPage() {
                     <Row2>
                       <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" /></Field>
                       <Field label="Tipo de voo">
-                        <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
+                        <Select value={values.tipovoo || "Voo Direto"} onChange={(v) => setField("tipovoo", v)} options={["Voo Direto", "Com Conexão"]} />
                       </Field>
                     </Row2>
                   </Section>
@@ -1756,7 +1756,7 @@ export default function GerentePublicarPage() {
                     disabled={busy || !currentTemplate || limiteAtingido}
                     title={limiteAtingido ? `Limite diário atingido (${usadoAtual}/${limiteAtual})` : undefined}
                     className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                    style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+                    style={{ background: "var(--brand-gradient)" }}
                   >
                     {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     {status === "uploading"
