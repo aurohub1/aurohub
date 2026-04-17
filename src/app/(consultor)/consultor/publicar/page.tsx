@@ -19,9 +19,10 @@ const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
 
 /* ── Tipos ───────────────────────────────────────── */
 
-type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu";
+type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu" | "quatro_destinos";
 type EnabledForms = Record<FormType, boolean>;
-const DEFAULT_ENABLED_FORMS: EnabledForms = { pacote: true, campanha: true, passagem: true, cruzeiro: true, anoiteceu: true };
+// quatro_destinos é add-on controlado por feature lamina_4destinos; default false.
+const DEFAULT_ENABLED_FORMS: EnabledForms = { pacote: true, campanha: true, passagem: true, cruzeiro: true, anoiteceu: true, quatro_destinos: false };
 type Format = "stories" | "feed" | "reels" | "tv";
 type PublishStatus = "idle" | "generating" | "uploading" | "publishing" | "success" | "error";
 
@@ -76,10 +77,10 @@ const FORMAT_LABELS: Record<Format, string> = {
 
 const FORM_LABELS: Record<FormType, string> = {
   pacote: "Pacote", campanha: "Campanha", passagem: "Passagem",
-  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu",
+  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu", quatro_destinos: "4 Destinos",
 };
 
-const FORM_ORDER: FormType[] = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu"];
+const FORM_ORDER: FormType[] = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu", "quatro_destinos"];
 
 const FORMA_PGTO_OPTS = ["Cartão de Crédito", "Boleto"];
 const PARCELAS_OPTS = Array.from({ length: 25 }, (_, i) => `${i + 2}x`);
@@ -267,10 +268,11 @@ export default function PublicarPage() {
       passagem: { ...defaults },
       cruzeiro: { ...defaults },
       anoiteceu: { ...defaults },
+      quatro_destinos: { ...defaults },
     };
   });
   const [badgeCache, setBadgeCache] = useState<Record<FormType, Record<string, boolean>>>({
-    pacote: {}, campanha: {}, passagem: {}, cruzeiro: {}, anoiteceu: {},
+    pacote: {}, campanha: {}, passagem: {}, cruzeiro: {}, anoiteceu: {}, quatro_destinos: {},
   });
 
   const values = formCache[tab];
@@ -345,6 +347,12 @@ export default function PublicarPage() {
   }, [formatVisible, format, visibleFormats]);
 
   // Feature "publicar" — se ausente, esconde botão de publicar IG
+  // Add-on 4 Destinos: habilita a aba quando a feature está liberada pelo ADM
+  useEffect(() => {
+    const enabled = features.has("lamina_4destinos");
+    setEnabledForms(prev => prev.quatro_destinos === enabled ? prev : { ...prev, quatro_destinos: enabled });
+  }, [features]);
+
   const canPublishFeature = features.has("publicar");
   // "drive" ainda não é feature liberada — mantemos hardcode false
   const canDriveFeature = features.has("drive");
@@ -413,13 +421,14 @@ export default function PublicarPage() {
           .eq("id", p.licensee_id)
           .single();
         if (licForms) {
-          setEnabledForms({
+          setEnabledForms(prev => ({
+            ...prev,
             pacote:    licForms.form_pacote    ?? true,
             campanha:  licForms.form_campanha  ?? true,
             passagem:  licForms.form_passagem  ?? true,
             cruzeiro:  licForms.form_cruzeiro  ?? true,
             anoiteceu: licForms.form_anoiteceu ?? true,
-          });
+          }));
         }
       } catch (err) {
         console.warn("[Publicar] falha ao carregar permissões de formulários, usando defaults", err);
@@ -1286,7 +1295,14 @@ export default function PublicarPage() {
 
         {/* Scroll dos campos */}
         <div className="flex-1 overflow-y-auto p-4">
-          {!currentTemplate && (
+          {tab === "quatro_destinos" && (
+            <div className="flex flex-col items-center gap-2 py-12 text-center">
+              <Sparkles size={28} className="text-[var(--txt3)]" />
+              <div className="text-[13px] font-semibold text-[var(--txt2)]">4 Destinos</div>
+              <div className="text-[11px] text-[var(--txt3)]">Add-on em breve — formulário ainda em desenvolvimento.</div>
+            </div>
+          )}
+          {tab !== "quatro_destinos" && !currentTemplate && (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <ImageIcon size={24} className="text-[var(--txt3)]" />
               <div className="text-[12px] text-[var(--txt3)]">

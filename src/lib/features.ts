@@ -17,21 +17,23 @@ export const ALL_FEATURES = [
   "vendedores",
   "calendario",
   "lembretes",
+  "lamina_4destinos",
 ] as const;
 
 export type Feature = (typeof ALL_FEATURES)[number];
 
 export const FEATURE_LABELS: Record<Feature, string> = {
-  publicar:    "Publicar",
-  metricas:    "Métricas Instagram",
-  ia_legenda:  "IA para legendas",
-  agendamento: "Agendamento de posts",
-  templates:   "Biblioteca de templates",
-  unidades:    "Gestão de unidades",
-  usuarios:    "Gestão de usuários",
-  vendedores:  "Gestão de consultores",
-  calendario:  "Calendário",
-  lembretes:   "Lembretes",
+  publicar:         "Publicar",
+  metricas:         "Métricas Instagram",
+  ia_legenda:       "IA para legendas",
+  agendamento:      "Agendamento de posts",
+  templates:        "Biblioteca de templates",
+  unidades:         "Gestão de unidades",
+  usuarios:         "Gestão de usuários",
+  vendedores:       "Gestão de consultores",
+  calendario:       "Calendário",
+  lembretes:        "Lembretes",
+  lamina_4destinos: "Lâmina 4 Destinos (add-on)",
 };
 
 /** Features sempre on por padrão (independentes do plano). */
