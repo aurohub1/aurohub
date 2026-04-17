@@ -381,7 +381,7 @@ export default function ClienteInicioPage() {
           to   { opacity: 1; transform: translateY(0); }
         }
         .inicio-cliente-fade {
-          animation: inicioClienteFadeUp 400ms ease forwards;
+          animation: inicioClienteFadeUp 500ms ease forwards;
         }
       `}</style>
       {/* ═══ HEADER ═════════════════════════════════ */}
