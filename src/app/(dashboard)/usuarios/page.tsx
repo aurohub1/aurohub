@@ -16,7 +16,7 @@ interface Profile {
 interface Licensee { id: string; name: string; segment_id: string | null; }
 interface Store { id: string; name: string; licensee_id: string; }
 interface Segment { id: string; name: string; icon: string | null; }
-interface Plan { slug: string; name: string; max_posts_day: number; can_schedule: boolean; can_metrics: boolean; is_enterprise: boolean; }
+interface Plan { slug: string; name: string; max_posts_day: number; max_stories_day: number | null; max_feed_reels_day: number | null; can_schedule: boolean; can_metrics: boolean; is_enterprise: boolean; }
 
 type ModalTab = "dados" | "acesso" | "limites" | "senha";
 
@@ -85,7 +85,7 @@ export default function UsuariosPage() {
         supabase.from("licensees").select("id, name, segment_id").order("name"),
         supabase.from("stores").select("id, name, licensee_id").order("name"),
         supabase.from("segments").select("id, name, icon"),
-        supabase.from("plans").select("slug, name, max_posts_day, can_schedule, can_metrics, is_enterprise"),
+        supabase.from("plans").select("slug, name, max_posts_day, max_stories_day, max_feed_reels_day, can_schedule, can_metrics, is_enterprise"),
       ]);
       setProfiles((pR.data as Profile[]) ?? []);
       setLicensees((lR.data as Licensee[]) ?? []);
@@ -198,8 +198,10 @@ export default function UsuariosPage() {
   function selectPlan(slug: string) {
     const p = plans.find((pl) => pl.slug === slug);
     if (!p) return;
-    const limit = String(p.max_posts_day === -1 ? 999 : p.max_posts_day);
-    setForm({ ...form, plan: slug, stories_limit: limit, feed_limit: limit, reels_limit: limit, tv_limit: "0" });
+    const fmt = (v: number | null) => String(v === null || v === -1 ? 999 : v);
+    const stories = fmt(p.max_stories_day);
+    const feedReels = fmt(p.max_feed_reels_day);
+    setForm({ ...form, plan: slug, stories_limit: stories, feed_limit: feedReels, reels_limit: feedReels, tv_limit: p.is_enterprise ? "999" : "0" });
   }
 
   async function handleSave() {
