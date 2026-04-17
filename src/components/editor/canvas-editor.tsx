@@ -226,21 +226,28 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
   // Keyboard — multi-aware
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const tag = document.activeElement?.tagName || "";
-      if (["INPUT", "TEXTAREA", "SELECT"].includes(tag)) return;
+      // Guard: não dispara atalhos se estiver digitando num campo de texto.
+      // SELECT focado não bloqueia mais — user deve poder desfazer/copiar com um select aberto.
+      const active = document.activeElement as HTMLElement | null;
+      const tag = active?.tagName || "";
+      const isTextField = tag === "INPUT" || tag === "TEXTAREA" || !!active?.isContentEditable;
+      if (isTextField) return;
+      const mod = e.ctrlKey || e.metaKey;   // Ctrl (Win/Linux) ou Cmd (Mac)
+      const key = e.key.toLowerCase();      // normaliza pra não quebrar com Caps Lock
       if (e.key === "Delete" || e.key === "Backspace") { deleteSelected(); e.preventDefault(); }
       if (e.key === "Escape") { clearSelection(); e.preventDefault(); }
       if (e.key === " ") { e.preventDefault(); playing ? pause() : play(); }
-      if (e.ctrlKey && e.key === "z") { e.preventDefault(); undo(); }
-      if (e.ctrlKey && e.key === "y") { e.preventDefault(); redo(); }
-      if (e.ctrlKey && e.key === "c") { e.preventDefault(); copySelected(); }
-      if (e.ctrlKey && e.key === "v") { e.preventDefault(); paste(); }
-      if (e.ctrlKey && e.key === "d") { e.preventDefault(); duplicateSelected(); }
-      if (e.ctrlKey && e.key === "s") { e.preventDefault(); handleSaveClick(); }
-      if (e.ctrlKey && e.key === "e") { e.preventDefault(); handleExport(); }
-      if (e.ctrlKey && e.key === "[") { e.preventDefault(); moveLayer("down"); }
-      if (e.ctrlKey && e.key === "]") { e.preventDefault(); moveLayer("up"); }
-      if (e.ctrlKey && e.key === "a") { e.preventDefault(); selectAll(); }
+      if (mod && e.shiftKey && key === "z") { e.preventDefault(); redo(); }
+      else if (mod && key === "z") { e.preventDefault(); undo(); }
+      if (mod && key === "y") { e.preventDefault(); redo(); }
+      if (mod && key === "c") { e.preventDefault(); copySelected(); }
+      if (mod && key === "v") { e.preventDefault(); paste(); }
+      if (mod && key === "d") { e.preventDefault(); duplicateSelected(); }
+      if (mod && key === "s") { e.preventDefault(); handleSaveClick(); }
+      if (mod && key === "e") { e.preventDefault(); handleExport(); }
+      if (mod && e.key === "[") { e.preventDefault(); moveLayer("down"); }
+      if (mod && e.key === "]") { e.preventDefault(); moveLayer("up"); }
+      if (mod && key === "a") { e.preventDefault(); selectAll(); }
       // Arrows move ALL selected
       if (selectedIds.length > 0 && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
         e.preventDefault(); const step = e.shiftKey ? 10 : 1;
