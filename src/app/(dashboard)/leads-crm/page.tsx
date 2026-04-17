@@ -402,7 +402,7 @@ export default function LeadsCrmPage() {
             return (
               <div
                 key={col.key}
-                className="flex w-[260px] shrink-0 flex-col rounded-xl border border-[var(--bdr)]"
+                className="flex w-[260px] shrink-0 flex-col rounded-xl border border-[var(--bdr)] page-fade"
                 style={{ background: "var(--card-bg)" }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(col.key)}
