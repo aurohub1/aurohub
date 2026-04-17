@@ -468,38 +468,13 @@ export default function GerentePublicarPage() {
         if (first.format) setFormat(first.format);
       }
 
-      // Stores / publish targets — busca via API server-side
-      const res = await fetch("/api/user-stores");
-      const userStoresData = await res.json();
-
-      const storeIds = (userStoresData ?? []).map((s: { store_id: string }) => s.store_id);
-
-      let allStores: StoreOption[] = [];
-      if (storeIds.length > 0) {
-        const { data: storesData } = await supabase
-          .from("stores")
-          .select("id, name")
-          .in("id", storeIds)
-          .order("name");
-        allStores = (storesData ?? []) as StoreOption[];
-      }
-
-      if (allStores.length === 0 && p.store_id) {
-        const { data: fallback } = await supabase
-          .from("stores")
-          .select("id, name")
-          .eq("id", p.store_id)
-          .single();
-        if (fallback) allStores = [fallback as StoreOption];
-      }
-
-      const ORDER = ["rio preto", "damha", "barretos"];
-      allStores.sort((a, b) => {
-        const ai = ORDER.findIndex(o => a.name.toLowerCase().includes(o));
-        const bi = ORDER.findIndex(o => b.name.toLowerCase().includes(o));
-        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-      });
-
+      // Stores / publish targets
+      const { data: storesData } = await supabase
+        .from("stores")
+        .select("id, name")
+        .eq("licensee_id", p.licensee_id)
+        .order("name");
+      const allStores = (storesData ?? []) as StoreOption[];
       setPublishTargets(allStores);
       setSelectedTargetIds(allStores.length > 0 ? [allStores[0].id] : []);
 
