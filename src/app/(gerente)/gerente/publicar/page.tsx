@@ -6,6 +6,7 @@ import type Konva from "konva";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import type { EditorSchema, EditorElement } from "@/components/editor/types";
+import PubTypeAndSchedule, { type PubType, type ScheduleMode } from "@/components/PubTypeAndSchedule";
 import {
   Sparkles, Download, Send, ArrowLeft, Image as ImageIcon, Check, X, Loader2,
 } from "lucide-react";
@@ -112,23 +113,6 @@ const BIND_LABELS: Record<string, string> = {
   texto1: "Texto 1",
   texto2: "Texto 2",
   texto3: "Texto 3",
-  badge: "Badge",
-  allinclusive: "All Inclusive",
-  ofertas: "Ofertas",
-  logocia: "Logo Cia Aérea",
-  cabine: "Cabine",
-  roteiro: "Roteiro",
-  embarque: "Embarque",
-  desembarque: "Desembarque",
-  regiao: "Região",
-  entrada: "Entrada",
-  dataperiodo: "Período",
-  valortotalfmt: "Valor total formatado",
-  valorint: "Valor inteiro",
-  valdec: "Centavos",
-  servicoslista: "Lista de serviços",
-  textopagamento: "Texto de pagamento",
-  parcelaspassagem: "Parcelas passagem",
 };
 
 function classifyBind(name: string, elType: string): BindType {
@@ -138,18 +122,15 @@ function classifyBind(name: string, elType: string): BindType {
   return "text";
 }
 
-// Campos computados que não devem aparecer como inputs editáveis
-const COMPUTED_BINDS = new Set(["dataperiodo", "valortotalfmt", "valorint", "valdec", "servicoslista", "textopagamento", "parcelaspassagem", "imgfundo_preview", "thumb", "thumbnail", "preview"]);
-
 function collectBindFields(elements: EditorElement[]): BindField[] {
   const seen = new Set<string>();
   const fields: BindField[] = [];
   for (const el of elements) {
-    if (!el.bindParam || seen.has(el.bindParam) || COMPUTED_BINDS.has(el.bindParam)) continue;
+    if (!el.bindParam || seen.has(el.bindParam)) continue;
     seen.add(el.bindParam);
     fields.push({
       name: el.bindParam,
-      label: BIND_LABELS[el.bindParam] ?? el.bindParam.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+      label: BIND_LABELS[el.bindParam] ?? el.bindParam,
       type: classifyBind(el.bindParam, el.type),
     });
   }
@@ -172,6 +153,9 @@ export default function GerentePublicarPage() {
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loadingTpl, setLoadingTpl] = useState(true);
   const [selected, setSelected] = useState<TemplateRow | null>(null);
+  const [pubType, setPubType] = useState<PubType>("feed");
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("now");
+  const [scheduledAt, setScheduledAt] = useState("");
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [caption, setCaption] = useState<string>("");
@@ -236,26 +220,13 @@ export default function GerentePublicarPage() {
     let targets: StoreOption[] = [];
     if (canPublishToAllAZV(p.store_id)) {
       targets = filterAZVGroup(allStores);
-      if (targets.length === 0) targets = allStores;
-    } else {
-      // Busca lojas vinculadas ao gerente via user_stores
-      try {
-        const { data: userStores } = await supabase
-          .from("user_stores")
-          .select("store_id")
-          .eq("user_id", p.id);
-        if (userStores && userStores.length > 0) {
-          const ids = new Set(userStores.map((s: { store_id: string }) => s.store_id));
-          targets = allStores.filter(s => ids.has(s.id));
-        }
-      } catch { /* silent */ }
-      // Fallback: store_id do profile ou todas do licensee
-      if (targets.length === 0 && p.store_id) {
-        const own = allStores.find((s) => s.id === p.store_id);
-        targets = own ? [own] : allStores;
-      } else if (targets.length === 0) {
+      if (targets.length === 0) {
+        // fallback: se o filtro por nome não casar, usa todas do licensee
         targets = allStores;
       }
+    } else if (p.store_id) {
+      const own = allStores.find((s) => s.id === p.store_id);
+      targets = own ? [own] : [];
     }
     setPublishTargets(targets);
     setSelectedTargetIds(targets.length > 0 ? [targets[0].id] : []);
@@ -658,6 +629,13 @@ export default function GerentePublicarPage() {
               />
             </div>
 
+            {/* Tipo + Agendamento */}
+            <PubTypeAndSchedule
+              pubType={pubType} onPubTypeChange={setPubType}
+              scheduleMode={scheduleMode} onScheduleModeChange={setScheduleMode}
+              scheduledAt={scheduledAt} onScheduledAtChange={setScheduledAt}
+            />
+
             {/* Destinos de publicação */}
             {publishTargets.length > 0 && (
               <div className="mt-2 flex flex-col gap-2 border-t border-[var(--bdr)] pt-4">
@@ -717,7 +695,7 @@ export default function GerentePublicarPage() {
                 className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white shadow-lg disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
               >
-                <Send size={13} /> Publicar
+                <Send size={13} /> {scheduleMode === "schedule" ? "✦ Agendar" : "✦ Publicar"}
               </button>
             </div>
 
