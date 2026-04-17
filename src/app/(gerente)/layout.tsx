@@ -23,7 +23,8 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
-    document.documentElement.setAttribute("data-theme", saved || "light");
+    const h = new Date().getHours();
+    document.documentElement.setAttribute("data-theme", saved || ((h >= 6 && h < 19) ? "light" : "dark"));
   }, []);
 
   useEffect(() => {
