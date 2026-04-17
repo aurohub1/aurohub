@@ -1015,6 +1015,25 @@ export default function UnidadePublicarPage() {
         },
       });
       setDownloadsToday(d => d + 1);
+
+      // Registra em publication_history (silencioso)
+      try {
+        if (currentTemplate) {
+          await supabase.from("publication_history").insert({
+            licensee_id: profile.licensee_id,
+            loja_id: profile.store_id,
+            user_id: profile.id,
+            user_role: profile.role,
+            template_id: currentTemplate.id,
+            template_nome: currentTemplate.nome,
+            formato: format,
+            tipo: "download" as const,
+            destino: values.destino || null,
+          });
+        }
+      } catch (histErr) {
+        console.warn("[download] publication_history insert falhou (silencioso):", histErr);
+      }
     }
 
     setStatus("success"); setStatusMsg(isVideo ? "Vídeo baixado" : "Imagem baixada");
@@ -1160,6 +1179,27 @@ export default function UnidadePublicarPage() {
 
       const okCount = resultados.filter((r) => r.ok).length;
       const falhas = resultados.filter((r) => !r.ok);
+
+      // Registra publicações ok em publication_history (silencioso — não bloqueia fluxo)
+      try {
+        const okTargets = resultados.filter(r => r.ok).map(r => r.store);
+        if (okTargets.length > 0 && profile.licensee_id && currentTemplate) {
+          const rows = okTargets.map(t => ({
+            licensee_id: profile.licensee_id!,
+            loja_id: t.id,
+            user_id: profile.id,
+            user_role: profile.role,
+            template_id: currentTemplate.id,
+            template_nome: currentTemplate.nome,
+            formato: format,
+            tipo: "publicado" as const,
+            destino: values.destino || null,
+          }));
+          await supabase.from("publication_history").insert(rows);
+        }
+      } catch (histErr) {
+        console.warn("[publicar] publication_history insert falhou (silencioso):", histErr);
+      }
       const queuedCount = resultados.filter((r) => r.ok && r.error === "Vídeo em processamento...").length;
       if (okCount === 0) throw new Error(`Nenhuma publicação concluída. ${falhas[0]?.error ?? ""}`);
 
