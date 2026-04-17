@@ -8,9 +8,8 @@ import { MessageCircle, Send, X, Minimize2 } from "lucide-react";
 interface Message {
   id: string;
   sender: string;
-  is_staff: boolean;
   message: string;
-  user_name: string | null;
+  user_id: string | null;
   created_at: string;
 }
 
@@ -72,7 +71,6 @@ export default function SupportWidget() {
         .insert({
           user_id: profile.id,
           licensee_id: profile.licensee_id,
-          client_name: profile.name || "—",
           client_email: profile.email || "—",
           subject: msg.slice(0, 80),
           category: "Chat",
@@ -93,11 +91,8 @@ export default function SupportWidget() {
     await supabase.from("ticket_messages").insert({
       ticket_id: tid,
       sender: profile.name || "Cliente",
-      is_staff: false,
       message: msg,
       user_id: profile.id,
-      user_name: profile.name,
-      user_role: profile.role,
     });
 
     // Notifica via WhatsApp
@@ -161,17 +156,19 @@ export default function SupportWidget() {
               </div>
             )}
             <div className="flex flex-col gap-2">
-              {messages.map(m => (
-                <div key={m.id} className={`flex ${m.is_staff ? "justify-start" : "justify-end"}`}>
+              {messages.map(m => {
+                const isStaff = m.user_id !== profile.id;
+                return (
+                <div key={m.id} className={`flex ${isStaff ? "justify-start" : "justify-end"}`}>
                   <div
                     className="max-w-[80%] rounded-xl px-3 py-2"
-                    style={m.is_staff
+                    style={isStaff
                       ? { background: "var(--bg2)", borderBottomLeftRadius: 4 }
                       : { background: "rgba(59,130,246,0.12)", borderBottomRightRadius: 4 }
                     }
                   >
                     <div className="mb-0.5 text-[8px] font-bold uppercase text-[var(--txt3)]">
-                      {m.is_staff ? "Suporte" : "Você"}
+                      {isStaff ? "Suporte" : "Você"}
                     </div>
                     <div className="whitespace-pre-wrap text-[12px] text-[var(--txt)]">{m.message}</div>
                     <div className="mt-0.5 text-right text-[8px] text-[var(--txt3)]">
@@ -179,7 +176,8 @@ export default function SupportWidget() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               <div ref={bottomRef} />
             </div>
           </div>
