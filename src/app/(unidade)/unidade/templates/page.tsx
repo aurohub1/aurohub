@@ -281,8 +281,8 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
           />
         )}
 
-        {/* Badges empilhados no canto inferior esquerdo: STORIES (top) + PACOTE (bottom) */}
-        <div style={{ position: "absolute", bottom: 8, left: 8, display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+        {/* Badges empilhados no canto superior esquerdo: STORIES (top) + PACOTE (bottom) */}
+        <div style={{ position: "absolute", top: 8, left: 8, display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
           <span style={{ background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 9, padding: "2px 8px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
             {fMeta.label}
           </span>
