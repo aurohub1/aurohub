@@ -128,12 +128,14 @@ function EditorInner() {
           initialFormat={format}
           initialLicenseeId={loadedLicenseeId}
           initialLojaId={loadedLojaId}
+          captureThumb={pendingSave.thumbnail ?? null}
           onClose={() => { setPendingSave(null); setPendingVariants(null); }}
           onConfirm={async (meta: SaveTemplateData) => {
             setSaving(true);
-            // Auto-upload da thumbnail do canvas pra Cloudinary via API route
+            // meta.thumbnail é o dataURL efetivo escolhido no modal (capture ou upload manual).
+            // Fallback pro thumb capturado original apenas caso o modal não tenha mandado.
             let thumbnail: string | null = null;
-            const rawThumb = pendingSave.thumbnail;
+            const rawThumb = meta.thumbnail ?? pendingSave.thumbnail ?? null;
             if (rawThumb && rawThumb.startsWith("data:")) {
               try {
                 const res = await fetch("/api/upload-thumb", {

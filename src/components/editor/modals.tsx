@@ -501,6 +501,12 @@ export interface SaveTemplateData {
   /** Lista de lojas selecionadas — array vazio = Todas as lojas do licensee */
   lojaIds: string[];
   lojaNomes: string[];
+  /**
+   * Thumbnail escolhido pelo usuário no modal. dataURL (capture do canvas OU upload manual).
+   * null se o canvas não gerou captura E o usuário não subiu arquivo.
+   * Quem chamou o modal deve usar este campo como fonte do upload pro Cloudinary.
+   */
+  thumbnail: string | null;
 }
 
 const FORM_TYPES = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu", "lamina"];
@@ -533,13 +539,15 @@ function sortLojasPriority<T extends { name: string }>(rows: T[]): T[] {
   });
 }
 
-export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, initialLojaIds, onClose, onConfirm }: {
+export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, initialLojaIds, captureThumb, onClose, onConfirm }: {
   initialName?: string;
   initialFormType: string;
   initialFormat: string;
   initialLicenseeId?: string;
   initialLojaId?: string;
   initialLojaIds?: string[];
+  /** dataURL capturado do canvas — usado no modo "capture" (default) */
+  captureThumb?: string | null;
   onClose: () => void;
   onConfirm: (data: SaveTemplateData) => void | Promise<void>;
 }) {
@@ -553,6 +561,30 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
     new Set(initialLojaIds ?? (initialLojaId ? [initialLojaId] : []))
   );
   const [saving, setSaving] = useState(false);
+
+  // Thumbnail — captura automática (padrão) ou upload manual
+  const [thumbMode, setThumbMode] = useState<"capture" | "upload">("capture");
+  const [manualThumb, setManualThumb] = useState<string | null>(null);
+  const thumbFileRef = useRef<HTMLInputElement>(null);
+  const effectiveThumb = thumbMode === "upload" ? manualThumb : (captureThumb ?? null);
+
+  function handleThumbFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite re-upload do mesmo arquivo
+    if (!file) return;
+    if (!/^image\/(jpe?g|png)$/i.test(file.type)) {
+      alert("Selecione um arquivo JPG ou PNG.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setManualThumb(reader.result);
+        setThumbMode("upload");
+      }
+    };
+    reader.readAsDataURL(file);
+  }
 
   // Carrega marcas (licensees) + profile do usuário logado → pré-seleção
   useEffect(() => {
@@ -666,6 +698,7 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
         lojaNome: nomes[0] || "",
         lojaIds: ids,
         lojaNomes: nomes,
+        thumbnail: effectiveThumb,
       });
     } finally { setSaving(false); }
   };
@@ -676,6 +709,46 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
         <L label="Nome do template">
           <input autoFocus value={nome} onChange={e => setNome(e.target.value)} placeholder="ex: Pacote Rio Preto Verão"
             style={fieldS} onKeyDown={e => e.key === "Enter" && confirm()} />
+        </L>
+        <L label="Thumbnail">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{
+              border: "1px solid var(--ed-bdr)", borderRadius: 8, height: 100,
+              background: "var(--ed-input, rgba(255,255,255,0.02))",
+              display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+            }}>
+              {effectiveThumb ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={effectiveThumb} alt="Preview" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+              ) : (
+                <span style={{ fontSize: 11, color: "var(--ed-txt3)" }}>Sem preview</span>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {(["capture", "upload"] as const).map(m => {
+                const active = thumbMode === m;
+                const disabled = m === "capture" && !captureThumb;
+                const onClick = m === "capture"
+                  ? () => setThumbMode("capture")
+                  : () => thumbFileRef.current?.click();
+                return (
+                  <button key={m} type="button" onClick={onClick} disabled={disabled}
+                    style={{
+                      flex: 1, padding: "7px 12px", borderRadius: 6,
+                      border: `1px solid ${active ? "#FF7A1A" : "var(--ed-bdr)"}`,
+                      background: active ? "rgba(255,122,26,0.1)" : "transparent",
+                      color: disabled ? "var(--ed-txt3)" : active ? "#FF7A1A" : "var(--ed-txt2)",
+                      cursor: disabled ? "not-allowed" : "pointer",
+                      fontSize: 11, fontWeight: 600, opacity: disabled ? 0.5 : 1,
+                    }}>
+                    {m === "capture" ? "Usar captura" : "Fazer upload"}
+                  </button>
+                );
+              })}
+              <input ref={thumbFileRef} type="file" accept="image/jpeg,image/png"
+                onChange={handleThumbFile} style={{ display: "none" }} />
+            </div>
+          </div>
         </L>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <L label="Tipo">
