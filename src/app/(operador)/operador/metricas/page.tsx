@@ -39,7 +39,7 @@ export default function OperadorMetricasPage() {
           { label: "Lojas ativas", value: stats.totalStores, color: "var(--green)", bg: "var(--green3)" },
         ].map(s => (
           <div key={s.label} className="card-glass flex items-center gap-4 px-5 py-5">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" style={{ color: s.color, background: s.bg, border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" style={{ color: s.color, background: s.bg, border: "1px solid var(--bdr2)" }}>
               <BarChart3 size={22} />
             </div>
             <div>
