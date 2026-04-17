@@ -330,7 +330,7 @@ export default function GerenteInicioPage() {
   }, [dbFeriados]);
 
   if (loading) return (
-    <div className="flex min-h-[60vh] items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center page-fade">
       <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>
     </div>
   );
@@ -368,7 +368,7 @@ export default function GerenteInicioPage() {
               className="flex h-11 w-11 items-center justify-center rounded-xl"
               style={{
                 background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.14))",
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: "1px solid var(--bdr2)",
               }}
             >
               <WeatherIcon code={weather?.code ?? null} />
@@ -393,7 +393,7 @@ export default function GerenteInicioPage() {
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid var(--bdr2)",
             }}
           >
             <Send size={22} />
@@ -411,7 +411,7 @@ export default function GerenteInicioPage() {
         <div className="card-glass flex items-center gap-4 px-5 py-5">
           <div
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--blue)]"
-            style={{ background: "var(--blue3)", border: "1px solid rgba(255,255,255,0.08)" }}
+            style={{ background: "var(--blue3)", border: "1px solid var(--bdr2)" }}
           >
             <BarChart3 size={22} />
           </div>
