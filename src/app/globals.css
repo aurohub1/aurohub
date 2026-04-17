@@ -176,3 +176,21 @@ body {
   border: 1px solid var(--bdr);
   border-radius: 18px;
 }
+
+/* ── Page enter animation ────────────────────────── */
+/* Aplica .page-fade no root wrapper de uma página pra fade-in + slide-up. */
+@keyframes pageFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-fade {
+  animation: pageFadeUp 500ms ease forwards;
+}
+
+/* ── Icon glow ───────────────────────────────────── */
+/* Aplica .icon-glow-* num container de ícone tinted pra brilho sutil. */
+.icon-glow-orange { box-shadow: 0 0 24px rgba(255, 122, 26, 0.22); }
+.icon-glow-blue   { box-shadow: 0 0 24px rgba(59, 130, 246, 0.22); }
+.icon-glow-gold   { box-shadow: 0 0 24px rgba(212, 168, 67, 0.22); }
+.icon-glow-green  { box-shadow: 0 0 24px rgba(34, 197, 94, 0.22); }
+.icon-glow-red    { box-shadow: 0 0 24px rgba(239, 68, 68, 0.22); }
