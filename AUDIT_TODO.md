@@ -102,6 +102,34 @@ com `bindParam="valortotalfmt"`, decidir qual manter, deletar o outro, e salvar.
 
 ---
 
+## 5. Labels estáticos (bucket A) sem link com bind
+
+**Problema:** Elementos de texto com label puro (`"Saída:"`, `"Hotel:"`, `"R$"`, `","`)
+continuam renderizando no preview mesmo quando o bind adjacente (`saida`, `hotel`,
+`valorparcela`) está vazio. O renderer não tem como saber qual label some com qual bind.
+
+**Abordagem sugerida — campo `hideIfBindEmpty` no schema do elemento:**
+
+```ts
+// Em EditorElement
+hideIfBindEmpty?: string; // bindParam que controla a visibilidade deste elemento
+```
+
+No render: se `hideIfBindEmpty` está setado e `values[hideIfBindEmpty]` é vazio/
+`"– nenhum –"` → retorna `null`.
+
+**Depende de:** editor ADM ter UI pra setar esse campo no inspector (hoje ainda
+não tem maturidade pra isso). Fica aqui registrado pra quando o editor for
+evoluído.
+
+**Elementos afetados no template `tmpl_teste_1775869438496`:**
+- `p_sai` `"Saída:"` → deveria casar com bind `saida`
+- `p_hot` `"Hotel:"` → deveria casar com bind `hotel`
+- `el_1776171637774_wwdl` `"R$"` → deveria casar com bind `valorparcela`
+- `el_1776187997855_6mtv` `","` → idem
+
+---
+
 ## Histórico
 
 - **2026-04-17:** investigação disparada por bug de badges condicionais no
