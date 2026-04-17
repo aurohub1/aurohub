@@ -66,6 +66,11 @@ export function invalidateBadgesCache(): void {
   cachedAt = 0;
 }
 
+// Conveniência para DevTools: `window.invalidateBadgesCache()` força refetch
+if (typeof window !== "undefined") {
+  (window as unknown as { invalidateBadgesCache?: () => void }).invalidateBadgesCache = invalidateBadgesCache;
+}
+
 interface UseBadgesResult {
   badges: Record<string, string>;
   feriados: Record<string, string>;

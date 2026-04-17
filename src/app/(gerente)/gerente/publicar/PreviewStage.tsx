@@ -5,7 +5,7 @@ import { Stage, Layer, Rect, Circle, Text as KText, Image as KImage, Group } fro
 import type Konva from "konva";
 import { applySmartLinks, type EditorElement, type EditorSchema } from "@/components/editor/types";
 import { useBadges } from "@/hooks/useBadges";
-import { resolveBadgeUrl } from "@/lib/badges";
+import { resolveBadgeUrl, shouldRenderBadge } from "@/lib/badges";
 
 /* ── Helpers ─────────────────────────────────────── */
 
@@ -93,6 +93,20 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     // Parcelas passagem
     case "parcelaspassagem":
       return values.parcelaspassagem || values.parcelas || "";
+
+    // Desconto: só o número sem "%" — v1 client.js:946-952
+    case "desconto_valor": {
+      const d = values.desconto;
+      if (!d || d === "– nenhum –") return "";
+      return String(d).replace("%", "").trim();
+    }
+
+    // Desconto Anoiteceu: só o número sem "%" — v1 client.js:953-958
+    case "desconto_anoit_valor": {
+      const d = values.desconto_anoit;
+      if (!d || d === "– nenhum –") return "";
+      return String(d).replace("%", "").trim();
+    }
 
     case "formapagamento": {
       const forma = values.formapagamento || "";
@@ -189,11 +203,12 @@ function fitFontSize(
   return 8;
 }
 
-const BOOLEAN_BADGES = new Set([
+// Badges cujo render é condicional ao estado do form (não ao toggle values[bp]).
+// Ver shouldRenderBadge em src/lib/badges.ts.
+const DYNAMIC_BADGES = new Set([
   "all_inclusive_badge",
-  "ultima_chamada_badge",
-  "ultimos_lugares_badge",
-  "ofertas_azul_badge",
+  "desconto_badge",
+  "feriado_badge",
 ]);
 
 function resolveImage(
@@ -204,20 +219,8 @@ function resolveImage(
 ): string | undefined {
   if (!el.bindParam) return el.src;
   const bp = el.bindParam;
-  const val = values[bp];
 
   if (bp.endsWith("_badge")) {
-    // TEMP DEBUG — remove após captura
-    console.log("[badge-debug]", {
-      paramID: bp,
-      val,
-      desconto: values.desconto,
-      feriado: values.feriado,
-      servico_1: values.servico_1,
-      servico_2: values.servico_2,
-      servico_3: values.servico_3,
-    });
-    if (BOOLEAN_BADGES.has(bp) && val !== "true") return undefined;
     const url = resolveBadgeUrl(bp, badgeUrls, feriadoUrls, values);
     if (url) return url;
     if (process.env.NODE_ENV !== "production") {
@@ -226,6 +229,7 @@ function resolveImage(
     return undefined;
   }
 
+  const val = values[bp];
   if (val) return val;
   return el.src;
 }
@@ -352,9 +356,16 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
   }
 
   if (el.type === "imageBind") {
-    // No cliente: substitui pelo valor real do bind. Se vazio, não renderiza nada.
-    if (!el.bindParam || !values[el.bindParam]) return null;
-    return <RenderImage el={{ ...el, type: "image", src: values[el.bindParam] }} values={values} />;
+    const bp = el.bindParam;
+    if (!bp) return null;
+    if (DYNAMIC_BADGES.has(bp)) {
+      // Badges dinâmicos: condição vem de shouldRenderBadge (servicos, desconto, feriado).
+      if (!shouldRenderBadge(bp, values)) return null;
+    } else if (!values[bp]) {
+      // Fallback: bind depende de values[bp] estar preenchido (toggles on/off, imagens do form).
+      return null;
+    }
+    return <RenderImage el={{ ...el, type: "image", src: values[bp] }} values={values} />;
   }
 
   return null;

@@ -32,6 +32,45 @@ export function findBadgeUrl(
   return null;
 }
 
+// v1 utils.js:589-591 — detecção case-insensitive + português
+function isAllInclusive(val: string | undefined): boolean {
+  return /all\s*inclusive|tudo\s*inclu[ií]do/i.test(val || "");
+}
+
+/**
+ * Decide se um badge deve renderizar, espelhando as condições do v1
+ * (client.js:909-973 + 1337/1347). Retorna true/false para os 6 badges
+ * suportados. Os outros bindParams são tratados fora desta função.
+ */
+export function shouldRenderBadge(paramID: string, values: Record<string, string>): boolean {
+  switch (paramID) {
+    // automático: qualquer servico_1..6 contém "all inclusive" / "tudo incluído"
+    case "all_inclusive_badge": {
+      for (let i = 1; i <= 6; i++) {
+        if (isAllInclusive(values[`servico_${i}`])) return true;
+      }
+      return false;
+    }
+    // condicional pelo campo `desconto`
+    case "desconto_badge": {
+      const d = values.desconto;
+      return !!(d && d !== "– nenhum –");
+    }
+    // condicional pelo campo `feriado`
+    case "feriado_badge": {
+      const f = values.feriado;
+      return !!(f && f !== "– nenhum –");
+    }
+    // toggles on/off — valor esperado "true"
+    case "ultima_chamada_badge":
+    case "ultimos_lugares_badge":
+    case "ofertas_azul_badge":
+      return values[paramID] === "true";
+    default:
+      return false;
+  }
+}
+
 // Aliases — v1 client.js:915-933
 export const BADGE_ALIASES: Record<string, string[]> = {
   all_inclusive_badge:   ["ALL INCLUSIVE", "All Inclusive", "allinclusive", "all_inclusive"],
