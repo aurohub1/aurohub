@@ -338,7 +338,6 @@ export default function CanvasStage(p: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const nodeRefs = useRef<Map<string, Konva.Node>>(new Map());
   const [guides, setGuides] = useState<SnapLine[]>([]);
-  const [isPanning, setIsPanning] = useState(false);
 
   const handleDragMoveSnap = useCallback((id: string, rawX: number, rawY: number) => {
     if (!snapEnabled) return { x: rawX, y: rawY };
@@ -370,7 +369,7 @@ export default function CanvasStage(p: Props) {
 
   // Sync Transformer with selectedIds
   useEffect(() => {
-    if (!trRef.current || playing || isPanning) { trRef.current?.nodes([]); return; }
+    if (!trRef.current || playing) { trRef.current?.nodes([]); return; }
     const nodes: Konva.Node[] = [];
     for (const id of selectedIds) {
       const node = nodeRefs.current.get(id);
@@ -378,7 +377,7 @@ export default function CanvasStage(p: Props) {
     }
     trRef.current.nodes(nodes);
     trRef.current.getLayer()?.batchDraw();
-  }, [selectedIds, playing, schema.elements, isPanning]);
+  }, [selectedIds, playing, schema.elements]);
 
   const registerRef = useCallback((id: string, node: Konva.Node | null) => {
     if (node) nodeRefs.current.set(id, node);
@@ -433,68 +432,15 @@ export default function CanvasStage(p: Props) {
     stage.batchDraw();
   }, [stageScale, p.onScaleChange, clampStagePos]);
 
-  // Pan com botão do meio do mouse (like Corel/Illustrator)
-  const panState = useRef<{ startX: number; startY: number; stageX: number; stageY: number }>({
-    startX: 0, startY: 0, stageX: 0, stageY: 0,
-  });
-  const panningRef = useRef(false);
+  // Pan via botão do meio do mouse: desativado intencionalmente.
+  // A implementação anterior usava stage.position() que desloca só o conteúdo
+  // do canvas (não o DOM canvas em si), criando desconexão visual com o background.
+  // Pan via wheel scroll continua funcionando quando zoom > 100% (handleWheel).
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 1) return; // botão do meio
-    e.preventDefault();
-    e.stopPropagation();
-    const stage = stageRef.current;
-    if (!stage) return;
-    // desativa transformer/seleção enquanto pan
-    trRef.current?.nodes([]);
-    trRef.current?.getLayer()?.batchDraw();
-    panState.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      stageX: stage.x(),
-      stageY: stage.y(),
-    };
-    panningRef.current = true;
-    setIsPanning(true);
-  }, []);
-
-  // Capture phase: intercepta mousedown/click antes do Konva
-  // para impedir seleção de elementos quando botão do meio
-  const handleMouseDownCapture = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, []);
-
-  const handleClickCapture = useCallback((e: React.MouseEvent) => {
-    // Previne seleção se o pan acabou de terminar (botão do meio release)
-    if (panningRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, []);
-
-  const handleContainerMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!panningRef.current) return; // só pan se isPanning=true — ignora qualquer drag de elemento
-    const stage = stageRef.current;
-    if (!stage) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const dx = e.clientX - panState.current.startX;
-    const dy = e.clientY - panState.current.startY;
-    const newPos = clampStagePos(panState.current.stageX + dx, panState.current.stageY + dy);
-    stage.position(newPos);
-    stage.batchDraw();
-  }, [clampStagePos]);
-
-  const handleContainerMouseUp = useCallback((e: React.MouseEvent) => {
-    if (panningRef.current) {
-      panningRef.current = false;
-      setIsPanning(false);
-      e.stopPropagation();
-    }
+  // Só bloqueia autoscroll nativo do navegador no middle-click — não faz pan.
+  const blockMiddleClick = useCallback((e: React.MouseEvent) => {
+    if (e.button === 1) e.preventDefault();
   }, []);
 
   const handleElementClick = useCallback((elId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -511,26 +457,17 @@ export default function CanvasStage(p: Props) {
       background: "var(--ed-canvas-bg, #12121a)",
       backgroundImage: "radial-gradient(circle, var(--ed-bdr) 1px, transparent 1px)",
       backgroundSize: "20px 20px",
-      cursor: isPanning ? "grabbing" : undefined,
     }}
       ref={containerRef}
       onClick={e => { if (e.target === e.currentTarget) p.onSelect(null); }}
-      onMouseDownCapture={handleMouseDownCapture}
-      onClickCapture={handleClickCapture}
-      onMouseDown={handleContainerMouseDown}
-      onMouseMove={handleContainerMouseMove}
-      onMouseUp={handleContainerMouseUp}
-      onMouseLeave={handleContainerMouseUp}
+      onMouseDown={blockMiddleClick}
       onAuxClick={e => { if (e.button === 1) e.preventDefault(); }}>
       <Stage ref={stageRef} width={width * stageScale} height={height * stageScale} scaleX={stageScale} scaleY={stageScale}
         onWheel={handleWheel}
         onMouseDown={e => {
-          // botão do meio: preventDefault + stopPropagation + desativa transformer ANTES de ativar pan
+          // Middle-click: bloqueia autoscroll nativo sem ativar pan
           if (e.evt.button === 1) {
             e.evt.preventDefault();
-            e.evt.stopPropagation();
-            trRef.current?.nodes([]);
-            trRef.current?.getLayer()?.batchDraw();
             return;
           }
           if (e.target === e.target.getStage()) p.onSelect(null);
