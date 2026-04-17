@@ -273,18 +273,11 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
         <span style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 9, padding: "2px 8px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
           {fMeta.label}
         </span>
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
-          padding: "8px 12px",
-          background: "rgba(255,255,255,0.25)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={tpl.nome}>
-            {tpl.nome}
-          </div>
-          <span style={{ fontSize: 10, color: "#fff", opacity: 0.8 }}>{tMeta.label}</span>
-        </div>
+      </div>
+      <div style={{ padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 10, color: "#3B82F6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
+          {tMeta.label}
+        </span>
       </div>
       <button
         onClick={onUse}
