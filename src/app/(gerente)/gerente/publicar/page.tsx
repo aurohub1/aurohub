@@ -332,9 +332,9 @@ export default function GerentePublicarPage() {
   const formatVisible = useMemo<FormatVisibility>(() => {
     if (!planLimits) return { stories: true, feed: true, reels: true, tv: false };
     return {
-      stories: (planLimits.max_stories_day ?? 0) !== 0,
-      feed:    (planLimits.max_feed_reels_day ?? 0) > 0,
-      reels:   (planLimits.max_feed_reels_day ?? 0) > 0,
+      stories: true,
+      feed:    true,
+      reels:   true,
       tv:      !!planLimits.is_enterprise,
     };
   }, [planLimits]);
