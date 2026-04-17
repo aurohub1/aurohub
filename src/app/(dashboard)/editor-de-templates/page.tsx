@@ -681,7 +681,7 @@ export default function EditorTemplatesPage() {
             const fmtLabel = FORMAT_OPTIONS.find((f) => f.value === t.format)?.label ?? t.format;
 
             return (
-              <div key={t.id} className="overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)]" style={{ background: "var(--card-bg)" }}>
+              <div key={t.id} className="overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)] page-fade" style={{ background: "var(--card-bg)" }}>
                 {/* Thumbnail */}
                 <div className="relative aspect-[4/3] overflow-hidden bg-[var(--bg3)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
