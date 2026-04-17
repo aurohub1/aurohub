@@ -160,10 +160,10 @@ function resolveText(el: EditorElement, values: Record<string, string>): string 
   if (el.bindParam) {
     const resolved = resolveBindParam(el.bindParam, values);
     if (resolved) return applyTextTransform(resolved, el.textTransform);
-    // bindParam sem valor → esconde o placeholder bracketado
-    const txt = el.text ?? "";
-    if (txt.includes("[") && txt.includes("]")) return "";
-    return applyTextTransform(txt, el.textTransform);
+    // bindParam sem valor resolvido → texto vazio. el.text é só preview
+    // do editor (ex: "RIBEIRÃO PRETO" para bindParam=saida), não fallback.
+    // Guard no RenderEl retorna null quando txt é vazio, escondendo o elemento.
+    return "";
   }
 
   // Prioridade 2: texto livre — substitui [binds] inline por valores do form
