@@ -139,7 +139,7 @@ function classifyBind(name: string, elType: string): BindType {
 }
 
 // Campos computados que não devem aparecer como inputs editáveis
-const COMPUTED_BINDS = new Set(["dataperiodo", "valortotalfmt", "valorint", "valdec", "servicoslista", "textopagamento", "parcelaspassagem"]);
+const COMPUTED_BINDS = new Set(["dataperiodo", "valortotalfmt", "valorint", "valdec", "servicoslista", "textopagamento", "parcelaspassagem", "imgfundo_preview", "thumb", "thumbnail", "preview"]);
 
 function collectBindFields(elements: EditorElement[]): BindField[] {
   const seen = new Set<string>();
@@ -149,7 +149,7 @@ function collectBindFields(elements: EditorElement[]): BindField[] {
     seen.add(el.bindParam);
     fields.push({
       name: el.bindParam,
-      label: BIND_LABELS[el.bindParam] ?? el.bindParam,
+      label: BIND_LABELS[el.bindParam] ?? el.bindParam.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
       type: classifyBind(el.bindParam, el.type),
     });
   }
