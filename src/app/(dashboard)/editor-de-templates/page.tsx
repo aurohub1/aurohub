@@ -600,7 +600,6 @@ export default function EditorTemplatesPage() {
                                   </div>
 
                                   <div className="mt-2 flex gap-1.5 text-[10px]">
-                                    <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.formType}</span>
                                     <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.format}</span>
                                   </div>
                                   <div className="mt-2 text-[10px] text-[var(--txt3)]">
