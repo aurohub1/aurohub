@@ -281,15 +281,15 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
           />
         )}
 
-        {/* Formato badge (sobreposto) */}
-        <span className="absolute right-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
-          {fMeta.label}
-        </span>
-
-        {/* Tipo badge (sobreposto) */}
-        <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
-          {tMeta.label}
-        </span>
+        {/* Badges empilhados no canto inferior esquerdo: STORIES (top) + PACOTE (bottom) */}
+        <div style={{ position: "absolute", bottom: 8, left: 8, display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+          <span style={{ background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 9, padding: "2px 8px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
+            {fMeta.label}
+          </span>
+          <span style={{ background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
+            {tMeta.label}
+          </span>
+        </div>
       </div>
 
       <button

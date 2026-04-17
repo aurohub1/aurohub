@@ -141,10 +141,16 @@ function EditorInner() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ dataUrl: rawThumb, folder: "aurohubv2/thumbs" }),
                 });
+                if (!res.ok) {
+                  const detail = await res.text().catch(() => "");
+                  throw new Error(`upload-thumb ${res.status}: ${detail.slice(0, 300)}`);
+                }
                 const json = await res.json();
                 thumbnail = json.url ?? null;
               } catch (err) {
-                console.warn("[Editor] Thumb upload falhou, salvando sem thumb:", err);
+                const msg = err instanceof Error ? err.message : String(err);
+                console.error("[Editor] Thumb upload falhou:", err);
+                alert(`Upload do thumbnail falhou. Template será salvo sem imagem — você pode adicionar depois pelo editor de templates.\n\n${msg}`);
               }
             } else if (rawThumb) {
               thumbnail = rawThumb;
@@ -231,12 +237,17 @@ function EditorInner() {
                 updated_at: new Date().toISOString(),
               }, { onConflict: "key" });
               try {
-                await supabase.from("template_history").insert({
+                const { error: hErr } = await supabase.from("template_history").insert({
                   template_id: key,
                   schema: payload,
                   thumbnail: thumbnail || null,
                 });
-              } catch (hErr) { console.warn("[History save]", hErr); }
+                if (hErr) throw hErr;
+              } catch (hErr) {
+                const msg = hErr instanceof Error ? hErr.message : String(hErr);
+                console.error("[History save] falhou:", hErr);
+                alert(`Aviso: histórico do template não pôde ser salvo (o template foi salvo normalmente).\n\n${msg}`);
+              }
 
               // Atualiza estado local com os metadados confirmados
               setLoadedNome(meta.nome);
