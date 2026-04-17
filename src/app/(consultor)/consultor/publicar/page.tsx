@@ -460,6 +460,14 @@ export default function PublicarPage() {
         .eq("licensee_id", p.licensee_id)
         .order("name");
       const allStores = (storesData ?? []) as StoreOption[];
+
+      const ORDER = ["rio preto", "barretos", "damha"];
+      allStores.sort((a, b) => {
+        const ai = ORDER.findIndex(o => a.name.toLowerCase().includes(o));
+        const bi = ORDER.findIndex(o => b.name.toLowerCase().includes(o));
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      });
+
       setPublishTargets(allStores);
       setSelectedTargetIds(allStores.length > 0 ? [allStores[0].id] : []);
 
