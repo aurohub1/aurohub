@@ -10,6 +10,7 @@ import Sidebar, { VENDEDOR_SECTIONS } from "@/components/layout/Sidebar";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import WelcomeTour from "@/components/tour/WelcomeTour";
+import SupportWidget from "@/components/SupportWidget";
 
 export default function VendedorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -97,6 +98,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
           )}
       </footer>
       <WelcomeTour role="vendedor" />
+      <SupportWidget />
     </>
   );
 }
