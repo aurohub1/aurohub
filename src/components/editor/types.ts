@@ -146,7 +146,7 @@ export interface EditorSchema {
 
 export const BIND_GROUPS = [
   { group: "Imagens", fields: ["imgfundo","imghotel","imgaviao","imgciamaritima","imgloja"] },
-  { group: "Selos",   fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge"] },
+  { group: "Selos",   fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
   { group: "Destino", fields: ["destino","saida","tipovoo"] },
   { group: "Período", fields: ["dataida","datavolta","noites","feriado"] },
   { group: "Hotel / Navio", fields: ["hotel","navio","categoria","itinerario","incluso"] },
@@ -160,7 +160,7 @@ export const BIND_GROUPS = [
 export const BIND_GROUPS_BY_FORM: Record<string, typeof BIND_GROUPS> = {
   pacote: [
     { group: "Imagens",   fields: ["imgfundo","imghotel","imgloja"] },
-    { group: "Selos",     fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge"] },
+    { group: "Selos",     fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
     { group: "Destino",   fields: ["destino","saida","tipovoo"] },
     { group: "Período",   fields: ["dataperiodo","noites","feriado"] },
     { group: "Hotel",     fields: ["hotel"] },
@@ -171,7 +171,7 @@ export const BIND_GROUPS_BY_FORM: Record<string, typeof BIND_GROUPS> = {
   ],
   campanha: [
     { group: "Imagens",   fields: ["imgfundo","imghotel","imgloja"] },
-    { group: "Selos",     fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge"] },
+    { group: "Selos",     fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
     { group: "Destino",   fields: ["destino","saida","tipovoo"] },
     { group: "Período",   fields: ["dataperiodo","noites","feriado"] },
     { group: "Hotel",     fields: ["hotel"] },
@@ -182,7 +182,7 @@ export const BIND_GROUPS_BY_FORM: Record<string, typeof BIND_GROUPS> = {
   ],
   passagem: [
     { group: "Imagens",   fields: ["imgaviao","imgloja"] },
-    { group: "Selos",     fields: ["badge","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge"] },
+    { group: "Selos",     fields: ["badge","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
     { group: "Destino",   fields: ["destino","saida","tipovoo"] },
     { group: "Período",   fields: ["dataperiodo","noites"] },
     { group: "Pagamento", fields: ["formapagamento","parcelas","valorint","valdec","valorparcela","desconto","totalduplo","valortotalfmt"] },
@@ -191,7 +191,7 @@ export const BIND_GROUPS_BY_FORM: Record<string, typeof BIND_GROUPS> = {
   ],
   cruzeiro: [
     { group: "Imagens",   fields: ["imgfundo","imgciamaritima","imgloja"] },
-    { group: "Selos",     fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge"] },
+    { group: "Selos",     fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
     { group: "Navio",     fields: ["navio","categoria","itinerario","incluso"] },
     { group: "Período",   fields: ["dataperiodo","noites"] },
     { group: "Pagamento", fields: ["formapagamento","entrada","parcelas","valorint","valdec","valorparcela","desconto","totalcruzeiro","valortotalfmt","textopagamento"] },
@@ -200,7 +200,7 @@ export const BIND_GROUPS_BY_FORM: Record<string, typeof BIND_GROUPS> = {
   ],
   anoiteceu: [
     { group: "Imagens",   fields: ["imgfundo","imgloja"] },
-    { group: "Selos",     fields: ["badge","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge"] },
+    { group: "Selos",     fields: ["badge","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
     { group: "Destino",   fields: ["destino"] },
     { group: "Evento",    fields: ["inicio","fim","dataperiodo","paraviagens"] },
     { group: "Loja",      fields: ["imgloja","loja","agente","fone"] },
