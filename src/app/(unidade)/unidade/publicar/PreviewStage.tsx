@@ -95,6 +95,7 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return values.parcelaspassagem || values.parcelas || "";
 
     // Desconto: só o número sem "%" — v1 client.js:946-952
+    case "desconto":
     case "desconto_valor": {
       const d = values.desconto;
       if (!d || d === "– nenhum –") return "";
