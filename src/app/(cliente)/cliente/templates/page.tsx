@@ -284,15 +284,11 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
         <span className="absolute right-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
           {fMeta.label}
         </span>
-      </div>
 
-      {/* Body */}
-      <div className="flex flex-1 flex-col gap-2 p-2.5">
-        <div className="min-w-0">
-          <span style={{ display: "inline-block", marginTop: 4, fontSize: 10, color: "#3B82F6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
-            {tMeta.label}
-          </span>
-        </div>
+        {/* Tipo badge (sobreposto) */}
+        <span style={{ position: "absolute", bottom: 8, left: 8, fontSize: 10, color: "#3B82F6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
+          {tMeta.label}
+        </span>
       </div>
       <button
         onClick={onUse}
