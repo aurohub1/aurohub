@@ -468,11 +468,9 @@ export default function GerentePublicarPage() {
         if (first.format) setFormat(first.format);
       }
 
-      // Stores / publish targets — busca direto de user_stores
-      const { data: userStoresData } = await supabase
-        .from("user_stores")
-        .select("store_id")
-        .eq("user_id", p.id);
+      // Stores / publish targets — busca via API server-side
+      const res = await fetch("/api/user-stores");
+      const userStoresData = await res.json();
 
       const storeIds = (userStoresData ?? []).map((s: { store_id: string }) => s.store_id);
 
