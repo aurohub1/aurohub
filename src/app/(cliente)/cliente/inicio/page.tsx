@@ -162,13 +162,13 @@ export default function ClienteInicioPage() {
   const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
 
   const [loading, setLoading] = useState(true);
-  // Fade-in: só ativa DEPOIS do main JSX montar (loading=false) + 1 tick
-  // pra garantir primeira pintura com opacity 0 e transição subsequente pra 1.
-  const [visible, setVisible] = useState(false);
+  // Counters esperam 200ms após loading=false — dá tempo do React Strict Mode
+  // terminar o double-invoke dos effects antes de começar a animação de 0→target.
+  const [countersEnabled, setCountersEnabled] = useState(false);
   useEffect(() => {
-    if (loading) { setVisible(false); return; }
-    const raf = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(raf);
+    if (loading) { setCountersEnabled(false); return; }
+    const t = setTimeout(() => setCountersEnabled(true), 200);
+    return () => clearTimeout(t);
   }, [loading]);
 
   const loadData = useCallback(async () => {
@@ -356,12 +356,12 @@ export default function ClienteInicioPage() {
     : null;
   const unidadesAtivas = stores.filter((s) => s.active !== false).length;
 
-  // Counters animados dos KPIs (easeOutCubic, 600ms) — só disparam quando
-  // loading=false pra garantir que a animação ocorra com a UI visível.
-  const postsMesAnim = useCountUp(postsMes, !loading);
-  const templatesAnim = useCountUp(templatesCount, !loading);
-  const usersAnim = useCountUp(users.length, !loading);
-  const unidadesAnim = useCountUp(unidadesAtivas, !loading);
+  // Counters animados dos KPIs (easeOutCubic, 600ms) — disparam 200ms
+  // depois de loading=false pra escapar do double-invoke do Strict Mode.
+  const postsMesAnim = useCountUp(postsMes, countersEnabled);
+  const templatesAnim = useCountUp(templatesCount, countersEnabled);
+  const usersAnim = useCountUp(users.length, countersEnabled);
+  const unidadesAnim = useCountUp(unidadesAtivas, countersEnabled);
 
   const proximosFeriados = useMemo(() => {
     const year = new Date().getFullYear();
@@ -374,14 +374,16 @@ export default function ClienteInicioPage() {
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
-    <div
-      className="flex min-w-0 flex-col gap-5 overflow-x-hidden"
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(8px)",
-        transition: "opacity 400ms ease, transform 400ms ease",
-      }}
-    >
+    <div className="flex min-w-0 flex-col gap-5 overflow-x-hidden inicio-cliente-fade">
+      <style>{`
+        @keyframes inicioClienteFadeUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .inicio-cliente-fade {
+          animation: inicioClienteFadeUp 400ms ease forwards;
+        }
+      `}</style>
       {/* ═══ HEADER ═════════════════════════════════ */}
       <div className="card-glass relative overflow-hidden px-6 py-6">
         <div
