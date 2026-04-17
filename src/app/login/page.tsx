@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole } from "@/lib/auth";
+import { generateFingerprint } from "@/lib/device-fingerprint";
 import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/splash/SplashScreen";
 
 /* ── Particle system ─────────────────────────────── */
@@ -107,7 +108,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("session_expired=1")) {
+      return "Sua sessão foi encerrada porque um novo login foi detectado em outro dispositivo.";
+    }
+    return "";
+  });
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [splash, setSplash] = useState<{
@@ -192,6 +198,42 @@ export default function LoginPage() {
           || "você";
         const role = profile?.role ?? null;
         const home = homeForRole(role);
+
+        // Sessão única: salvar session_id no profile
+        try {
+          const sessionId = data?.session?.access_token?.slice(-16) || "";
+          if (sessionId && data?.user?.id) {
+            await supabase.from("profiles").update({ active_session_id: sessionId }).eq("id", data.user.id);
+          }
+        } catch { /* silent */ }
+
+        // Fingerprint de dispositivo
+        try {
+          const { fingerprint, userAgent } = generateFingerprint();
+          if (data?.user?.id && fingerprint) {
+            const { data: existing } = await supabase
+              .from("user_devices")
+              .select("id")
+              .eq("user_id", data.user.id)
+              .eq("fingerprint", fingerprint)
+              .limit(1);
+            if (existing && existing.length > 0) {
+              // Dispositivo conhecido — atualiza last_seen
+              await supabase.from("user_devices").update({ last_seen: new Date().toISOString() }).eq("id", existing[0].id);
+            } else {
+              // Dispositivo novo — registra e marca como trusted (primeiro login)
+              await supabase.from("user_devices").insert({
+                user_id: data.user.id,
+                fingerprint,
+                user_agent: userAgent,
+                trusted: true,
+              });
+              // Seta flag para mostrar aviso de dispositivo novo
+              sessionStorage.setItem("ah_new_device", "1");
+            }
+          }
+        } catch { /* silent */ }
+
         const splashRoles = ["adm", "operador", "cliente", "unidade", "gerente", "vendedor"];
         const canShowSplash = role !== null && splashRoles.includes(role);
 
