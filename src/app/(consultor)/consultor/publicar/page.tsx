@@ -7,6 +7,7 @@ import type Konva from "konva";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
+import { useBadges } from "@/hooks/useBadges";
 import type { EditorSchema } from "@/components/editor/types";
 
 import {
@@ -79,11 +80,6 @@ const FORM_LABELS: Record<FormType, string> = {
 };
 
 const FORM_ORDER: FormType[] = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu"];
-
-const FERIADOS_FIXOS = [
-  "Carnaval", "Páscoa", "Tiradentes", "Trabalho", "Corpus Christi",
-  "Independência", "Nossa Senhora", "Finados", "República", "Natal", "Réveillon",
-];
 
 const FORMA_PGTO_OPTS = ["Cartão de Crédito", "Boleto"];
 const PARCELAS_OPTS = Array.from({ length: 25 }, (_, i) => `${i + 2}x`);
@@ -240,6 +236,14 @@ export default function PublicarPage() {
   const [enabledForms, setEnabledForms] = useState<EnabledForms>(DEFAULT_ENABLED_FORMS);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Feriados dinâmicos via tabela `feriados` (Supabase), ordem alfabética pt-BR
+  const { feriados: feriadosData, ready: feriadosReady, error: feriadosError } = useBadges();
+  const feriadoOpts = useMemo(() => {
+    if (feriadosError) return [""];
+    const nomes = Object.keys(feriadosData).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return ["", ...nomes];
+  }, [feriadosData, feriadosError]);
 
   // Estado por aba
   const [tab, setTab] = useState<FormType>("pacote");
@@ -1309,7 +1313,7 @@ export default function PublicarPage() {
                       </div>
                     )}
                     <Field label="Feriado">
-                      <Select value={values.feriado || ""} onChange={(v) => setField("feriado", v)} options={["", ...FERIADOS_FIXOS]} />
+                      <Select value={values.feriado || ""} onChange={(v) => setField("feriado", v)} options={feriadoOpts} disabled={!feriadosReady} />
                     </Field>
                   </Section>
 
@@ -1945,13 +1949,14 @@ function DateInput({
 }
 
 function Select({
-  value, onChange, options,
-}: { value: string; onChange: (v: string) => void; options: string[] }) {
+  value, onChange, options, disabled,
+}: { value: string; onChange: (v: string) => void; options: string[]; disabled?: boolean }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
+      disabled={disabled}
+      className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-2 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
     >
       {options.map((o) => <option key={o} value={o}>{o || "— nenhum —"}</option>)}
     </select>
