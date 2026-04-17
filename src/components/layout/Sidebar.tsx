@@ -109,8 +109,8 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "Métricas Instagram",
-        href: "/metricas",
+        label: "Métricas",
+        href: "/adm/metricas",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <path d="M2 14l4-4 4 4 4-6 4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -275,6 +275,7 @@ export const UNIDADE_SECTIONS: NavSection[] = [
       { label: "Publicar", href: "/unidade/publicar", icon: I.publish, feature: "publicar" },
       { label: "Calendário", href: "/unidade/calendario", icon: I.calendar },
       { label: "Consultores", href: "/unidade/vendedores", icon: I.vendors, feature: "vendedores" },
+      { label: "Métricas", href: "/unidade/metricas", icon: I.metrics, feature: "metricas" },
       { label: "Suporte", href: "/unidade/suporte", icon: I.support },
     ],
   },
@@ -289,6 +290,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
 
       { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
+      { label: "Métricas", href: "/gerente/metricas", icon: I.metrics, feature: "metricas" },
       { label: "Suporte", href: "/gerente/suporte", icon: I.support },
     ],
   },
@@ -301,6 +303,7 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
       { label: "Início", href: "/consultor/inicio", icon: I.home },
       { label: "Templates", href: "/consultor/templates", icon: I.templates, feature: "templates" },
       { label: "Agendamentos", href: "/consultor/agendamentos", icon: I.calendar },
+      { label: "Métricas", href: "/consultor/metricas", icon: I.metrics, feature: "metricas" },
       { label: "Suporte", href: "/consultor/suporte", icon: I.support },
     ],
   },
@@ -314,7 +317,7 @@ export const OPERADOR_SECTIONS: NavSection[] = [
       { label: "Clientes", href: "/operador/clientes", icon: I.stores },
       { label: "Usuários", href: "/operador/usuarios", icon: I.users },
       { label: "Logs", href: "/operador/logs", icon: I.settings },
-      { label: "Métricas", href: "/operador/metricas", icon: I.metrics },
+      { label: "Métricas", href: "/adm/metricas", icon: I.metrics },
       { label: "Suporte", href: "/adm/suporte", icon: I.support },
     ],
   },
