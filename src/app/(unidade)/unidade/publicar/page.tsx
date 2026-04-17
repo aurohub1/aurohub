@@ -1727,7 +1727,7 @@ export default function UnidadePublicarPage() {
                   <button
                     onClick={handleDownload}
                     disabled={busy || !currentTemplate}
-                    className="flex items-center justify-center gap-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[11px] font-semibold text-[var(--txt1)] transition-colors hover:bg-[var(--bg2)] disabled:opacity-50"
+                    className="flex items-center justify-center gap-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                   >
                     <Download size={11} /> Download
                   </button>
