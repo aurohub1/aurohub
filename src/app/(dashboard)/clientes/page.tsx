@@ -654,7 +654,7 @@ export default function ClientesPage() {
                   {viewStores.map((s) => {
                     const storeUsers = profiles.filter((p) => p.store_id === s.id).length;
                     return (
-                      <div key={s.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-4 py-3">
+                      <div key={s.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-4 py-3 page-fade">
                         <div>
                           <div className="text-[13px] font-medium text-[var(--txt)]">{s.name}</div>
                           <div className="text-[11px] text-[var(--txt3)]">{s.ig_user_id ? `IG: ${s.ig_user_id}` : "Sem Instagram"}</div>
