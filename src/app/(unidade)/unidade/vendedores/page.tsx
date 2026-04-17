@@ -203,7 +203,7 @@ export default function UnidadeVendedoresPage() {
             className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid var(--bdr2)",
             }}
           >
             <Users size={24} />
@@ -326,7 +326,7 @@ function VendorCard({
   const avatarColor = colorForId(vendor.id);
 
   return (
-    <div className="card-glass flex flex-col gap-3 p-5">
+    <div className="card-glass flex flex-col gap-3 p-5 page-fade">
       <div className="flex items-start gap-3">
         <div
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[14px] font-bold text-white"
