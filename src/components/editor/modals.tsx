@@ -519,6 +519,20 @@ export function slugifyTemplateName(s: string): string {
     || "template";
 }
 
+// Ordem fixa AZV: Rio Preto → Barretos → Damha, demais em alfabético pt-BR.
+// Match por substring case-insensitive pra tolerar sufixos (ex: "Rio Preto Shopping").
+const LOJA_PRIORITY = ["rio preto", "barretos", "damha"];
+function sortLojasPriority<T extends { name: string }>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => {
+    const ai = LOJA_PRIORITY.findIndex(p => a.name.toLowerCase().includes(p));
+    const bi = LOJA_PRIORITY.findIndex(p => b.name.toLowerCase().includes(p));
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.name.localeCompare(b.name, "pt-BR");
+  });
+}
+
 export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, initialLojaIds, onClose, onConfirm }: {
   initialName?: string;
   initialFormType: string;
@@ -592,6 +606,7 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
           if (!r.error && r.data) rows = r.data as LojaRow[];
         }
       } catch {}
+      rows = sortLojasPriority(rows);
       setLojas(rows);
 
       // Pré-seleção: profile.store_id OR initialLojaIds OR todas

@@ -343,6 +343,19 @@ export default function UnidadePublicarPage() {
     };
   }, [planLimits]);
 
+  // Lista de formatos liberados pelo plano/overrides (barra + auto-switch)
+  const visibleFormats = useMemo<Format[]>(
+    () => (Object.keys(FORMAT_LABELS) as Format[]).filter(f => formatVisible[f]),
+    [formatVisible],
+  );
+
+  // Auto-switch: se o formato atual deixar de ser liberado, troca pro primeiro disponível
+  useEffect(() => {
+    if (!formatVisible[format] && visibleFormats.length > 0) {
+      setFormat(visibleFormats[0]);
+    }
+  }, [formatVisible, format, visibleFormats]);
+
   // Feature "publicar" — se ausente, esconde botão de publicar IG
   const canPublishFeature = features.has("publicar");
   // "drive" ainda não é feature liberada — mantemos hardcode false
@@ -1832,28 +1845,30 @@ export default function UnidadePublicarPage() {
             </div>
           )}
         </div>
-        {/* Format pills flutuantes */}
-        <div className="pointer-events-none absolute bottom-5 left-0 right-0 flex justify-center">
-          <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg1)] p-1 shadow-xl">
-            {(Object.keys(FORMAT_LABELS) as Format[]).map((f) => {
-              const active = format === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setFormat(f)}
-                  className="rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
-                  style={
-                    active
-                      ? { background: "#D4A843", color: "#060B16" }
-                      : { color: "var(--txt3)" }
-                  }
-                >
-                  {FORMAT_LABELS[f]}
-                </button>
-              );
-            })}
+        {/* Format pills flutuantes — só aparece se o plano libera >1 formato */}
+        {visibleFormats.length > 1 && (
+          <div className="pointer-events-none absolute bottom-5 left-0 right-0 flex justify-center">
+            <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg1)] p-1 shadow-xl">
+              {visibleFormats.map((f) => {
+                const active = format === f;
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setFormat(f)}
+                    className="rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                    style={
+                      active
+                        ? { background: "#D4A843", color: "#060B16" }
+                        : { color: "var(--txt3)" }
+                    }
+                  >
+                    {FORMAT_LABELS[f]}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
