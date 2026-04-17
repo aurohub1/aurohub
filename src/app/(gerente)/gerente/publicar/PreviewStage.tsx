@@ -207,6 +207,16 @@ function resolveImage(
   const val = values[bp];
 
   if (bp.endsWith("_badge")) {
+    // TEMP DEBUG — remove após captura
+    console.log("[badge-debug]", {
+      paramID: bp,
+      val,
+      desconto: values.desconto,
+      feriado: values.feriado,
+      servico_1: values.servico_1,
+      servico_2: values.servico_2,
+      servico_3: values.servico_3,
+    });
     if (BOOLEAN_BADGES.has(bp) && val !== "true") return undefined;
     const url = resolveBadgeUrl(bp, badgeUrls, feriadoUrls, values);
     if (url) return url;
