@@ -120,10 +120,13 @@ function roleLabel(role: string | null): string {
   }
 }
 
-/** Conta de 0 até target com easeOutCubic. Usado pros KPIs numéricos. */
-function useCountUp(target: number, duration = 600): number {
+/** Conta de 0 até target com easeOutCubic. Só dispara quando `enabled`
+ *  vira true — evita que a animação rode enquanto o main JSX ainda
+ *  está oculto pelo estado de loading. */
+function useCountUp(target: number, enabled: boolean, duration = 600): number {
   const [v, setV] = useState(0);
   useEffect(() => {
+    if (!enabled) { setV(0); return; }
     if (!target || target <= 0) { setV(0); return; }
     const start = performance.now();
     let raf = 0;
@@ -135,7 +138,7 @@ function useCountUp(target: number, duration = 600): number {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
+  }, [target, enabled, duration]);
   return v;
 }
 
@@ -159,8 +162,14 @@ export default function ClienteInicioPage() {
   const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
 
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  // Fade-in: só ativa DEPOIS do main JSX montar (loading=false) + 1 tick
+  // pra garantir primeira pintura com opacity 0 e transição subsequente pra 1.
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (loading) { setVisible(false); return; }
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, [loading]);
 
   const loadData = useCallback(async () => {
     try {
@@ -347,11 +356,12 @@ export default function ClienteInicioPage() {
     : null;
   const unidadesAtivas = stores.filter((s) => s.active !== false).length;
 
-  // Counters animados dos KPIs (easeOutCubic, 600ms) — mantém valores originais, só anima display
-  const postsMesAnim = useCountUp(postsMes);
-  const templatesAnim = useCountUp(templatesCount);
-  const usersAnim = useCountUp(users.length);
-  const unidadesAnim = useCountUp(unidadesAtivas);
+  // Counters animados dos KPIs (easeOutCubic, 600ms) — só disparam quando
+  // loading=false pra garantir que a animação ocorra com a UI visível.
+  const postsMesAnim = useCountUp(postsMes, !loading);
+  const templatesAnim = useCountUp(templatesCount, !loading);
+  const usersAnim = useCountUp(users.length, !loading);
+  const unidadesAnim = useCountUp(unidadesAtivas, !loading);
 
   const proximosFeriados = useMemo(() => {
     const year = new Date().getFullYear();
@@ -367,8 +377,8 @@ export default function ClienteInicioPage() {
     <div
       className="flex min-w-0 flex-col gap-5 overflow-x-hidden"
       style={{
-        opacity: mounted ? 1 : 0,
-        transform: mounted ? "translateY(0)" : "translateY(8px)",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(8px)",
         transition: "opacity 400ms ease, transform 400ms ease",
       }}
     >
