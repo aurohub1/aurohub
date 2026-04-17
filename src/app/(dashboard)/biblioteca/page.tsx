@@ -206,7 +206,7 @@ export default function BibliotecaPage() {
             className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid var(--bdr2)",
             }}
           >
             {tabMeta.icon}
@@ -230,7 +230,7 @@ export default function BibliotecaPage() {
             return (
               <div
                 key={item.id}
-                className="card-glass group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5"
+                className="card-glass group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5 page-fade"
               >
                 <div className="relative aspect-[4/5] w-full overflow-hidden border-b border-[var(--bdr)] bg-[var(--bg2)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -391,7 +391,7 @@ function UploadModal({
                   className="flex h-12 w-12 items-center justify-center rounded-2xl text-[var(--orange)]"
                   style={{
                     background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    border: "1px solid var(--bdr2)",
                   }}
                 >
                   <Upload size={18} />
