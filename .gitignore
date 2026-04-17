@@ -42,3 +42,11 @@ next-env.d.ts
 
 # claude code local settings
 .claude/
+
+# scripts de investigação locais
+_probe.mjs
+_apply.mjs
+_audit.mjs
+_list.mjs
+_update_template.sql
+_backup_template_*.json
