@@ -390,7 +390,7 @@ export default function VendedorCalendarioPage() {
                         evs.map((e, i) => {
                           const style = TIPO_BADGE[e.tipo] ?? TIPO_BADGE.evento;
                           return (
-                            <div key={i} className="flex items-center gap-2">
+                            <div key={i} className="flex items-center gap-2 page-fade">
                               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: style.color }} />
                               <span className="truncate text-[12px] text-[var(--txt2)]">{e.label}</span>
                             </div>
