@@ -210,7 +210,7 @@ export default function InicioPage() {
             className="flex h-11 w-11 items-center justify-center rounded-xl"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.14))",
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid var(--bdr2)",
             }}
           >
             <WeatherIcon code={weather?.code ?? null} />
@@ -319,7 +319,7 @@ export default function InicioPage() {
 
 function StatCard({ label, value, icon, accent }: { label: string; value: string; icon: React.ReactNode; accent: string }) {
   return (
-    <div className="rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] px-5 py-4 transition-shadow hover:shadow-sm">
+    <div className="rounded-xl border border-[var(--bdr)] bg-[var(--bg1)] px-5 py-4 transition-shadow hover:shadow-sm page-fade">
       <div className="flex items-center justify-between">
         <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">{label}</div>
         <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }}>
