@@ -1691,7 +1691,7 @@ export default function GerentePublicarPage() {
                 visible={formatVisible}
                 current={format}
                 downloads={downloadsToday}
-                maxDownloads={null}
+                maxDownloads={planLimits?.max_downloads_day}
               />
             </div>
           )}
