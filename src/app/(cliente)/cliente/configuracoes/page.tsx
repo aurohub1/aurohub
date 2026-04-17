@@ -45,7 +45,7 @@ export default function ClienteConfiguracoesPage() {
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
+    <div className="flex max-w-3xl flex-col gap-6 page-fade">
       <header className="flex flex-col gap-1">
         <h1 className="text-[20px] font-bold text-[var(--txt)]">Configurações</h1>
         <p className="text-[12px] text-[var(--txt3)]">Segurança da conta e preferências visuais.</p>
