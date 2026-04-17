@@ -609,18 +609,24 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
       rows = sortLojasPriority(rows);
       setLojas(rows);
 
-      // Pré-seleção: profile.store_id OR initialLojaIds OR todas
+      // Default: só Rio Preto marcada (regra AZV). Se não existir na lista atual,
+      // nenhuma é pré-selecionada — usuário marca manualmente.
+      const defaultSelection = (): Set<string> => {
+        const rpRow = rows.find(l => l.name.toLowerCase().includes("rio preto"));
+        return rpRow ? new Set([rpRow.id]) : new Set();
+      };
+
+      // Pré-seleção: profile.store_id OR initialLojaIds OR default (Rio Preto)
       const pending = pendingStoreRef.current;
       if (pending && rows.find(l => l.id === pending)) {
         setSelectedLojaIds(new Set([pending]));
         pendingStoreRef.current = null;
       } else if (selectedLojaIds.size === 0) {
-        // Default = todas marcadas
-        setSelectedLojaIds(new Set(rows.map(r => r.id)));
+        setSelectedLojaIds(defaultSelection());
       } else {
         // Filtra IDs que não existem mais na lista da marca atual
         const valid = new Set([...selectedLojaIds].filter(id => rows.find(l => l.id === id)));
-        if (valid.size === 0) setSelectedLojaIds(new Set(rows.map(r => r.id)));
+        if (valid.size === 0) setSelectedLojaIds(defaultSelection());
         else setSelectedLojaIds(valid);
       }
     })();
