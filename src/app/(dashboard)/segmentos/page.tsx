@@ -395,7 +395,7 @@ export default function SegmentosPage() {
 
 function KpiInline({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="flex items-baseline gap-2">
+    <div className="flex items-baseline gap-2 page-fade">
       <span className="text-[12px] text-[var(--txt3)]">{label}</span>
       <span className={`text-[16px] font-bold ${accent ? "text-[var(--green)]" : "text-[var(--txt)]"}`}>{value}</span>
     </div>
