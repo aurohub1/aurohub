@@ -21,10 +21,8 @@ interface Message {
   id: string;
   ticket_id: string;
   sender: string;
-  is_staff: boolean;
   message: string;
-  user_name: string | null;
-  user_role: string | null;
+  user_id: string | null;
   created_at: string;
 }
 
@@ -109,11 +107,8 @@ export default function SupportPageClient() {
     await supabase.from("ticket_messages").insert({
       ticket_id: detail.id,
       sender: profile.name || profile.email || "Cliente",
-      is_staff: false,
       message: reply.trim(),
       user_id: profile.id,
-      user_name: profile.name,
-      user_role: profile.role,
     });
     setReply("");
     const { data } = await supabase.from("ticket_messages").select("*").eq("ticket_id", detail.id).order("created_at");
@@ -129,7 +124,6 @@ export default function SupportPageClient() {
       .insert({
         user_id: profile.id,
         licensee_id: profile.licensee_id,
-        client_name: profile.name || "—",
         client_email: profile.email || "—",
         subject: newSubject.trim(),
         category: newCategory,
@@ -142,11 +136,8 @@ export default function SupportPageClient() {
       await supabase.from("ticket_messages").insert({
         ticket_id: ticket.id,
         sender: profile.name || "Cliente",
-        is_staff: false,
         message: newMessage.trim(),
         user_id: profile.id,
-        user_name: profile.name,
-        user_role: profile.role,
       });
     }
     setShowNew(false);
@@ -230,17 +221,19 @@ export default function SupportPageClient() {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4">
               <div className="flex flex-col gap-3">
-                {messages.map(m => (
-                  <div key={m.id} className={`flex ${m.is_staff ? "justify-start" : "justify-end"}`}>
+                {messages.map(m => {
+                  const isStaff = profile ? m.user_id !== profile.id : false;
+                  return (
+                  <div key={m.id} className={`flex ${isStaff ? "justify-start" : "justify-end"}`}>
                     <div
                       className="max-w-[80%] rounded-xl px-3 py-2"
-                      style={m.is_staff
+                      style={isStaff
                         ? { background: "var(--blue3)", borderBottomLeftRadius: 4 }
                         : { background: "var(--orange3)", borderBottomRightRadius: 4 }
                       }
                     >
                       <div className="mb-0.5 text-[9px] font-bold uppercase text-[var(--txt3)]">
-                        {m.is_staff ? "Suporte" : m.user_name || m.sender}
+                        {isStaff ? "Suporte" : m.sender}
                       </div>
                       <div className="whitespace-pre-wrap text-[12px] text-[var(--txt)]">{m.message}</div>
                       <div className="mt-1 text-right text-[9px] text-[var(--txt3)]">
@@ -248,7 +241,8 @@ export default function SupportPageClient() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

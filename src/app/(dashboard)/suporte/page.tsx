@@ -11,8 +11,8 @@ interface Ticket {
   category: string;
   priority: string;
   status: string;
-  client_name: string;
   client_email: string;
+  user_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -20,10 +20,8 @@ interface Ticket {
 interface Message {
   id: string;
   sender: string;
-  is_staff: boolean;
   message: string;
-  user_name: string | null;
-  user_role: string | null;
+  user_id: string | null;
   created_at: string;
 }
 
@@ -74,11 +72,8 @@ export default function SuporteADMPage() {
     await supabase.from("ticket_messages").insert({
       ticket_id: detail.id,
       sender: profile.name || "ADM",
-      is_staff: true,
       message: reply.trim(),
       user_id: profile.id,
-      user_name: profile.name,
-      user_role: "adm",
     });
     setReply("");
     const { data } = await supabase.from("ticket_messages").select("*").eq("ticket_id", detail.id).order("created_at");
@@ -139,7 +134,7 @@ export default function SuporteADMPage() {
             <tbody>
               {filtered.map(t => (
                 <tr key={t.id} onClick={() => openDetail(t)} className="cursor-pointer border-b border-[var(--bdr)] last:border-0 hover:bg-[var(--hover-bg)]">
-                  <td className="px-4 py-2.5 text-[var(--txt)]">{t.client_name || "—"}</td>
+                  <td className="px-4 py-2.5 text-[var(--txt)]">{t.client_email || "—"}</td>
                   <td className="px-4 py-2.5 font-medium text-[var(--txt)]">{t.subject}</td>
                   <td className="px-4 py-2.5"><span className="rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ background: st(t.status).bg, color: st(t.status).text }}>{st(t.status).label}</span></td>
                   <td className="px-4 py-2.5 text-[var(--txt3)] tabular-nums">{new Date(t.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
@@ -157,7 +152,7 @@ export default function SuporteADMPage() {
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[14px] font-bold text-[var(--txt)]">{detail.subject}</div>
                 <div className="mt-0.5 flex items-center gap-2 text-[11px] text-[var(--txt3)]">
-                  <span>{detail.client_name}</span>
+                  <span>{detail.client_email}</span>
                   <span className="rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ background: st(detail.status).bg, color: st(detail.status).text }}>{st(detail.status).label}</span>
                 </div>
               </div>
@@ -174,15 +169,18 @@ export default function SuporteADMPage() {
 
             <div className="flex-1 overflow-y-auto p-4">
               <div className="flex flex-col gap-3">
-                {messages.map(m => (
-                  <div key={m.id} className={`flex ${m.is_staff ? "justify-end" : "justify-start"}`}>
-                    <div className="max-w-[80%] rounded-xl px-3 py-2" style={m.is_staff ? { background: "rgba(59,130,246,0.12)", borderBottomRightRadius: 4 } : { background: "var(--bg2)", borderBottomLeftRadius: 4 }}>
-                      <div className="mb-0.5 text-[8px] font-bold uppercase text-[var(--txt3)]">{m.is_staff ? (m.user_name || "ADM") : (m.user_name || m.sender)}</div>
+                {messages.map(m => {
+                  const isStaff = m.user_id !== detail.user_id;
+                  return (
+                  <div key={m.id} className={`flex ${isStaff ? "justify-end" : "justify-start"}`}>
+                    <div className="max-w-[80%] rounded-xl px-3 py-2" style={isStaff ? { background: "rgba(59,130,246,0.12)", borderBottomRightRadius: 4 } : { background: "var(--bg2)", borderBottomLeftRadius: 4 }}>
+                      <div className="mb-0.5 text-[8px] font-bold uppercase text-[var(--txt3)]">{isStaff ? (m.sender || "ADM") : m.sender}</div>
                       <div className="whitespace-pre-wrap text-[12px] text-[var(--txt)]">{m.message}</div>
                       <div className="mt-0.5 text-right text-[8px] text-[var(--txt3)]">{new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
