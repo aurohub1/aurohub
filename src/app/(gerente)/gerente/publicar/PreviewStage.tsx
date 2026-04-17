@@ -49,12 +49,12 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return Math.floor(parseInt(nums, 10) / 100).toLocaleString("pt-BR");
     }
 
-    // Parte decimal do valor parcela
+    // Parte decimal do valor parcela — prefixada com vírgula (substitui elemento estático ",")
     case "valdec": {
       const raw = values.valorparcela || values.totalduplo || values.totalcruzeiro || "";
       const nums = raw.replace(/\D/g, "");
       if (!nums) return "";
-      return String(parseInt(nums, 10) % 100).padStart(2, "0");
+      return "," + String(parseInt(nums, 10) % 100).padStart(2, "0");
     }
 
     // Valor total formatado: "ou R$ X.XXX,XX por pessoa apto. duplo"
