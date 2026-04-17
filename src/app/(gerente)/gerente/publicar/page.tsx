@@ -476,16 +476,21 @@ export default function GerentePublicarPage() {
         .order("name");
       const allStores = (storesData ?? []) as StoreOption[];
 
-      let targets: StoreOption[] = [];
-      if (canPublishToAllAZV(p.store_id)) {
-        targets = filterAZVGroup(allStores);
-        if (targets.length === 0) targets = allStores;
-      } else if (p.store_id) {
-        const own = allStores.find((s) => s.id === p.store_id);
-        targets = own ? [own] : [];
-      } else {
-        targets = allStores;
-      }
+      const { data: userStoresData } = await supabase
+        .from("user_stores")
+        .select("store_id")
+        .eq("user_id", p.id);
+
+      const ids = new Set((userStoresData ?? []).map((s: { store_id: string }) => s.store_id));
+      let targets = ids.size > 0 ? allStores.filter(s => ids.has(s.id)) : allStores;
+
+      const ORDER = ["rio preto", "damha", "barretos"];
+      targets.sort((a, b) => {
+        const ai = ORDER.findIndex(o => a.name.toLowerCase().includes(o));
+        const bi = ORDER.findIndex(o => b.name.toLowerCase().includes(o));
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      });
+
       setPublishTargets(targets);
       setSelectedTargetIds(targets.length > 0 ? [targets[0].id] : []);
 
@@ -1744,7 +1749,7 @@ export default function GerentePublicarPage() {
                     disabled={busy || !currentTemplate || limiteAtingido}
                     title={limiteAtingido ? `Limite diário atingido (${usadoAtual}/${limiteAtual})` : undefined}
                     className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                    style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+                    style={{ background: "var(--brand-gradient)" }}
                   >
                     {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     {status === "uploading"
