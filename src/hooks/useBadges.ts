@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { cldUrl } from "@/lib/cloudinary";
+
+function normalizeUrl(url: string): string {
+  if (url.startsWith("https://")) return url;
+  return "https://res.cloudinary.com/dxgj4bcch/image/upload/" + url;
+}
 
 export interface BadgesData {
   badges: Record<string, string>;
@@ -31,15 +35,13 @@ async function loadBadges(): Promise<BadgesData> {
   const badges: Record<string, string> = {};
   for (const [k, arr] of Object.entries(groups)) {
     const picked = arr[Math.floor(Math.random() * arr.length)];
-    const norm = cldUrl(picked);
-    if (norm) badges[k] = norm;
+    badges[k] = normalizeUrl(picked);
   }
 
   const feriados: Record<string, string> = {};
   for (const r of (f.data ?? []) as Array<{ nome: string; url: string }>) {
     if (!r.nome || !r.url) continue;
-    const norm = cldUrl(r.url);
-    if (norm) feriados[r.nome] = norm;
+    feriados[r.nome] = normalizeUrl(r.url);
   }
 
   return { badges, feriados };
