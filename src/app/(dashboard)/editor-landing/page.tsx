@@ -390,7 +390,7 @@ export default function EditorLandingPage() {
                     PLAN_OPTIONS.map((p) => {
                       const highlight = get("landing_planos_highlight", "pro") === p.value;
                       return (
-                        <div key={p.value} className={`rounded-lg border p-3 ${highlight ? "border-[var(--orange)] bg-[var(--orange3)]" : "border-[var(--bdr)]"}`}>
+                        <div key={p.value} className={`${`rounded-lg border p-3 ${highlight ? "border-[var(--orange)] bg-[var(--orange3)]" : "border-[var(--bdr)]"} page-fade`}`}>
                           <div className="text-[12px] font-bold text-[var(--txt)]">{p.label}</div>
                           <div className="mt-1 text-[10px] text-[var(--orange)]">{get(`landing_planos_cta_${p.value}`, "Começar agora")}</div>
                         </div>
