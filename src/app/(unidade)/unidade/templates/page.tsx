@@ -285,6 +285,11 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
         <span className="absolute right-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
           {fMeta.label}
         </span>
+
+        {/* Tipo badge (sobreposto) */}
+        <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
+          {tMeta.label}
+        </span>
       </div>
 
       {/* Body */}
@@ -293,9 +298,6 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
           <h3 className="truncate text-[13px] font-bold text-[var(--txt)]" title={tpl.nome}>
             {tpl.nome}
           </h3>
-          <span style={{ display: "inline-block", marginTop: 4, fontSize: 10, color: "#3B82F6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
-            {tMeta.label}
-          </span>
         </div>
 
         <button

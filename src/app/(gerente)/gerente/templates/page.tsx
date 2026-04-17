@@ -275,9 +275,7 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
         <span style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 9, padding: "2px 8px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
           {fMeta.label}
         </span>
-      </div>
-      <div style={{ padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 10, color: "#3B82F6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
+        <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
           {tMeta.label}
         </span>
       </div>
