@@ -127,26 +127,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Autenticado — pega role + session do profile
+  // Autenticado — pega role do profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, active_session_id")
+    .select("role")
     .eq("id", user.id)
     .single();
 
   const role = (profile?.role as string | null) ?? null;
-
-  // Sessão única: verifica se a sessão atual é a ativa
-  const { data: { session } } = await supabase.auth.getSession();
-  const currentSessionId = session?.access_token?.slice(-16) || "";
-  const activeSessionId = (profile as { active_session_id?: string } | null)?.active_session_id;
-  if (activeSessionId && currentSessionId && activeSessionId !== currentSessionId) {
-    // Outra sessão tomou conta — forçar logout
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("session_expired", "1");
-    return NextResponse.redirect(url);
-  }
   const myHome = homeForRole(role);
 
   // Usuário logado em /login ou / → manda pra sua home (evita loop se myHome for /login)
