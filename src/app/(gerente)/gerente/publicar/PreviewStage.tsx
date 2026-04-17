@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Rect, Circle, Text as KText, Image as KImage, Group } from "react-konva";
 import type Konva from "konva";
-import { applySmartLinks, type EditorElement, type EditorSchema } from "@/components/editor/types";
+import { applySmartLinks, BADGE_FOLDERS, type EditorElement, type EditorSchema } from "@/components/editor/types";
 
 /* ── Helpers ─────────────────────────────────────── */
 
@@ -188,7 +188,16 @@ function fitFontSize(
 }
 
 function resolveImage(el: EditorElement, values: Record<string, string>): string | undefined {
-  if (el.bindParam && values[el.bindParam]) return values[el.bindParam];
+  if (el.bindParam) {
+    const val = values[el.bindParam];
+    // Badge: quando valor é "true", usa imagem da pasta Cloudinary
+    if (val === "true" && el.bindParam.endsWith("_badge")) {
+      const folder = BADGE_FOLDERS[el.bindParam];
+      if (folder) return `https://res.cloudinary.com/dxgj4bcch/image/upload/${folder}/badge.png`;
+      return el.src;
+    }
+    if (val) return val;
+  }
   return el.src;
 }
 
