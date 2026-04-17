@@ -463,7 +463,7 @@ export default function EditorPage() {
   /* ── Render ────────────────────────────────────── */
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
+    <div className="flex flex-col h-[calc(100vh-120px)] page-fade">
 
       {/* ═══ TOOLBAR ════════════════════════════════ */}
       <div className="flex items-center gap-2 border-b border-[var(--bdr)] pb-3 mb-3 flex-wrap">
