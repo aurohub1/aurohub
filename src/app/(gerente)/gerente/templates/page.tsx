@@ -58,6 +58,7 @@ export default function VendedorTemplatesPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [thumbUploading, setThumbUploading] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"all" | FormType>("all");
@@ -108,6 +109,24 @@ export default function VendedorTemplatesPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  async function handleThumbUpload(key: string, file: File) {
+    setThumbUploading(key);
+    try {
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => { reader.onload = () => resolve(reader.result as string); reader.onerror = reject; reader.readAsDataURL(file); });
+      const res = await fetch("/api/upload-thumb", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl, folder: "aurohubv2/thumbs" }) });
+      const json = await res.json();
+      if (json.url) {
+        const { data: row } = await supabase.from("system_config").select("value").eq("key", key).single();
+        const current = row?.value ? JSON.parse(row.value) : {};
+        current.thumbnail = json.url;
+        await supabase.from("system_config").upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
+        setTemplates(prev => prev.map(t => t.key === key ? { ...t, thumbnail: json.url } : t));
+      }
+    } catch { /* silent */ }
+    finally { setThumbUploading(null); }
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -223,7 +242,7 @@ export default function VendedorTemplatesPage() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
           {filtered.map((t) => (
-            <TemplateCard key={t.key} tpl={t} onUse={() => useTemplate(t.id)} />
+            <TemplateCard key={t.key} tpl={t} onUse={() => useTemplate(t.id)} onThumb={handleThumbUpload} thumbLoading={thumbUploading === t.key} />
           ))}
         </div>
       )}
@@ -259,7 +278,7 @@ function FilterPill({
   );
 }
 
-function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
+function TemplateCard({ tpl, onUse, onThumb, thumbLoading }: { tpl: TemplateRow; onUse: () => void; onThumb?: (key: string, file: File) => void; thumbLoading?: boolean }) {
   const tMeta = typeMeta(tpl.formType);
   const fMeta = formatMeta(tpl.format);
 
@@ -286,6 +305,12 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
         <span style={{ display: "inline-block", marginTop: 4, fontSize: 10, color: "#3B82F6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
           {tMeta.label}
         </span>
+        {onThumb && (
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6, fontSize: 10, color: "var(--txt3)", cursor: "pointer" }}>
+            <input type="file" accept="image/*" style={{ display: "none" }} disabled={thumbLoading} onChange={(e) => { const f = e.target.files?.[0]; if (f) onThumb(tpl.key, f); e.currentTarget.value = ""; }} />
+            📷 {thumbLoading ? "Enviando…" : "Thumb"}
+          </label>
+        )}
       </div>
       <button
         onClick={onUse}

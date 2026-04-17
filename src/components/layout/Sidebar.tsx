@@ -284,7 +284,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
       { label: "Templates", href: "/gerente/templates", icon: I.templates, feature: "templates" },
-      { label: "Publicar", href: "/gerente/publicar", icon: I.publish, feature: "publicar" },
+
       { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
       { label: "Suporte", href: "/gerente/suporte", icon: I.support },
