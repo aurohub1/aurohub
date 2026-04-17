@@ -244,9 +244,9 @@ function EditorInner() {
                 });
                 if (hErr) throw hErr;
               } catch (hErr) {
-                const msg = hErr instanceof Error ? hErr.message : String(hErr);
-                console.error("[History save] falhou:", hErr);
-                alert(`Aviso: histórico do template não pôde ser salvo (o template foi salvo normalmente).\n\n${msg}`);
+                // Alert silenciado até a tabela `template_history` existir (AUDIT_TODO item 1).
+                // Quando a tabela for criada, restaurar o alert para alinhar com o fail-loud do upload-thumb.
+                console.warn("[History save] falhou:", hErr);
               }
 
               // Atualiza estado local com os metadados confirmados
