@@ -139,7 +139,7 @@ export default function ClienteUnidadesPage() {
             className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid var(--bdr2)",
             }}
           >
             <Store size={24} />
@@ -254,14 +254,14 @@ function StoreCard({
 }) {
   const ativo = store.active !== false;
   return (
-    <div className="card-glass flex flex-col gap-3 p-5">
+    <div className="card-glass flex flex-col gap-3 p-5 page-fade">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
             style={{
               background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid var(--bdr2)",
             }}
           >
             <Store size={18} />
