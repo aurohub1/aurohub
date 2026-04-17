@@ -277,11 +277,7 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
           <div
             className="flex h-full w-full items-center justify-center"
             style={{ background: "#1E3A6E" }}
-          >
-            <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/85">
-              {(tpl.format || "—").toUpperCase()}
-            </span>
-          </div>
+          />
         )}
 
         {/* Formato badge (sobreposto) */}
