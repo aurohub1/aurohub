@@ -8,6 +8,7 @@ import BarsByDay from "@/components/metrics/BarsByDay";
 import PieByFormat from "@/components/metrics/PieByFormat";
 import HistoryTable from "@/components/metrics/HistoryTable";
 import FiltersBar from "@/components/metrics/FiltersBar";
+import ActivityFeed from "@/components/metrics/ActivityFeed";
 import type { Formato, Tipo, PeriodoDias, PublicationRow } from "@/components/metrics/types";
 
 interface Lic { id: string; name: string | null }
@@ -30,7 +31,6 @@ export default function AdmMetricasPage() {
     try {
       const since = new Date();
       since.setDate(since.getDate() - 90);
-
       const [histRes, licRes, lojaRes] = await Promise.all([
         supabase
           .from("publication_history")
@@ -88,7 +88,6 @@ export default function AdmMetricasPage() {
     return lojas.filter(l => l.licensee_id === licenseeFilter);
   }, [lojas, licenseeFilter]);
 
-  // Se licensee muda, reseta loja
   useEffect(() => { setLojaFilter("all"); }, [licenseeFilter]);
 
   const extraFilters = (
@@ -96,47 +95,59 @@ export default function AdmMetricasPage() {
       <select
         value={licenseeFilter}
         onChange={(e) => setLicenseeFilter(e.target.value)}
-        className="h-8 rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:border-blue-400"
+        className="h-8 rounded-full px-4 text-xs outline-none"
+        style={{
+          background: "transparent",
+          border: "1px solid rgba(255,255,255,0.15)",
+          color: "rgba(255,255,255,0.7)",
+        }}
       >
-        <option value="all">Todos os licensees</option>
-        {licensees.map(l => <option key={l.id} value={l.id}>{l.name || "—"}</option>)}
+        <option value="all" style={{ background: "#0a0f1e" }}>Todos os licensees</option>
+        {licensees.map(l => <option key={l.id} value={l.id} style={{ background: "#0a0f1e" }}>{l.name || "—"}</option>)}
       </select>
       <select
         value={lojaFilter}
         onChange={(e) => setLojaFilter(e.target.value)}
-        className="h-8 rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:border-blue-400"
+        className="h-8 rounded-full px-4 text-xs outline-none"
+        style={{
+          background: "transparent",
+          border: "1px solid rgba(255,255,255,0.15)",
+          color: "rgba(255,255,255,0.7)",
+        }}
       >
-        <option value="all">Todas as lojas</option>
-        {lojasFiltradas.map(l => <option key={l.id} value={l.id}>{l.name || "—"}</option>)}
+        <option value="all" style={{ background: "#0a0f1e" }}>Todas as lojas</option>
+        {lojasFiltradas.map(l => <option key={l.id} value={l.id} style={{ background: "#0a0f1e" }}>{l.name || "—"}</option>)}
       </select>
     </>
   );
 
   return (
-    <>
-      <div className="flex items-end justify-between border-b border-slate-200 pb-4">
+    <div className="-m-6 p-6 min-h-[calc(100vh-80px)] text-white" style={{ background: "#0a0f1e" }}>
+      <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Métricas da plataforma</h2>
-          <p className="mt-0.5 text-sm text-slate-500">Agregado de todos os clientes, lojas e consultores</p>
+          <h2 className="text-2xl font-bold text-white">Métricas da plataforma</h2>
+          <p className="mt-0.5 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+            Agregado de todos os clientes, lojas e consultores
+          </p>
         </div>
       </div>
 
       {loading ? (
-        <div className="mt-4 flex flex-col gap-4">
-          <div className="animate-pulse bg-slate-200 rounded-lg h-24 w-full" />
-          <div className="animate-pulse bg-slate-200 rounded-lg h-64 w-full" />
+        <div className="mt-6 flex flex-col gap-4">
+          <div className="animate-pulse rounded-[20px] h-28 w-full" style={{ background: "rgba(255,255,255,0.04)" }} />
+          <div className="animate-pulse rounded-[20px] h-80 w-full" style={{ background: "rgba(255,255,255,0.04)" }} />
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mt-4">
-            <MetricCard label="Publicações hoje"     value={kpis.today}          icon={<Rocket size={16} />}       accent="blue"   />
-            <MetricCard label="Esta semana"           value={kpis.week}           icon={<CalendarDays size={16} />} accent="green"  />
-            <MetricCard label="Este mês"              value={kpis.month}          icon={<CalendarDays size={16} />} accent="orange" />
-            <MetricCard label="Downloads (30d)"       value={kpis.downloadsMonth} icon={<Download size={16} />}     accent="gold"   />
-            <MetricCard label="Plataforma (30d)"      value={kpis.platformMonth}  icon={<Globe2 size={16} />}       accent="blue"   />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mt-6">
+            <MetricCard label="Publicações hoje"  value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
+            <MetricCard label="Esta semana"        value={kpis.week}           icon={<CalendarDays size={18} />} accent="green"  />
+            <MetricCard label="Este mês"           value={kpis.month}          icon={<CalendarDays size={18} />} accent="orange" />
+            <MetricCard label="Downloads (30d)"    value={kpis.downloadsMonth} icon={<Download size={18} />}     accent="gold"   />
+            <MetricCard label="Plataforma (30d)"   value={kpis.platformMonth}  icon={<Globe2 size={18} />}       accent="blue"   />
           </div>
 
-          <div className="mt-4">
+          <div className="mt-6">
             <FiltersBar
               periodo={periodo} onPeriodoChange={setPeriodo}
               formato={formato} onFormatoChange={setFormato}
@@ -145,9 +156,12 @@ export default function AdmMetricasPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mt-4">
             <BarsByDay rows={filtered} days={periodo} />
-            <PieByFormat rows={filtered} />
+            <div className="flex flex-col gap-4">
+              <ActivityFeed rows={filtered} />
+              <PieByFormat rows={filtered} />
+            </div>
           </div>
 
           <div className="mt-4">
@@ -155,6 +169,6 @@ export default function AdmMetricasPage() {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

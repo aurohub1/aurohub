@@ -20,7 +20,7 @@ function Pill<T extends string | number>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+    <div className="flex gap-1.5 flex-wrap">
       {options.map(o => {
         const active = value === o.v;
         return (
@@ -28,11 +28,18 @@ function Pill<T extends string | number>({
             key={String(o.v)}
             type="button"
             onClick={() => onChange(o.v)}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+            className="px-3.5 py-1.5 text-xs font-medium rounded-full transition-all"
+            style={
               active
-                ? "bg-white text-slate-800 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
+                ? { background: "#3B82F6", color: "#fff", border: "1px solid transparent" }
+                : { background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)" }
+            }
+            onMouseEnter={(e) => {
+              if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+            }}
+            onMouseLeave={(e) => {
+              if (!active) e.currentTarget.style.background = "transparent";
+            }}
           >
             {o.label}
           </button>

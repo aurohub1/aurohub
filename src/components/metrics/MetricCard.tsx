@@ -9,26 +9,42 @@ interface Props {
   accent?: "blue" | "gold" | "green" | "orange";
 }
 
-const ACCENT: Record<NonNullable<Props["accent"]>, { bg: string; text: string }> = {
-  blue:   { bg: "bg-blue-50",   text: "text-blue-700"   },
-  gold:   { bg: "bg-amber-50",  text: "text-amber-700"  },
-  green:  { bg: "bg-green-50",  text: "text-green-700"  },
-  orange: { bg: "bg-orange-50", text: "text-orange-700" },
+const ACCENT: Record<NonNullable<Props["accent"]>, string> = {
+  blue:   "#3B82F6",
+  gold:   "#D4A843",
+  green:  "#10B981",
+  orange: "#FF7A1A",
 };
 
 export default function MetricCard({ label, value, icon, accent = "blue" }: Props) {
-  const a = ACCENT[accent];
+  const color = ACCENT[accent];
   return (
-    <div className="rounded-xl shadow-sm bg-white border border-slate-100 p-6 hover:shadow-md transition-shadow duration-200">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500 uppercase tracking-wide font-semibold">{label}</span>
+    <div
+      className="relative overflow-hidden p-6"
+      style={{
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 20,
+      }}
+    >
+      <div className="flex items-start justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.4)" }}>
+          {label}
+        </span>
         {icon && (
-          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${a.bg} ${a.text}`}>
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            style={{
+              background: `${color}1A`,
+              color,
+              boxShadow: `0 0 24px ${color}33`,
+            }}
+          >
             {icon}
-          </span>
+          </div>
         )}
       </div>
-      <div className="mt-3 text-3xl font-bold text-slate-800 tabular-nums">{value}</div>
+      <div className="mt-4 text-[40px] font-bold leading-none tabular-nums text-white">{value}</div>
     </div>
   );
 }

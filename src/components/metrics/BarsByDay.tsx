@@ -1,12 +1,9 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
-import { PublicationRow, TIPO_COLOR } from "./types";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
+import { PublicationRow } from "./types";
 
-interface Props {
-  rows: PublicationRow[];
-  days: number;
-}
+interface Props { rows: PublicationRow[]; days: number; }
 
 interface Bucket { date: string; label: string; publicado: number; download: number; }
 
@@ -15,7 +12,6 @@ function buildBuckets(rows: PublicationRow[], days: number): Bucket[] {
   today.setHours(0, 0, 0, 0);
   const buckets: Bucket[] = [];
   const map = new Map<string, Bucket>();
-
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
@@ -25,7 +21,6 @@ function buildBuckets(rows: PublicationRow[], days: number): Bucket[] {
     buckets.push(b);
     map.set(key, b);
   }
-
   for (const r of rows) {
     const key = r.created_at.slice(0, 10);
     const b = map.get(key);
@@ -39,22 +34,84 @@ function buildBuckets(rows: PublicationRow[], days: number): Bucket[] {
 export default function BarsByDay({ rows, days }: Props) {
   const data = buildBuckets(rows, days);
   return (
-    <div className="rounded-xl shadow-sm bg-white border border-slate-100 p-6">
+    <div
+      className="p-6"
+      style={{
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 20,
+      }}
+    >
       <div className="mb-4">
-        <h3 className="text-sm font-semibold text-slate-800">Publicações e downloads por dia</h3>
-        <p className="text-xs text-slate-500">Últimos {days} dias</p>
+        <h3 className="text-sm font-semibold text-white">Publicações e downloads por dia</h3>
+        <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>Últimos {days} dias</p>
       </div>
-      <div style={{ width: "100%", height: 280 }}>
+      <div style={{ width: "100%", height: 320 }}>
         <ResponsiveContainer>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#64748B" }} />
-            <YAxis tick={{ fontSize: 11, fill: "#64748B" }} allowDecimals={false} />
-            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E2E8F0" }} />
-            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
-            <Bar dataKey="publicado" name="Publicado" fill={TIPO_COLOR.publicado} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="download" name="Download" fill={TIPO_COLOR.download} radius={[4, 4, 0, 0]} />
-          </BarChart>
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="fillPublicado" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.45} />
+                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="fillDownload" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#FF7A1A" stopOpacity={0.45} />
+                <stop offset="95%" stopColor="#FF7A1A" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: "rgba(255,255,255,0.4)" }}
+              tickLine={false}
+              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: "rgba(255,255,255,0.4)" }}
+              tickLine={false}
+              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+              allowDecimals={false}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "rgba(10,15,30,0.92)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 10,
+                fontSize: 12,
+                color: "#fff",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+              }}
+              labelStyle={{ color: "rgba(255,255,255,0.7)", fontWeight: 600, marginBottom: 4 }}
+              cursor={{ stroke: "rgba(255,255,255,0.1)" }}
+            />
+            <Legend
+              wrapperStyle={{ fontSize: 12, paddingTop: 12, color: "rgba(255,255,255,0.7)" }}
+              iconType="circle"
+            />
+            <Area
+              type="monotone"
+              dataKey="publicado"
+              name="Publicado"
+              stroke="#3B82F6"
+              strokeWidth={2}
+              fill="url(#fillPublicado)"
+              dot={false}
+              activeDot={{ r: 5, stroke: "#3B82F6", strokeWidth: 2, fill: "#0a0f1e" }}
+              style={{ filter: "drop-shadow(0 0 6px #3B82F6)" }}
+            />
+            <Area
+              type="monotone"
+              dataKey="download"
+              name="Download"
+              stroke="#FF7A1A"
+              strokeWidth={2}
+              fill="url(#fillDownload)"
+              dot={false}
+              activeDot={{ r: 5, stroke: "#FF7A1A", strokeWidth: 2, fill: "#0a0f1e" }}
+              style={{ filter: "drop-shadow(0 0 6px #FF7A1A)" }}
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>
