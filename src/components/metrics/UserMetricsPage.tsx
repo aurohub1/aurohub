@@ -80,7 +80,7 @@ export default function UserMetricsPage() {
   // Feature off → tela de upgrade (dark)
   if (!loading && profile && !features.has("metricas")) {
     return (
-      <div className="-m-6 p-6 min-h-[calc(100vh-80px)] text-white" style={{ background: "#0a0f1e" }}>
+      <div className="rounded-2xl overflow-hidden p-6 text-white" style={{ background: "#0a0f1e" }}>
         <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div>
             <h2 className="text-2xl font-bold text-white">Métricas</h2>
@@ -106,7 +106,7 @@ export default function UserMetricsPage() {
   }
 
   return (
-    <div className="-m-6 p-6 min-h-[calc(100vh-80px)] text-white" style={{ background: "#0a0f1e" }}>
+    <div className="rounded-2xl overflow-hidden p-6 text-white" style={{ background: "#0a0f1e" }}>
       <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         <div>
           <h2 className="text-2xl font-bold text-white">Métricas</h2>
