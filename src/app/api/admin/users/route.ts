@@ -231,10 +231,10 @@ export async function PATCH(req: NextRequest) {
         if (extras.metrics !== undefined) overrides.push({ feature_key: "metricas", enabled: extras.metrics });
         if (extras.transmissao !== undefined) overrides.push({ feature_key: "transmissao", enabled: extras.transmissao });
         for (const ov of overrides) {
-          await sb.from("licensee_feature_overrides").upsert(
-            { licensee_id: licenseeId, feature_key: ov.feature_key, enabled: ov.enabled },
-            { onConflict: "licensee_id,feature_key" }
-          );
+          await sb.from("licensee_feature_overrides")
+            .update({ enabled: ov.enabled })
+            .eq("licensee_id", licenseeId)
+            .eq("feature_key", ov.feature_key);
         }
       }
 
