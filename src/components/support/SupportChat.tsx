@@ -181,8 +181,6 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
     }).catch(() => { /* silent */ });
   }, [ticketId, profile, status]);
 
-  if (!profile) return null;
-
   const statusMeta = {
     bot:      { label: "Bot",                 cls: "bg-blue-100 text-blue-700" },
     human:    { label: "Aguardando equipe",    cls: "bg-amber-100 text-amber-700" },
@@ -225,8 +223,20 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-3">
           {messages.length === 0 && (
-            <div className="flex h-full items-center justify-center text-sm text-slate-400">
-              Carregando...
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-slate-400">
+              {!profile ? (
+                <>
+                  <div className="flex flex-col gap-2 w-full max-w-[260px]">
+                    <div className="h-3 w-24 animate-pulse rounded-full bg-slate-200" />
+                    <div className="h-10 w-full animate-pulse rounded-xl bg-slate-100" />
+                    <div className="h-10 w-3/4 animate-pulse rounded-xl bg-slate-100 self-end" />
+                    <div className="h-10 w-5/6 animate-pulse rounded-xl bg-slate-100" />
+                  </div>
+                  <span className="text-xs text-slate-400">Conectando...</span>
+                </>
+              ) : (
+                <span>Carregando mensagens...</span>
+              )}
             </div>
           )}
           <div className="flex flex-col gap-3">
@@ -259,7 +269,8 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
           <div className="border-t border-slate-100 px-4 py-2">
             <button
               onClick={escalate}
-              className="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              disabled={!profile}
+              className="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Falar com humano
             </button>
@@ -272,15 +283,16 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !sending && send()}
-            placeholder="Digite sua mensagem..."
-            className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+            onKeyDown={(e) => e.key === "Enter" && !sending && profile && send()}
+            placeholder={profile ? "Digite sua mensagem..." : "Conectando..."}
+            disabled={!profile}
+            className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
           />
           <button
             onClick={send}
-            disabled={sending || !input.trim()}
+            disabled={sending || !input.trim() || !profile}
             aria-label="Enviar"
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send size={14} />
           </button>
