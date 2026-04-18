@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
+import { useCountUp } from "@/hooks/useCountUp";
 import {
   CalendarDays, Send, BarChart3,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
@@ -129,6 +130,15 @@ export default function VendedorInicioPage() {
   const [dbFeriados, setDbFeriados] = useState<DataComemorativa[]>([]);
   const [postsHoje, setPostsHoje] = useState(0);
   const [postsMes, setPostsMes] = useState(0);
+
+  // Counters esperam 200ms após loading=false — dá tempo do React Strict Mode
+  // terminar o double-invoke dos effects antes de começar a animação de 0→target.
+  const [countersEnabled, setCountersEnabled] = useState(false);
+  useEffect(() => {
+    if (loading) { setCountersEnabled(false); return; }
+    const t = setTimeout(() => setCountersEnabled(true), 200);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   /* ── Load profile, posts, quote, weather ─────── */
   const loadData = useCallback(async () => {
@@ -261,6 +271,9 @@ export default function VendedorInicioPage() {
 
   /* ── Derived ──────────────────────────────────── */
 
+  const postsHojeAnim = useCountUp(postsHoje, countersEnabled);
+  const postsMesAnim = useCountUp(postsMes, countersEnabled);
+
   const proximosFeriados = useMemo(() => {
     // Preferência: tabela datas_comemorativas (tempo real do ADM). Fallback: hardcoded CALENDARIO_TURISMO.
     if (dbFeriados.length > 0) {
@@ -343,7 +356,7 @@ export default function VendedorInicioPage() {
           <div>
             <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts de hoje</div>
             <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)] tabular-nums">
-              {postsHoje}
+              {postsHojeAnim}
             </div>
             <div className="mt-1 text-[11px] text-[var(--txt3)]">Suas publicações</div>
           </div>
@@ -358,7 +371,7 @@ export default function VendedorInicioPage() {
           <div>
             <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts do mês</div>
             <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)] tabular-nums">
-              {postsMes}
+              {postsMesAnim}
             </div>
             <div className="mt-1 text-[11px] text-[var(--txt3)]">Suas publicações</div>
           </div>
