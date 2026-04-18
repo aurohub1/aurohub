@@ -289,6 +289,7 @@ export default function PublicarPage() {
 
   // Video processing modal
   const [videoProcessing, setVideoProcessing] = useState<{ msg: string; stage: "polling" | "publishing" | "done" | "error" } | null>(null);
+  const [showPreviewMobile, setShowPreviewMobile] = useState(false); // toggle do preview em <768px
 
   // Música (stories/reels)
   const [musicasDisponiveis, setMusicasDisponiveis] = useState<{ id: string; nome: string; artista: string; cloudinary_url: string; inicio_segundos: number; duracao_segundos: number | null }[]>([]);
@@ -1231,7 +1232,18 @@ export default function PublicarPage() {
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr] page-fade">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr] page-fade publicar-mobile">
+      <style>{`
+        /* Mobile-only (<768px): anti-zoom iOS em inputs + alvo touch 44px */
+        @media (max-width: 767px) {
+          .publicar-mobile input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+          .publicar-mobile select,
+          .publicar-mobile textarea {
+            font-size: 16px !important;
+            min-height: 44px;
+          }
+        }
+      `}</style>
       {/* ═══ MODAL PROCESSAMENTO VÍDEO ═══ */}
       {videoProcessing && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -1280,7 +1292,7 @@ export default function PublicarPage() {
 
       {/* ═══ COLUNA ESQUERDA — FORM ═══ */}
       <div
-        className="flex max-h-[calc(100dvh-96px)] flex-col overflow-hidden rounded-2xl border border-[var(--bdr)] shadow-xl"
+        className="flex flex-col overflow-hidden rounded-2xl border border-[var(--bdr)] shadow-xl lg:max-h-[calc(100dvh-96px)]"
         style={{ background: "var(--bg1)" }}
       >
         {/* Header */}
@@ -1301,6 +1313,13 @@ export default function PublicarPage() {
             >
               {FORM_LABELS[tab]}
             </span>
+            <button
+              type="button"
+              onClick={() => setShowPreviewMobile((v) => !v)}
+              className="ml-auto rounded-full border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt2)] lg:hidden"
+            >
+              {showPreviewMobile ? "Ocultar preview" : "Ver preview"}
+            </button>
           </div>
         </div>
 
@@ -1856,7 +1875,7 @@ export default function PublicarPage() {
       </div>
 
       {/* ═══ COLUNA DIREITA — PREVIEW ═══ */}
-      <div className="card-glass relative flex flex-col overflow-hidden">
+      <div className={`card-glass relative flex-col overflow-hidden lg:flex ${showPreviewMobile ? "flex" : "hidden"}`}>
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
           <h3 className="text-[14px] font-bold text-[var(--txt)]">Preview ao vivo</h3>
           <div className="text-[10px] text-[var(--txt3)] tabular-nums">
