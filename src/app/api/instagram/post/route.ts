@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { notifyPush } from "@/lib/pushNotify";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -12,7 +13,7 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { licensee_id, image_url, video_url, caption, store_id, media_type, format } = body as {
+    const { licensee_id, image_url, video_url, caption, store_id, media_type, format, user_id } = body as {
       licensee_id: string;
       image_url?: string;
       video_url?: string;
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
       store_id?: string;
       media_type?: "IMAGE" | "REELS" | "STORIES";
       format?: "stories" | "feed" | "reels" | "tv";
+      user_id?: string;
     };
     if (!licensee_id || (!image_url && !video_url)) {
       return NextResponse.json({ error: "licensee_id and image_url or video_url required" }, { status: 400 });
@@ -74,6 +76,14 @@ export async function POST(req: NextRequest) {
     const createRes = await fetch(`${createUrl}?${createParams}`, { method: "POST" });
     if (!createRes.ok) {
       const detail = await createRes.text();
+      if (user_id) {
+        notifyPush({
+          userId: user_id,
+          title: "❌ Falha ao publicar",
+          body: "Não foi possível criar o container no Instagram.",
+          tag: "ig-publish",
+        });
+      }
       return NextResponse.json({ error: "Falha ao criar container", detail }, { status: 500 });
     }
     const createData = await createRes.json();
@@ -104,10 +114,27 @@ export async function POST(req: NextRequest) {
     const pubRes = await fetch(`${pubUrl}?${pubParams}`, { method: "POST" });
     if (!pubRes.ok) {
       const detail = await pubRes.text();
+      if (user_id) {
+        notifyPush({
+          userId: user_id,
+          title: "❌ Falha ao publicar",
+          body: "Erro ao publicar no Instagram. Veja os detalhes no app.",
+          tag: "ig-publish",
+        });
+      }
       return NextResponse.json({ error: "Falha ao publicar", detail }, { status: 500 });
     }
     const pubData = await pubRes.json();
     const igPostId = pubData.id;
+
+    if (user_id) {
+      notifyPush({
+        userId: user_id,
+        title: "✅ Post publicado",
+        body: `Seu ${mediaType === "STORIES" ? "story" : "post"} foi publicado com sucesso.`,
+        tag: "ig-publish",
+      });
+    }
 
     try {
       await sb.from("activity_logs").insert({

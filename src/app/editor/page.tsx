@@ -254,6 +254,30 @@ function EditorInner() {
                 console.warn("[History save] falhou:", hErr);
               }
 
+              // Notifica usuários do licensee quando é template NOVO (não update)
+              if (!templateId && meta.licenseeId) {
+                try {
+                  const { data: users } = await supabase
+                    .from("profiles")
+                    .select("id")
+                    .eq("licensee_id", meta.licenseeId);
+                  const userIds = (users ?? []).map((u: { id: string }) => u.id);
+                  if (userIds.length > 0) {
+                    fetch("/api/push/send", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        userIds,
+                        title: "✨ Novo template disponível",
+                        body: `${meta.nome} — ${meta.format}`,
+                        url: "/",
+                        tag: "new-template",
+                      }),
+                    }).catch(() => null);
+                  }
+                } catch { /* silent */ }
+              }
+
               // Atualiza estado local com os metadados confirmados
               setLoadedNome(meta.nome);
               setFormat(meta.format);

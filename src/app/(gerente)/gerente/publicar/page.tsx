@@ -815,6 +815,7 @@ export default function GerentePublicarPage() {
     media_type: "REELS" | "STORIES";
     format: Format;
     caption: string;
+    user_id?: string;
   }): Promise<boolean> {
     const maxPolls = 36; // 36 × 5s = 180s (3 minutos)
     for (let i = 0; i < maxPolls; i++) {
@@ -1134,6 +1135,7 @@ export default function GerentePublicarPage() {
               caption,
               media_type: format === "stories" ? "STORIES" : format === "reels" ? "REELS" : "IMAGE",
               format, // stories | feed | reels | tv — lido pelo contador diário
+              user_id: profile.id,
             }),
           });
           const pubData = await pubRes.json();
@@ -1158,6 +1160,7 @@ export default function GerentePublicarPage() {
                 media_type: format === "stories" ? "STORIES" : "REELS",
                 format,
                 caption,
+                user_id: profile.id,
               });
               if (ok) resultados.push({ store: target, ok: true });
               else resultados.push({ store: target, ok: false, error: "Falha no processamento" });
@@ -1206,6 +1209,27 @@ export default function GerentePublicarPage() {
         : `${okCount} ok · ${falhas.length} falha${falhas.length === 1 ? "" : "s"}`);
       // Recarrega contador
       if (targets[0]) await loadDailyCount(targets[0].id);
+      // Alerta 80% do limite diário (uma vez por dia por formato)
+      try {
+        const newUsado = (postsByFormat[format] || 0) + okCount;
+        const lim = formatLimits[format];
+        if (lim && lim > 0 && newUsado / lim >= 0.8 && profile?.id && typeof window !== "undefined") {
+          const dedup = `ah_push_80_${profile.id}_${format}_${new Date().toDateString()}`;
+          if (!localStorage.getItem(dedup)) {
+            localStorage.setItem(dedup, "1");
+            fetch("/api/push/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userId: profile.id,
+                title: "⚠️ Limite diário próximo",
+                body: `${newUsado}/${lim} ${format} publicados hoje.`,
+                tag: "limit-warning",
+              }),
+            }).catch(() => null);
+          }
+        }
+      } catch { /* silent */ }
       setTimeout(() => {
         limparFormulario();
         setStatus("idle");

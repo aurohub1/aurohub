@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { notifyPush } from "@/lib/pushNotify";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       creation_id, ig_user_id, access_token,
-      licensee_id, store_id, video_url, media_type, format, caption,
+      licensee_id, store_id, video_url, media_type, format, caption, user_id,
     } = body as {
       creation_id: string;
       ig_user_id: string;
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
       media_type?: string;
       format?: string;
       caption?: string;
+      user_id?: string;
     };
 
     if (!creation_id || !ig_user_id || !access_token) {
@@ -37,7 +39,24 @@ export async function POST(req: NextRequest) {
     );
     const pubData = await pubRes.json();
     if (!pubRes.ok || !pubData.id) {
+      if (user_id) {
+        notifyPush({
+          userId: user_id,
+          title: "❌ Falha ao publicar vídeo",
+          body: "O vídeo foi processado mas não pôde ser publicado.",
+          tag: "ig-publish",
+        });
+      }
       return NextResponse.json({ error: "Falha ao publicar", detail: pubData }, { status: 500 });
+    }
+
+    if (user_id) {
+      notifyPush({
+        userId: user_id,
+        title: "✅ Vídeo publicado",
+        body: "Seu reels/story foi publicado no Instagram.",
+        tag: "ig-publish",
+      });
     }
 
     // Log best-effort

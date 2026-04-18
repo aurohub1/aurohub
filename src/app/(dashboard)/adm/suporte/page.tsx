@@ -149,10 +149,26 @@ export default function AdmSuportePage() {
       await supabase.from("support_tickets")
         .update({ status: "human", unread_adm: false, updated_at: new Date().toISOString() })
         .eq("id", activeId);
+
+      // Push pro dono do ticket
+      const ticket = tickets.find(t => t.id === activeId);
+      if (ticket?.user_id) {
+        fetch("/api/push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: ticket.user_id,
+            title: "💬 Suporte Aurohub respondeu",
+            body: text.length > 80 ? text.slice(0, 77) + "..." : text,
+            url: "/",
+            tag: `support-${activeId}`,
+          }),
+        }).catch(() => null);
+      }
     } finally {
       setSending(false);
     }
-  }, [reply, activeId, profile, sending]);
+  }, [reply, activeId, profile, sending, tickets]);
 
   const resolve = useCallback(async () => {
     if (!activeId) return;

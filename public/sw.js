@@ -1,5 +1,5 @@
 /* Aurohub — Service Worker básico (app shell cache) */
-const CACHE_VERSION = "aurohub-v1";
+const CACHE_VERSION = "aurohub-v2";
 const APP_SHELL = [
   "/",
   "/manifest.json",
@@ -69,5 +69,47 @@ self.addEventListener("fetch", (event) => {
       }
       return res;
     }).catch(() => caches.match(req).then((c) => c || caches.match("/")))
+  );
+});
+
+/* ── Web Push ─────────────────────────────────────── */
+
+self.addEventListener("push", (event) => {
+  let payload = { title: "Aurohub", body: "Nova notificação", url: "/", tag: undefined, icon: "/icon-192.png" };
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch (e) {
+    try { payload.body = event.data ? event.data.text() : payload.body; } catch {}
+  }
+
+  const options = {
+    body: payload.body,
+    icon: payload.icon || "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: payload.tag,
+    data: { url: payload.url || "/" },
+    renotify: !!payload.tag,
+  };
+
+  event.waitUntil(self.registration.showNotification(payload.title || "Aurohub", options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientsArr) => {
+      // Se já tem uma janela aberta do app, foca nela e navega
+      for (const client of clientsArr) {
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client) client.navigate(targetUrl).catch(() => null);
+          return;
+        }
+      }
+      // Senão abre nova
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    }),
   );
 });

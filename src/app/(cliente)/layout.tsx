@@ -10,6 +10,7 @@ import { useContentProtection } from "@/hooks/useContentProtection";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 import { SupportDrawerProvider } from "@/components/support/SupportDrawerProvider";
+import PushPermission from "@/components/PushPermission";
 
 export default function ClienteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -98,6 +99,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         )}
       </footer>
       <WelcomeTour role="cliente" />
+      <PushPermission />
     </SupportDrawerProvider>
   );
 }
