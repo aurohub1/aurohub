@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
+import { useCountUp } from "@/hooks/useCountUp";
 import {
   Send, BarChart3, ArrowRight, Image as ImageIcon, CalendarDays,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
@@ -146,6 +147,15 @@ export default function UnidadeInicioPage() {
   const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
 
   const [loading, setLoading] = useState(true);
+
+  // Counters esperam 200ms após loading=false — dá tempo do React Strict Mode
+  // terminar o double-invoke dos effects antes de começar a animação de 0→target.
+  const [countersEnabled, setCountersEnabled] = useState(false);
+  useEffect(() => {
+    if (loading) { setCountersEnabled(false); return; }
+    const t = setTimeout(() => setCountersEnabled(true), 200);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   const loadData = useCallback(async () => {
     try {
@@ -316,6 +326,9 @@ export default function UnidadeInicioPage() {
 
   /* ── Derived ───────────────────────────────────── */
 
+  const postsHojeAnim = useCountUp(postsHoje, countersEnabled);
+  const postsMesAnim = useCountUp(postsMes, countersEnabled);
+
   const proximosFeriados = useMemo(() => {
     const year = new Date().getFullYear();
     return dbFeriados.slice(0, 5).map((d) => ({
@@ -392,7 +405,7 @@ export default function UnidadeInicioPage() {
           <div>
             <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts de hoje</div>
             <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)] tabular-nums">
-              {postsHoje}
+              {postsHojeAnim}
             </div>
             <div className="mt-1 text-[11px] text-[var(--txt3)]">Publicações confirmadas</div>
           </div>
@@ -409,7 +422,7 @@ export default function UnidadeInicioPage() {
           <div>
             <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts do mês</div>
             <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)] tabular-nums">
-              {postsMes}
+              {postsMesAnim}
             </div>
             <div className="mt-1 text-[11px] text-[var(--txt3)]">Total da unidade</div>
           </div>
