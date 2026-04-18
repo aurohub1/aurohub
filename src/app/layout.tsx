@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, DM_Serif_Display, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
+import SwRegister from "./sw-register";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -23,6 +24,23 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: "Aurohub — Central ADM",
   description: "SaaS de imagens para agências de viagem",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Aurohub",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1E3A6E",
 };
 
 export default function RootLayout({
@@ -48,6 +66,7 @@ export default function RootLayout({
         className="min-h-full flex bg-[var(--bg)] text-[var(--txt)] font-[family-name:var(--font-dm-sans)]"
       >
         {children}
+        <SwRegister />
       </body>
     </html>
   );
