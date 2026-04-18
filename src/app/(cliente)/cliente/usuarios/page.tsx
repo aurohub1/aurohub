@@ -179,7 +179,7 @@ export default function ClienteUsuariosPage() {
               onClick={() => !limitReached && setCreating(true)}
               disabled={limitReached}
               className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-              style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+              style={{ background: "var(--blue)" }}
             >
               <Plus size={15} /> Novo usuário
             </button>
