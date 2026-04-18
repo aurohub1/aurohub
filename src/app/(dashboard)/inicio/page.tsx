@@ -10,6 +10,7 @@ import {
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
 import { useWeather } from "@/hooks/useWeather";
+import { useCountUp } from "@/hooks/useCountUp";
 
 /* ── Weather icon helper ─────────────────────────── */
 
@@ -184,6 +185,23 @@ export default function InicioPage() {
 
   const { weather, cityName } = useWeather();
 
+  // Counters esperam 200ms após loading=false — dá tempo do React Strict Mode
+  // terminar o double-invoke dos effects antes de começar a animação de 0→target.
+  const [countersEnabled, setCountersEnabled] = useState(false);
+  useEffect(() => {
+    if (loading) { setCountersEnabled(false); return; }
+    const t = setTimeout(() => setCountersEnabled(true), 200);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  const clientesAtivosAnim = useCountUp(clientesAtivos, countersEnabled);
+  const mrrAnim = useCountUp(mrr, countersEnabled);
+  const postsHojeAnim = useCountUp(postsHoje, countersEnabled);
+  const tokensAtivosAnim = useCountUp(tokensAtivos, countersEnabled);
+  const expiringAnim = useCountUp(alertas.expiring, countersEnabled);
+  const inactiveTokensAnim = useCountUp(alertas.inactiveTokens, countersEnabled);
+  const overLimitAnim = useCountUp(alertas.overLimit, countersEnabled);
+
   if (loading) return <div className="flex flex-1 items-center justify-center text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
@@ -228,10 +246,10 @@ export default function InicioPage() {
 
       {/* ═══ TOP STATS ═══ */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Clientes ativos" value={String(clientesAtivos)} icon={<Users size={18} />} accent="#1E3A6E" />
-        <StatCard label="Receita MRR" value={brl(mrr)} icon={<DollarSign size={18} />} accent="#D4A843" />
-        <StatCard label="Posts publicados hoje" value={String(postsHoje)} icon={<Send size={18} />} accent="#3B82F6" />
-        <StatCard label="Tokens Instagram ativos" value={String(tokensAtivos)} icon={<Camera size={18} />} accent="#A78BFA" />
+        <StatCard label="Clientes ativos" value={String(clientesAtivosAnim)} icon={<Users size={18} />} accent="#1E3A6E" />
+        <StatCard label="Receita MRR" value={brl(mrrAnim)} icon={<DollarSign size={18} />} accent="#D4A843" />
+        <StatCard label="Posts publicados hoje" value={String(postsHojeAnim)} icon={<Send size={18} />} accent="#3B82F6" />
+        <StatCard label="Tokens Instagram ativos" value={String(tokensAtivosAnim)} icon={<Camera size={18} />} accent="#A78BFA" />
       </div>
 
       {/* ═══ MIDDLE 3 COLS ═══ */}
@@ -281,17 +299,17 @@ export default function InicioPage() {
           <div className="flex flex-col">
             <AlertRow
               label="Planos vencendo em 7 dias"
-              count={alertas.expiring}
+              count={expiringAnim}
               critical={alertas.expiring > 0}
             />
             <AlertRow
               label="Clientes sem token Instagram"
-              count={alertas.inactiveTokens}
+              count={inactiveTokensAnim}
               critical={alertas.inactiveTokens > 3}
             />
             <AlertRow
               label="Clientes acima do limite"
-              count={alertas.overLimit}
+              count={overLimitAnim}
               critical={alertas.overLimit > 0}
             />
           </div>
