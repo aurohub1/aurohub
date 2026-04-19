@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
 import { useBadges } from "@/hooks/useBadges";
+import { usePublishQueue } from "@/hooks/usePublishQueue";
 import type { EditorSchema } from "@/components/editor/types";
 
 import {
@@ -287,8 +288,7 @@ export default function PublicarPage() {
   // Legenda
   const [caption, setCaption] = useState<string>("");
 
-  // Video processing modal
-  const [videoProcessing, setVideoProcessing] = useState<{ msg: string; stage: "polling" | "publishing" | "done" | "error" } | null>(null);
+  const publishQueue = usePublishQueue();
   const [showPreviewMobile, setShowPreviewMobile] = useState(false); // toggle do preview em <768px
 
   // Música (stories/reels)
@@ -788,55 +788,6 @@ export default function PublicarPage() {
     return stage.toDataURL({ pixelRatio: 1 / scale, mimeType: "image/jpeg", quality: 0.92 });
   }
 
-  async function waitAndPublishVideo(payload: {
-    creation_id: string;
-    ig_user_id: string;
-    access_token: string;
-    licensee_id: string;
-    store_id?: string;
-    video_url: string;
-    media_type: "REELS" | "STORIES";
-    format: Format;
-    caption: string;
-    user_id?: string;
-  }): Promise<boolean> {
-    const maxPolls = 36; // 36 × 5s = 180s (3 minutos)
-    for (let i = 0; i < maxPolls; i++) {
-      await new Promise(r => setTimeout(r, 5000));
-      const statusUrl = `/api/instagram/status?creation_id=${payload.creation_id}&access_token=${encodeURIComponent(payload.access_token)}`;
-      const sRes = await fetch(statusUrl);
-      const sData = await sRes.json();
-      const code = sData.status_code as string;
-
-      if (code === "FINISHED") {
-        setVideoProcessing({ msg: "Publicando...", stage: "publishing" });
-        const pubRes = await fetch("/api/instagram/publish", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const pubData = await pubRes.json();
-        if (pubData.success) {
-          setVideoProcessing({ msg: "Publicado!", stage: "done" });
-          setTimeout(() => setVideoProcessing(null), 2000);
-          return true;
-        }
-        setVideoProcessing({ msg: pubData.error || "Falha ao publicar", stage: "error" });
-        return false;
-      }
-
-      if (code === "ERROR" || code === "EXPIRED") {
-        setVideoProcessing({ msg: `Instagram rejeitou o vídeo (${code})`, stage: "error" });
-        return false;
-      }
-
-      setVideoProcessing({ msg: `Processando no Instagram... (${i + 1})`, stage: "polling" });
-    }
-
-    setVideoProcessing({ msg: "Timeout (3 min). Tente novamente.", stage: "error" });
-    return false;
-  }
-
   async function recordCanvasWithAudio(durationSec: number): Promise<Blob | null> {
     const stage = stageRef.current;
     if (!stage) return null;
@@ -1034,7 +985,6 @@ export default function PublicarPage() {
   async function handlePublish() {
     if (!profile?.licensee_id) { setStatus("error"); setStatusMsg("Sem licensee"); return; }
     if (selectedTargetIds.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
-    // Checa limite diário do formato atual (derivado do plano)
     const limiteFormat = formatLimits[format];
     const usado = postsByFormat[format] || 0;
     if (limiteFormat !== null && limiteFormat > 0 && usado >= limiteFormat) {
@@ -1043,188 +993,83 @@ export default function PublicarPage() {
       return;
     }
 
+    const targets = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
+    if (targets.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
+
     try {
       const isVideo = format === "stories" || format === "reels";
-      let mediaUrl: string;
+      let mediaBlob: Blob | undefined;
+      let mediaDataUrl: string | undefined;
 
       if (isVideo) {
-        // Grava vídeo WebM com áudio
-        setStatus("generating"); setStatusMsg("Gravando vídeo 15s...");
+        setStatus("generating"); setStatusMsg("Gravando vídeo...");
         const els = (currentTemplate?.schema?.elements ?? []) as Array<{ animDelay?: number; animDuration?: number }>;
         const maxAnim = els.reduce((m, el) => Math.max(m, (el.animDelay || 0) + (el.animDuration || 0.6)), 0);
         const durationSec = Math.min(15, Math.max(5, Math.ceil(maxAnim + 2)));
         const blob = await recordCanvasWithAudio(durationSec);
         if (!blob) throw new Error("Falha ao gravar vídeo");
-
-        // Upload como video para Cloudinary
-        setStatus("uploading"); setStatusMsg("Enviando vídeo...");
-        const folder = `aurohubv2/publicacoes/${profile.licensee_id}`;
-        const signRes = await fetch("/api/cloudinary/sign", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folder }),
-        });
-        const signData = await signRes.json();
-        if (!signData.signature) throw new Error("Falha ao assinar upload");
-        const fd = new FormData();
-        fd.append("file", blob, "video.webm");
-        fd.append("api_key", signData.api_key);
-        fd.append("timestamp", String(signData.timestamp));
-        fd.append("folder", signData.folder);
-        fd.append("signature", signData.signature);
-        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`, { method: "POST", body: fd });
-        const upData = await upRes.json();
-        if (!upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
-        // MP4 H264/AAC via transformation URL (compatível Instagram)
-        mediaUrl = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${upData.public_id}.mp4`;
+        mediaBlob = blob;
       } else {
         setStatus("generating"); setStatusMsg("Gerando imagem...");
         const dataUrl = getPNGDataURL();
         if (!dataUrl) throw new Error("Falha ao gerar imagem");
-
-        setStatus("uploading"); setStatusMsg("Enviando para Cloudinary...");
-        const folder = `aurohubv2/publicacoes/${profile.licensee_id}`;
-        const signRes = await fetch("/api/cloudinary/sign", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folder }),
-        });
-        const signData = await signRes.json();
-        if (!signRes.ok || !signData.signature) throw new Error(signData.error || "Falha ao assinar upload");
-
-        const fd = new FormData();
-        fd.append("file", dataUrl);
-        fd.append("api_key", signData.api_key);
-        fd.append("timestamp", String(signData.timestamp));
-        fd.append("folder", signData.folder);
-        fd.append("signature", signData.signature);
-
-        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloud_name}/image/upload`, {
-          method: "POST",
-          body: fd,
-        });
-        const upData = await upRes.json();
-        if (!upRes.ok || !upData.secure_url) throw new Error(upData.error?.message || "Upload falhou");
-        mediaUrl = upData.secure_url;
+        mediaDataUrl = dataUrl;
       }
 
-      setStatus("publishing");
-      const targets = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
-      const resultados: { store: StoreOption; ok: boolean; error?: string }[] = [];
+      const destinoValue = values.destino || null;
+      const licenseeId = profile.licensee_id;
+      const userId = profile.id;
+      const userRole = profile.role;
+      const templateId = currentTemplate?.id;
+      const templateName = currentTemplate?.nome;
+      const currentFormat = format;
+      const currentCaption = caption;
+
       for (const target of targets) {
-        setStatusMsg(`Publicando em ${target.name}...`);
-        try {
-          const pubRes = await fetch("/api/instagram/post", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              licensee_id: profile.licensee_id,
-              store_id: target.id,
-              image_url: isVideo ? undefined : mediaUrl,
-              video_url: isVideo ? mediaUrl : undefined,
-              caption,
-              media_type: format === "stories" ? "STORIES" : format === "reels" ? "REELS" : "IMAGE",
-              format, // stories | feed | reels | tv — lido pelo contador diário
-              user_id: profile.id,
-            }),
-          });
-          const pubData = await pubRes.json();
-          if (!pubRes.ok || !pubData.success) {
-            const rawErr: string = pubData.detail || pubData.error || "Falhou";
-            const isFormatErr = /unsupported|format|aspect|ratio|codec|duration|invalid.*video|resolution/i.test(rawErr);
-            const friendlyErr = isFormatErr && isVideo
-              ? "Formato não suportado pelo Instagram. Use o botão Download."
-              : rawErr;
-            resultados.push({ store: target, ok: false, error: friendlyErr });
-          } else if (pubData.queued) {
-            // Vídeo: polling até FINISHED → publish
-            setVideoProcessing({ msg: "Enviando para o Instagram...", stage: "polling" });
+        publishQueue.enqueue({
+          storeId: target.id,
+          storeName: target.name,
+          destino: destinoValue,
+          format: currentFormat,
+          isVideo,
+          mediaBlob,
+          mediaDataUrl,
+          caption: currentCaption,
+          licenseeId,
+          userId,
+          userRole,
+          templateId,
+          templateName,
+          onDone: () => {
+            loadDailyCount(target.id).catch(() => null);
             try {
-              const ok = await waitAndPublishVideo({
-                creation_id: pubData.creation_id,
-                ig_user_id: pubData.ig_user_id,
-                access_token: pubData.access_token,
-                licensee_id: profile.licensee_id,
-                store_id: target.id,
-                video_url: mediaUrl,
-                media_type: format === "stories" ? "STORIES" : "REELS",
-                format,
-                caption,
-                user_id: profile.id,
-              });
-              if (ok) resultados.push({ store: target, ok: true });
-              else resultados.push({ store: target, ok: false, error: "Falha no processamento" });
-            } catch (err) {
-              resultados.push({ store: target, ok: false, error: err instanceof Error ? err.message : "Erro" });
-            }
-          } else {
-            resultados.push({ store: target, ok: true });
-          }
-        } catch (err) {
-          resultados.push({ store: target, ok: false, error: err instanceof Error ? err.message : "Erro" });
-        }
+              const newUsado = (postsByFormat[currentFormat] || 0) + 1;
+              const lim = formatLimits[currentFormat];
+              if (lim && lim > 0 && newUsado / lim >= 0.8 && userId && typeof window !== "undefined") {
+                const dedup = `ah_push_80_${userId}_${currentFormat}_${new Date().toDateString()}`;
+                if (!localStorage.getItem(dedup)) {
+                  localStorage.setItem(dedup, "1");
+                  fetch("/api/push/send", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      userId,
+                      title: "⚠️ Limite diário próximo",
+                      body: `${newUsado}/${lim} ${currentFormat} publicados hoje.`,
+                      tag: "limit-warning",
+                    }),
+                  }).catch(() => null);
+                }
+              }
+            } catch { /* silent */ }
+          },
+        });
       }
 
-      const okCount = resultados.filter((r) => r.ok).length;
-      const falhas = resultados.filter((r) => !r.ok);
-
-      // Registra publicações ok em publication_history (silencioso — não bloqueia fluxo)
-      try {
-        const okTargets = resultados.filter(r => r.ok).map(r => r.store);
-        if (okTargets.length > 0 && profile.licensee_id && currentTemplate) {
-          const rows = okTargets.map(t => ({
-            licensee_id: profile.licensee_id!,
-            loja_id: t.id,
-            user_id: profile.id,
-            user_role: profile.role,
-            template_id: currentTemplate.id,
-            template_nome: currentTemplate.nome,
-            formato: format,
-            tipo: "publicado" as const,
-            destino: values.destino || null,
-          }));
-          await supabase.from("publication_history").insert(rows);
-        }
-      } catch (histErr) {
-        console.warn("[publicar] publication_history insert falhou (silencioso):", histErr);
-      }
-      const queuedCount = resultados.filter((r) => r.ok && r.error === "Vídeo em processamento...").length;
-      if (okCount === 0) throw new Error(`Nenhuma publicação concluída. ${falhas[0]?.error ?? ""}`);
-
-      setStatus("success");
-      setStatusMsg(queuedCount > 0
-        ? `Vídeo em processamento — publicará em ~1 min`
-        : falhas.length === 0
-        ? `Publicado em ${okCount} loja${okCount === 1 ? "" : "s"}!`
-        : `${okCount} ok · ${falhas.length} falha${falhas.length === 1 ? "" : "s"}`);
-      // Recarrega contador
-      if (targets[0]) await loadDailyCount(targets[0].id);
-      // Alerta 80% do limite diário (uma vez por dia por formato)
-      try {
-        const newUsado = (postsByFormat[format] || 0) + okCount;
-        const lim = formatLimits[format];
-        if (lim && lim > 0 && newUsado / lim >= 0.8 && profile?.id && typeof window !== "undefined") {
-          const dedup = `ah_push_80_${profile.id}_${format}_${new Date().toDateString()}`;
-          if (!localStorage.getItem(dedup)) {
-            localStorage.setItem(dedup, "1");
-            fetch("/api/push/send", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: profile.id,
-                title: "⚠️ Limite diário próximo",
-                body: `${newUsado}/${lim} ${format} publicados hoje.`,
-                tag: "limit-warning",
-              }),
-            }).catch(() => null);
-          }
-        }
-      } catch { /* silent */ }
-      setTimeout(() => {
-        limparFormulario();
-        setStatus("idle");
-        setStatusMsg("");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }, 3000);
+      limparFormulario();
+      setStatus("idle");
+      setStatusMsg("");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       console.error("[Publicar]", err);
       setStatus("error");
@@ -1268,52 +1113,6 @@ export default function PublicarPage() {
           }
         }
       `}</style>
-      {/* ═══ MODAL PROCESSAMENTO VÍDEO ═══ */}
-      {videoProcessing && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="mx-6 max-w-md rounded-2xl border border-[var(--bdr)] bg-[var(--bg1)] p-8 shadow-2xl">
-            <div className="mb-5 flex justify-center">
-              {videoProcessing.stage === "done" ? (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--green3)]">
-                  <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="var(--green)" strokeWidth="3" strokeLinecap="round"><path d="M5 12l5 5L20 7" /></svg>
-                </div>
-              ) : videoProcessing.stage === "error" ? (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--red3)]">
-                  <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="var(--red)" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-                </div>
-              ) : (
-                <div className="relative flex h-14 w-14 items-center justify-center">
-                  <div className="absolute inset-0 animate-spin rounded-full border-[3px] border-[var(--bdr)] border-t-[var(--orange)]" />
-                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="var(--orange)"><path d="M8 5v14l11-7z" /></svg>
-                </div>
-              )}
-            </div>
-            <h3 className="mb-2 text-center text-[16px] font-bold text-[var(--txt)]">
-              {videoProcessing.stage === "done" ? "Publicado!" : videoProcessing.stage === "error" ? "Erro" : "Processando vídeo"}
-            </h3>
-            <p className="mb-4 text-center text-[12px] text-[var(--txt2)]">{videoProcessing.msg}</p>
-            {videoProcessing.stage === "polling" || videoProcessing.stage === "publishing" ? (
-              <>
-                <p className="mb-4 text-center text-[11px] text-[var(--txt3)]">
-                  Seu vídeo está sendo processado pelo Instagram.<br />Não feche esta tela.
-                </p>
-                <div className="relative h-1 overflow-hidden rounded-full bg-[var(--bg2)]">
-                  <div className="absolute inset-y-0 w-1/3 animate-[slide_1.5s_linear_infinite] rounded-full bg-[var(--orange)]" />
-                </div>
-                <style>{`@keyframes slide{from{left:-33%}to{left:100%}}`}</style>
-              </>
-            ) : (
-              <button
-                onClick={() => setVideoProcessing(null)}
-                className="mx-auto block rounded-lg bg-[var(--bg2)] px-4 py-2 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--bg3)]"
-              >
-                Fechar
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* ═══ COLUNA ESQUERDA — FORM ═══ */}
       <div
         className="flex flex-col overflow-hidden rounded-2xl border border-[var(--bdr)] shadow-xl lg:max-h-[calc(100dvh-96px)]"

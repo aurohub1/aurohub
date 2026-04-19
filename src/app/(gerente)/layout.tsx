@@ -12,6 +12,8 @@ import WelcomeTour from "@/components/tour/WelcomeTour";
 import { SupportDrawerProvider } from "@/components/support/SupportDrawerProvider";
 import SupportFab from "@/components/support/SupportFab";
 import PushPermission from "@/components/PushPermission";
+import { PublishQueueProvider } from "@/hooks/usePublishQueue";
+import PublishQueuePanel from "@/components/PublishQueuePanel";
 
 export default function GerenteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -68,6 +70,7 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
 
   return (
     <SupportDrawerProvider>
+      <PublishQueueProvider>
       <Sidebar
         activePath={pathname}
         user={{ name: profile?.name || "Gerente", role: "gerente" }}
@@ -102,6 +105,8 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
       <WelcomeTour role="gerente" />
       <PushPermission />
       <SupportFab />
+      <PublishQueuePanel />
+      </PublishQueueProvider>
     </SupportDrawerProvider>
   );
 }
