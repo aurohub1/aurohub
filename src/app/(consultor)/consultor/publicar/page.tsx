@@ -10,6 +10,8 @@ import { getFeatures } from "@/lib/features";
 import { useBadges } from "@/hooks/useBadges";
 import { usePublishQueue } from "@/hooks/usePublishQueue";
 import type { EditorSchema } from "@/components/editor/types";
+import { useFormAdapter } from "@/components/publish/useFormAdapter";
+import { CampanhaForm, CruzeiroForm, AnoiteceuForm } from "@/components/publish/FormSections";
 
 import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
@@ -324,15 +326,15 @@ export default function PublicarPage() {
     };
   }, [planLimits]);
 
+  // Visibilidade de formatos: feature keys em licensee_feature_overrides.
   const formatVisible = useMemo<FormatVisibility>(() => {
-    if (!planLimits) return { stories: true, feed: true, reels: true, tv: false };
     return {
-      stories: (planLimits.max_stories_day ?? 0) !== 0,
-      feed:    (planLimits.max_feed_reels_day ?? 0) > 0,
-      reels:   (planLimits.max_feed_reels_day ?? 0) > 0,
-      tv:      !!planLimits.is_enterprise,
+      stories: features.has("format_stories"),
+      feed:    features.has("format_feed"),
+      reels:   features.has("format_reels"),
+      tv:      features.has("format_tv"),
     };
-  }, [planLimits]);
+  }, [features]);
 
   // Lista de formatos liberados pelo plano/overrides (barra + auto-switch)
   const visibleFormats = useMemo<Format[]>(
@@ -347,11 +349,16 @@ export default function PublicarPage() {
     }
   }, [formatVisible, format, visibleFormats]);
 
-  // Feature "publicar" — se ausente, esconde botão de publicar IG
-  // Add-on 4 Destinos: habilita a aba quando a feature está liberada pelo ADM
+  // Tabs habilitadas por feature keys form_* no licensee_feature_overrides.
   useEffect(() => {
-    const enabled = features.has("lamina_4destinos");
-    setEnabledForms(prev => prev.quatro_destinos === enabled ? prev : { ...prev, quatro_destinos: enabled });
+    setEnabledForms({
+      pacote:          features.has("form_pacote"),
+      campanha:        features.has("form_campanha"),
+      passagem:        true,
+      cruzeiro:        features.has("form_cruzeiro"),
+      anoiteceu:       features.has("form_anoiteceu"),
+      quatro_destinos: features.has("lamina_4destinos") || features.has("format_4destinos"),
+    });
   }, [features]);
 
   const canPublishFeature = features.has("publicar");
@@ -1099,6 +1106,9 @@ export default function PublicarPage() {
     return merged;
   }, [values, badges]);
 
+  // Adapter bidirecional: traduz values/badges legados ↔ contrato fields/set dos novos forms.
+  const formAdapter = useFormAdapter({ tab, values, badges, setField, setBadge });
+
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
@@ -1196,7 +1206,18 @@ export default function PublicarPage() {
 
           {currentTemplate && (
             <div className="flex flex-col gap-4">
-              {(tab === "pacote" || tab === "campanha") && (
+              {tab === "campanha" && (
+                <CampanhaForm
+                  fields={formAdapter.fields}
+                  set={formAdapter.set}
+                  servicos={formAdapter.servicos}
+                  setServicos={formAdapter.setServicos}
+                  today={hoje}
+                  feriadoOpts={feriadoOpts}
+                />
+              )}
+
+              {tab === "pacote" && (
                 <>
                   <Section title="Destino & Saída">
                     <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
@@ -1241,10 +1262,8 @@ export default function PublicarPage() {
                     <div className="grid grid-cols-3 gap-1.5">
                       <BadgeBtn label="Última chamada" on={!!badges.ultima_chamada_badge} onClick={() => setBadge("ultima_chamada_badge", !badges.ultima_chamada_badge)} />
                       <BadgeBtn label="Últimos lugares" on={!!badges.ultimos_lugares_badge} onClick={() => setBadge("ultimos_lugares_badge", !badges.ultimos_lugares_badge)} />
-                      {/* "Ofertas" só existe em Pacote — Campanha é pacote-sem-ofertas (regra de produto) */}
-                      {tab !== "campanha" && (
-                        <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
-                      )}
+                      {/* "Ofertas" só existe em Pacote — Campanha vai pelo CampanhaForm (sem ofertas por regra) */}
+                      <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
                     </div>
                   </Section>
 
@@ -1324,101 +1343,15 @@ export default function PublicarPage() {
               )}
 
               {tab === "cruzeiro" && (
-                <>
-                  <Section title="Navio">
-                    <Combobox label="Nome do navio *" value={values.navio || ""} onChange={(v) => setField("navio", v)} onBlur={onNavioBlur} loader={loadNavios} placeholder="Ex.: COSTA DELICIOZA" />
-                  </Section>
-                  <Section title="Datas">
-                    <Row2>
-                      <Field label="Embarque">
-                        <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
-                      </Field>
-                      <Field label="Desembarque">
-                        <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
-                      </Field>
-                    </Row2>
-                    {values.noites && parseInt(values.noites) > 0 && (
-                      <div className="text-[10px] text-[var(--txt3)]">
-                        Duração: <span className="font-bold text-[var(--txt2)]">{values.noites} noite{parseInt(values.noites) === 1 ? "" : "s"}</span>
-                      </div>
-                    )}
-                  </Section>
-                  <Section title="Itinerário">
-                    <Field label="Roteiro">
-                      <TextArea value={values.itinerario || ""} onChange={(v) => setField("itinerario", v)} rows={3} placeholder="Porto de Santos → Rio → Ilhabela..." />
-                    </Field>
-                    <Field label="Incluso (opcional)">
-                      <TextArea value={values.incluso || ""} onChange={(v) => setField("incluso", v)} rows={2} />
-                    </Field>
-                  </Section>
-                  <Section title="Pagamento">
-                    <Field label="Forma de pagamento">
-                      <Select
-                        value={values.formapagamento || FORMA_PGTO_OPTS[0]}
-                        onChange={(v) => setField("formapagamento", v)}
-                        options={FORMA_PGTO_OPTS}
-                      />
-                    </Field>
-                    {values.formapagamento === "Boleto" && (
-                      <Field label="Valor de entrada">
-                        <TextInput
-                          value={formatMoeda(values.entrada || "")}
-                          inputMode="decimal"
-                          onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
-                          placeholder="R$ 0,00"
-                        />
-                      </Field>
-                    )}
-                    <Row2>
-                      <Field label="Parcelas">
-                        <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
-                      </Field>
-                      <Field label="Valor parcela">
-                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                    <Row2>
-                      <Field label="% Desconto">
-                        <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
-                      </Field>
-                      <Field label="Total cruzeiro">
-                        <TextInput value={formatMoeda(values.totalcruzeiro || "")} inputMode="decimal" onChange={(v) => setField("totalcruzeiro", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                  </Section>
-                </>
+                <CruzeiroForm
+                  fields={formAdapter.fields}
+                  set={formAdapter.set}
+                  today={hoje}
+                />
               )}
 
               {tab === "anoiteceu" && (
-                <>
-                  <Section title="Promoção">
-                    <Field label="% Desconto">
-                      <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS.slice(1)} />
-                    </Field>
-                  </Section>
-                  <Section title="Período da campanha">
-                    <Row2>
-                      <Field label="Início">
-                        <input
-                          type="datetime-local" value={values.inicio || ""}
-                          onChange={(e) => setDateInicio(e.target.value)}
-                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
-                        />
-                      </Field>
-                      <Field label="Fim">
-                        <input
-                          type="datetime-local" value={values.fim || ""}
-                          onChange={(e) => setDateFim(e.target.value)}
-                          onBlur={blurDateFim}
-                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[11.5px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
-                        />
-                      </Field>
-                    </Row2>
-                    <Field label="Para viagens até">
-                      <DateInput value={values.paraviagens || ""} min={hoje} onChange={(v) => setField("paraviagens", v)} />
-                    </Field>
-                  </Section>
-                </>
+                <AnoiteceuForm fields={formAdapter.fields} set={formAdapter.set} />
               )}
 
               {/* Música — Stories e Reels (add-on, gated por feature) */}

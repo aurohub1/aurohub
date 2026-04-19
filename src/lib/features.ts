@@ -19,6 +19,17 @@ export const ALL_FEATURES = [
   "lembretes",
   "lamina_4destinos",
   "musica",
+  // Formatos disponíveis para publicar (visibilidade do seletor Stories/Reels/Feed/TV/4Destinos)
+  "format_stories",
+  "format_reels",
+  "format_feed",
+  "format_tv",
+  "format_4destinos",
+  // Tipos de formulário disponíveis (tabs Pacote/Campanha/Cruzeiro/Anoiteceu)
+  "form_pacote",
+  "form_campanha",
+  "form_cruzeiro",
+  "form_anoiteceu",
 ] as const;
 
 export type Feature = (typeof ALL_FEATURES)[number];
@@ -36,6 +47,15 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   lembretes:        "Lembretes",
   lamina_4destinos: "Lâmina 4 Destinos (add-on)",
   musica:           "Música (add-on)",
+  format_stories:    "Formato — Stories",
+  format_reels:      "Formato — Reels",
+  format_feed:       "Formato — Feed",
+  format_tv:         "Formato — TV",
+  format_4destinos:  "Formato — 4 Destinos (add-on)",
+  form_pacote:       "Formulário — Pacote",
+  form_campanha:     "Formulário — Campanha",
+  form_cruzeiro:     "Formulário — Cruzeiro",
+  form_anoiteceu:    "Formulário — Anoiteceu",
 };
 
 /** Features sempre on por padrão (independentes do plano). */
@@ -47,7 +67,14 @@ const BASE_FEATURES: Feature[] = [
   "vendedores",
   "calendario",
   "lembretes",
+  // Todos os planos têm por padrão: Stories + Pacote + Campanha
+  "format_stories",
+  "form_pacote",
+  "form_campanha",
 ];
+
+/** Planos "Pro ou superior" liberam formatos e formulários avançados por padrão. */
+const PRO_PLUS_SLUGS = new Set(["profissional", "franquia", "enterprise"]);
 
 /**
  * Set de features ativas derivado apenas do plano — antes dos overrides.
@@ -57,6 +84,17 @@ export function planDefaultFeatures(plan: ProfilePlan | null): Set<Feature> {
   if (plan?.can_metrics) set.add("metricas");
   if (plan?.can_schedule) set.add("agendamento");
   if (plan?.can_ia_legenda) set.add("ia_legenda");
+
+  // Pro+: libera formatos e formulários extras
+  const slug = (plan?.slug || "").toLowerCase();
+  if (PRO_PLUS_SLUGS.has(slug)) {
+    set.add("format_reels");
+    set.add("format_feed");
+    set.add("format_tv");
+    set.add("form_cruzeiro");
+    set.add("form_anoiteceu");
+  }
+  // format_4destinos é sempre add-on manual — nunca entra por plano.
   return set;
 }
 
