@@ -1434,8 +1434,8 @@ export default function UnidadePublicarPage() {
                 </>
               )}
 
-              {/* Música — Stories e Reels */}
-              {(format === "stories" || format === "reels") && (
+              {/* Música — Stories e Reels (add-on, gated por feature) */}
+              {features.has("musica") && (format === "stories" || format === "reels") && (
                 <div className="border-t border-[var(--bdr)] pt-4">
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
                     Música

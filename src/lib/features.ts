@@ -18,6 +18,7 @@ export const ALL_FEATURES = [
   "calendario",
   "lembretes",
   "lamina_4destinos",
+  "musica",
 ] as const;
 
 export type Feature = (typeof ALL_FEATURES)[number];
@@ -34,6 +35,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   calendario:       "Calendário",
   lembretes:        "Lembretes",
   lamina_4destinos: "Lâmina 4 Destinos (add-on)",
+  musica:           "Música (add-on)",
 };
 
 /** Features sempre on por padrão (independentes do plano). */
