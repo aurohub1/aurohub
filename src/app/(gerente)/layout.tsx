@@ -21,7 +21,7 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(true);
-  const [tickerItems, setTickerItems] = useState<string[]>([]);
+  const [tickerItems, setTickerItems] = useState<{ title: string; url?: string }[]>([]);
 
   useBrandTheme(profile?.licensee_id);
   // useContentProtection();
@@ -35,8 +35,8 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     fetch("/api/noticias?segment=turismo")
       .then(r => r.json())
-      .then((items: {title: string}[]) => {
-        if (items?.length) setTickerItems(items.map(i => i.title));
+      .then((items: { title: string; url?: string }[]) => {
+        if (items?.length) setTickerItems(items.map(i => ({ title: i.title, url: i.url })));
       })
       .catch(() => {});
   }, []);
@@ -95,7 +95,19 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
               <div className="flex whitespace-nowrap text-[10px] text-[var(--txt3)]"
                 style={{ animation: "ticker 40s linear infinite" }}>
                 {[...tickerItems, ...tickerItems].map((t, i) => (
-                  <span key={i} className="shrink-0 px-6">{"\uD83D\uDCF0"} {t}</span>
+                  t.url ? (
+                    <a
+                      key={i}
+                      href={t.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 px-6 hover:text-[var(--txt)] hover:underline"
+                    >
+                      {"\uD83D\uDCF0"} {t.title}
+                    </a>
+                  ) : (
+                    <span key={i} className="shrink-0 px-6">{"\uD83D\uDCF0"} {t.title}</span>
+                  )
                 ))}
               </div>
             </div>
