@@ -427,39 +427,43 @@ export default function GerentePublicarPage() {
       setProfile(p);
       if (!p?.licensee_id) { setLoading(false); return; }
 
-      // Templates do licensee
+      // Templates — base (is_base=true) + do licensee do usuário (licensee_id=?)
       const { data: tplData } = await supabase
-        .from("system_config")
-        .select("key, value")
-        .like("key", "tmpl_%")
-        .like("value", p.licensee_id ? `%"licenseeId":"${p.licensee_id}"%` : `%"licenseeId":%`);
+        .from("form_templates")
+        .select("id, name, form_type, format, width, height, schema, is_base, licensee_id")
+        .or(`is_base.eq.true,licensee_id.eq.${p.licensee_id}`)
+        .eq("active", true)
+        .order("form_type")
+        .order("format")
+        .order("name");
 
-      const rows: TemplateRow[] = [];
-      for (const r of (tplData ?? []) as { key: string; value: string }[]) {
-        try {
-          const parsed = JSON.parse(r.value);
-          const schemaElements = parsed.elements ?? parsed.schema?.elements;
-          if (!schemaElements) continue;
-          const fmt = (parsed.format || parsed.schema?.format || "stories") as Format;
-          const [defW, defH] = FORMAT_DIMS[fmt] || [1080, 1920];
-          rows.push({
-            key: r.key,
-            id: r.key.replace(/^tmpl_/, ""),
-            nome: parsed.nome || r.key.replace(/^tmpl_/, ""),
-            format: fmt,
-            formType: parsed.formType || parsed.schema?.formType || "pacote",
-            width: parsed.width || parsed.schema?.width || defW,
-            height: parsed.height || parsed.schema?.height || defH,
-            schema: {
-              elements: schemaElements,
-              background: parsed.bgColor || parsed.background || parsed.schema?.background || "#FFFFFF",
-              duration: parsed.duration || 5,
-              qtdDestinos: parsed.qtdDestinos,
-              formType: parsed.formType || parsed.schema?.formType || "pacote",
-            },
-          });
-        } catch { /* skip */ }
-      }
+      type FormTemplateRow = {
+        id: string; name: string; form_type: string; format: string;
+        width: number; height: number;
+        schema: { elements?: unknown[]; background?: string; duration?: number; qtdDestinos?: number; formType?: string } | null;
+      };
+      const rows: TemplateRow[] = (tplData ?? []).map((r) => {
+        const row = r as FormTemplateRow;
+        const fmt = (row.format || "stories") as Format;
+        const [defW, defH] = FORMAT_DIMS[fmt] || [1080, 1920];
+        const sch = row.schema ?? {};
+        return {
+          key: row.id,
+          id: row.id,
+          nome: row.name,
+          format: fmt,
+          formType: row.form_type || "pacote",
+          width: row.width || defW,
+          height: row.height || defH,
+          schema: {
+            elements: (sch.elements ?? []) as EditorSchema["elements"],
+            background: sch.background || "#FFFFFF",
+            duration: sch.duration || 5,
+            qtdDestinos: sch.qtdDestinos,
+            formType: row.form_type,
+          },
+        };
+      });
       setTemplates(rows);
 
       // Auto-select tab/format do template via URL param ou primeiro disponível.
