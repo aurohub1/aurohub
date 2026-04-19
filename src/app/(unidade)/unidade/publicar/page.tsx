@@ -20,9 +20,6 @@ const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
 /* ── Tipos ───────────────────────────────────────── */
 
 type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu" | "quatro_destinos";
-type EnabledForms = Record<FormType, boolean>;
-// quatro_destinos é add-on controlado por feature lamina_4destinos; default false.
-const DEFAULT_ENABLED_FORMS: EnabledForms = { pacote: true, campanha: true, passagem: true, cruzeiro: true, anoiteceu: true, quatro_destinos: false };
 type Format = "stories" | "feed" | "reels" | "tv";
 type PublishStatus = "idle" | "generating" | "uploading" | "publishing" | "success" | "error";
 
@@ -56,9 +53,6 @@ interface FormatLimits {
   reels: number | null;
   tv: number | null;
 }
-/** Null pra "escondido" (plano não libera). */
-type FormatVisibility = Record<Format, boolean>;
-
 interface PostsByFormat { stories: number; feed: number; reels: number; tv: number; }
 
 /* ── Constantes ──────────────────────────────────── */
@@ -247,7 +241,6 @@ export default function UnidadePublicarPage() {
   const templateParam = searchParams.get("template");
 
   const [profile, setProfile] = useState<FullProfile | null>(null);
-  const [enabledForms, setEnabledForms] = useState<EnabledForms>(DEFAULT_ENABLED_FORMS);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -262,15 +255,6 @@ export default function UnidadePublicarPage() {
   // Estado por aba
   const [tab, setTab] = useState<FormType>("pacote");
   const [format, setFormat] = useState<Format>("stories");
-
-  // Auto-switch: se a aba atual foi desabilitada para este cliente, seleciona a primeira habilitada
-  useEffect(() => {
-    if (!enabledForms[tab]) {
-      const firstEnabled = (Object.keys(enabledForms) as FormType[]).find(k => enabledForms[k]);
-      if (firstEnabled) setTab(firstEnabled);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabledForms]);
 
   // Cache de dados por aba (preserva ao trocar)
   const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>(() => {
@@ -336,35 +320,19 @@ export default function UnidadePublicarPage() {
     };
   }, [planLimits]);
 
-  const formatVisible = useMemo<FormatVisibility>(() => {
-    if (!planLimits) return { stories: true, feed: true, reels: true, tv: false };
-    return {
-      stories: (planLimits.max_stories_day ?? 0) !== 0,
-      feed:    (planLimits.max_feed_reels_day ?? 0) > 0,
-      reels:   (planLimits.max_feed_reels_day ?? 0) > 0,
-      tv:      !!planLimits.is_enterprise,
-    };
-  }, [planLimits]);
+  // Visibilidade de formatos: derivada dos templates disponíveis para este licensee.
+  const visibleFormats = useMemo<Format[]>(() => {
+    const set = new Set<Format>();
+    for (const t of templates) set.add(t.format);
+    return (Object.keys(FORMAT_LABELS) as Format[]).filter((f) => set.has(f));
+  }, [templates]);
 
-  // Lista de formatos liberados pelo plano/overrides (barra + auto-switch)
-  const visibleFormats = useMemo<Format[]>(
-    () => (Object.keys(FORMAT_LABELS) as Format[]).filter(f => formatVisible[f]),
-    [formatVisible],
-  );
-
-  // Auto-switch: se o formato atual deixar de ser liberado, troca pro primeiro disponível
+  // Auto-switch: se o formato atual não tem templates, troca pro primeiro disponível
   useEffect(() => {
-    if (!formatVisible[format] && visibleFormats.length > 0) {
+    if (!visibleFormats.includes(format) && visibleFormats.length > 0) {
       setFormat(visibleFormats[0]);
     }
-  }, [formatVisible, format, visibleFormats]);
-
-  // Feature "publicar" — se ausente, esconde botão de publicar IG
-  // Add-on 4 Destinos: habilita a aba quando a feature está liberada pelo ADM
-  useEffect(() => {
-    const enabled = features.has("lamina_4destinos");
-    setEnabledForms(prev => prev.quatro_destinos === enabled ? prev : { ...prev, quatro_destinos: enabled });
-  }, [features]);
+  }, [visibleFormats, format]);
 
   const canPublishFeature = features.has("publicar");
   const canIaLegenda = features.has("ia_legenda") || profile?.role === "adm";
@@ -426,27 +394,6 @@ export default function UnidadePublicarPage() {
       const p = await getProfile(supabase);
       setProfile(p);
       if (!p?.licensee_id) { setLoading(false); return; }
-
-      // Permissões de formulários do licensee
-      try {
-        const { data: licForms } = await supabase
-          .from("licensees")
-          .select("form_pacote, form_campanha, form_passagem, form_cruzeiro, form_anoiteceu")
-          .eq("id", p.licensee_id)
-          .single();
-        if (licForms) {
-          setEnabledForms(prev => ({
-            ...prev,
-            pacote:    licForms.form_pacote    ?? true,
-            campanha:  licForms.form_campanha  ?? true,
-            passagem:  licForms.form_passagem  ?? true,
-            cruzeiro:  licForms.form_cruzeiro  ?? true,
-            anoiteceu: licForms.form_anoiteceu ?? true,
-          }));
-        }
-      } catch (err) {
-        console.warn("[Publicar] falha ao carregar permissões de formulários, usando defaults", err);
-      }
 
       // Templates — busca todos tmpl_* e filtra por licensee em JS
       const { data: tplData } = await supabase
@@ -1166,7 +1113,7 @@ export default function UnidadePublicarPage() {
         {/* Tabs — linha única, sem quebra */}
         <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-2">
           <div className="flex flex-nowrap items-center gap-0.5" style={{ whiteSpace: "nowrap" }}>
-            {FORM_ORDER.filter((f) => enabledForms[f]).map((f) => {
+            {FORM_ORDER.filter((f) => f !== "quatro_destinos" || features.has("lamina_4destinos")).map((f) => {
               const active = tab === f;
               return (
                 <button
@@ -1620,7 +1567,7 @@ export default function UnidadePublicarPage() {
               <DailyCounter
                 posts={postsByFormat}
                 limits={formatLimits}
-                visible={formatVisible}
+                visibleFormats={visibleFormats}
                 current={format}
                 downloads={downloadsToday}
                 maxDownloads={null}
@@ -1951,11 +1898,11 @@ function ServicosBlock({
 }
 
 function DailyCounter({
-  posts, limits, visible, current, downloads, maxDownloads,
+  posts, limits, visibleFormats, current, downloads, maxDownloads,
 }: {
   posts: PostsByFormat;
   limits: FormatLimits;
-  visible: FormatVisibility;
+  visibleFormats: Format[];
   current: Format;
   downloads: number;
   maxDownloads: number | null | undefined;
@@ -1963,16 +1910,17 @@ function DailyCounter({
   // Combina feed+reels em uma única barra
   type Row = { label: string; count: number; max: number | null; keys: Format[] };
   const rows: Row[] = [];
+  const showFormat = (f: Format) => visibleFormats.includes(f);
 
-  if (visible.stories) rows.push({ label: "Stories", count: posts.stories || 0, max: limits.stories, keys: ["stories"] });
-  if (visible.feed || visible.reels) {
+  if (showFormat("stories")) rows.push({ label: "Stories", count: posts.stories || 0, max: limits.stories, keys: ["stories"] });
+  if (showFormat("feed") || showFormat("reels")) {
     const feedReelsCount = (posts.feed || 0) + (posts.reels || 0);
     const feedMax = limits.feed;
     const reelsMax = limits.reels;
     const combinedMax = feedMax !== null && reelsMax !== null ? feedMax + reelsMax : feedMax ?? reelsMax;
     rows.push({ label: "Feed/Reels", count: feedReelsCount, max: combinedMax, keys: ["feed", "reels"] });
   }
-  if (visible.tv) rows.push({ label: "TV", count: posts.tv || 0, max: limits.tv, keys: ["tv"] });
+  if (showFormat("tv")) rows.push({ label: "TV", count: posts.tv || 0, max: limits.tv, keys: ["tv"] });
 
   // Downloads
   const dlMax = maxDownloads ?? null;

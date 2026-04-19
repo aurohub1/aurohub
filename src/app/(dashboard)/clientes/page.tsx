@@ -28,8 +28,6 @@ interface Licensee {
   cor_primaria?: string; cor_secundaria?: string; cor_acento?: string; cor_fundo?: string;
   cor4?: string; cor5?: string;
   tema_fundo_escuro?: string; tema_fundo_claro?: string; tema_texto_escuro?: string; tema_texto_claro?: string;
-  form_pacote?: boolean | null; form_campanha?: boolean | null; form_passagem?: boolean | null;
-  form_cruzeiro?: boolean | null; form_anoiteceu?: boolean | null; form_lamina?: boolean | null;
 }
 interface Segment { id: string; name: string; icon: string | null; }
 interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; is_enterprise?: boolean | null; }
@@ -37,7 +35,7 @@ interface Store { id: string; licensee_id: string; name: string; ig_user_id: str
 interface Profile { id: string; licensee_id: string | null; store_id: string | null; name: string | null; status: string; }
 
 type TabFilter = "" | "active" | "inactive";
-type ModalTab = "dados" | "tema" | "plano" | "lojas" | "features" | "formularios" | "senha";
+type ModalTab = "dados" | "tema" | "plano" | "lojas" | "features" | "senha";
 
 const PLAN_COLORS: Record<string, { color: string; label: string }> = {
   basic: { color: "#64748b", label: "Essencial" },
@@ -65,7 +63,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", form_pacote: true, form_campanha: true, form_passagem: true, form_cruzeiro: true, form_anoiteceu: true, form_lamina: true });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -161,7 +159,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_texto_efeito, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, form_pacote, form_campanha, form_passagem, form_cruzeiro, form_anoiteceu, form_lamina").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_texto_efeito, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda, is_enterprise"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -205,7 +203,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", form_pacote: true, form_campanha: true, form_passagem: true, form_cruzeiro: true, form_anoiteceu: true, form_lamina: true });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -213,7 +211,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", splash_texto_efeito: l.splash_texto_efeito ?? "typewriter", cor_primaria: l.cor_primaria ?? "#1E3A6E", cor_secundaria: l.cor_secundaria ?? "#3B82F6", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF", form_pacote: l.form_pacote ?? true, form_campanha: l.form_campanha ?? true, form_passagem: l.form_passagem ?? true, form_cruzeiro: l.form_cruzeiro ?? true, form_anoiteceu: l.form_anoiteceu ?? true, form_lamina: l.form_lamina ?? true });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", splash_texto_efeito: l.splash_texto_efeito ?? "typewriter", cor_primaria: l.cor_primaria ?? "#1E3A6E", cor_secundaria: l.cor_secundaria ?? "#3B82F6", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -243,12 +241,6 @@ export default function ClientesPage() {
         cor_fundo: form.cor_fundo || null,
         cor4: form.cor4 || null,
         cor5: form.cor5 || null,
-        form_pacote: form.form_pacote,
-        form_campanha: form.form_campanha,
-        form_passagem: form.form_passagem,
-        form_cruzeiro: form.form_cruzeiro,
-        form_anoiteceu: form.form_anoiteceu,
-        form_lamina: form.form_lamina,
       };
       if (formPlanIsInternal && form.expires_at) {
         payload.expires_at = form.expires_at;
@@ -686,9 +678,9 @@ export default function ClientesPage() {
 
             {/* Tabs */}
             <div className="flex border-b border-[var(--bdr)] px-6">
-              {(["dados", "tema", "plano", "lojas", "features", "formularios", "senha"] as ModalTab[]).map((t) => (
+              {(["dados", "tema", "plano", "lojas", "features", "senha"] as ModalTab[]).map((t) => (
                 <button key={t} onClick={() => setModalTab(t)} className={`border-b-2 px-4 py-2.5 text-[12px] font-medium transition-colors ${modalTab === t ? "border-[var(--txt)] text-[var(--txt)]" : "border-transparent text-[var(--txt3)] hover:text-[var(--txt2)]"}`}>
-                  {t === "dados" ? "Dados" : t === "tema" ? "Tema" : t === "plano" ? "Plano" : t === "lojas" ? "Lojas" : t === "features" ? "Features" : t === "formularios" ? "Formatos & Formulários" : "Senha"}
+                  {t === "dados" ? "Dados" : t === "tema" ? "Tema" : t === "plano" ? "Plano" : t === "lojas" ? "Lojas" : t === "features" ? "Features" : "Senha"}
                 </button>
               ))}
             </div>
@@ -1149,81 +1141,6 @@ export default function ClientesPage() {
                 </div>
               )}
 
-              {modalTab === "formularios" && (() => {
-                // Resolve estado visível = override explícito se existir, senão default do plano.
-                const planFromList = plans.find(p => p.slug === form.plan);
-                const defaultSet = planFromList ? planDefaultFeatures({
-                  slug: planFromList.slug,
-                  name: planFromList.name ?? planFromList.slug,
-                  max_posts_day: 0,
-                  can_metrics: !!planFromList.can_metrics,
-                  can_schedule: false,
-                  can_print: false,
-                  can_ia_legenda: !!planFromList.can_ia_legenda,
-                  is_enterprise: !!planFromList.is_enterprise,
-                }) : new Set<string>();
-                const isOn = (k: Feature) => {
-                  const ov = featureOverrides[k];
-                  if (ov === true) return true;
-                  if (ov === false) return false;
-                  return defaultSet.has(k);
-                };
-                const toggle = (k: Feature) => {
-                  const currentlyOn = isOn(k);
-                  setFeatureOverrides({ ...featureOverrides, [k]: !currentlyOn });
-                };
-                const Toggle = ({ k, label, desc, badge }: { k: Feature; label: string; desc: string; badge?: string }) => {
-                  const on = isOn(k);
-                  return (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => toggle(k)}
-                      className={`flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${on ? "border-[#D4A843] bg-[#D4A843]/10" : "border-[var(--bdr)] bg-[var(--bg1)]"}`}
-                    >
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13px] font-semibold text-[var(--txt)]">{label}</span>
-                          {badge && (
-                            <span className="rounded-full bg-[var(--orange)]/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--orange)]">
-                              {badge}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-[var(--txt3)]">{desc}</span>
-                      </div>
-                      <span className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-colors ${on ? "bg-[#D4A843]" : "bg-[var(--bdr)]"}`}>
-                        <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-5" : "translate-x-0"}`} />
-                      </span>
-                    </button>
-                  );
-                };
-                return (
-                  <div className="flex flex-col gap-5">
-                    <p className="text-[12px] text-[var(--txt3)]">
-                      ADM é master — o que bloquear aqui prevalece sobre o padrão do plano. Toggles salvam em <code>licensee_feature_overrides</code>.
-                    </p>
-
-                    <div className="flex flex-col gap-2">
-                      <h4 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--txt2)]">Formatos</h4>
-                      <Toggle k="format_stories"   label="Stories"    desc="1080×1920" />
-                      <Toggle k="format_reels"     label="Reels"      desc="1080×1920 vídeo" />
-                      <Toggle k="format_feed"      label="Feed"       desc="1080×1350" />
-                      <Toggle k="format_tv"        label="TV"         desc="1920×1080 horizontal" />
-                      <Toggle k="format_4destinos" label="4 Destinos" desc="Lâmina de múltiplos destinos" badge="Add-on" />
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <h4 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--txt2)]">Formulários</h4>
-                      <Toggle k="form_pacote"    label="Pacote"    desc="Destinos com hotel e serviços" />
-                      <Toggle k="form_campanha"  label="Campanha"  desc="Campanhas promocionais (sem ofertas)" />
-                      <Toggle k="form_cruzeiro"  label="Cruzeiro"  desc="Cruzeiros marítimos" />
-                      <Toggle k="form_anoiteceu" label="Anoiteceu" desc="Promoção noturna com desconto destacado" />
-                    </div>
-                  </div>
-                );
-              })()}
-
               {modalTab === "senha" && (
                 <div className="flex flex-col gap-4">
                   <p className="text-[12px] text-[var(--txt3)]">
@@ -1608,7 +1525,7 @@ function FeaturesPanel({
       </div>
 
       <div className="flex flex-col gap-2">
-        {ALL_FEATURES.filter((f) => !f.startsWith("format_") && !f.startsWith("form_")).map((f) => {
+        {ALL_FEATURES.map((f) => {
           const def = defaults.has(f);
           const override = overrides[f];
           const effective = override === undefined ? def : override;
