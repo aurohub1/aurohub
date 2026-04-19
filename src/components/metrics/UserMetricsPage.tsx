@@ -182,9 +182,11 @@ export default function UserMetricsPage() {
           </div>
 
           {/* Gráfico principal + lateral direita */}
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mt-4">
-            <BarsByDay rows={filtered} days={periodo} />
-            <div className="flex flex-col gap-4">
+          <div className="flex flex-col lg:flex-row gap-4 mt-4">
+            <div className="flex-1 min-w-0">
+              <BarsByDay rows={filtered} days={periodo} />
+            </div>
+            <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-4">
               <ActivityFeed rows={filtered} />
               <PieByFormat rows={filtered} />
             </div>

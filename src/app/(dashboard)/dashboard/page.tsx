@@ -134,9 +134,9 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Charts + Quick Actions ───────────────── */}
-      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[1fr_280px]">
+      <div className="flex flex-col lg:flex-row gap-3.5">
         {/* Left column */}
-        <div className="flex flex-col gap-3.5">
+        <div className="flex-1 min-w-0 flex flex-col gap-3.5">
           <PostsChart />
 
           <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
@@ -146,7 +146,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Right column */}
-        <QuickActions />
+        <div className="w-full lg:w-[280px] flex-shrink-0">
+          <QuickActions />
+        </div>
       </div>
     </>
   );

@@ -59,6 +59,26 @@ export default function PostsChart() {
     drawChart(canvasRef.current, data);
   }, [data]);
 
+  // Redesenha o canvas quando o container muda de tamanho (janela maximiza/restaura,
+  // sidebar abre/fecha). Sem isso, o bitmap interno fica no tamanho antigo e o browser
+  // estica a imagem → distorção.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const ro = new ResizeObserver(() => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        if (canvasRef.current && data.length > 0) drawChart(canvasRef.current, data);
+      }, 100);
+    });
+    ro.observe(canvas);
+    return () => {
+      ro.disconnect();
+      if (t) clearTimeout(t);
+    };
+  }, [data]);
+
   function handleRange(r: Range) {
     setRange(r);
   }
