@@ -1251,7 +1251,10 @@ export default function GerentePublicarPage() {
                     <div className="grid grid-cols-3 gap-1.5">
                       <BadgeBtn label="Última chamada" on={!!badges.ultima_chamada_badge} onClick={() => setBadge("ultima_chamada_badge", !badges.ultima_chamada_badge)} />
                       <BadgeBtn label="Últimos lugares" on={!!badges.ultimos_lugares_badge} onClick={() => setBadge("ultimos_lugares_badge", !badges.ultimos_lugares_badge)} />
-                      <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
+                      {/* "Ofertas" só existe em Pacote — Campanha é pacote-sem-ofertas (regra de produto) */}
+                      {tab !== "campanha" && (
+                        <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
+                      )}
                     </div>
                   </Section>
 
