@@ -355,6 +355,7 @@ export default function PublicarPage() {
   }, [features]);
 
   const canPublishFeature = features.has("publicar");
+  const canIaLegenda = features.has("ia_legenda") || profile?.role === "adm";
   // "drive" ainda não é feature liberada — mantemos hardcode false
   const canDriveFeature = features.has("drive");
 
@@ -747,7 +748,7 @@ export default function PublicarPage() {
   /* ── Legenda IA ─────────────────────────────────── */
 
   async function generateCaption() {
-    if (!planLimits?.can_ia_legenda && profile?.role !== "adm") {
+    if (!canIaLegenda) {
       alert("Seu plano não inclui geração de legenda por IA.");
       return;
     }
@@ -1545,14 +1546,16 @@ export default function PublicarPage() {
                     <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">
                       Legenda Instagram
                     </label>
-                    <button
-                      onClick={generateCaption}
-                      disabled={generatingCaption}
-                      className="flex items-center gap-1 text-[11px] font-semibold text-[var(--orange)] hover:underline disabled:opacity-50"
-                    >
-                      {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                      Gerar IA
-                    </button>
+                    {canIaLegenda && (
+                      <button
+                        onClick={generateCaption}
+                        disabled={generatingCaption}
+                        className="flex items-center gap-1 text-[11px] font-semibold text-[var(--orange)] hover:underline disabled:opacity-50"
+                      >
+                        {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                        Gerar IA
+                      </button>
+                    )}
                   </div>
                   <TextArea value={caption} onChange={setCaption} rows={4} placeholder="Legenda do post..." />
                   <div className="mt-1 text-right text-[9px] text-[var(--txt3)] tabular-nums">

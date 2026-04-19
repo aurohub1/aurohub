@@ -303,7 +303,6 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
       { label: "Início", href: "/consultor/inicio", icon: I.home },
       { label: "Templates", href: "/consultor/templates", icon: I.templates, feature: "templates" },
       { label: "Agendamentos", href: "/consultor/agendamentos", icon: I.calendar },
-      { label: "Métricas", href: "/consultor/metricas", icon: I.metrics, feature: "metricas" },
       { label: "Suporte", href: "/consultor/suporte", icon: I.support },
     ],
   },

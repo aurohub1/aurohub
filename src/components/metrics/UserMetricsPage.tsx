@@ -13,15 +13,21 @@ import FiltersBar from "./FiltersBar";
 import ActivityFeed from "./ActivityFeed";
 import type { Formato, Tipo, PeriodoDias, PublicationRow } from "./types";
 
+interface Loja { id: string; name: string | null }
+
 export default function UserMetricsPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [rows, setRows] = useState<PublicationRow[]>([]);
+  const [lojas, setLojas] = useState<Loja[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [periodo, setPeriodo] = useState<PeriodoDias>(30);
   const [formato, setFormato] = useState<Formato | "all">("all");
   const [tipo, setTipo] = useState<Tipo | "all">("all");
+  const [lojaFilter, setLojaFilter] = useState<string>("all");
+
+  const scopeByLicensee = profile?.role === "cliente" || profile?.role === "gerente";
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -34,13 +40,26 @@ export default function UserMetricsPage() {
       if (!feats.has("metricas")) { setLoading(false); return; }
       const since = new Date();
       since.setDate(since.getDate() - 90);
-      const { data } = await supabase
+
+      const useLicensee = (p.role === "cliente" || p.role === "gerente") && !!p.licensee_id;
+
+      const histQuery = supabase
         .from("publication_history")
         .select("id, licensee_id, loja_id, user_id, user_role, template_id, template_nome, formato, tipo, destino, created_at")
-        .eq("user_id", p.id)
         .gte("created_at", since.toISOString())
         .order("created_at", { ascending: false });
-      setRows((data ?? []) as PublicationRow[]);
+
+      const [histRes, lojaRes] = await Promise.all([
+        useLicensee
+          ? histQuery.eq("licensee_id", p.licensee_id!).limit(2000)
+          : histQuery.eq("user_id", p.id),
+        useLicensee
+          ? supabase.from("stores").select("id, name").eq("licensee_id", p.licensee_id!).order("name")
+          : Promise.resolve({ data: [] as Loja[] }),
+      ]);
+
+      setRows((histRes.data ?? []) as PublicationRow[]);
+      setLojas((lojaRes.data ?? []) as Loja[]);
     } finally {
       setLoading(false);
     }
@@ -54,9 +73,10 @@ export default function UserMetricsPage() {
       if (new Date(r.created_at).getTime() < since) return false;
       if (formato !== "all" && r.formato !== formato) return false;
       if (tipo !== "all" && r.tipo !== tipo) return false;
+      if (lojaFilter !== "all" && r.loja_id !== lojaFilter) return false;
       return true;
     });
-  }, [rows, periodo, formato, tipo]);
+  }, [rows, periodo, formato, tipo, lojaFilter]);
 
   const kpis = useMemo(() => {
     const now = new Date();
@@ -84,7 +104,9 @@ export default function UserMetricsPage() {
         <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid var(--bdr)" }}>
           <div>
             <h2 className="text-2xl font-bold" style={{ color: "var(--txt)" }}>Métricas</h2>
-            <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>Publicações e downloads do seu perfil</p>
+            <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>
+            {scopeByLicensee ? "Publicações e downloads das suas lojas" : "Publicações e downloads do seu perfil"}
+          </p>
           </div>
         </div>
         <div
@@ -110,7 +132,9 @@ export default function UserMetricsPage() {
       <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid var(--bdr)" }}>
         <div>
           <h2 className="text-2xl font-bold" style={{ color: "var(--txt)" }}>Métricas</h2>
-          <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>Publicações e downloads do seu perfil</p>
+          <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>
+            {scopeByLicensee ? "Publicações e downloads das suas lojas" : "Publicações e downloads do seu perfil"}
+          </p>
         </div>
       </div>
 
@@ -135,6 +159,25 @@ export default function UserMetricsPage() {
               periodo={periodo} onPeriodoChange={setPeriodo}
               formato={formato} onFormatoChange={setFormato}
               tipo={tipo} onTipoChange={setTipo}
+              extra={scopeByLicensee && lojas.length > 0 ? (
+                <select
+                  value={lojaFilter}
+                  onChange={(e) => setLojaFilter(e.target.value)}
+                  className="h-8 rounded-full px-4 text-xs outline-none"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid var(--bdr2)",
+                    color: "var(--txt2)",
+                  }}
+                >
+                  <option value="all" style={{ background: "var(--card-bg)" }}>Todas as lojas</option>
+                  {lojas.map(l => (
+                    <option key={l.id} value={l.id} style={{ background: "var(--card-bg)" }}>
+                      {l.name || "—"}
+                    </option>
+                  ))}
+                </select>
+              ) : undefined}
             />
           </div>
 
