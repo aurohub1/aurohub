@@ -178,6 +178,11 @@ export async function PATCH(req: NextRequest) {
       if (!t || t.licensee_id !== caller.licensee_id) {
         return NextResponse.json({ error: "Fora do escopo" }, { status: 403 });
       }
+      // Alvo fora do escopo do cliente: não pode editar outro cliente/adm/gerente/operador,
+      // mesmo que o frontend passe um payload aparentemente válido.
+      if (!CLIENTE_ALLOWED_ROLES.has(t.role)) {
+        return NextResponse.json({ error: "Não é permitido editar esse perfil" }, { status: 403 });
+      }
       // Impede promover para role não-permitida
       if (profile.role !== undefined && !CLIENTE_ALLOWED_ROLES.has(String(profile.role))) {
         return NextResponse.json({ error: "Role não permitida" }, { status: 403 });

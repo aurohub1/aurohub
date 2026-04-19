@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
 import { PublicationRow } from "./types";
 
@@ -33,6 +34,25 @@ function buildBuckets(rows: PublicationRow[], days: number): Bucket[] {
 
 export default function BarsByDay({ rows, days }: Props) {
   const data = buildBuckets(rows, days);
+  const [winW, setWinW] = useState(0);
+
+  // Recharts ResponsiveContainer às vezes segura dimensões antigas dentro de grid/flex
+  // quando a janela maximiza/restaura. Ouvimos `resize` com debounce e usamos o valor
+  // como `key` pra forçar remount. `minWidth={0}` deixa o SVG encolher no flex/grid.
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const onResize = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => setWinW(window.innerWidth), 150);
+    };
+    setWinW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      if (t) clearTimeout(t);
+    };
+  }, []);
+
   return (
     <div
       className="p-6"
@@ -46,8 +66,8 @@ export default function BarsByDay({ rows, days }: Props) {
         <h3 className="text-sm font-semibold" style={{ color: "var(--txt)" }}>Publicações e downloads por dia</h3>
         <p className="text-xs" style={{ color: "var(--txt3)" }}>Últimos {days} dias</p>
       </div>
-      <div style={{ width: "100%", height: 320 }}>
-        <ResponsiveContainer>
+      <div style={{ width: "100%", minWidth: 0 }}>
+        <ResponsiveContainer key={winW} width="100%" height={320} minWidth={0} debounce={100}>
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="fillPublicado" x1="0" y1="0" x2="0" y2="1">

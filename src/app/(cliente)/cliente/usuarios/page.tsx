@@ -86,6 +86,8 @@ export default function ClienteUsuariosPage() {
           .from("profiles")
           .select("id, name, email, role, status, licensee_id, store_id, created_at")
           .eq("licensee_id", p.licensee_id)
+          .neq("id", p.id)
+          .in("role", ["unidade", "vendedor"])
           .order("created_at", { ascending: false }),
         supabase
           .from("stores")
@@ -115,6 +117,16 @@ export default function ClienteUsuariosPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Defesa: se por qualquer razão `editing` for setado com role fora do escopo
+  // (cliente/adm/gerente/etc), fecha imediatamente. Antes o código coagia para "vendedor"
+  // silenciosamente e corrompia o DB no save.
+  useEffect(() => {
+    if (editing && editing.role !== "unidade" && editing.role !== "vendedor") {
+      alert("Este usuário não pode ser editado pela Central do Cliente. Contate o ADM.");
+      setEditing(null);
+    }
+  }, [editing]);
 
   const storeMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -336,7 +348,7 @@ export default function ClienteUsuariosPage() {
       )}
 
       {/* ═══ MODAL EDITAR ═══ */}
-      {editing && (
+      {editing && (editing.role === "unidade" || editing.role === "vendedor") && (
         <UserFormModal
           title="Editar usuário"
           stores={stores}
@@ -345,7 +357,7 @@ export default function ClienteUsuariosPage() {
             name: editing.name ?? "",
             email: editing.email ?? "",
             password: "",
-            role: (editing.role === "unidade" || editing.role === "vendedor" ? editing.role : "vendedor") as ClienteRole,
+            role: editing.role as ClienteRole,
             store_id: editing.store_id ?? "",
             status: editing.status,
           }}

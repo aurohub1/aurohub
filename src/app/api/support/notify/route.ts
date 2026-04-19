@@ -2,28 +2,62 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+type NotifyType = "new_ticket" | "escalated";
+
+interface NotifyPayload {
+  type?: NotifyType;
+  userName?: string | null;
+  userRole?: string | null;
+  licenseeNome?: string | null;
+  firstMessage?: string | null;
+}
+
+const ADM_URL = "https://aurohub-v2.vercel.app/adm/suporte";
+
+function buildMessage(type: NotifyType, p: NotifyPayload): string {
+  const nome = p.userName?.trim() || "(desconhecido)";
+  const empresa = p.licenseeNome?.trim() || "(sem empresa)";
+  const role = p.userRole?.trim();
+  const msg = p.firstMessage?.trim() || "(sem mensagem)";
+
+  if (type === "escalated") {
+    return (
+      `🔔 Ticket escalado - Aurohub\n` +
+      `Cliente: ${nome}${role ? ` (${role})` : ""}\n` +
+      `Empresa: ${empresa}\n` +
+      `Última mensagem: ${msg}\n` +
+      `Acesse: ${ADM_URL}`
+    );
+  }
+  // new_ticket (default)
+  return (
+    `🆘 Novo ticket de suporte - Aurohub\n` +
+    `Cliente: ${nome}${role ? ` (${role})` : ""}\n` +
+    `Empresa: ${empresa}\n` +
+    `Mensagem: ${msg}\n` +
+    `Acesse: ${ADM_URL}`
+  );
+}
+
 /**
- * Notifica a equipe via WhatsApp (CallMeBot) quando um ticket escala para humano.
- * Fallback silencioso: se CALLMEBOT_API_KEY ou SUPPORT_WHATSAPP_PHONE não estiverem
- * configurados, retorna ok sem enviar — o ticket é criado mas fica apenas
- * disponível no painel /adm/suporte sem notificação WhatsApp.
+ * Notifica equipe via WhatsApp (CallMeBot) em dois cenários:
+ *  - type="new_ticket"   → cliente abriu novo ticket (com primeira mensagem)
+ *  - type="escalated"    → ticket escalou para humano
+ * Fallback silencioso: sem CALLMEBOT_API_KEY/SUPPORT_WHATSAPP_PHONE → ok sem enviar.
  */
 export async function POST(req: NextRequest) {
   const PHONE = process.env.SUPPORT_WHATSAPP_PHONE;
   const APIKEY = process.env.CALLMEBOT_API_KEY;
 
   if (!PHONE || !APIKEY) {
-    console.warn("[support/notify] CallMeBot não configurado — ticket criado sem WhatsApp");
+    console.warn("[support/notify] CallMeBot não configurado — ticket processado sem WhatsApp");
     return NextResponse.json({ ok: true, notified: false, reason: "not_configured" });
   }
 
   try {
-    const { userName, userRole, licenseeNome } = await req.json();
-    const text =
-      `🔔 Aurohub Suporte\n` +
-      `Novo ticket de ${userName ?? "(desconhecido)"} ` +
-      `(${userRole ?? "n/a"} - ${licenseeNome ?? "n/a"})\n` +
-      `Acesse: /adm/suporte`;
+    const body = (await req.json()) as NotifyPayload;
+    const type: NotifyType = body.type === "escalated" ? "escalated" : "new_ticket";
+    const text = buildMessage(type, body);
     const url =
       `https://api.callmebot.com/whatsapp.php` +
       `?phone=${encodeURIComponent(PHONE)}` +
@@ -32,11 +66,11 @@ export async function POST(req: NextRequest) {
 
     const r = await fetch(url);
     if (!r.ok) {
-      const body = await r.text().catch(() => "");
-      console.error("[support/notify] CallMeBot falhou:", r.status, body.slice(0, 200));
+      const detail = await r.text().catch(() => "");
+      console.error("[support/notify] CallMeBot falhou:", r.status, detail.slice(0, 200));
       return NextResponse.json({ ok: false, notified: false, status: r.status });
     }
-    return NextResponse.json({ ok: true, notified: true });
+    return NextResponse.json({ ok: true, notified: true, type });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[support/notify] erro:", err);

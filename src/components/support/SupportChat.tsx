@@ -32,7 +32,9 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
   }, [messages.length]);
 
-  // Bootstrap: carrega profile, acha/cria ticket ativo, carrega mensagens, saudação
+  // Bootstrap: carrega profile e ticket ativo, se existir.
+  // Ticket novo só é criado no servidor quando o usuário envia a primeira mensagem
+  // (via POST /api/support/tickets — que também dispara notify WhatsApp).
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -40,7 +42,6 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
       if (!alive || !p) return;
       setProfile(p);
 
-      // Busca ticket mais recente não-resolvido
       const { data: existing } = await supabase
         .from("support_tickets")
         .select("id, status")
@@ -49,47 +50,21 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
         .order("created_at", { ascending: false })
         .limit(1);
 
-      let tid: string | null = null;
-      let s: Status = "bot";
       if (existing && existing.length > 0) {
-        tid = existing[0].id;
-        s = (existing[0].status as Status) ?? "bot";
-      } else {
-        const { data: created } = await supabase
-          .from("support_tickets")
-          .insert({ user_id: p.id, licensee_id: p.licensee_id, status: "bot", unread_adm: false })
-          .select("id, status")
-          .single();
-        if (created) {
-          tid = created.id;
-          s = "bot";
-        }
-      }
-      if (!alive || !tid) return;
-      setTicketId(tid);
-      setStatus(s);
-
-      // Carrega mensagens
-      const { data: msgs } = await supabase
-        .from("support_messages")
-        .select("id, sender, content, created_at")
-        .eq("ticket_id", tid)
-        .order("created_at", { ascending: true });
-      const loaded = (msgs ?? []) as Message[];
-      if (!alive) return;
-
-      if (loaded.length === 0) {
-        // Saudação inicial do bot
-        const greet = `Olá ${p.name ?? "por aí"}! Como posso ajudar? 👋`;
-        await supabase.from("support_messages").insert({ ticket_id: tid, sender: "bot", content: greet });
-        const { data: after } = await supabase
+        const tid = existing[0].id;
+        const s: Status = (existing[0].status as Status) ?? "bot";
+        setTicketId(tid);
+        setStatus(s);
+        const { data: msgs } = await supabase
           .from("support_messages")
           .select("id, sender, content, created_at")
           .eq("ticket_id", tid)
           .order("created_at", { ascending: true });
-        if (alive) setMessages((after ?? []) as Message[]);
+        if (alive) setMessages((msgs ?? []) as Message[]);
       } else {
-        setMessages(loaded);
+        // Nenhum ticket aberto — mostra greeting local (não persistido) até a primeira mensagem
+        const greet = `Olá ${p.name ?? "por aí"}! Como posso ajudar? 👋`;
+        if (alive) setMessages([{ id: "local-greet", sender: "bot", content: greet, created_at: new Date().toISOString() }]);
       }
     })();
     return () => { alive = false; };
@@ -116,7 +91,7 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
 
   const send = useCallback(async () => {
     const text = input.trim();
-    if (!text || !ticketId || !profile || sending) return;
+    if (!text || !profile || sending) return;
     setSending(true);
     setInput("");
 
@@ -125,21 +100,45 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
     setMessages((prev) => [...prev, { id: tempId, sender: "user", content: text, created_at: new Date().toISOString() }]);
 
     try {
+      let tid = ticketId;
+
+      // Primeira mensagem em ticket novo: cria ticket via API (que dispara notify WhatsApp)
+      if (!tid) {
+        const tRes = await fetch("/api/support/tickets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: profile.id,
+            licenseeId: profile.licensee_id ?? null,
+            firstMessage: text,
+            userName: profile.name,
+            userRole: profile.role,
+            licenseeNome: profile.licensee?.name ?? null,
+          }),
+        });
+        if (!tRes.ok) {
+          const detail = await tRes.text().catch(() => "");
+          console.error("[SupportChat] tickets API falhou:", tRes.status, detail);
+          return;
+        }
+        const tData = await tRes.json();
+        tid = tData.ticketId as string;
+        setTicketId(tid);
+      }
+
       if (status === "human") {
-        // Modo humano: só insere mensagem (ADM responde pelo painel)
         await supabase.from("support_messages").insert({
-          ticket_id: ticketId, sender: "user", sender_id: profile.id, content: text,
+          ticket_id: tid, sender: "user", sender_id: profile.id, content: text,
         });
         await supabase.from("support_tickets")
           .update({ updated_at: new Date().toISOString(), unread_adm: true })
-          .eq("id", ticketId);
+          .eq("id", tid);
       } else {
-        // Modo bot: chama a API que salva user+bot
         const res = await fetch("/api/support/bot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ticketId,
+            ticketId: tid,
             userMessage: text,
             userName: profile.name,
             userRole: profile.role,
@@ -158,28 +157,21 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
 
   const escalate = useCallback(async () => {
     if (!ticketId || !profile || status === "human") return;
-    await supabase.from("support_tickets")
-      .update({ status: "human", unread_adm: true, updated_at: new Date().toISOString() })
-      .eq("id", ticketId);
     setStatus("human");
-
-    await supabase.from("support_messages").insert({
-      ticket_id: ticketId,
-      sender: "bot",
-      content: "Encaminhei pra nossa equipe. Em breve alguém vai responder aqui mesmo.",
-    });
-
-    // Notifica via WhatsApp (fallback silencioso se não configurado)
-    fetch("/api/support/notify", {
+    const lastMessage = [...messages].reverse().find(m => m.sender === "user")?.content ?? null;
+    await fetch("/api/support/bot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        action: "escalate",
+        ticketId,
         userName: profile.name,
         userRole: profile.role,
         licenseeNome: profile.licensee?.name ?? null,
+        lastMessage,
       }),
-    }).catch(() => { /* silent */ });
-  }, [ticketId, profile, status]);
+    }).catch((err) => console.warn("[SupportChat] escalate API falhou:", err));
+  }, [ticketId, profile, status, messages]);
 
   const statusMeta = {
     bot:      { label: "Bot",                 cls: "bg-blue-100 text-blue-700" },

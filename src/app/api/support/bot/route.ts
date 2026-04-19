@@ -17,12 +17,48 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { ticketId, userMessage, userName, userRole, userPlan } = await req.json();
+    const body = await req.json();
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Ação "escalate": muda status para "human", insere msg de transição e notifica WhatsApp.
+    if (body?.action === "escalate") {
+      const { ticketId, userName, userRole, licenseeNome, lastMessage } = body;
+      if (!ticketId) {
+        return NextResponse.json({ error: "ticketId required" }, { status: 400 });
+      }
+      const { error: upErr } = await sb
+        .from("support_tickets")
+        .update({ status: "human", unread_adm: true, updated_at: new Date().toISOString() })
+        .eq("id", ticketId);
+      if (upErr) {
+        return NextResponse.json({ error: "DB update failed", detail: upErr.message }, { status: 500 });
+      }
+      await sb.from("support_messages").insert({
+        ticket_id: ticketId,
+        sender: "bot",
+        content: "Encaminhei pra nossa equipe. Em breve alguém vai responder aqui mesmo.",
+      });
+
+      const origin = new URL(req.url).origin;
+      fetch(`${origin}/api/support/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "escalated",
+          userName: userName ?? null,
+          userRole: userRole ?? null,
+          licenseeNome: licenseeNome ?? null,
+          firstMessage: lastMessage ?? null,
+        }),
+      }).catch((err) => console.warn("[support/bot] notify falhou (silent):", err));
+
+      return NextResponse.json({ ok: true, status: "human" });
+    }
+
+    const { ticketId, userMessage, userName, userRole, userPlan } = body;
     if (!ticketId || !userMessage || typeof userMessage !== "string") {
       return NextResponse.json({ error: "ticketId and userMessage required" }, { status: 400 });
     }
-
-    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // Salva mensagem do user
     const { error: insertErr } = await sb.from("support_messages").insert({

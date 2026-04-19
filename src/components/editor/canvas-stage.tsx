@@ -283,15 +283,19 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={(e) => onClick(e)} image={img} width={el.width} height={el.height} cornerRadius={el.cornerRadius || 0} crop={crop} />;
   }
   if (el.type === "imageBind") {
-    // Placeholder visível apenas no editor ADM: retângulo pontilhado + ícone + label do bind
+    // Placeholder visível apenas no editor ADM: retângulo pontilhado + ícone + label do bind.
+    // Os 3 nós vivem num Group para arrastarem juntos — filhos usam coords relativas.
     const label = el.bindParam ? `🖼 ${el.bindParam}` : "🖼 Bind Imagem";
     const iconSize = Math.min(48, Math.min(el.width, el.height) * 0.3);
     return (
-      <>
+      <Group
+        {...common}
+        ref={shapeRef as React.RefObject<Konva.Group>}
+        onClick={(e) => onClick(e)}
+        width={el.width}
+        height={el.height}
+      >
         <Rect
-          {...common}
-          ref={shapeRef as React.RefObject<Konva.Rect>}
-          onClick={(e) => onClick(e)}
           width={el.width}
           height={el.height}
           fill="rgba(59,130,246,0.08)"
@@ -301,15 +305,15 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           cornerRadius={el.cornerRadius ?? 8}
         />
         <Text
-          x={el.x + el.width / 2 - iconSize / 2}
-          y={el.y + el.height / 2 - iconSize / 2 - 8}
+          x={el.width / 2 - iconSize / 2}
+          y={el.height / 2 - iconSize / 2 - 8}
           text="🖼"
           fontSize={iconSize}
           listening={false}
         />
         <Text
-          x={el.x}
-          y={el.y + el.height / 2 + iconSize / 2 - 4}
+          x={0}
+          y={el.height / 2 + iconSize / 2 - 4}
           width={el.width}
           align="center"
           text={label}
@@ -319,7 +323,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           fill="#3B82F6"
           listening={false}
         />
-      </>
+      </Group>
     );
   }
   if (el.type === "qrcode") {
