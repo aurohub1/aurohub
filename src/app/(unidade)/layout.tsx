@@ -10,6 +10,7 @@ import { useContentProtection } from "@/hooks/useContentProtection";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 import { SupportDrawerProvider } from "@/components/support/SupportDrawerProvider";
+import SupportFab from "@/components/support/SupportFab";
 import PushPermission from "@/components/PushPermission";
 
 export default function UnidadeLayout({ children }: { children: React.ReactNode }) {
@@ -100,6 +101,7 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
       </footer>
       <WelcomeTour role="unidade" />
       <PushPermission />
+      <SupportFab />
     </SupportDrawerProvider>
   );
 }
