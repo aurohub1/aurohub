@@ -12,8 +12,22 @@ const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:contato@aurovista.com.br";
 
-if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+// Lazy init — antes era no top-level, mas o build do Next (fase "Collecting page data")
+// importa o módulo e o `setVapidDetails` valida a chave. Se a env var estiver malformada
+// (ex: padding `=`), o build quebra. Com lazy init, só falha em runtime.
+let vapidReady = false;
+function ensureVapid(): { ok: true } | { ok: false; error: string } {
+  if (vapidReady) return { ok: true };
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    return { ok: false, error: "VAPID keys não configuradas" };
+  }
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+    vapidReady = true;
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "VAPID inválida" };
+  }
 }
 
 interface SendBody {
@@ -28,8 +42,9 @@ interface SendBody {
 
 export async function POST(request: Request) {
   try {
-    if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-      return NextResponse.json({ error: "VAPID keys não configuradas" }, { status: 500 });
+    const vapid = ensureVapid();
+    if (!vapid.ok) {
+      return NextResponse.json({ error: vapid.error }, { status: 500 });
     }
 
     const body: SendBody = await request.json();
