@@ -1608,7 +1608,7 @@ function FeaturesPanel({
       </div>
 
       <div className="flex flex-col gap-2">
-        {ALL_FEATURES.map((f) => {
+        {ALL_FEATURES.filter((f) => !f.startsWith("format_") && !f.startsWith("form_")).map((f) => {
           const def = defaults.has(f);
           const override = overrides[f];
           const effective = override === undefined ? def : override;

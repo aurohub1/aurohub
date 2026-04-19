@@ -54,6 +54,12 @@ const fmtDataCurta = (iso: string) => {
   return `${d}/${m}`;
 };
 
+/** Retorna true se `binds` não foi passado (sem filtro) OU se algum dos keys está no set. */
+function hasBind(binds: Set<string> | undefined, ...keys: string[]): boolean {
+  if (!binds) return true;
+  return keys.some((k) => binds.has(k));
+}
+
 /* ── Primitives ──────────────────────────────────────── */
 
 export function Section({
@@ -167,12 +173,13 @@ type Fields = Record<string, string | boolean | number | undefined | null>;
 type Setter = (k: string, v: string | boolean | number | null) => void;
 
 export function BadgesSection({
-  fields, set, formType, feriadoOpts,
+  fields, set, formType, feriadoOpts, binds,
 }: {
   fields: Fields;
   set: Setter;
   formType: "pacote" | "campanha";
   feriadoOpts?: string[];
+  binds?: Set<string>;
 }) {
   const toggle = (key: string) => set(key, !fields[key]);
   const Toggle = ({ label, k }: { label: string; k: string }) => (
@@ -193,59 +200,70 @@ export function BadgesSection({
   );
 
   const opts = feriadoOpts ?? [""];
+  const showAll = hasBind(binds, "allinclusive", "allinclusivo");
+  const showUltCh = hasBind(binds, "ultimachamada");
+  const showUltLug = hasBind(binds, "ultimoslugares");
+  const showOfertas = formType === "pacote" && hasBind(binds, "ofertas");
+  const showDesc = hasBind(binds, "numerodesconto", "desconto");
+  const showFeriado = hasBind(binds, "feriado");
+  const anyContent = showAll || showUltCh || showUltLug || showOfertas || showDesc || showFeriado;
+  if (!anyContent) return null;
 
   return (
     <Section title="Selos" icon="🏷️">
-      <Toggle label="All Inclusive"   k="allinclusive" />
-      <Toggle label="Última Chamada"  k="ultimachamada" />
-      <Toggle label="Últimos Lugares" k="ultimoslugares" />
+      {showAll && <Toggle label="All Inclusive"   k="allinclusive" />}
+      {showUltCh && <Toggle label="Última Chamada"  k="ultimachamada" />}
+      {showUltLug && <Toggle label="Últimos Lugares" k="ultimoslugares" />}
+      {showOfertas && <Toggle label="Ofertas" k="ofertas" />}
 
-      {/* OFERTAS só em pacote */}
-      {formType === "pacote" && <Toggle label="Ofertas" k="ofertas" />}
+      {showDesc && (
+        <Field label="Desconto">
+          <div className="flex flex-wrap gap-1">
+            {DESCONTO_OPTS_FORM.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => set("numerodesconto", fields.numerodesconto === d ? "" : d)}
+                className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
+                style={
+                  fields.numerodesconto === d
+                    ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                    : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                }
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+          {fields.numerodesconto ? (
+            <p className="mt-1 text-[10px] text-[var(--txt3)]">
+              Badge mostrará: <strong>{String(fields.numerodesconto)}</strong>
+            </p>
+          ) : null}
+        </Field>
+      )}
 
-      <Field label="Desconto">
-        <div className="flex flex-wrap gap-1">
-          {DESCONTO_OPTS_FORM.map((d) => (
-            <button
-              key={d}
-              type="button"
-              onClick={() => set("numerodesconto", fields.numerodesconto === d ? "" : d)}
-              className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
-              style={
-                fields.numerodesconto === d
-                  ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                  : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-              }
-            >
-              {d}
-            </button>
-          ))}
-        </div>
-        {fields.numerodesconto ? (
-          <p className="mt-1 text-[10px] text-[var(--txt3)]">
-            Badge mostrará: <strong>{String(fields.numerodesconto)}</strong>
-          </p>
-        ) : null}
-      </Field>
-
-      <Field label="Feriado">
-        <SearchableSelect
-          value={(fields.feriado as string) || ""}
-          onChange={(v) => set("feriado", v)}
-          options={opts}
-          placeholder="Selecionar feriado..."
-        />
-      </Field>
+      {showFeriado && (
+        <Field label="Feriado">
+          <SearchableSelect
+            value={(fields.feriado as string) || ""}
+            onChange={(v) => set("feriado", v)}
+            options={opts}
+            placeholder="Selecionar feriado..."
+          />
+        </Field>
+      )}
     </Section>
   );
 }
 
 export function PagamentoSection({
-  fields, set, totalLabel,
+  fields, set, totalLabel, binds,
 }: {
   fields: Fields;
   set: Setter;
   totalLabel: string;
+  binds?: Set<string>;
 }) {
   const formas: { value: string; label: string }[] = [
     { value: "cartao",  label: "Cartão s/ Juros" },
@@ -253,41 +271,50 @@ export function PagamentoSection({
     { value: "debito",  label: "Débito" },
   ];
 
+  const showForma = hasBind(binds, "formapagamento");
+  const showEntrada = fields.formapagamento === "entrada" && hasBind(binds, "entrada");
+  const showParcelas = hasBind(binds, "parcelas");
+  const showValorParc = hasBind(binds, "valorparcela");
+  const showTotal = hasBind(binds, "valortotal", "totalduplo");
+  if (!showForma && !showEntrada && !showParcelas && !showValorParc && !showTotal) return null;
+
   return (
     <Section title="Pagamento" icon="💳">
-      <Field label="Forma de Pagamento *">
-        <div className="flex flex-wrap gap-1">
-          {formas.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => set("formapagamento", opt.value)}
-              className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
-              style={
-                fields.formapagamento === opt.value
-                  ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                  : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-              }
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        {fields.formapagamento ? (
-          <p className="mt-1 text-[10px] text-[var(--txt3)]">
-            Arte mostrará:{" "}
-            <strong>
-              {fields.formapagamento === "cartao"
-                ? "No Cartão de Crédito Sem Juros"
-                : fields.formapagamento === "entrada"
-                  ? `Entrada de R$ ${fields.entrada || "___"} +`
-                  : "No Débito"}
-            </strong>
-          </p>
-        ) : null}
-      </Field>
+      {showForma && (
+        <Field label="Forma de Pagamento *">
+          <div className="flex flex-wrap gap-1">
+            {formas.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => set("formapagamento", opt.value)}
+                className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
+                style={
+                  fields.formapagamento === opt.value
+                    ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                    : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                }
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {fields.formapagamento ? (
+            <p className="mt-1 text-[10px] text-[var(--txt3)]">
+              Arte mostrará:{" "}
+              <strong>
+                {fields.formapagamento === "cartao"
+                  ? "No Cartão de Crédito Sem Juros"
+                  : fields.formapagamento === "entrada"
+                    ? `Entrada de R$ ${fields.entrada || "___"} +`
+                    : "No Débito"}
+              </strong>
+            </p>
+          ) : null}
+        </Field>
+      )}
 
-      {fields.formapagamento === "entrada" && (
+      {showEntrada && (
         <Field label="Valor Entrada (R$) *">
           <input
             type="text"
@@ -299,40 +326,48 @@ export function PagamentoSection({
         </Field>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="Parcelas *">
-          <SearchableSelect
-            value={(fields.parcelas as string) || ""}
-            onChange={(v) => set("parcelas", v)}
-            options={PARCELAS_OPTS_FORM}
-            placeholder="Selecionar..."
-          />
-        </Field>
-        <Field label="Valor da Parcela (R$) *">
+      {(showParcelas || showValorParc) && (
+        <div className="grid grid-cols-2 gap-2">
+          {showParcelas && (
+            <Field label="Parcelas *">
+              <SearchableSelect
+                value={(fields.parcelas as string) || ""}
+                onChange={(v) => set("parcelas", v)}
+                options={PARCELAS_OPTS_FORM}
+                placeholder="Selecionar..."
+              />
+            </Field>
+          )}
+          {showValorParc && (
+            <Field label="Valor da Parcela (R$) *">
+              <input
+                type="text"
+                value={(fields.valorparcela as string) || ""}
+                onChange={(e) => set("valorparcela", e.target.value)}
+                placeholder="ex. 890,00"
+                className={INPUT_CLASS}
+              />
+            </Field>
+          )}
+        </div>
+      )}
+
+      {showTotal && (
+        <Field label={`Valor Total (R$) — ${totalLabel}`}>
           <input
             type="text"
-            value={(fields.valorparcela as string) || ""}
-            onChange={(e) => set("valorparcela", e.target.value)}
-            placeholder="ex. 890,00"
+            value={(fields.valortotal as string) || ""}
+            onChange={(e) => set("valortotal", e.target.value)}
+            placeholder="ex. 8.900,00"
             className={INPUT_CLASS}
           />
+          {fields.valortotal ? (
+            <p className="mt-1 text-[10px] text-[var(--txt3)]">
+              Arte mostrará: <strong>ou R$ {String(fields.valortotal)} {totalLabel}</strong>
+            </p>
+          ) : null}
         </Field>
-      </div>
-
-      <Field label={`Valor Total (R$) — ${totalLabel}`}>
-        <input
-          type="text"
-          value={(fields.valortotal as string) || ""}
-          onChange={(e) => set("valortotal", e.target.value)}
-          placeholder="ex. 8.900,00"
-          className={INPUT_CLASS}
-        />
-        {fields.valortotal ? (
-          <p className="mt-1 text-[10px] text-[var(--txt3)]">
-            Arte mostrará: <strong>ou R$ {String(fields.valortotal)} {totalLabel}</strong>
-          </p>
-        ) : null}
-      </Field>
+      )}
     </Section>
   );
 }
@@ -340,7 +375,7 @@ export function PagamentoSection({
 /* ── CampanhaForm ───────────────────────────────────── */
 
 export function CampanhaForm({
-  fields, set, servicos, setServicos, today, feriadoOpts,
+  fields, set, servicos, setServicos, today, feriadoOpts, binds,
 }: {
   fields: Fields;
   set: Setter;
@@ -348,111 +383,144 @@ export function CampanhaForm({
   setServicos: (s: string[]) => void;
   today: string;
   feriadoOpts?: string[];
+  binds?: Set<string>;
 }) {
   const noites = calcularNoites(
     (fields.dataida as string) || "",
     (fields.datavolta as string) || "",
   );
 
+  const showDestino = hasBind(binds, "destino");
+  const showSaida = hasBind(binds, "saida");
+  const showTipovoo = hasBind(binds, "tipovoo");
+  const showIda = hasBind(binds, "dataida");
+  const showVolta = hasBind(binds, "datavolta");
+  const showHotel = hasBind(binds, "hotel", "imghotel");
+  // Serviços — mostra se qualquer servico1..N estiver presente (sem binds = todos).
+  const showServicos = !binds || Array.from({ length: 8 }, (_, i) => `servico${i + 1}`).some((k) => binds.has(k));
+
   return (
     <>
-      <Section title="Destino" icon="✈️">
-        <Field label="Destino *">
-          <input
-            value={(fields.destino as string) || ""}
-            onChange={(e) => set("destino", capitalizarDestino(e.target.value))}
-            onBlur={(e) => set("destino", e.target.value.toUpperCase())}
-            placeholder="ex. CANCÚN"
-            className={`${INPUT_CLASS} uppercase`}
-          />
-        </Field>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Saída">
-            <SearchableSelect
-              value={(fields.saida as string) || ""}
-              onChange={(v) => set("saida", v)}
-              options={["GRU", "CGH", "VCP", "BSB", "GIG", "SDU", "SSA", "FOR", "REC", "CWB", "POA", "FLN"]}
-              placeholder="Aeroporto..."
-              allowCustom
-            />
-          </Field>
-          <Field label="Tipo de Voo">
-            <SearchableSelect
-              value={(fields.tipovoo as string) || ""}
-              onChange={(v) => set("tipovoo", v)}
-              options={["Voo Direto", "Voo com Conexão"]}
-              placeholder="Selecionar..."
-            />
-          </Field>
-        </div>
-      </Section>
+      {(showDestino || showSaida || showTipovoo) && (
+        <Section title="Destino" icon="✈️">
+          {showDestino && (
+            <Field label="Destino *">
+              <input
+                value={(fields.destino as string) || ""}
+                onChange={(e) => set("destino", capitalizarDestino(e.target.value))}
+                onBlur={(e) => set("destino", e.target.value.toUpperCase())}
+                placeholder="ex. CANCÚN"
+                className={`${INPUT_CLASS} uppercase`}
+              />
+            </Field>
+          )}
+          {(showSaida || showTipovoo) && (
+            <div className="grid grid-cols-2 gap-2">
+              {showSaida && (
+                <Field label="Saída">
+                  <SearchableSelect
+                    value={(fields.saida as string) || ""}
+                    onChange={(v) => set("saida", v)}
+                    options={["GRU", "CGH", "VCP", "BSB", "GIG", "SDU", "SSA", "FOR", "REC", "CWB", "POA", "FLN"]}
+                    placeholder="Aeroporto..."
+                    allowCustom
+                  />
+                </Field>
+              )}
+              {showTipovoo && (
+                <Field label="Tipo de Voo">
+                  <SearchableSelect
+                    value={(fields.tipovoo as string) || ""}
+                    onChange={(v) => set("tipovoo", v)}
+                    options={["Voo Direto", "Voo com Conexão"]}
+                    placeholder="Selecionar..."
+                  />
+                </Field>
+              )}
+            </div>
+          )}
+        </Section>
+      )}
 
-      <Section title="Datas" icon="📅">
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Ida *">
+      {(showIda || showVolta) && (
+        <Section title="Datas" icon="📅">
+          <div className="grid grid-cols-2 gap-2">
+            {showIda && (
+              <Field label="Ida *">
+                <input
+                  type="date"
+                  min={today}
+                  value={(fields.dataida as string) || ""}
+                  onChange={(e) => {
+                    set("dataida", e.target.value);
+                    set("dataida_fmt", fmtDate(e.target.value));
+                  }}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
+            {showVolta && (
+              <Field label="Volta *">
+                <input
+                  type="date"
+                  min={(fields.dataida as string) || today}
+                  value={(fields.datavolta as string) || ""}
+                  onChange={(e) => {
+                    set("datavolta", e.target.value);
+                    set("datavolta_fmt", fmtDate(e.target.value));
+                  }}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
+          </div>
+          {noites > 0 && (
+            <p className="text-[11px] text-[var(--txt3)]">🗓️ {noites} noites</p>
+          )}
+        </Section>
+      )}
+
+      {showHotel && (
+        <Section title="Hotel" icon="🏨">
+          <Field label="Hotel *">
             <input
-              type="date"
-              min={today}
-              value={(fields.dataida as string) || ""}
-              onChange={(e) => {
-                set("dataida", e.target.value);
-                set("dataida_fmt", fmtDate(e.target.value));
-              }}
+              value={(fields.hotel as string) || ""}
+              onChange={(e) => set("hotel", e.target.value)}
+              placeholder="Nome do hotel"
               className={INPUT_CLASS}
             />
           </Field>
-          <Field label="Volta *">
-            <input
-              type="date"
-              min={(fields.dataida as string) || today}
-              value={(fields.datavolta as string) || ""}
-              onChange={(e) => {
-                set("datavolta", e.target.value);
-                set("datavolta_fmt", fmtDate(e.target.value));
-              }}
-              className={INPUT_CLASS}
-            />
-          </Field>
-        </div>
-        {noites > 0 && (
-          <p className="text-[11px] text-[var(--txt3)]">🗓️ {noites} noites</p>
-        )}
-      </Section>
+        </Section>
+      )}
 
-      <Section title="Hotel" icon="🏨">
-        <Field label="Hotel *">
-          <input
-            value={(fields.hotel as string) || ""}
-            onChange={(e) => set("hotel", e.target.value)}
-            placeholder="Nome do hotel"
-            className={INPUT_CLASS}
-          />
-        </Field>
-      </Section>
+      {showServicos && (
+        <Section title="Serviços Inclusos" icon="🎒">
+          {servicos.map((s, i) => {
+            if (binds && !binds.has(`servico${i + 1}`)) return null;
+            return (
+              <input
+                key={i}
+                value={s}
+                onChange={(e) => {
+                  const n = [...servicos];
+                  n[i] = e.target.value;
+                  setServicos(n);
+                }}
+                onBlur={() => {
+                  if (servicos.some((sv) => sv.toLowerCase().includes("all inclusive"))) {
+                    set("allinclusive", true);
+                  }
+                }}
+                placeholder={`Serviço ${i + 1}`}
+                className={INPUT_CLASS}
+              />
+            );
+          })}
+        </Section>
+      )}
 
-      <Section title="Serviços Inclusos" icon="🎒">
-        {servicos.map((s, i) => (
-          <input
-            key={i}
-            value={s}
-            onChange={(e) => {
-              const n = [...servicos];
-              n[i] = e.target.value;
-              setServicos(n);
-            }}
-            onBlur={() => {
-              if (servicos.some((sv) => sv.toLowerCase().includes("all inclusive"))) {
-                set("allinclusive", true);
-              }
-            }}
-            placeholder={`Serviço ${i + 1}`}
-            className={INPUT_CLASS}
-          />
-        ))}
-      </Section>
-
-      <BadgesSection fields={fields} set={set} formType="campanha" feriadoOpts={feriadoOpts} />
-      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa apto. duplo" />
+      <BadgesSection fields={fields} set={set} formType="campanha" feriadoOpts={feriadoOpts} binds={binds} />
+      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa apto. duplo" binds={binds} />
     </>
   );
 }
@@ -460,89 +528,111 @@ export function CampanhaForm({
 /* ── CruzeiroForm ───────────────────────────────────── */
 
 export function CruzeiroForm({
-  fields, set, today,
+  fields, set, today, binds,
 }: {
   fields: Fields;
   set: Setter;
   today: string;
+  binds?: Set<string>;
 }) {
   const noites = calcularNoites(
     (fields.dataida as string) || "",
     (fields.datavolta as string) || "",
   );
 
+  const showNavio = hasBind(binds, "navio");
+  const showItin = hasBind(binds, "itinerario");
+  const showIda = hasBind(binds, "dataida");
+  const showVolta = hasBind(binds, "datavolta");
+  const showIncluso = hasBind(binds, "incluso");
+  const showCruz = showNavio || showItin || showIda || showVolta;
+
   return (
     <>
-      <Section title="Cruzeiro" icon="🚢">
-        <Field label="Navio *">
-          <SearchableSelect
-            value={(fields.navio as string) || ""}
-            onChange={(v) => set("navio", v)}
-            options={NAVIOS_DEFAULT}
-            placeholder="Buscar navio..."
-            allowCustom
-          />
-        </Field>
+      {showCruz && (
+        <Section title="Cruzeiro" icon="🚢">
+          {showNavio && (
+            <Field label="Navio *">
+              <SearchableSelect
+                value={(fields.navio as string) || ""}
+                onChange={(v) => set("navio", v)}
+                options={NAVIOS_DEFAULT}
+                placeholder="Buscar navio..."
+                allowCustom
+              />
+            </Field>
+          )}
 
-        <Field label="Itinerário">
-          <textarea
-            value={(fields.itinerario as string) || ""}
-            onChange={(e) => set("itinerario", e.target.value)}
-            placeholder="Santos / Navegação / Búzios / Navegação / Santos"
-            className={`${INPUT_CLASS} h-auto resize-none py-2`}
-            rows={2}
-          />
-        </Field>
+          {showItin && (
+            <Field label="Itinerário">
+              <textarea
+                value={(fields.itinerario as string) || ""}
+                onChange={(e) => set("itinerario", e.target.value)}
+                placeholder="Santos / Navegação / Búzios / Navegação / Santos"
+                className={`${INPUT_CLASS} h-auto resize-none py-2`}
+                rows={2}
+              />
+            </Field>
+          )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Embarque *">
-            <input
-              type="date"
-              min={today}
-              value={(fields.dataida as string) || ""}
-              onChange={(e) => {
-                set("dataida", e.target.value);
-                set("dataida_fmt", fmtDate(e.target.value));
-              }}
-              className={INPUT_CLASS}
+          {(showIda || showVolta) && (
+            <div className="grid grid-cols-2 gap-2">
+              {showIda && (
+                <Field label="Embarque *">
+                  <input
+                    type="date"
+                    min={today}
+                    value={(fields.dataida as string) || ""}
+                    onChange={(e) => {
+                      set("dataida", e.target.value);
+                      set("dataida_fmt", fmtDate(e.target.value));
+                    }}
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              )}
+              {showVolta && (
+                <Field label="Desembarque *">
+                  <input
+                    type="date"
+                    min={(fields.dataida as string) || today}
+                    value={(fields.datavolta as string) || ""}
+                    onChange={(e) => {
+                      set("datavolta", e.target.value);
+                      set("datavolta_fmt", fmtDate(e.target.value));
+                    }}
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              )}
+            </div>
+          )}
+
+          {noites > 0 && (
+            <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2">
+              <span className="text-[14px] text-[var(--orange)]">🌙</span>
+              <span className="text-[12px] font-bold text-[var(--txt)]">{noites} noites</span>
+              <span className="text-[10px] text-[var(--txt3)]">calculado automaticamente</span>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {showIncluso && (
+        <Section title="Incluso" icon="🎒">
+          <Field label="O que está incluso *">
+            <textarea
+              value={(fields.incluso as string) || ""}
+              onChange={(e) => set("incluso", e.target.value)}
+              placeholder="ex. Cabine Interna, Pensão Completa, Bebidas"
+              className={`${INPUT_CLASS} h-auto resize-none py-2`}
+              rows={3}
             />
           </Field>
-          <Field label="Desembarque *">
-            <input
-              type="date"
-              min={(fields.dataida as string) || today}
-              value={(fields.datavolta as string) || ""}
-              onChange={(e) => {
-                set("datavolta", e.target.value);
-                set("datavolta_fmt", fmtDate(e.target.value));
-              }}
-              className={INPUT_CLASS}
-            />
-          </Field>
-        </div>
+        </Section>
+      )}
 
-        {noites > 0 && (
-          <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2">
-            <span className="text-[14px] text-[var(--orange)]">🌙</span>
-            <span className="text-[12px] font-bold text-[var(--txt)]">{noites} noites</span>
-            <span className="text-[10px] text-[var(--txt3)]">calculado automaticamente</span>
-          </div>
-        )}
-      </Section>
-
-      <Section title="Incluso" icon="🎒">
-        <Field label="O que está incluso *">
-          <textarea
-            value={(fields.incluso as string) || ""}
-            onChange={(e) => set("incluso", e.target.value)}
-            placeholder="ex. Cabine Interna, Pensão Completa, Bebidas"
-            className={`${INPUT_CLASS} h-auto resize-none py-2`}
-            rows={3}
-          />
-        </Field>
-      </Section>
-
-      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" />
+      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" binds={binds} />
     </>
   );
 }
@@ -550,11 +640,18 @@ export function CruzeiroForm({
 /* ── AnoiteceuForm ──────────────────────────────────── */
 
 export function AnoiteceuForm({
-  fields, set,
+  fields, set, binds,
 }: {
   fields: Fields;
   set: Setter;
+  binds?: Set<string>;
 }) {
+  const showDesc = hasBind(binds, "desconto_anoit");
+  const showInicio = hasBind(binds, "inicio");
+  const showFim = hasBind(binds, "fim");
+  const showPeriodo = showInicio || showFim;
+  const showParaviagens = hasBind(binds, "paraviagens");
+
   return (
     <>
       <div className="mb-3 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 px-4 py-3 backdrop-blur-sm">
@@ -567,92 +664,104 @@ export function AnoiteceuForm({
         </div>
       </div>
 
-      <Section title="Desconto" icon="🏷️">
-        <Field label="Porcentagem do Desconto *">
-          <div className="mb-2 flex items-center gap-4">
-            <div
-              className="text-5xl font-black leading-none transition-all"
-              style={{ color: fields.desconto_anoit ? "var(--orange)" : "var(--txt3)" }}
-            >
-              {(fields.desconto_anoit as string) || "—"}
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-wrap gap-1">
-                {DESCONTO_OPTS_FORM.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => set("desconto_anoit", fields.desconto_anoit === d ? "" : d)}
-                    className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
-                    style={
-                      fields.desconto_anoit === d
-                        ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                        : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                    }
-                  >
-                    {d}
-                  </button>
-                ))}
+      {showDesc && (
+        <Section title="Desconto" icon="🏷️">
+          <Field label="Porcentagem do Desconto *">
+            <div className="mb-2 flex items-center gap-4">
+              <div
+                className="text-5xl font-black leading-none transition-all"
+                style={{ color: fields.desconto_anoit ? "var(--orange)" : "var(--txt3)" }}
+              >
+                {(fields.desconto_anoit as string) || "—"}
               </div>
-              <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--txt3)]">
-                <span>Ou digitar:</span>
-                <input
-                  type="text"
-                  value={(fields.desconto_anoit as string) || ""}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/[^0-9]/g, "");
-                    set("desconto_anoit", v ? `${v}%` : "");
-                  }}
-                  placeholder="ex. 35"
-                  maxLength={3}
-                  className={`${INPUT_CLASS} inline-block h-6 w-14 px-2 text-[11px]`}
-                />
+              <div className="flex-1">
+                <div className="flex flex-wrap gap-1">
+                  {DESCONTO_OPTS_FORM.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => set("desconto_anoit", fields.desconto_anoit === d ? "" : d)}
+                      className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
+                      style={
+                        fields.desconto_anoit === d
+                          ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                          : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                      }
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--txt3)]">
+                  <span>Ou digitar:</span>
+                  <input
+                    type="text"
+                    value={(fields.desconto_anoit as string) || ""}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/[^0-9]/g, "");
+                      set("desconto_anoit", v ? `${v}%` : "");
+                    }}
+                    placeholder="ex. 35"
+                    maxLength={3}
+                    className={`${INPUT_CLASS} inline-block h-6 w-14 px-2 text-[11px]`}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        </Field>
-      </Section>
-
-      <Section title="Período da Promoção" icon="📅">
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Data Início *">
-            <input
-              type="date"
-              value={(fields.inicio_iso as string) || ""}
-              onChange={(e) => {
-                set("inicio_iso", e.target.value);
-                set("inicio", fmtDataCurta(e.target.value));
-              }}
-              className={INPUT_CLASS}
-            />
           </Field>
-          <Field label="Data Fim *">
-            <input
-              type="date"
-              min={(fields.inicio_iso as string) || ""}
-              value={(fields.fim_iso as string) || ""}
-              onChange={(e) => {
-                set("fim_iso", e.target.value);
-                set("fim", fmtDataCurta(e.target.value));
-              }}
-              className={INPUT_CLASS}
-            />
-          </Field>
-        </div>
+        </Section>
+      )}
 
-        <Field label="Para Viagens Até *">
-          <input
-            type="date"
-            value={(fields.paraviagens_iso as string) || ""}
-            onChange={(e) => {
-              set("paraviagens_iso", e.target.value);
-              set("paraviagens", fmtDate(e.target.value));
-            }}
-            className={INPUT_CLASS}
-          />
-          <p className="mt-1 text-[10px] text-[var(--txt3)]">Data limite de validade das passagens/pacotes</p>
-        </Field>
-      </Section>
+      {(showPeriodo || showParaviagens) && (
+        <Section title="Período da Promoção" icon="📅">
+          {showPeriodo && (
+            <div className="grid grid-cols-2 gap-2">
+              {showInicio && (
+                <Field label="Data Início *">
+                  <input
+                    type="date"
+                    value={(fields.inicio_iso as string) || ""}
+                    onChange={(e) => {
+                      set("inicio_iso", e.target.value);
+                      set("inicio", fmtDataCurta(e.target.value));
+                    }}
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              )}
+              {showFim && (
+                <Field label="Data Fim *">
+                  <input
+                    type="date"
+                    min={(fields.inicio_iso as string) || ""}
+                    value={(fields.fim_iso as string) || ""}
+                    onChange={(e) => {
+                      set("fim_iso", e.target.value);
+                      set("fim", fmtDataCurta(e.target.value));
+                    }}
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              )}
+            </div>
+          )}
+
+          {showParaviagens && (
+            <Field label="Para Viagens Até *">
+              <input
+                type="date"
+                value={(fields.paraviagens_iso as string) || ""}
+                onChange={(e) => {
+                  set("paraviagens_iso", e.target.value);
+                  set("paraviagens", fmtDate(e.target.value));
+                }}
+                className={INPUT_CLASS}
+              />
+              <p className="mt-1 text-[10px] text-[var(--txt3)]">Data limite de validade das passagens/pacotes</p>
+            </Field>
+          )}
+        </Section>
+      )}
     </>
   );
 }
