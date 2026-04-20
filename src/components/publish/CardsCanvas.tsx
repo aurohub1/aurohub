@@ -98,6 +98,8 @@ interface Assets {
 
 interface Props {
   lojaLogoUrl?: string | null;
+  /** Propaga os binds lam_* para o formulário pai (opcional — default no-op). */
+  set?: (k: string, v: string) => void;
 }
 
 /* ══ Helpers ════════════════════════════════════════ */
@@ -195,7 +197,13 @@ function drawCard(
   y: number,
   P: typeof PALETTES[number],
   assets: Assets,
+  nIdx: number,
 ) {
+  // DEBUG temporário — confirma que d.valor chega até o render.
+  if (process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.log(`[CardsCanvas] drawCard d[${nIdx}]`, { valor: d.valor, parc: d.parc, total: d.total, destino: d.destino });
+  }
   const txtColor = P.text || "#ffffff";
   const subColor = P.text ? `${P.text}bb` : "rgba(255,255,255,0.7)";
   const borderColor = P.text ? `${P.text}66` : "rgba(255,255,255,0.6)";
@@ -320,7 +328,7 @@ function renderLamina(
     { x: 55, y: 420 }, { x: 560, y: 420 },
     { x: 55, y: 820 }, { x: 560, y: 820 },
   ];
-  positions.forEach((pos, i) => drawCard(ctx, dests[i], pos.x, pos.y, P, assets));
+  positions.forEach((pos, i) => drawCard(ctx, dests[i], pos.x, pos.y, P, assets, i + 1));
 
   // Logo bottom-right, w=160, margin 40
   if (assets.logo) {
@@ -334,7 +342,7 @@ function renderLamina(
 
 /* ══ Componente ═════════════════════════════════════ */
 
-export default function CardsCanvas({ lojaLogoUrl }: Props = {}) {
+export default function CardsCanvas({ lojaLogoUrl, set = () => {} }: Props = {}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -344,12 +352,53 @@ export default function CardsCanvas({ lojaLogoUrl }: Props = {}) {
   const [curDest, setCurDest] = useState(0);
   const [palette, setPalette] = useState(0);
   const [bgImg, setBgImg] = useState<HTMLImageElement | null>(null);
+  const [bgImgUrl, setBgImgUrl] = useState<string>("");
   const [assets, setAssets] = useState<Assets>({ icL: null, icM: null, icR: null, logo: null });
   const [assetsReady, setAssetsReady] = useState(false);
   const [bgLoading, setBgLoading] = useState(false);
   const [scale, setScale] = useState(0.45);
 
   const today = todayISO();
+
+  /* ── Sync binds lam_* para o formulário pai ──────
+   * Dispara a cada mudança de estado. Usa o mesmo mapeamento do V1 _resolve
+   * (lamina.html:582-621) para pgto/total/parcelas. Assim que o usuário edita,
+   * o pai recebe `lam_d{n}_*` e `lam_titulo*` atualizados.
+   */
+  useEffect(() => {
+    set("lam_titulo1", titulo1);
+    set("lam_titulo2", titulo2);
+  }, [titulo1, titulo2, set]);
+
+  useEffect(() => {
+    dests.forEach((d, i) => {
+      const n = i + 1;
+      set(`lam_d${n}_destino`, d.destino ? d.destino.toUpperCase() : "");
+      set(`lam_d${n}_saida`, d.saida);
+      set(`lam_d${n}_voo`, d.voo);
+      set(`lam_d${n}_periodo`, formatPeriodo(d.ida, d.volta));
+      set(`lam_d${n}_hotel`, d.hotel);
+      set(`lam_d${n}_incluso`, d.incluso);
+      // pgto: cartao → "No Cartão de Crédito S/ Juros"; boleto+entrada → "Entrada de R$ X +"; boleto → "Boleto"
+      const pgtoFmt =
+        d.pgto === "cartao"
+          ? "No Cartão de Crédito S/ Juros"
+          : d.pgto === "boleto"
+            ? (d.entrada ? `Entrada de R$ ${d.entrada} +` : "Boleto")
+            : "";
+      set(`lam_d${n}_pgto`, pgtoFmt);
+      // parcelas: adiciona "x" se não tiver (igual V1)
+      const parFmt = d.parc ? (/x$/i.test(d.parc) ? d.parc : `${d.parc}x`) : "";
+      set(`lam_d${n}_parcelas`, parFmt);
+      set(`lam_d${n}_valor`, d.valor);
+      // total: "ou R$ X à vista por pessoa" (igual V1)
+      set(`lam_d${n}_total`, d.total ? `ou R$ ${d.total} à vista por pessoa` : "");
+    });
+  }, [dests, set]);
+
+  useEffect(() => {
+    set("img_fundo", bgImgUrl);
+  }, [bgImgUrl, set]);
 
   /* ── Preload assets + fonte ─────────────────── */
   useEffect(() => {
@@ -434,7 +483,7 @@ export default function CardsCanvas({ lojaLogoUrl }: Props = {}) {
       if (!rows.length) return;
       const pick = rows[Math.floor(Math.random() * rows.length)];
       const img = await loadImage(pick.url);
-      if (img) setBgImg(img);
+      if (img) { setBgImg(img); setBgImgUrl(pick.url); }
     } catch (err) {
       console.error("[Cards] shuffle:", err);
     } finally {
@@ -448,8 +497,9 @@ export default function CardsCanvas({ lojaLogoUrl }: Props = {}) {
     const reader = new FileReader();
     reader.onload = async () => {
       if (!reader.result) return;
-      const img = await loadImage(String(reader.result));
-      if (img) setBgImg(img);
+      const url = String(reader.result);
+      const img = await loadImage(url);
+      if (img) { setBgImg(img); setBgImgUrl(url); }
     };
     reader.readAsDataURL(f);
     e.target.value = "";
@@ -457,6 +507,7 @@ export default function CardsCanvas({ lojaLogoUrl }: Props = {}) {
 
   function handleClearBg() {
     setBgImg(null);
+    setBgImgUrl("");
   }
 
   function handleIATitulo() {
