@@ -236,6 +236,50 @@ function resolveImage(
   return el.src;
 }
 
+/* ── Card WhatsApp colorMap (paletas V1) ──────────
+ * V1 lamina.html:286-291. Remapeia cores de elementos quando values.lam_palette
+ * está definido (0/default = sem mudança). Aplicado só quando o schema tem
+ * binds lam_* — assim não afeta outros formTypes que usem cores iguais por acaso.
+ */
+const LAM_PALETTES_RT = [
+  { accent: "#D4E600" },
+  { accent: "#1A56C4", bg: "#E8F0FE", text: "#0B1D3A" },
+  { accent: "#16b5eb" },
+  { accent: "#003366", bg: "#D6E4F0", text: "#0B1D3A" },
+];
+
+function buildLamColorMap(paletteIdx: number): Record<string, string> {
+  const P = LAM_PALETTES_RT[paletteIdx];
+  if (!P) return {};
+  const map: Record<string, string> = {};
+  // Accent: substitui verde default V1 pelo accent da paleta (skip se = default)
+  if (P.accent.toLowerCase() !== "#d4e600") map["#d4e600"] = P.accent;
+  // Bg: substitui azuis escuros V1 pela cor de fundo da paleta
+  if (P.bg) {
+    for (const dark of ["#0b1d3a", "#0b1826", "#0f1e32", "#1a56c4", "#003366"]) map[dark] = P.bg;
+  }
+  // Text: substitui brancos pela cor de texto da paleta
+  if (P.text) {
+    map["#ffffff"] = P.text;
+    map["#fff"] = P.text;
+  }
+  return map;
+}
+
+function remapColor(c: string | undefined, map: Record<string, string>): string | undefined {
+  if (!c || typeof c !== "string") return c;
+  const low = c.toLowerCase().trim();
+  return map[low] ?? c;
+}
+
+function applyLamColorMap(el: EditorElement, map: Record<string, string>): EditorElement {
+  if (Object.keys(map).length === 0) return el;
+  const fill = remapColor(el.fill, map);
+  const stroke = remapColor(el.stroke, map);
+  if (fill === el.fill && stroke === el.stroke) return el;
+  return { ...el, fill: fill ?? el.fill, stroke: stroke ?? el.stroke };
+}
+
 /* ── Per-element ────────────────────────────────── */
 
 function RenderEl({ el, values }: { el: EditorElement; values: Record<string, string> }) {
@@ -379,6 +423,9 @@ function RenderImage({ el, values }: { el: EditorElement; values: Record<string,
   const { badges, feriados } = useBadges();
   const src = resolveImage(el, values, badges, feriados);
   const img = useImage(src);
+  // Sem src resolvido (bind vazio e sem fallback): não renderizar placeholder —
+  // deixa elementos abaixo (ex: rect de fundo) visíveis. Antes: cinza #e5e7eb tapava tudo.
+  if (!src) return null;
   if (!img) {
     return (
       <Rect
@@ -433,7 +480,11 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
   // Preview-time smart-links: recalcula altura real de textos expansíveis (servicoslista)
   // e propaga para elementos com smartTrack/smartResize apontando para eles.
   const resolvedElements = useMemo(() => {
-    let els = schema.elements.map(e => ({ ...e }));
+    // Detecta Card WhatsApp pelo bindParam — se alguma tem lam_*, colorMap está ativo.
+    const isLam = schema.elements.some(e => e.bindParam?.startsWith("lam_"));
+    const paletteIdx = isLam ? parseInt(values.lam_palette || "0", 10) || 0 : 0;
+    const colorMap = isLam && paletteIdx > 0 ? buildLamColorMap(paletteIdx) : {};
+    let els = schema.elements.map(e => applyLamColorMap({ ...e }, colorMap));
     // Mede altura real dos textos que dependem de bind dinâmico
     for (const el of els) {
       if (el.type !== "text" || !el.bindParam) continue;
