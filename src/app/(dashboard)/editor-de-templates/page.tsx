@@ -19,6 +19,7 @@ interface CanvasTemplate {
   lojaNome: string;
   thumbnail: string | null;
   isBase: boolean;
+  baseTipo: string | null;
 }
 
 const SEGMENTOS = ["Turismo", "Eventos", "Gastronomia", "Imobiliário", "Saúde", "Educação", "Geral"];
@@ -117,6 +118,8 @@ export default function EditorTemplatesPage() {
   const [canvasLoading, setCanvasLoading] = useState(true);
   const [thumbUploadingKey, setThumbUploadingKey] = useState<string | null>(null);
   const [profile, setProfile] = useState<FullProfile | null>(null);
+  const [baseFilterType, setBaseFilterType] = useState("");
+  const [baseFilterFormat, setBaseFilterFormat] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -226,6 +229,12 @@ export default function EditorTemplatesPage() {
           parsedIsBase = parsed.is_base === true;
         } catch {}
         const isBase = parsedIsBase || r.key.startsWith("tmpl_base_");
+        // Extrai tipo do slug da key (tmpl_base_{tipo}_{formato})
+        // Tipos conhecidos: campanha, cruzeiro, anoiteceu, quatro_destinos.
+        // Match greedy até o último underscore (para tipos com "_" tipo quatro_destinos).
+        const baseTipo = isBase
+          ? (r.key.match(/^tmpl_base_(.+)_(stories|reels|feed|tv)$/)?.[1] ?? null)
+          : null;
         return {
           key: r.key,
           displayName: r.key.replace(/^tmpl_(base_)?/, ""),
@@ -239,6 +248,7 @@ export default function EditorTemplatesPage() {
           lojaNome,
           thumbnail,
           isBase,
+          baseTipo,
         };
       });
       setCanvasTemplates(list);
@@ -256,12 +266,16 @@ export default function EditorTemplatesPage() {
     const map: Record<string, CanvasTemplate[]> = {};
     for (const t of canvasTemplates) {
       if (!t.isBase) continue;
+      if (baseFilterType && t.baseTipo !== baseFilterType) continue;
+      if (baseFilterFormat && t.format !== baseFilterFormat) continue;
       const seg = t.segmento || "Sem segmento";
       if (!map[seg]) map[seg] = [];
       map[seg].push(t);
     }
     return map;
-  }, [canvasTemplates]);
+  }, [canvasTemplates, baseFilterType, baseFilterFormat]);
+
+  const hasAnyBaseTemplate = useMemo(() => canvasTemplates.some((t) => t.isBase), [canvasTemplates]);
 
   const userTemplatesGrouped = useMemo(() => {
     const isAdm = profile?.role === "adm";
@@ -614,11 +628,50 @@ export default function EditorTemplatesPage() {
             <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Modelos prontos pra começar — disponíveis pra todas as marcas</p>
           </div>
         </div>
+
+        {/* Filtros tipo + formato */}
+        {hasAnyBaseTemplate && (
+          <div className="mb-4 flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Tipo</span>
+              {([
+                { k: "", l: "Todos" },
+                { k: "campanha", l: "Campanha" },
+                { k: "cruzeiro", l: "Cruzeiro" },
+                { k: "anoiteceu", l: "Anoiteceu" },
+                { k: "quatro_destinos", l: "Card WhatsApp" },
+              ]).map((f) => (
+                <button key={f.k || "all-type"} onClick={() => setBaseFilterType(f.k)} className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${baseFilterType === f.k ? "border-[var(--orange)] bg-[var(--orange3)] text-[var(--orange)]" : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt)]"}`}>
+                  {f.l}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Formato</span>
+              {([
+                { k: "", l: "Todos" },
+                { k: "stories", l: "Stories" },
+                { k: "reels", l: "Reels" },
+                { k: "feed", l: "Feed" },
+                { k: "tv", l: "TV" },
+              ]).map((f) => (
+                <button key={f.k || "all-fmt"} onClick={() => setBaseFilterFormat(f.k)} className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${baseFilterFormat === f.k ? "border-[var(--orange)] bg-[var(--orange3)] text-[var(--orange)]" : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt)]"}`}>
+                  {f.l}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {canvasLoading ? (
           <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
-        ) : Object.keys(baseTemplatesGrouped).length === 0 ? (
+        ) : !hasAnyBaseTemplate ? (
           <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
             Nenhum template base cadastrado.
+          </div>
+        ) : Object.keys(baseTemplatesGrouped).length === 0 ? (
+          <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
+            Nenhum template encontrado com esses filtros.
           </div>
         ) : (
           <div className="flex flex-col gap-3">
