@@ -27,21 +27,20 @@ const PLAN_INFO: Record<string, {
 }> = {
   basic: {
     name: "Essencial", emoji: "🎯", accent: "var(--blue)", bg: "var(--blue3)", border: "var(--txt3)", badge: null,
-    price: "R$497", implant: "R$1.500", fidelity: "6 meses",
-    profiles: "1 perfil", logins: "1 login", posts: "Sem publicação IG", stories: "—",
+    price: "R$397", implant: "R$2.500", fidelity: "6 meses",
+    profiles: "1 perfil", logins: "1 login", posts: "2 Feed+Reels/dia", stories: "5 Stories/dia",
     features: [
-      { label: "Download ilimitado", included: true },
-      { label: "Publicação Instagram", included: false },
-      { label: "Agendamento", included: false },
-      { label: "Métricas Instagram", included: false },
-      { label: "IA de legenda", included: false },
-      { label: "Transmissão", included: false },
+      { label: "1 perfil Instagram — 2 posts/dia + 5 Stories", included: true },
+      { label: "1 template personalizado com sua marca", included: true },
+      { label: "Download ilimitado — TV, WhatsApp, impressão", included: true },
+      { label: "Acesso ao calendário sazonal com sua marca", included: true },
+      { label: "Suporte via chat seg-sex", included: true },
     ],
   },
   pro: {
     name: "Profissional", emoji: "⚡", accent: "var(--gold)", bg: "var(--gold3)", border: "#3B82F6", badge: "Mais popular",
-    price: "R$997", implant: "R$2.500", fidelity: "6 meses",
-    profiles: "1 perfil IG", logins: "2 logins", posts: "5 Feed+Reels/dia", stories: "5 Stories/dia",
+    price: "R$997", implant: "R$3.500", fidelity: "12 meses",
+    profiles: "1 perfil IG", logins: "2 logins", posts: "5 Feed+Reels/dia", stories: "10 Stories/dia",
     features: [
       { label: "Download ilimitado", included: true },
       { label: "Publicação Instagram", included: true },
@@ -53,8 +52,8 @@ const PLAN_INFO: Record<string, {
   },
   business: {
     name: "Franquia", emoji: "🏢", accent: "var(--orange)", bg: "var(--orange3)", border: "var(--orange)", badge: "Melhor custo-benefício",
-    price: "R$1.797", implant: "R$4.500", fidelity: "12 meses",
-    profiles: "Até 3 perfis", logins: "6 logins", posts: "20 posts/dia por perfil", stories: "20 Stories/dia",
+    price: "R$1.797", implant: "R$6.500", fidelity: "12 meses",
+    profiles: "Até 3 perfis", logins: "6 logins", posts: "20 posts/dia por perfil", stories: "15 Stories/dia",
     features: [
       { label: "Download ilimitado", included: true },
       { label: "Publicação Instagram", included: true },
@@ -66,7 +65,7 @@ const PLAN_INFO: Record<string, {
   },
   enterprise: {
     name: "Enterprise", emoji: "👑", accent: "var(--purple)", bg: "var(--purple3)", border: "#D4A843", badge: null,
-    price: "Sob consulta", implant: "Negociado", fidelity: "Negociado",
+    price: "Sob consulta", implant: "Negociado", fidelity: "12 meses",
     profiles: "Até 50 perfis", logins: "Ilimitados", posts: "Ilimitados", stories: "Ilimitados",
     features: [
       { label: "Download ilimitado", included: true },

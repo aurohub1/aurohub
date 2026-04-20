@@ -18,9 +18,9 @@ type Periodo = "mensal" | "anual";
 /* ── Constants ───────────────────────────────────── */
 
 const PLAN_DISPLAY: Record<string, { label: string; emoji: string; implant: number; fidelity: number }> = {
-  basic:      { label: "Essencial",    emoji: "🎯", implant: 1500, fidelity: 6 },
-  pro:        { label: "Profissional", emoji: "⚡", implant: 2500, fidelity: 6 },
-  business:   { label: "Franquia",     emoji: "🏢", implant: 4500, fidelity: 12 },
+  basic:      { label: "Essencial",    emoji: "🎯", implant: 2500, fidelity: 6 },
+  pro:        { label: "Profissional", emoji: "⚡", implant: 3500, fidelity: 12 },
+  business:   { label: "Franquia",     emoji: "🏢", implant: 6500, fidelity: 12 },
   enterprise: { label: "Enterprise",   emoji: "👑", implant: 0,    fidelity: 12 },
 };
 
