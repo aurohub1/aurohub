@@ -151,7 +151,7 @@ const BUILDERS = {
   campanha:        { fn: CAMPANHA,      formType: "campanha",  nomeBase: "Campanha" },
   cruzeiro:        { fn: CRUZEIRO,      formType: "cruzeiro",  nomeBase: "Cruzeiro" },
   anoiteceu:       { fn: ANOITECEU,     formType: "anoiteceu", nomeBase: "Anoiteceu" },
-  quatro_destinos: { fn: quatroDestinos, formType: "lamina",   nomeBase: "Quatro Destinos" },
+  quatro_destinos: { fn: quatroDestinos, formType: "lamina",   nomeBase: "Card WhatsApp" },
 };
 
 const FORMAT_LABEL = { stories: "Stories", reels: "Reels", feed: "Feed", tv: "TV" };
