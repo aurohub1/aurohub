@@ -229,11 +229,10 @@ export default function EditorTemplatesPage() {
           parsedIsBase = parsed.is_base === true;
         } catch {}
         const isBase = parsedIsBase || r.key.startsWith("tmpl_base_");
-        // Extrai tipo do slug da key (tmpl_base_{tipo}_{formato})
-        // Tipos conhecidos: campanha, cruzeiro, anoiteceu, quatro_destinos.
-        // Match greedy até o último underscore (para tipos com "_" tipo quatro_destinos).
+        // Extrai tipo do slug da key. Aceita tanto `tmpl_base_{tipo}_{formato}`
+        // quanto `tmpl_{tipo}_{formato}` (ex: tmpl_cards_stories).
         const baseTipo = isBase
-          ? (r.key.match(/^tmpl_base_(.+)_(stories|reels|feed|tv)$/)?.[1] ?? null)
+          ? (r.key.match(/^tmpl_(?:base_)?(.+)_(stories|reels|feed|tv)$/)?.[1] ?? null)
           : null;
         return {
           key: r.key,
