@@ -566,24 +566,25 @@ export function rescaleSchema(schema: EditorSchema, srcW: number, srcH: number, 
   };
 }
 
-/** Gera bind groups dinâmicos para Card WhatsApp (Transmissão V1) baseado no nº de destinos.
- *  Binds seguem a convenção do V1: trans_titulo, trans_subtitulo, trans_{campo}{n}. */
+/** Gera bind groups dinâmicos para Card WhatsApp (Lâmina V1) baseado no nº de destinos.
+ *  Binds seguem a convenção do V1 (app.aurovista.com.br/lamina):
+ *    img_fundo, lam_titulo1, lam_titulo2, logo_loja, lam_d{n}_{campo}. */
 export function getLaminaBindGroups(qtd: number): typeof BIND_GROUPS {
   const groups: typeof BIND_GROUPS = [];
   for (let n = 1; n <= qtd; n++) {
     groups.push({
       group: `Destino ${n}`,
       fields: [
-        `trans_destino${n}`, `trans_saida${n}`, `trans_voo${n}`,
-        `trans_periodo${n}`, `trans_noites${n}`,
-        `trans_hotel${n}`, `trans_incluso${n}`,
-        `trans_pgto${n}`, `trans_parcelas${n}`, `trans_preco${n}`, `trans_avista${n}`,
+        `lam_d${n}_destino`, `lam_d${n}_saida`, `lam_d${n}_voo`,
+        `lam_d${n}_periodo`,
+        `lam_d${n}_hotel`, `lam_d${n}_incluso`,
+        `lam_d${n}_pgto`, `lam_d${n}_parcelas`, `lam_d${n}_valor`, `lam_d${n}_total`,
       ],
     });
   }
   return [
-    { group: "Imagens", fields: ["imgfundo", "imgloja"] },
-    { group: "Cabeçalho", fields: ["trans_titulo", "trans_subtitulo"] },
+    { group: "Imagens", fields: ["img_fundo", "logo_loja", "imgloja"] },
+    { group: "Cabeçalho", fields: ["lam_titulo1", "lam_titulo2"] },
     ...groups,
     { group: "Loja", fields: ["loja", "agente", "fone"] },
   ];

@@ -17,6 +17,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { ReactNode } from "react";
+import { supabase as _sb_for_lamina } from "@/lib/supabase";
 
 /* ── Constantes ──────────────────────────────────────── */
 
@@ -766,35 +767,78 @@ export function AnoiteceuForm({
   );
 }
 
-/* ── QuatroDestinosForm (Card WhatsApp / Transmissão V1) ─────
- * Port do agencia-form.tsx do V1 (tab === "transmissao"):
- *   - Cabeçalho global: trans_titulo + trans_subtitulo
- *   - 4 sub-abas de destino, cada uma com 12 campos
- *   - Sync para binds trans_{campo}{n} via useEffect
- * Layout bate com tmpl_base_quatro_destinos_* seedado em system_config.
+/* ── QuatroDestinosForm (Card WhatsApp / Lâmina V1) ─────
+ * Port fiel do V1 app.aurovista.com.br/lamina (AUROHUB FIRE/lamina.html):
+ *   - Globais: lam_titulo1, lam_titulo2, img_fundo, lam_palette
+ *   - 4 sub-abas destino → binds lam_d{n}_{campo}
+ *   - Paletas (4 cores), fundo aleatório (imgfundo table), upload, IA título
+ * Layout no template seedado usa as coords hardcoded do V1 (stories 1080×1920).
  */
 
-const TRANS_INCLUSO_OPTS = ["Aéreo + Hotel + Transfer", "Aéreo + Hotel", "Hotel + Transfer", "Só Hotel", "Cruzeiro"];
-const TRANS_VOO_OPTS = ["Voo Direto", "Voo Conexão"];
-const TRANS_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`);
+const LAM_INCLUSO_OPTS = ["Aéreo + Hotel + Transfer", "Aéreo + Hotel", "Hotel + Transfer", "Só Hotel", "Cruzeiro"];
+const LAM_VOO_OPTS = ["Voo Direto", "Voo Conexão"];
+const LAM_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`);
 
-interface TransDest {
+// 4 paletas do V1 (lamina.html:286-292). Default = índice 0 (Verde).
+const LAM_PALETTES = [
+  { name: "Verde",       accent: "#D4E600" },
+  { name: "Azul",        accent: "#1A56C4", bg: "#E8F0FE", text: "#0B1D3A" },
+  { name: "Azul Claro",  accent: "#16b5eb" },
+  { name: "Azul Escuro", accent: "#003366", bg: "#D6E4F0", text: "#0B1D3A" },
+];
+
+// 20 templates de título (V1 lamina.html:520-543). "{destino}" substituído pelo primeiro destino.
+const LAM_TITULO_TEMPLATES = [
+  { l1: "Férias dos Sonhos!",     l2: "Voe com a Azul Viagens" },
+  { l1: "Seu Paraíso te Espera",  l2: "Pacotes imperdíveis!" },
+  { l1: "Hora de Viajar!",        l2: "As melhores ofertas pra você" },
+  { l1: "Destinos Incríveis",     l2: "Reserve já sua viagem" },
+  { l1: "Viaje com a Azul!",      l2: "Preços que cabem no bolso" },
+  { l1: "Embarque Nessa!",        l2: "Ofertas exclusivas Azul" },
+  { l1: "Realize Seu Sonho",      l2: "Viaje com a Azul Viagens" },
+  { l1: "Promoção Relâmpago!",    l2: "Garanta já seu pacote" },
+  { l1: "Vem Pra Azul!",          l2: "Os melhores destinos te esperam" },
+  { l1: "Aventura te Chama!",     l2: "Pacotes a partir de 10x" },
+  { l1: "Escapada Perfeita",      l2: "Conheça destinos únicos" },
+  { l1: "Férias Inesquecíveis",   l2: "Faça suas malas!" },
+  { l1: "Oferta Especial!",       l2: "Só na Azul Viagens" },
+  { l1: "Próxima Parada:",        l2: "{destino}" },
+  { l1: "Bora pra {destino}?",    l2: "Pacotes com a Azul Viagens" },
+  { l1: "{destino} te Espera!",   l2: "Reserve com a Azul" },
+  { l1: "Partiu {destino}!",      l2: "As melhores condições" },
+  { l1: "Sonhe. Planeje. Viaje.", l2: "Azul Viagens te leva!" },
+  { l1: "Seu Destino é Aqui!",    l2: "Confira as ofertas" },
+  { l1: "Viaje Mais, Pague Menos", l2: "Ofertas Azul Viagens" },
+];
+
+interface LamDest {
   destino: string; saida: string; voo: string;
   ida: string; volta: string;
   hotel: string; incluso: string;
   pgto: "cartao" | "boleto" | "";
-  entrada: string; parcelas: string;
-  preco: string; precoAvista: string;
+  entrada: string; parc: string;
+  valor: string; total: string;
 }
 
-function emptyDest(): TransDest {
+function emptyLamDest(): LamDest {
   return {
     destino: "", saida: "", voo: "Voo Direto",
     ida: "", volta: "",
     hotel: "", incluso: "Aéreo + Hotel + Transfer",
-    pgto: "cartao", entrada: "", parcelas: "",
-    preco: "", precoAvista: "",
+    pgto: "cartao", entrada: "", parc: "",
+    valor: "", total: "",
   };
+}
+
+/** V1 lamina.html:623-631 — formato do período por período ida/volta. */
+function lamFormatPeriodo(ida: string, volta: string): string {
+  if (!ida || !volta) return "";
+  const [yi, mi, di] = ida.split("-");
+  const [yv, mv, dv] = volta.split("-");
+  const p = (n: string) => n.padStart(2, "0");
+  if (yi === yv && mi === mv) return `${p(di)} a ${p(dv)}/${p(mi)}/${yi}`;
+  if (yi === yv) return `${p(di)}/${p(mi)} a ${p(dv)}/${p(mv)}/${yi}`;
+  return `${p(di)}/${p(mi)}/${yi} a ${p(dv)}/${p(mv)}/${yv}`;
 }
 
 export function QuatroDestinosForm({
@@ -808,15 +852,18 @@ export function QuatroDestinosForm({
   loadHoteis?: () => Promise<string[]>;
 }) {
   const [cab, setCab] = useState({
-    titulo: String(fields.trans_titulo ?? ""),
-    subtitulo: String(fields.trans_subtitulo ?? ""),
+    titulo1: String(fields.lam_titulo1 ?? ""),
+    titulo2: String(fields.lam_titulo2 ?? ""),
   });
-  const [dests, setDests] = useState<TransDest[]>(() => [
-    emptyDest(), emptyDest(), emptyDest(), emptyDest(),
+  const [dests, setDests] = useState<LamDest[]>(() => [
+    emptyLamDest(), emptyLamDest(), emptyLamDest(), emptyLamDest(),
   ]);
   const [curDest, setCurDest] = useState(0);
   const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
   const [hotelOpts, setHotelOpts] = useState<string[]>([]);
+  const [palette, setPalette] = useState(0);
+  const [bgLoading, setBgLoading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (loadDestinos) loadDestinos().then(setDestinoOpts).catch(() => {});
@@ -824,70 +871,124 @@ export function QuatroDestinosForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync cabeçalho + dests → binds trans_*
+  // Sync para binds lam_* e img_fundo/logo_loja/lam_palette
   useEffect(() => {
-    set("trans_titulo", cab.titulo);
-    set("trans_subtitulo", cab.subtitulo);
+    set("lam_titulo1", cab.titulo1);
+    set("lam_titulo2", cab.titulo2);
+    set("lam_palette", String(palette));
     dests.forEach((d, i) => {
       const n = i + 1;
-      set(`trans_destino${n}`, d.destino ? d.destino.toUpperCase() : "");
-      set(`trans_saida${n}`, d.saida);
-      set(`trans_voo${n}`, d.voo);
-      if (d.ida && d.volta) {
-        const nts = calcularNoites(d.ida, d.volta);
-        const idaF = fmtDataCurta(d.ida);
-        const voltaF = fmtDate(d.volta);
-        set(`trans_periodo${n}`, `${idaF} a ${voltaF}`);
-        set(`trans_noites${n}`, nts > 0 ? String(nts) : "");
-      } else {
-        set(`trans_periodo${n}`, "");
-        set(`trans_noites${n}`, "");
-      }
-      set(`trans_hotel${n}`, d.hotel);
-      set(`trans_incluso${n}`, d.incluso);
+      set(`lam_d${n}_destino`, d.destino ? d.destino.toUpperCase() : "");
+      set(`lam_d${n}_saida`, d.saida);
+      set(`lam_d${n}_voo`, d.voo);
+      set(`lam_d${n}_periodo`, lamFormatPeriodo(d.ida, d.volta));
+      set(`lam_d${n}_hotel`, d.hotel);
+      set(`lam_d${n}_incluso`, d.incluso);
+      // pgto: V1 resolution rules
       set(
-        `trans_pgto${n}`,
+        `lam_d${n}_pgto`,
         d.pgto === "cartao"
           ? "No Cartão de Crédito S/ Juros"
-          : d.pgto === "boleto" && d.entrada
-            ? `Entrada de R$ ${d.entrada} +`
+          : d.pgto === "boleto"
+            ? (d.entrada ? `Entrada de R$ ${d.entrada} +` : "Boleto")
             : "",
       );
-      set(`trans_parcelas${n}`, d.parcelas);
-      set(`trans_preco${n}`, d.preco);
-      set(`trans_avista${n}`, d.precoAvista ? `ou R$ ${d.precoAvista} à vista por pessoa` : "");
+      // parcelas: adiciona "x" se não tiver
+      set(`lam_d${n}_parcelas`, d.parc ? (/x$/i.test(d.parc) ? d.parc : `${d.parc}x`) : "");
+      set(`lam_d${n}_valor`, d.valor);
+      // total: "ou R$ X à vista por pessoa"
+      set(`lam_d${n}_total`, d.total ? `ou R$ ${d.total} à vista por pessoa` : "");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cab, dests]);
+  }, [cab, dests, palette]);
 
-  const updateDest = (idx: number, patch: Partial<TransDest>) =>
+  const updateDest = (idx: number, patch: Partial<LamDest>) =>
     setDests((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
 
   const d = dests[curDest];
   const nts = d.ida && d.volta ? calcularNoites(d.ida, d.volta) : 0;
 
+  /* ── Ações de personalização ──────────────────── */
+
+  async function handleShuffleBg() {
+    setBgLoading(true);
+    try {
+      // Tenta primeiro tabela "artes"; se não existir, cai pra "imgfundo" (99 fundos)
+      const tryTable = async (table: string) =>
+        _sb_for_lamina.from(table).select("url").limit(500);
+      let res = await tryTable("artes");
+      if (res.error) res = await tryTable("imgfundo");
+      const rows = (res.data ?? []) as { url: string }[];
+      if (!rows.length) { alert("Nenhum fundo disponível na biblioteca."); return; }
+      const pick = rows[Math.floor(Math.random() * rows.length)];
+      if (pick?.url) set("img_fundo", pick.url);
+    } catch (err) {
+      console.error("[Lâmina] shuffle bg:", err);
+    } finally {
+      setBgLoading(false);
+    }
+  }
+
+  function handleUploadBg(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) set("img_fundo", String(reader.result));
+    };
+    reader.readAsDataURL(f);
+    e.target.value = "";
+  }
+
+  function handleClearBg() {
+    set("img_fundo", "");
+  }
+
+  function handleIATitulo() {
+    const firstDst = dests.map((x) => x.destino).filter(Boolean)[0] || "seu destino";
+    const tmpl = LAM_TITULO_TEMPLATES[Math.floor(Math.random() * LAM_TITULO_TEMPLATES.length)];
+    let l1 = tmpl.l1.replace("{destino}", firstDst);
+    let l2 = tmpl.l2.replace("{destino}", firstDst);
+    if (l1.length > 25) l1 = l1.slice(0, 24) + "…";
+    if (l2.length > 30) l2 = l2.slice(0, 29) + "…";
+    setCab({ titulo1: l1, titulo2: l2 });
+  }
+
   return (
     <>
-      <Section title="Cabeçalho" icon="✦">
-        <Field label="Linha 1 (título)">
-          <input
-            value={cab.titulo}
-            onChange={(e) => setCab((p) => ({ ...p, titulo: e.target.value }))}
-            placeholder="Férias dos Sonhos Já!"
-            className={INPUT_CLASS}
-          />
+      <Section title="Título da Arte" icon="✦">
+        <Field label="Linha 1">
+          <div className="flex gap-1.5">
+            <input
+              value={cab.titulo1}
+              onChange={(e) => setCab((p) => ({ ...p, titulo1: e.target.value }))}
+              placeholder="Férias dos Sonhos Já!"
+              className={`${INPUT_CLASS} flex-1`}
+              maxLength={25}
+            />
+            <button
+              type="button"
+              onClick={handleIATitulo}
+              title="Sugerir com IA (offline)"
+              className="shrink-0 rounded-lg border px-2.5 text-[10px] font-bold"
+              style={{ borderColor: "var(--orange)", color: "var(--orange)", background: "rgba(255,122,26,0.08)" }}
+            >
+              ✦ IA
+            </button>
+          </div>
         </Field>
-        <Field label="Linha 2 (subtítulo)">
+        <Field label="Linha 2">
           <input
-            value={cab.subtitulo}
-            onChange={(e) => setCab((p) => ({ ...p, subtitulo: e.target.value }))}
+            value={cab.titulo2}
+            onChange={(e) => setCab((p) => ({ ...p, titulo2: e.target.value }))}
             placeholder="Voe com a Azul Viagens"
             className={INPUT_CLASS}
+            maxLength={30}
           />
         </Field>
       </Section>
 
-      {/* Sub-abas de destino */}
+      {/* Sub-abas destino */}
       <div className="grid grid-cols-4 gap-1.5">
         {[0, 1, 2, 3].map((i) => {
           const active = curDest === i;
@@ -937,7 +1038,7 @@ export function QuatroDestinosForm({
               onChange={(e) => updateDest(curDest, { voo: e.target.value })}
               className={INPUT_CLASS}
             >
-              {TRANS_VOO_OPTS.map((v) => (
+              {LAM_VOO_OPTS.map((v) => (
                 <option key={v} value={v}>{v}</option>
               ))}
             </select>
@@ -968,7 +1069,7 @@ export function QuatroDestinosForm({
         </div>
         {nts > 0 && (
           <p className="text-[10px] text-[var(--txt3)]">
-            ✈ {nts} noite{nts === 1 ? "" : "s"} · {fmtDataCurta(d.ida)} a {fmtDate(d.volta)}
+            ✈ {nts} noite{nts === 1 ? "" : "s"} · {lamFormatPeriodo(d.ida, d.volta)}
           </p>
         )}
       </Section>
@@ -989,7 +1090,7 @@ export function QuatroDestinosForm({
             onChange={(e) => updateDest(curDest, { incluso: e.target.value })}
             className={INPUT_CLASS}
           >
-            {TRANS_INCLUSO_OPTS.map((v) => (
+            {LAM_INCLUSO_OPTS.map((v) => (
               <option key={v} value={v}>{v}</option>
             ))}
           </select>
@@ -997,26 +1098,20 @@ export function QuatroDestinosForm({
       </Section>
 
       <Section title="Pagamento" icon="💰">
-        <div className="grid grid-cols-2 gap-2">
-          {(["cartao", "boleto"] as const).map((v) => {
-            const active = d.pgto === v;
-            return (
-              <button
-                key={v}
-                type="button"
-                onClick={() => updateDest(curDest, { pgto: v, ...(v === "cartao" ? { entrada: "" } : {}) })}
-                className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
-                style={
-                  active
-                    ? { background: "var(--orange)", color: "#FFFFFF", borderColor: "var(--orange)" }
-                    : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                }
-              >
-                {v === "cartao" ? "Cartão" : "Boleto"}
-              </button>
-            );
-          })}
-        </div>
+        <Field label="Forma de Pagamento">
+          <select
+            value={d.pgto}
+            onChange={(e) => {
+              const v = e.target.value as LamDest["pgto"];
+              updateDest(curDest, { pgto: v, ...(v === "cartao" ? { entrada: "" } : {}) });
+            }}
+            className={INPUT_CLASS}
+          >
+            <option value="">– selecione –</option>
+            <option value="cartao">Cartão de Crédito</option>
+            <option value="boleto">Boleto</option>
+          </select>
+        </Field>
         {d.pgto === "boleto" && (
           <Field label="Valor da Entrada (R$)">
             <input
@@ -1030,16 +1125,16 @@ export function QuatroDestinosForm({
         <div className="grid grid-cols-2 gap-2">
           <Field label="Parcelas">
             <SearchableSelect
-              value={d.parcelas}
-              onChange={(v) => updateDest(curDest, { parcelas: v })}
-              options={TRANS_PARCELAS_OPTS}
+              value={d.parc}
+              onChange={(v) => updateDest(curDest, { parc: v })}
+              options={LAM_PARCELAS_OPTS}
               placeholder="12x"
             />
           </Field>
           <Field label="Valor Parcela">
             <input
-              value={d.preco}
-              onChange={(e) => updateDest(curDest, { preco: e.target.value })}
+              value={d.valor}
+              onChange={(e) => updateDest(curDest, { valor: e.target.value })}
               placeholder="890,00"
               className={INPUT_CLASS}
             />
@@ -1047,22 +1142,70 @@ export function QuatroDestinosForm({
         </div>
         <Field label="À Vista (por pessoa)">
           <input
-            value={d.precoAvista}
-            onChange={(e) => updateDest(curDest, { precoAvista: e.target.value })}
+            value={d.total}
+            onChange={(e) => updateDest(curDest, { total: e.target.value })}
             placeholder="8.900,00"
             className={INPUT_CLASS}
           />
         </Field>
-        {(d.pgto || d.precoAvista) && (
-          <div
-            className="rounded-lg border px-3 py-2 text-[10px] font-medium leading-relaxed"
-            style={{ background: "rgba(212,168,67,0.1)", borderColor: "rgba(212,168,67,0.3)", color: "var(--orange)" }}
-          >
-            {d.pgto === "cartao" && <div>No Cartão de Crédito S/ Juros</div>}
-            {d.pgto === "boleto" && d.entrada && <div>Entrada de R$ {d.entrada} +</div>}
-            {d.precoAvista && <div>ou R$ {d.precoAvista} à vista por pessoa</div>}
+      </Section>
+
+      <Section title="Personalização Visual" icon="✦">
+        <Field label="Cor tema">
+          <div className="flex gap-1.5">
+            {LAM_PALETTES.map((p, i) => {
+              const active = palette === i;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setPalette(i)}
+                  title={p.name}
+                  className="rounded-md transition-all"
+                  style={{
+                    width: 26, height: 26,
+                    background: p.accent,
+                    border: active ? "2px solid var(--txt)" : "2px solid transparent",
+                    transform: active ? "scale(1.12)" : "scale(1)",
+                  }}
+                />
+              );
+            })}
           </div>
-        )}
+          <p className="mt-1 text-[10px] text-[var(--txt3)]">Selecionado: <strong>{LAM_PALETTES[palette].name}</strong></p>
+        </Field>
+        <Field label="Fundo">
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={handleShuffleBg}
+              disabled={bgLoading}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+              style={{ borderColor: "var(--bdr)", color: "var(--txt2)" }}
+            >
+              {bgLoading ? "Buscando…" : "⟳ Aleatório"}
+            </button>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+              style={{ borderColor: "var(--bdr)", color: "var(--txt2)" }}
+            >
+              ↑ Upload
+            </button>
+            {fields.img_fundo ? (
+              <button
+                type="button"
+                onClick={handleClearBg}
+                className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+                style={{ borderColor: "var(--bdr)", color: "var(--txt3)" }}
+              >
+                ✕ Limpar
+              </button>
+            ) : null}
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUploadBg} />
+          </div>
+        </Field>
       </Section>
     </>
   );
