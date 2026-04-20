@@ -765,3 +765,305 @@ export function AnoiteceuForm({
     </>
   );
 }
+
+/* ── QuatroDestinosForm (Card WhatsApp / Transmissão V1) ─────
+ * Port do agencia-form.tsx do V1 (tab === "transmissao"):
+ *   - Cabeçalho global: trans_titulo + trans_subtitulo
+ *   - 4 sub-abas de destino, cada uma com 12 campos
+ *   - Sync para binds trans_{campo}{n} via useEffect
+ * Layout bate com tmpl_base_quatro_destinos_* seedado em system_config.
+ */
+
+const TRANS_INCLUSO_OPTS = ["Aéreo + Hotel + Transfer", "Aéreo + Hotel", "Hotel + Transfer", "Só Hotel", "Cruzeiro"];
+const TRANS_VOO_OPTS = ["Voo Direto", "Voo Conexão"];
+const TRANS_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`);
+
+interface TransDest {
+  destino: string; saida: string; voo: string;
+  ida: string; volta: string;
+  hotel: string; incluso: string;
+  pgto: "cartao" | "boleto" | "";
+  entrada: string; parcelas: string;
+  preco: string; precoAvista: string;
+}
+
+function emptyDest(): TransDest {
+  return {
+    destino: "", saida: "", voo: "Voo Direto",
+    ida: "", volta: "",
+    hotel: "", incluso: "Aéreo + Hotel + Transfer",
+    pgto: "cartao", entrada: "", parcelas: "",
+    preco: "", precoAvista: "",
+  };
+}
+
+export function QuatroDestinosForm({
+  fields, set, today,
+  loadDestinos, loadHoteis,
+}: {
+  fields: Fields;
+  set: Setter;
+  today: string;
+  loadDestinos?: () => Promise<string[]>;
+  loadHoteis?: () => Promise<string[]>;
+}) {
+  const [cab, setCab] = useState({
+    titulo: String(fields.trans_titulo ?? ""),
+    subtitulo: String(fields.trans_subtitulo ?? ""),
+  });
+  const [dests, setDests] = useState<TransDest[]>(() => [
+    emptyDest(), emptyDest(), emptyDest(), emptyDest(),
+  ]);
+  const [curDest, setCurDest] = useState(0);
+  const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
+  const [hotelOpts, setHotelOpts] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (loadDestinos) loadDestinos().then(setDestinoOpts).catch(() => {});
+    if (loadHoteis) loadHoteis().then(setHotelOpts).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync cabeçalho + dests → binds trans_*
+  useEffect(() => {
+    set("trans_titulo", cab.titulo);
+    set("trans_subtitulo", cab.subtitulo);
+    dests.forEach((d, i) => {
+      const n = i + 1;
+      set(`trans_destino${n}`, d.destino ? d.destino.toUpperCase() : "");
+      set(`trans_saida${n}`, d.saida);
+      set(`trans_voo${n}`, d.voo);
+      if (d.ida && d.volta) {
+        const nts = calcularNoites(d.ida, d.volta);
+        const idaF = fmtDataCurta(d.ida);
+        const voltaF = fmtDate(d.volta);
+        set(`trans_periodo${n}`, `${idaF} a ${voltaF}`);
+        set(`trans_noites${n}`, nts > 0 ? String(nts) : "");
+      } else {
+        set(`trans_periodo${n}`, "");
+        set(`trans_noites${n}`, "");
+      }
+      set(`trans_hotel${n}`, d.hotel);
+      set(`trans_incluso${n}`, d.incluso);
+      set(
+        `trans_pgto${n}`,
+        d.pgto === "cartao"
+          ? "No Cartão de Crédito S/ Juros"
+          : d.pgto === "boleto" && d.entrada
+            ? `Entrada de R$ ${d.entrada} +`
+            : "",
+      );
+      set(`trans_parcelas${n}`, d.parcelas);
+      set(`trans_preco${n}`, d.preco);
+      set(`trans_avista${n}`, d.precoAvista ? `ou R$ ${d.precoAvista} à vista por pessoa` : "");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cab, dests]);
+
+  const updateDest = (idx: number, patch: Partial<TransDest>) =>
+    setDests((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
+
+  const d = dests[curDest];
+  const nts = d.ida && d.volta ? calcularNoites(d.ida, d.volta) : 0;
+
+  return (
+    <>
+      <Section title="Cabeçalho" icon="✦">
+        <Field label="Linha 1 (título)">
+          <input
+            value={cab.titulo}
+            onChange={(e) => setCab((p) => ({ ...p, titulo: e.target.value }))}
+            placeholder="Férias dos Sonhos Já!"
+            className={INPUT_CLASS}
+          />
+        </Field>
+        <Field label="Linha 2 (subtítulo)">
+          <input
+            value={cab.subtitulo}
+            onChange={(e) => setCab((p) => ({ ...p, subtitulo: e.target.value }))}
+            placeholder="Voe com a Azul Viagens"
+            className={INPUT_CLASS}
+          />
+        </Field>
+      </Section>
+
+      {/* Sub-abas de destino */}
+      <div className="grid grid-cols-4 gap-1.5">
+        {[0, 1, 2, 3].map((i) => {
+          const active = curDest === i;
+          const label = dests[i].destino
+            ? dests[i].destino.toUpperCase().slice(0, 8)
+            : `Dest ${i + 1}`;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setCurDest(i)}
+              className="rounded-lg border px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all"
+              style={
+                active
+                  ? { background: "var(--orange)", color: "#FFFFFF", borderColor: "var(--orange)" }
+                  : { background: "var(--bg1)", color: "var(--txt3)", borderColor: "var(--bdr)" }
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      <Section title="Destino & Voo" icon="📍">
+        <Field label="Destino">
+          <SearchableSelect
+            value={d.destino}
+            onChange={(v) => updateDest(curDest, { destino: capitalizarDestino(v) })}
+            options={destinoOpts}
+            placeholder="Buscar destino..."
+            allowCustom
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Saída">
+            <input
+              value={d.saida}
+              onChange={(e) => updateDest(curDest, { saida: e.target.value })}
+              placeholder="GRU"
+              className={INPUT_CLASS}
+            />
+          </Field>
+          <Field label="Tipo Voo">
+            <select
+              value={d.voo}
+              onChange={(e) => updateDest(curDest, { voo: e.target.value })}
+              className={INPUT_CLASS}
+            >
+              {TRANS_VOO_OPTS.map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Datas" icon="📅">
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Ida">
+            <input
+              type="date"
+              min={today}
+              value={d.ida}
+              onChange={(e) => updateDest(curDest, { ida: e.target.value })}
+              className={INPUT_CLASS}
+            />
+          </Field>
+          <Field label="Volta">
+            <input
+              type="date"
+              min={d.ida || today}
+              value={d.volta}
+              onChange={(e) => updateDest(curDest, { volta: e.target.value })}
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </div>
+        {nts > 0 && (
+          <p className="text-[10px] text-[var(--txt3)]">
+            ✈ {nts} noite{nts === 1 ? "" : "s"} · {fmtDataCurta(d.ida)} a {fmtDate(d.volta)}
+          </p>
+        )}
+      </Section>
+
+      <Section title="Hotel & Incluso" icon="🏨">
+        <Field label="Hotel">
+          <SearchableSelect
+            value={d.hotel}
+            onChange={(v) => updateDest(curDest, { hotel: v })}
+            options={hotelOpts}
+            placeholder="Buscar hotel..."
+            allowCustom
+          />
+        </Field>
+        <Field label="Incluso">
+          <select
+            value={d.incluso}
+            onChange={(e) => updateDest(curDest, { incluso: e.target.value })}
+            className={INPUT_CLASS}
+          >
+            {TRANS_INCLUSO_OPTS.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+        </Field>
+      </Section>
+
+      <Section title="Pagamento" icon="💰">
+        <div className="grid grid-cols-2 gap-2">
+          {(["cartao", "boleto"] as const).map((v) => {
+            const active = d.pgto === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => updateDest(curDest, { pgto: v, ...(v === "cartao" ? { entrada: "" } : {}) })}
+                className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
+                style={
+                  active
+                    ? { background: "var(--orange)", color: "#FFFFFF", borderColor: "var(--orange)" }
+                    : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                }
+              >
+                {v === "cartao" ? "Cartão" : "Boleto"}
+              </button>
+            );
+          })}
+        </div>
+        {d.pgto === "boleto" && (
+          <Field label="Valor da Entrada (R$)">
+            <input
+              value={d.entrada}
+              onChange={(e) => updateDest(curDest, { entrada: e.target.value })}
+              placeholder="1.500,00"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Parcelas">
+            <SearchableSelect
+              value={d.parcelas}
+              onChange={(v) => updateDest(curDest, { parcelas: v })}
+              options={TRANS_PARCELAS_OPTS}
+              placeholder="12x"
+            />
+          </Field>
+          <Field label="Valor Parcela">
+            <input
+              value={d.preco}
+              onChange={(e) => updateDest(curDest, { preco: e.target.value })}
+              placeholder="890,00"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </div>
+        <Field label="À Vista (por pessoa)">
+          <input
+            value={d.precoAvista}
+            onChange={(e) => updateDest(curDest, { precoAvista: e.target.value })}
+            placeholder="8.900,00"
+            className={INPUT_CLASS}
+          />
+        </Field>
+        {(d.pgto || d.precoAvista) && (
+          <div
+            className="rounded-lg border px-3 py-2 text-[10px] font-medium leading-relaxed"
+            style={{ background: "rgba(212,168,67,0.1)", borderColor: "rgba(212,168,67,0.3)", color: "var(--orange)" }}
+          >
+            {d.pgto === "cartao" && <div>No Cartão de Crédito S/ Juros</div>}
+            {d.pgto === "boleto" && d.entrada && <div>Entrada de R$ {d.entrada} +</div>}
+            {d.precoAvista && <div>ou R$ {d.precoAvista} à vista por pessoa</div>}
+          </div>
+        )}
+      </Section>
+    </>
+  );
+}

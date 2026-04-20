@@ -11,7 +11,7 @@ import { useBadges } from "@/hooks/useBadges";
 import { usePublishQueue } from "@/hooks/usePublishQueue";
 import type { EditorSchema } from "@/components/editor/types";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
-import { CampanhaForm, CruzeiroForm, AnoiteceuForm } from "@/components/publish/FormSections";
+import { CampanhaForm, CruzeiroForm, AnoiteceuForm, QuatroDestinosForm } from "@/components/publish/FormSections";
 import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
   Image as ImageIcon, Search as SearchIcon, ChevronDown,
@@ -1178,11 +1178,13 @@ export default function GerentePublicarPage() {
         {/* Scroll dos campos */}
         <div className="flex-1 overflow-y-auto p-4">
           {tab === "quatro_destinos" && (
-            <div className="flex flex-col items-center gap-2 py-12 text-center">
-              <Sparkles size={28} className="text-[var(--txt3)]" />
-              <div className="text-[13px] font-semibold text-[var(--txt2)]">Card WhatsApp</div>
-              <div className="text-[11px] text-[var(--txt3)]">Add-on em breve — formulário ainda em desenvolvimento.</div>
-            </div>
+            <QuatroDestinosForm
+              fields={formAdapter.fields}
+              set={formAdapter.set}
+              today={hoje}
+              loadDestinos={loadDestinos}
+              loadHoteis={loadHoteis}
+            />
           )}
           {tab !== "quatro_destinos" && !currentTemplate && (
             <div className="flex flex-col items-center gap-2 py-8 text-center">

@@ -14,6 +14,7 @@ import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
   Image as ImageIcon, Search as SearchIcon, ChevronDown,
 } from "lucide-react";
+import { QuatroDestinosForm } from "@/components/publish/FormSections";
 
 const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
 
@@ -1148,11 +1149,13 @@ export default function UnidadePublicarPage() {
         {/* Scroll dos campos */}
         <div className="flex-1 overflow-y-auto p-4">
           {tab === "quatro_destinos" && (
-            <div className="flex flex-col items-center gap-2 py-12 text-center">
-              <Sparkles size={28} className="text-[var(--txt3)]" />
-              <div className="text-[13px] font-semibold text-[var(--txt2)]">Card WhatsApp</div>
-              <div className="text-[11px] text-[var(--txt3)]">Add-on em breve — formulário ainda em desenvolvimento.</div>
-            </div>
+            <QuatroDestinosForm
+              fields={values}
+              set={setField}
+              today={hoje}
+              loadDestinos={loadDestinos}
+              loadHoteis={loadHoteis}
+            />
           )}
           {tab !== "quatro_destinos" && !currentTemplate && (
             <div className="flex flex-col items-center gap-2 py-8 text-center">

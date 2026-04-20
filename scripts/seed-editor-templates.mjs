@@ -110,38 +110,46 @@ function quatroDestinos(w, h) {
   seq = 0;
   const isTv = w > h;
   const pad = 30;
-  const titH = 80;
-  const ljH = 100;
-  const gridTop = titH + pad * 2;
+  const titH = 100;
+  const ljH = 90;
+  const gridTop = titH + pad;
   const gridH = h - gridTop - ljH - pad;
-  const cols = 2, rows = 2;
-  const cellGap = 20;
-  const cellW = (w - pad * 2 - cellGap) / cols;
-  const cellH = (gridH - cellGap) / rows;
+  const cellGap = 18;
+  const cellW = (w - pad * 2 - cellGap) / 2;
+  const cellH = (gridH - cellGap) / 2;
 
   const els = [
     { id: nid("bg"), type: "image", name: "Fundo", x: 0, y: 0, width: w, height: h, bindParam: "imgfundo", imageFit: "cover", opacity: 1 },
-    { id: nid("ovl"), type: "rect", name: "Overlay", x: 0, y: 0, width: w, height: h, fill: BG, opacity: 0.55 },
-    { id: nid("tit"), type: "text", name: "Chamada", x: pad, y: pad, width: w - pad * 2, height: titH - pad, text: "[titulo]", fontSize: isTv ? 36 : 42, fontFamily: FONT, fontStyle: "bold", fill: WHITE, align: "center", bindParam: "titulo", opacity: 1 },
+    { id: nid("ovl"), type: "rect", name: "Overlay", x: 0, y: 0, width: w, height: h, fill: BG, opacity: 0.62 },
+    { id: nid("tit"), type: "text", name: "Linha 1 (título)", x: pad, y: 20, width: w - pad * 2, height: 46, text: "[trans_titulo]", fontSize: isTv ? 32 : 38, fontFamily: FONT, fontStyle: "bold", fill: WHITE, align: "center", bindParam: "trans_titulo", opacity: 1 },
+    { id: nid("sub"), type: "text", name: "Linha 2 (subtítulo)", x: pad, y: 70, width: w - pad * 2, height: 28, text: "[trans_subtitulo]", fontSize: isTv ? 18 : 22, fontFamily: FONT, fill: GOLD, align: "center", bindParam: "trans_subtitulo", opacity: 1 },
   ];
 
   for (let n = 1; n <= 4; n++) {
-    const col = (n - 1) % cols;
-    const row = Math.floor((n - 1) / cols);
+    const col = (n - 1) % 2;
+    const row = Math.floor((n - 1) / 2);
     const cx = pad + col * (cellW + cellGap);
     const cy = gridTop + row * (cellH + cellGap);
-    const imgH = cellH * 0.55;
-    const txtH = cellH - imgH;
-    const txtY = cy + imgH;
-    els.push({ id: nid(`d${n}_card`), type: "rect", name: `Destino ${n} card`, x: cx, y: cy, width: cellW, height: cellH, fill: CARDBG, opacity: 0.9, cornerRadius: 18 });
-    els.push({ id: nid(`d${n}_img`), type: "image", name: `Destino ${n} imagem`, x: cx, y: cy, width: cellW, height: imgH, bindParam: `d${n}_imgdestino`, imageFit: "cover", cornerRadius: 18, opacity: 1 });
-    els.push({ id: nid(`d${n}_nome`), type: "text", name: `Destino ${n} nome`, x: cx + 14, y: txtY + 10, width: cellW - 28, height: 42, text: `[d${n}_destino]`, fontSize: isTv ? 26 : 30, fontFamily: FONT, fontStyle: "bold", fill: WHITE, align: "left", bindParam: `d${n}_destino`, opacity: 1 });
-    els.push({ id: nid(`d${n}_per`), type: "text", name: `Destino ${n} período`, x: cx + 14, y: txtY + 56, width: cellW - 28, height: 28, text: `[d${n}_dataida] a [d${n}_datavolta]`, fontSize: isTv ? 15 : 17, fontFamily: FONT, fill: WHITE, align: "left", opacity: 1 });
-    els.push({ id: nid(`d${n}_pre`), type: "text", name: `Destino ${n} preço`, x: cx + 14, y: txtY + txtH - 60, width: cellW - 28, height: 40, text: `[d${n}_parcelas]x R$ [d${n}_valorparcela]`, fontSize: isTv ? 20 : 22, fontFamily: FONT, fontStyle: "bold", fill: GOLD, align: "left", bindParam: `d${n}_valorparcela`, opacity: 1 });
+    const dstSz = isTv ? 26 : 32;
+    const txtSz = isTv ? 13 : 15;
+    const parSz = isTv ? 18 : 22;
+    const preSz = isTv ? 22 : 26;
+    els.push({ id: nid(`d${n}_card`), type: "rect", name: `Destino ${n}`, x: cx, y: cy, width: cellW, height: cellH, fill: CARDBG, opacity: 0.94, cornerRadius: 20 });
+    els.push({ id: nid(`d${n}_dst`), type: "text", name: `D${n} destino`, x: cx + 14, y: cy + 14, width: cellW - 28, height: 44, text: `[trans_destino${n}]`, fontSize: dstSz, fontFamily: FONT, fontStyle: "bold", fill: WHITE, align: "left", bindParam: `trans_destino${n}`, opacity: 1 });
+    els.push({ id: nid(`d${n}_per`), type: "text", name: `D${n} período`, x: cx + 14, y: cy + 62, width: cellW - 28, height: 24, text: `[trans_periodo${n}]`, fontSize: txtSz, fontFamily: FONT, fill: WHITE, align: "left", bindParam: `trans_periodo${n}`, opacity: 1 });
+    els.push({ id: nid(`d${n}_hot`), type: "text", name: `D${n} hotel`, x: cx + 14, y: cy + 90, width: cellW - 28, height: 24, text: `[trans_hotel${n}]`, fontSize: txtSz, fontFamily: FONT, fill: WHITE, align: "left", bindParam: `trans_hotel${n}`, opacity: 0.88 });
+    els.push({ id: nid(`d${n}_inc`), type: "text", name: `D${n} incluso`, x: cx + 14, y: cy + 118, width: cellW - 28, height: 22, text: `[trans_incluso${n}]`, fontSize: txtSz - 1, fontFamily: FONT, fill: WHITE, align: "left", bindParam: `trans_incluso${n}`, opacity: 0.72 });
+
+    // Bloco de preço no rodapé do card
+    const priceY = cy + cellH - 96;
+    els.push({ id: nid(`d${n}_pgto`), type: "text", name: `D${n} forma pgto`, x: cx + 14, y: priceY, width: cellW - 28, height: 22, text: `[trans_pgto${n}]`, fontSize: txtSz - 1, fontFamily: FONT, fill: GOLD, align: "left", bindParam: `trans_pgto${n}`, opacity: 1 });
+    els.push({ id: nid(`d${n}_par`), type: "text", name: `D${n} parcelas`, x: cx + 14, y: priceY + 24, width: 96, height: 32, text: `[trans_parcelas${n}]`, fontSize: parSz, fontFamily: FONT, fontStyle: "bold", fill: GOLD, align: "left", bindParam: `trans_parcelas${n}`, opacity: 1 });
+    els.push({ id: nid(`d${n}_pre`), type: "text", name: `D${n} preço`, x: cx + 116, y: priceY + 22, width: cellW - 132, height: 34, text: `R$ [trans_preco${n}]`, fontSize: preSz, fontFamily: FONT, fontStyle: "bold", fill: GOLD, align: "left", bindParam: `trans_preco${n}`, opacity: 1 });
+    els.push({ id: nid(`d${n}_av`), type: "text", name: `D${n} à vista`, x: cx + 14, y: priceY + 62, width: cellW - 28, height: 22, text: `[trans_avista${n}]`, fontSize: txtSz - 2, fontFamily: FONT, fill: WHITE, align: "left", bindParam: `trans_avista${n}`, opacity: 0.85 });
   }
 
-  els.push({ id: nid("ilj"), type: "image", name: "Logo Loja", x: pad, y: h - ljH, width: 180, height: ljH - pad, bindParam: "imgloja", imageFit: "contain", opacity: 1 });
-  els.push({ id: nid("lj"), type: "text", name: "Loja", x: pad + 200, y: h - ljH + 10, width: w - pad * 2 - 220, height: 32, text: "[loja]", fontSize: isTv ? 20 : 22, fontFamily: FONT, fill: WHITE, align: "left", bindParam: "loja", opacity: 1 });
+  els.push({ id: nid("ilj"), type: "image", name: "Logo Loja", x: pad, y: h - ljH, width: 160, height: ljH - 20, bindParam: "imgloja", imageFit: "contain", opacity: 1 });
+  els.push({ id: nid("lj"), type: "text", name: "Loja", x: pad + 180, y: h - ljH + 14, width: w - pad * 2 - 200, height: 32, text: "[loja]", fontSize: isTv ? 18 : 22, fontFamily: FONT, fill: WHITE, align: "left", bindParam: "loja", opacity: 1 });
   return els;
 }
 
