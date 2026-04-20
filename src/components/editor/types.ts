@@ -223,8 +223,12 @@ export function isBadgeBind(param: string): boolean {
   return param in BADGE_FOLDERS || param.endsWith("_badge");
 }
 
-export function getBindGroups(formType?: string): typeof BIND_GROUPS {
+export function getBindGroups(formType?: string, qtdDestinos: number = 4): typeof BIND_GROUPS {
   if (!formType) return BIND_GROUPS;
+  // Card WhatsApp (Lâmina) tem binds dinâmicos por destino (lam_d{n}_*) —
+  // delega pra getLaminaBindGroups. Sem isso, caía no fallback genérico
+  // e o dropdown mostrava badge/allinclusive/ofertas/destino etc de outros formTypes.
+  if (formType === "lamina") return getLaminaBindGroups(qtdDestinos);
   return BIND_GROUPS_BY_FORM[formType] ?? BIND_GROUPS;
 }
 
