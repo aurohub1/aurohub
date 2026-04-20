@@ -1,5 +1,5 @@
 import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Hexagon, AlignCenter, ArrowUp, ArrowDown, ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Eye, EyeOff, Trash2, QrCode, FolderOpen, Package, MapPin } from "lucide-react";
-import { EditorElement, EditorSchema, BIND_GROUPS, FONTS, genId, getLaminaBindGroups, getImageBindFields } from "./types";
+import { EditorElement, EditorSchema, FONTS, genId, getBindGroups, getLaminaBindGroups, getImageBindFields } from "./types";
 
 interface Props {
   schema: EditorSchema; selectedId: string | null;
@@ -16,7 +16,12 @@ interface Props {
 }
 
 export default function ToolsPanel(p: Props) {
-  const bindGroups = p.formType === "lamina" ? getLaminaBindGroups(p.qtdDestinos || 4) : BIND_GROUPS;
+  // Dropdown "Campo Bind": filtra por formType do template aberto.
+  // Lamina é dinâmico (qtdDestinos); outros formTypes vêm de BIND_GROUPS_BY_FORM
+  // via getBindGroups; sem formType → BIND_GROUPS genérico de fallback.
+  const bindGroups = p.formType === "lamina"
+    ? getLaminaBindGroups(p.qtdDestinos || 4)
+    : getBindGroups(p.formType);
 
   const add = (type: EditorElement["type"], overrides: Partial<EditorElement> = {}) => {
     const defaults: Record<string, Partial<EditorElement>> = {
