@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import { getProfile, type FullProfile } from "@/lib/auth";
 
 interface CanvasTemplate {
   key: string;
@@ -13,9 +14,11 @@ interface CanvasTemplate {
   formType: string;
   segmento: string;
   updatedAt: string | null;
+  licenseeId: string | null;
   licenseeNome: string;
   lojaNome: string;
   thumbnail: string | null;
+  isBase: boolean;
 }
 
 const SEGMENTOS = ["Turismo", "Eventos", "Gastronomia", "Imobiliário", "Saúde", "Educação", "Geral"];
@@ -113,6 +116,14 @@ export default function EditorTemplatesPage() {
   const [canvasTemplates, setCanvasTemplates] = useState<CanvasTemplate[]>([]);
   const [canvasLoading, setCanvasLoading] = useState(true);
   const [thumbUploadingKey, setThumbUploadingKey] = useState<string | null>(null);
+  const [profile, setProfile] = useState<FullProfile | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const p = await getProfile(supabase);
+      setProfile(p);
+    })();
+  }, []);
 
   async function persistField(key: string, field: string, value: string) {
     const { data: row } = await supabase
@@ -201,28 +212,33 @@ export default function EditorTemplatesPage() {
         .like("key", "tmpl_%")
         .order("updated_at", { ascending: false });
       const list: CanvasTemplate[] = (data || []).map((r: { key: string; value: string; updated_at: string }) => {
-        let nome = "", format = "—", formType = "—", segmento = "Geral", licenseeNome = "Sem marca", lojaNome = "Sem loja", thumbnail: string | null = null;
+        let nome = "", format = "—", formType = "—", segmento = "Geral", licenseeId: string | null = null, licenseeNome = "Sem marca", lojaNome = "Sem loja", thumbnail: string | null = null, parsedIsBase = false;
         try {
           const parsed = JSON.parse(r.value);
           nome = parsed.nome || "";
           format = parsed.format || "—";
           formType = parsed.formType || "—";
           segmento = parsed.segmento || "Geral";
+          licenseeId = parsed.licenseeId ?? null;
           licenseeNome = parsed.licenseeNome || "Sem marca";
           lojaNome = parsed.lojaNome || "Sem loja";
           thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null;
+          parsedIsBase = parsed.is_base === true;
         } catch {}
+        const isBase = parsedIsBase || r.key.startsWith("tmpl_base_");
         return {
           key: r.key,
-          displayName: r.key.replace(/^tmpl_/, ""),
+          displayName: r.key.replace(/^tmpl_(base_)?/, ""),
           nome,
           format,
           formType,
           segmento,
           updatedAt: r.updated_at,
+          licenseeId,
           licenseeNome,
           lojaNome,
           thumbnail,
+          isBase,
         };
       });
       setCanvasTemplates(list);
@@ -236,9 +252,24 @@ export default function EditorTemplatesPage() {
     router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`);
   };
 
-  const groupedCanvasTemplates = useMemo(() => {
+  const baseTemplatesGrouped = useMemo(() => {
+    const map: Record<string, CanvasTemplate[]> = {};
+    for (const t of canvasTemplates) {
+      if (!t.isBase) continue;
+      const seg = t.segmento || "Sem segmento";
+      if (!map[seg]) map[seg] = [];
+      map[seg].push(t);
+    }
+    return map;
+  }, [canvasTemplates]);
+
+  const userTemplatesGrouped = useMemo(() => {
+    const isAdm = profile?.role === "adm";
+    const ownLic = profile?.licensee_id ?? null;
     const map: Record<string, Record<string, CanvasTemplate[]>> = {};
     for (const t of canvasTemplates) {
+      if (t.isBase) continue;
+      if (!isAdm && t.licenseeId !== ownLic) continue;
       const lic = t.licenseeNome;
       const seg = t.segmento || "Sem segmento";
       if (!map[lic]) map[lic] = {};
@@ -246,7 +277,12 @@ export default function EditorTemplatesPage() {
       map[lic][seg].push(t);
     }
     return map;
-  }, [canvasTemplates]);
+  }, [canvasTemplates, profile]);
+
+  const userTemplatesCount = useMemo(() =>
+    Object.values(userTemplatesGrouped).reduce((a, segs) =>
+      a + Object.values(segs).reduce((b, arr) => b + arr.length, 0), 0),
+    [userTemplatesGrouped]);
 
   const deleteCanvasTmpl = async (key: string) => {
     if (!confirm(`Excluir template "${key.replace(/^tmpl_/, "")}"?\n\nEsta ação não pode ser desfeita.`)) return;
@@ -498,15 +534,115 @@ export default function EditorTemplatesPage() {
 
   const hasFilters = search || fFormat || fSegment || fStatus;
 
+  /* ── Card do canvas (reused em Templates Base e Meus Templates) ─ */
+  function renderCanvasCard(t: CanvasTemplate) {
+    return (
+      <div key={t.key} data-tmpl-key={t.key} className="relative overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)]" style={{ background: "var(--bg1)" }}>
+        {t.isBase && (
+          <span className="absolute top-2 left-2 z-10 rounded-full bg-[#D4A843] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#1E3A6E] shadow">Base</span>
+        )}
+        {t.thumbnail ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={t.thumbnail} alt="" className="h-24 w-full object-cover" />
+        ) : (
+          <div className="flex h-24 items-center justify-center" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">{t.format}</span>
+          </div>
+        )}
+        <div className="px-4 py-3">
+          <input
+            type="text"
+            defaultValue={t.nome || t.displayName}
+            onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.nome) saveNome(t.key, v); }}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            className="w-full truncate border-b border-transparent bg-transparent text-[13px] font-bold text-[var(--txt)] outline-none hover:border-[var(--bdr)] focus:border-[var(--orange)]"
+            title={t.nome || t.displayName}
+          />
+          <select
+            value={t.segmento}
+            onChange={(e) => saveSegmento(t.key, e.target.value)}
+            className="mt-1 w-full rounded bg-[var(--bg2)] px-1.5 py-0.5 text-[10px] text-[var(--txt2)] outline-none focus:ring-1 focus:ring-[var(--orange)]"
+          >
+            {SEGMENTOS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <div className="mt-1.5 flex items-center gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)]">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={thumbUploadingKey === t.key}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleThumbUpload(t.key, f); e.currentTarget.value = ""; }}
+              />
+              <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M2 11l3.5-4 2.5 3 2-2 4 5M2 4h12v8H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+              {thumbUploadingKey === t.key ? "Enviando…" : "Thumb"}
+            </label>
+            <button
+              type="button"
+              onClick={() => handleCaptureCard(t.key)}
+              disabled={thumbUploadingKey === t.key}
+              className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)] disabled:opacity-50"
+            >
+              <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M3 5h2l1-2h4l1 2h2v8H3V5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><circle cx="8" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.5" /></svg>
+              Capturar
+            </button>
+          </div>
+          <div className="mt-2 flex gap-1.5 text-[10px]">
+            <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.format}</span>
+          </div>
+          <div className="mt-2 text-[10px] text-[var(--txt3)]">
+            {t.updatedAt ? new Date(t.updatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+          </div>
+        </div>
+        <div className="flex border-t border-[var(--bdr)] divide-x divide-[var(--bdr)]">
+          <button onClick={() => editCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">Editar</button>
+          <button onClick={() => deleteCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--red)] hover:bg-[var(--hover-bg)]">Excluir</button>
+        </div>
+      </div>
+    );
+  }
+
   /* ── Render ────────────────────────────────────── */
 
   return (
     <>
-      {/* Templates do Canvas (schemas salvos no editor) */}
+      {/* Templates Base — visíveis pra todos */}
       <section className="border-b border-[var(--bdr)] pb-6">
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <h2 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Templates do Canvas</h2>
+            <h2 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Templates Base</h2>
+            <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Modelos prontos pra começar — disponíveis pra todas as marcas</p>
+          </div>
+        </div>
+        {canvasLoading ? (
+          <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
+        ) : Object.keys(baseTemplatesGrouped).length === 0 ? (
+          <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
+            Nenhum template base cadastrado.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {Object.entries(baseTemplatesGrouped).map(([segName, items]) => (
+              <div key={segName}>
+                <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+                  <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M8 1l2.5 5H14l-4 3.5 1.5 5.5L8 12l-3.5 3 1.5-5.5L2 6h3.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>
+                  {segName}
+                  <span className="text-[10px] font-normal text-[var(--txt3)]">· {items.length}</span>
+                </div>
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                  {items.map((t) => renderCanvasCard(t))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Meus Templates — filtrados por licensee (ADM vê tudo) */}
+      <section className="border-b border-[var(--bdr)] pb-6">
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <h2 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Meus Templates</h2>
             <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Designs salvos direto do editor visual</p>
           </div>
           <a href="/editor" className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] px-4 py-2 text-[12px] font-semibold text-[var(--txt)] hover:border-[var(--bdr2)]">
@@ -516,13 +652,13 @@ export default function EditorTemplatesPage() {
         </div>
         {canvasLoading ? (
           <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
-        ) : canvasTemplates.length === 0 ? (
+        ) : userTemplatesCount === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
             Nenhum template salvo ainda. Clique em &quot;Novo design&quot; para abrir o editor.
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {Object.entries(groupedCanvasTemplates).map(([licName, segments]) => {
+            {Object.entries(userTemplatesGrouped).map(([licName, segments]) => {
               const licTotal = Object.values(segments).reduce((a, arr) => a + arr.length, 0);
               return (
                 <details key={licName} open className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
@@ -545,73 +681,7 @@ export default function EditorTemplatesPage() {
                           <div className="rounded-lg border border-dashed border-[var(--bdr)] p-4 text-center text-[11px] text-[var(--txt3)]">Sem templates</div>
                         ) : (
                           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-                            {items.map(t => (
-                              <div key={t.key} data-tmpl-key={t.key} className="overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)]" style={{ background: "var(--bg1)" }}>
-                                {t.thumbnail ? (
-                                  /* eslint-disable-next-line @next/next/no-img-element */
-                                  <img src={t.thumbnail} alt="" className="h-24 w-full object-cover" />
-                                ) : (
-                                  <div className="flex h-24 items-center justify-center" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}>
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">{t.format}</span>
-                                  </div>
-                                )}
-                                <div className="px-4 py-3">
-                                  {/* Nome editável */}
-                                  <input
-                                    type="text"
-                                    defaultValue={t.nome || t.displayName}
-                                    onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.nome) saveNome(t.key, v); }}
-                                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                                    className="w-full truncate border-b border-transparent bg-transparent text-[13px] font-bold text-[var(--txt)] outline-none hover:border-[var(--bdr)] focus:border-[var(--orange)]"
-                                    title={t.nome || t.displayName}
-                                  />
-
-                                  {/* Segmento */}
-                                  <select
-                                    value={t.segmento}
-                                    onChange={(e) => saveSegmento(t.key, e.target.value)}
-                                    className="mt-1 w-full rounded bg-[var(--bg2)] px-1.5 py-0.5 text-[10px] text-[var(--txt2)] outline-none focus:ring-1 focus:ring-[var(--orange)]"
-                                  >
-                                    {SEGMENTOS.map((s) => <option key={s} value={s}>{s}</option>)}
-                                  </select>
-
-                                  {/* Thumb — upload ou capturar */}
-                                  <div className="mt-1.5 flex items-center gap-3">
-                                    <label className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)]">
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        disabled={thumbUploadingKey === t.key}
-                                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleThumbUpload(t.key, f); e.currentTarget.value = ""; }}
-                                      />
-                                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M2 11l3.5-4 2.5 3 2-2 4 5M2 4h12v8H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
-                                      {thumbUploadingKey === t.key ? "Enviando…" : "Thumb"}
-                                    </label>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleCaptureCard(t.key)}
-                                      disabled={thumbUploadingKey === t.key}
-                                      className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)] disabled:opacity-50"
-                                    >
-                                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M3 5h2l1-2h4l1 2h2v8H3V5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><circle cx="8" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.5" /></svg>
-                                      Capturar
-                                    </button>
-                                  </div>
-
-                                  <div className="mt-2 flex gap-1.5 text-[10px]">
-                                    <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.format}</span>
-                                  </div>
-                                  <div className="mt-2 text-[10px] text-[var(--txt3)]">
-                                    {t.updatedAt ? new Date(t.updatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
-                                  </div>
-                                </div>
-                                <div className="flex border-t border-[var(--bdr)] divide-x divide-[var(--bdr)]">
-                                  <button onClick={() => editCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">Editar</button>
-                                  <button onClick={() => deleteCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--red)] hover:bg-[var(--hover-bg)]">Excluir</button>
-                                </div>
-                              </div>
-                            ))}
+                            {items.map((t) => renderCanvasCard(t))}
                           </div>
                         )}
                       </div>
