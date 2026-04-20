@@ -72,7 +72,7 @@ const FORMAT_LABELS: Record<Format, string> = {
 
 const FORM_LABELS: Record<FormType, string> = {
   pacote: "Pacote", campanha: "Campanha", passagem: "Passagem",
-  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu", quatro_destinos: "4 Destinos",
+  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu", quatro_destinos: "Card WhatsApp",
 };
 
 const FORM_ORDER: FormType[] = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu", "quatro_destinos"];
@@ -1180,7 +1180,7 @@ export default function GerentePublicarPage() {
           {tab === "quatro_destinos" && (
             <div className="flex flex-col items-center gap-2 py-12 text-center">
               <Sparkles size={28} className="text-[var(--txt3)]" />
-              <div className="text-[13px] font-semibold text-[var(--txt2)]">4 Destinos</div>
+              <div className="text-[13px] font-semibold text-[var(--txt2)]">Card WhatsApp</div>
               <div className="text-[11px] text-[var(--txt3)]">Add-on em breve — formulário ainda em desenvolvimento.</div>
             </div>
           )}

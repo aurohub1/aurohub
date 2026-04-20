@@ -264,7 +264,7 @@ function buildElements(formType, format) {
 // `quatro_destinos` é o valor canônico usado no app (FormType em publicar/page.tsx).
 const TYPES = ["campanha", "cruzeiro", "anoiteceu", "quatro_destinos"];
 const FORMATS = ["stories", "reels", "feed", "tv"];
-const TYPE_LABEL = { campanha: "Campanha", cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu", quatro_destinos: "4 Destinos" };
+const TYPE_LABEL = { campanha: "Campanha", cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu", quatro_destinos: "Card WhatsApp" };
 const FORMAT_LABEL = { stories: "Stories", reels: "Reels", feed: "Feed", tv: "TV" };
 
 const templates = [];

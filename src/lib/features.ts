@@ -34,7 +34,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   vendedores:       "Gestão de consultores",
   calendario:       "Calendário",
   lembretes:        "Lembretes",
-  lamina_4destinos: "Lâmina 4 Destinos (add-on)",
+  lamina_4destinos: "Card WhatsApp (add-on)",
   musica:           "Música (add-on)",
 };
 
