@@ -49,6 +49,7 @@ const I = {
   calendar: (<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.5" /><path d="M7 2v4M13 2v4M3 8h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
   bell: (<svg viewBox="0 0 20 20" fill="none"><path d="M5 9a5 5 0 0110 0v4l1.5 2h-13L5 13V9zM8 17a2 2 0 004 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
   support: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" /><path d="M8 8a2 2 0 012-2 2 2 0 012 2c0 1-1 1.5-2 2M10 14h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
+  whatsapp: (<svg viewBox="0 0 20 20" fill="none"><path d="M3 17l1-3.5A7 7 0 113 17z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M7 9c0 2 1.5 3.5 3.5 3.5L12 11l2 1c-.5 1-2 1.5-3 1.5-2.5 0-5-2.5-5-5 0-1 .5-2.5 1.5-3l1 2-1 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" /></svg>),
 };
 
 /* ── ADM Sections (default) ───────────────────── */
@@ -284,6 +285,7 @@ export const UNIDADE_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/unidade/inicio", icon: I.home },
       { label: "Publicar", href: "/unidade/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Card WhatsApp", href: "/unidade/publicar/cards", icon: I.whatsapp, feature: "lamina_4destinos" },
       { label: "Calendário", href: "/unidade/calendario", icon: I.calendar },
       { label: "Consultores", href: "/unidade/vendedores", icon: I.vendors, feature: "vendedores" },
       { label: "Métricas", href: "/unidade/metricas", icon: I.metrics, feature: "metricas" },
@@ -298,7 +300,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
       { label: "Templates", href: "/gerente/templates", icon: I.templates, feature: "templates" },
-
+      { label: "Card WhatsApp", href: "/gerente/publicar/cards", icon: I.whatsapp, feature: "lamina_4destinos" },
       { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
       { label: "Métricas", href: "/gerente/metricas", icon: I.metrics, feature: "metricas" },
@@ -313,6 +315,7 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/consultor/inicio", icon: I.home },
       { label: "Templates", href: "/consultor/templates", icon: I.templates, feature: "templates" },
+      { label: "Card WhatsApp", href: "/consultor/publicar/cards", icon: I.whatsapp, feature: "lamina_4destinos" },
       { label: "Agendamentos", href: "/consultor/agendamentos", icon: I.calendar },
       { label: "Suporte", href: "/consultor/suporte", icon: I.support },
     ],
