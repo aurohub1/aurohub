@@ -106,86 +106,100 @@ const ANOITECEU = (w, h) => (w > h
   : portraitCampanha(w, h, { mainBind: "destino", mainLabel: "Destino", subField2: "De [inicio] a [fim]", extraTextBind: "paraviagens", pricePrimary: "desconto", showParcelas: false })
 );
 
-/* ══ Card WhatsApp — Lâmina 4 Destinos (fiel ao V1 app.aurovista.com.br/lamina) ══
- * Coordenadas hardcoded do V1 (canvas 1080×1920 stories). Feed/TV escalonados.
- * Ícones fixos do Cloudinary dxgj4bcch. Binds lam_d{n}_*.
+/* ══ Card WhatsApp — Lâmina 4 Destinos — cópia fiel do V1 ══
+ * Extraído de AUROHUB FIRE/lamina.html:
+ *   _renderFallback (linha 898) — titles + logo
+ *   _cardFallback   (linha 925) — elementos de cada card
+ * Canvas 1080×1920 fixo no V1. Feed/TV escalonados via sx=w/1080, sy=h/1920.
+ * Coordenadas V1 usam textBaseline='alphabetic'; Konva usa top-baseline.
+ * Conversão: top_y = baseline_y - round(fontSize * 0.82).
  */
-const LAM_V1_BG = "#0B1D3A";      // fundo default V1
-const LAM_V1_TXT = "#FFFFFF";     // texto default V1
-const LAM_V1_ACCENT = "#D4E600";  // accent verde V1 (será trocado por paleta no render)
-const LAM_V1_SUB = "rgba(255,255,255,0.7)";
+const LAM_V1_BG = "#0B1D3A";
+const LAM_V1_TXT = "#FFFFFF";
+const LAM_V1_ACCENT = "#D4E600";
 const LAM_V1_BORDER = "rgba(255,255,255,0.6)";
 const LAM_IC_L = "https://res.cloudinary.com/dxgj4bcch/image/upload/v1773982256/icones_51_3_suuhzf.png";
 const LAM_IC_M = "https://res.cloudinary.com/dxgj4bcch/image/upload/v1773982256/icones_50_3_juxelf.png";
 const LAM_IC_R = "https://res.cloudinary.com/dxgj4bcch/image/upload/v1773982257/icones_49_3_yupsnv.png";
 const LAM_LOGO_DEFAULT = "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774116248/PERFIL_34_pw0feq.png";
+const LAM_FONT = "Helvetica Neue";
+const ASC = (fs) => Math.round(fs * 0.82);
 
 function quatroDestinos(w, h) {
   seq = 0;
-  // Coordenadas base são do V1 para 1080×1920.
-  // Para outros formatos escalamos X por w/1080 e Y por h/1920.
   const sx = w / 1080;
   const sy = h / 1920;
-  // Média pra tamanhos de fonte (evita fontes gigantes no TV landscape)
   const sf = Math.min(sx, sy);
+  const X = (n) => Math.round(n * sx);
+  const Y = (n) => Math.round(n * sy);
+  const F = (n) => Math.round(n * sf);
 
-  // Fundo: `schema.background` do payload fica #0B1D3A (sólido da paleta V1 default).
-  // Imagem de fundo opcional (upload/aleatório) desenhada por cima do background do stage.
   const els = [
+    // Imagem de fundo (upload/shuffle). `schema.background` = #0B1D3A preenche atrás.
     { id: nid("bg_img"), type: "image", name: "Imagem de fundo", x: 0, y: 0, width: w, height: h, bindParam: "img_fundo", imageFit: "cover", opacity: 1 },
   ];
 
-  // Títulos — V1: titulo1 em y=200 font 700 47px; titulo2 em y=268 font 400 54px
-  els.push({ id: nid("tit1"), type: "text", name: "Título 1", x: 40 * sx, y: 160 * sy, width: (1080 - 80) * sx, height: 60 * sy, text: "[lam_titulo1]", fontSize: Math.round(47 * sf), fontFamily: FONT, fontStyle: "bold", fill: LAM_V1_TXT, align: "center", bindParam: "lam_titulo1", opacity: 1 });
-  els.push({ id: nid("tit2"), type: "text", name: "Título 2", x: 40 * sx, y: 234 * sy, width: (1080 - 80) * sx, height: 70 * sy, text: "[lam_titulo2]", fontSize: Math.round(54 * sf), fontFamily: FONT, fill: LAM_V1_TXT, align: "center", bindParam: "lam_titulo2", opacity: 1 });
+  // Títulos V1 linhas 911-914 — textAlign='center', baseline='alphabetic'
+  // titulo1: 700 47px txtColor at y=200; titulo2: 400 54px txtColor at y=268
+  const FS_T1 = 47, FS_T2 = 54;
+  els.push({ id: nid("tit1"), type: "text", name: "Título 1", x: 0, y: Y(200 - ASC(FS_T1)), width: w, height: Y(FS_T1 + 8), text: "[lam_titulo1]", fontSize: F(FS_T1), fontFamily: LAM_FONT, fontStyle: "bold", fill: LAM_V1_TXT, align: "center", bindParam: "lam_titulo1", opacity: 1 });
+  els.push({ id: nid("tit2"), type: "text", name: "Título 2", x: 0, y: Y(268 - ASC(FS_T2)), width: w, height: Y(FS_T2 + 8), text: "[lam_titulo2]", fontSize: F(FS_T2), fontFamily: LAM_FONT, fill: LAM_V1_TXT, align: "center", bindParam: "lam_titulo2", opacity: 1 });
 
-  // 4 cards grid 2×2 — V1 positions hardcoded
+  // V1 linha 916
   const positions = [
     { x: 55, y: 420 }, { x: 560, y: 420 },
     { x: 55, y: 820 }, { x: 560, y: 820 },
   ];
-  const cardW = 460, cardH = 370;
-  const iconSz = 26, iconGap = 34, iconInset = 4;
+
+  // Fontes do _cardFallback (V1 linhas 932-971)
+  const FS_PILL = 20, FS_PER = 36, FS_INC = 18, FS_SV = 17, FS_HOT = 17;
+  const FS_PGTO = 15, FS_PAR = 20, FS_VAL = 44, FS_TOT = 15;
 
   positions.forEach((pos, i) => {
     const n = i + 1;
-    const cx = pos.x * sx;
-    const cy = pos.y * sy;
-    const cw = cardW * sx;
-    // Pill de destino — V1 usa stroke 1.5, sem fill, largura = measureText(destino)+40 min 420
-    els.push({ id: nid(`d${n}_pill`), type: "rect", name: `D${n} Pill destino`, x: cx, y: cy, width: cw * 0.92, height: 36 * sy, fill: "", stroke: LAM_V1_BORDER, strokeWidth: Math.max(1, Math.round(1.5 * sf)), cornerRadius: Math.round(18 * sf), opacity: 1 });
-    els.push({ id: nid(`d${n}_dst`), type: "text", name: `D${n} Destino`, x: cx + 18 * sx, y: cy + 6 * sy, width: cw * 0.88, height: 28 * sy, text: `[lam_d${n}_destino]`, fontSize: Math.round(20 * sf), fontFamily: FONT, fontStyle: "bold", fill: LAM_V1_ACCENT, align: "left", verticalAlign: "middle", bindParam: `lam_d${n}_destino`, textTransform: "uppercase", opacity: 1 });
+    const cx = X(pos.x);
+    const cy = Y(pos.y);
 
-    // Período (y+80 V1)
-    els.push({ id: nid(`d${n}_per`), type: "text", name: `D${n} Período`, x: cx + iconInset * sx, y: cy + 76 * sy, width: cw - 10 * sx, height: 44 * sy, text: `[lam_d${n}_periodo]`, fontSize: Math.round(36 * sf), fontFamily: FONT, fontStyle: "bold", fill: LAM_V1_TXT, align: "left", bindParam: `lam_d${n}_periodo`, opacity: 1 });
+    // Pill destino — V1 linhas 931-937: stroke-only, w=min(text+40,420), h=36, radius=18, lineWidth=1.5
+    // Texto no pill: 700 20px accent, baseline='middle' at (x+18, y+bh/2)
+    const pillW = X(420);
+    const pillH = Y(36);
+    els.push({ id: nid(`d${n}_pill`), type: "rect", name: `D${n} Pill`, x: cx, y: cy, width: pillW, height: pillH, fill: "", stroke: LAM_V1_BORDER, strokeWidth: Math.max(1, Math.round(1.5 * sf)), cornerRadius: F(18), opacity: 1 });
+    els.push({ id: nid(`d${n}_dst`), type: "text", name: `D${n} Destino`, x: cx + X(18), y: cy, width: pillW - X(36), height: pillH, text: `[lam_d${n}_destino]`, fontSize: F(FS_PILL), fontFamily: LAM_FONT, fontStyle: "bold", fill: LAM_V1_ACCENT, align: "left", verticalAlign: "middle", bindParam: `lam_d${n}_destino`, textTransform: "uppercase", opacity: 1 });
 
-    // 3 ícones (y+90 V1, 26×26, gap 34)
-    els.push({ id: nid(`d${n}_ic1`), type: "image", name: `D${n} Ícone 1`, x: cx + iconInset * sx, y: cy + 130 * sy, width: iconSz * sf, height: iconSz * sf, src: LAM_IC_L, imageFit: "contain", opacity: 1 });
-    els.push({ id: nid(`d${n}_ic2`), type: "image", name: `D${n} Ícone 2`, x: cx + (iconInset + iconGap) * sx, y: cy + 130 * sy, width: iconSz * sf, height: iconSz * sf, src: LAM_IC_M, imageFit: "contain", opacity: 1 });
-    els.push({ id: nid(`d${n}_ic3`), type: "image", name: `D${n} Ícone 3`, x: cx + (iconInset + iconGap * 2) * sx, y: cy + 130 * sy, width: iconSz * sf, height: iconSz * sf, src: LAM_IC_R, imageFit: "contain", opacity: 1 });
+    // Período V1 linha 941-942: 700 36px txtColor at (x+4, y+80 alphabetic)
+    els.push({ id: nid(`d${n}_per`), type: "text", name: `D${n} Período`, x: cx + X(4), y: cy + Y(80 - ASC(FS_PER)), width: X(500), height: Y(FS_PER + 8), text: `[lam_d${n}_periodo]`, fontSize: F(FS_PER), fontFamily: LAM_FONT, fontStyle: "bold", fill: LAM_V1_TXT, align: "left", bindParam: `lam_d${n}_periodo`, opacity: 1 });
 
-    // Incluso (y+138 V1, 400 18px accent)
-    els.push({ id: nid(`d${n}_inc`), type: "text", name: `D${n} Incluso`, x: cx + iconInset * sx, y: cy + 170 * sy, width: cw - 10 * sx, height: 24 * sy, text: `[lam_d${n}_incluso]`, fontSize: Math.round(18 * sf), fontFamily: FONT, fill: LAM_V1_ACCENT, align: "left", bindParam: `lam_d${n}_incluso`, opacity: 1 });
-    // Saída + Voo (y+162 V1, 400 17px branco)
-    els.push({ id: nid(`d${n}_sv`), type: "text", name: `D${n} Saída/Voo`, x: cx + iconInset * sx, y: cy + 196 * sy, width: cw - 10 * sx, height: 22 * sy, text: `Saída: [lam_d${n}_saida]  [lam_d${n}_voo]`, fontSize: Math.round(17 * sf), fontFamily: FONT, fill: LAM_V1_TXT, align: "left", opacity: 1 });
-    // Hotel (y+184 V1)
-    els.push({ id: nid(`d${n}_hot`), type: "text", name: `D${n} Hotel`, x: cx + iconInset * sx, y: cy + 220 * sy, width: cw - 10 * sx, height: 22 * sy, text: `Hotel: [lam_d${n}_hotel]`, fontSize: Math.round(17 * sf), fontFamily: FONT, fill: LAM_V1_TXT, align: "left", bindParam: `lam_d${n}_hotel`, opacity: 1 });
+    // Ícones V1 linhas 944-947: 26×26 at (x+4, y+90), (x+4+34, y+90), (x+4+68, y+90)
+    const icSz = F(26);
+    els.push({ id: nid(`d${n}_ic1`), type: "image", name: `D${n} Ícone 1`, x: cx + X(4), y: cy + Y(90), width: icSz, height: icSz, src: LAM_IC_L, imageFit: "contain", opacity: 1 });
+    els.push({ id: nid(`d${n}_ic2`), type: "image", name: `D${n} Ícone 2`, x: cx + X(4 + 34), y: cy + Y(90), width: icSz, height: icSz, src: LAM_IC_M, imageFit: "contain", opacity: 1 });
+    els.push({ id: nid(`d${n}_ic3`), type: "image", name: `D${n} Ícone 3`, x: cx + X(4 + 68), y: cy + Y(90), width: icSz, height: icSz, src: LAM_IC_R, imageFit: "contain", opacity: 1 });
 
-    // Pgto (y+210 V1, 700 15px subColor uppercase)
-    els.push({ id: nid(`d${n}_pgto`), type: "text", name: `D${n} Pgto`, x: cx + iconInset * sx, y: cy + 250 * sy, width: cw - 10 * sx, height: 22 * sy, text: `[lam_d${n}_pgto]`, fontSize: Math.round(15 * sf), fontFamily: FONT, fontStyle: "bold", fill: LAM_V1_TXT, align: "left", bindParam: `lam_d${n}_pgto`, textTransform: "uppercase", opacity: 0.75 });
-    // Parcelas (y+236 V1, 400 20px branco)
-    els.push({ id: nid(`d${n}_par`), type: "text", name: `D${n} Parcelas`, x: cx + iconInset * sx, y: cy + 276 * sy, width: cw - 10 * sx, height: 28 * sy, text: `[lam_d${n}_parcelas]`, fontSize: Math.round(20 * sf), fontFamily: FONT, fill: LAM_V1_TXT, align: "left", bindParam: `lam_d${n}_parcelas`, opacity: 1 });
-    // Valor (y+288 V1, 700 44px accent — usa priceDisplay para R$/centavos split)
-    els.push({ id: nid(`d${n}_val`), type: "text", name: `D${n} Valor`, x: cx + iconInset * sx, y: cy + 310 * sy, width: cw - 10 * sx, height: 56 * sy, text: `R$ [lam_d${n}_valor]`, fontSize: Math.round(44 * sf), fontFamily: FONT, fontStyle: "bold", fill: LAM_V1_ACCENT, align: "left", bindParam: `lam_d${n}_valor`, priceDisplay: true, opacity: 1 });
-    // Total à vista (y+312 V1 — no V1 é "À VISTA" ou "ou R$ X à vista por pessoa")
-    els.push({ id: nid(`d${n}_tot`), type: "text", name: `D${n} Total`, x: cx + iconInset * sx, y: cy + 348 * sy, width: cw - 10 * sx, height: 20 * sy, text: `[lam_d${n}_total]`, fontSize: Math.round(15 * sf), fontFamily: FONT, fill: LAM_V1_TXT, align: "left", bindParam: `lam_d${n}_total`, opacity: 0.7 });
+    // Incluso V1 linhas 949-950: 400 18px accent at (x+4, y+138 alphabetic)
+    els.push({ id: nid(`d${n}_inc`), type: "text", name: `D${n} Incluso`, x: cx + X(4), y: cy + Y(138 - ASC(FS_INC)), width: X(500), height: Y(FS_INC + 4), text: `[lam_d${n}_incluso]`, fontSize: F(FS_INC), fontFamily: LAM_FONT, fill: LAM_V1_ACCENT, align: "left", bindParam: `lam_d${n}_incluso`, opacity: 1 });
+    // Saída+Voo V1 linhas 952-953: 400 17px txtColor 'Saída: X  voo' at (x+4, y+162)
+    els.push({ id: nid(`d${n}_sv`), type: "text", name: `D${n} Saída+Voo`, x: cx + X(4), y: cy + Y(162 - ASC(FS_SV)), width: X(500), height: Y(FS_SV + 4), text: `Saída: [lam_d${n}_saida]  [lam_d${n}_voo]`, fontSize: F(FS_SV), fontFamily: LAM_FONT, fill: LAM_V1_TXT, align: "left", opacity: 1 });
+    // Hotel V1 linha 954: 400 17px txtColor 'Hotel: X' at (x+4, y+184)
+    els.push({ id: nid(`d${n}_hot`), type: "text", name: `D${n} Hotel`, x: cx + X(4), y: cy + Y(184 - ASC(FS_HOT)), width: X(500), height: Y(FS_HOT + 4), text: `Hotel: [lam_d${n}_hotel]`, fontSize: F(FS_HOT), fontFamily: LAM_FONT, fill: LAM_V1_TXT, align: "left", opacity: 1 });
+
+    // Pgto V1 linhas 956-957: 700 15px subColor uppercase at (x+4, y+210)
+    els.push({ id: nid(`d${n}_pgto`), type: "text", name: `D${n} Pgto`, x: cx + X(4), y: cy + Y(210 - ASC(FS_PGTO)), width: X(500), height: Y(FS_PGTO + 4), text: `[lam_d${n}_pgto]`, fontSize: F(FS_PGTO), fontFamily: LAM_FONT, fontStyle: "bold", fill: LAM_V1_TXT, align: "left", bindParam: `lam_d${n}_pgto`, textTransform: "uppercase", opacity: 0.7 });
+    // Parcelas V1 linhas 959-960: 400 20px txtColor 'Xx' at (x+4, y+236)
+    els.push({ id: nid(`d${n}_par`), type: "text", name: `D${n} Parcelas`, x: cx + X(4), y: cy + Y(236 - ASC(FS_PAR)), width: X(500), height: Y(FS_PAR + 4), text: `[lam_d${n}_parcelas]`, fontSize: F(FS_PAR), fontFamily: LAM_FONT, fill: LAM_V1_TXT, align: "left", bindParam: `lam_d${n}_parcelas`, opacity: 1 });
+
+    // Valor composto V1 linhas 962-968:
+    //   'R$ ' + inteiro — 700 44px accent at (x+4, y+288 alphabetic)
+    //   ,dec           — 400 26px txtColor at (x+4+wR+wI+2, y+274 alphabetic)
+    // priceDisplay: true → PreviewStage renderiza 3 partes com measureText em runtime.
+    els.push({ id: nid(`d${n}_val`), type: "text", name: `D${n} Valor`, x: cx + X(4), y: cy + Y(288 - ASC(FS_VAL)), width: X(500), height: Y(FS_VAL + 8), text: `[lam_d${n}_valor]`, fontSize: F(FS_VAL), fontFamily: LAM_FONT, fontStyle: "bold", fill: LAM_V1_ACCENT, align: "left", bindParam: `lam_d${n}_valor`, priceDisplay: true, opacity: 1 });
+
+    // Total V1 linhas 970-971: 400 15px subColor 'ou R$ X à vista por pessoa' ou 'À VISTA' at (x+4, y+312)
+    els.push({ id: nid(`d${n}_tot`), type: "text", name: `D${n} Total`, x: cx + X(4), y: cy + Y(312 - ASC(FS_TOT)), width: X(500), height: Y(FS_TOT + 4), text: `[lam_d${n}_total]`, fontSize: F(FS_TOT), fontFamily: LAM_FONT, fill: LAM_V1_TXT, align: "left", bindParam: `lam_d${n}_total`, opacity: 0.7 });
   });
 
-  // Logo — V1: bottom-right, w=160, margin 40
-  els.push({ id: nid("logo"), type: "image", name: "Logo", x: 880 * sx, y: 1720 * sy, width: 160 * sx, height: 160 * sy, src: LAM_LOGO_DEFAULT, bindParam: "logo_loja", imageFit: "contain", opacity: 0.95 });
-
-  // Nome da loja — V1 não exibe, mas mantemos para branding. Opcional (hidden if empty).
-  els.push({ id: nid("lj"), type: "text", name: "Loja", x: 40 * sx, y: 1840 * sy, width: (1080 - 240) * sx, height: 30 * sy, text: "[loja]", fontSize: Math.round(16 * sf), fontFamily: FONT, fill: LAM_V1_TXT, align: "left", bindParam: "loja", opacity: 0.6 });
+  // Logo V1 linhas 919-922: w=160, at (CW-lw-40, CH-lh-40) = (880, 1720), globalAlpha=0.95
+  els.push({ id: nid("logo"), type: "image", name: "Logo", x: X(880), y: Y(1720), width: X(160), height: X(160), src: LAM_LOGO_DEFAULT, bindParam: "logo_loja", imageFit: "contain", opacity: 0.95 });
 
   return els;
 }

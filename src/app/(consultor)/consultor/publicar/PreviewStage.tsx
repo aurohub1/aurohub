@@ -370,6 +370,68 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
       );
     }
 
+    // Price display — Card WhatsApp (Lâmina V1):
+    //   'R$' small + inteiro big + ,dec small. V1 _cardFallback linhas 962-968.
+    //   R$ e inteiro em el.fill (accent); ,dec em branco (afetado pelo colorMap).
+    //   Posicionamento via measureText em canvas offscreen (runtime).
+    const lamValorMatch = el.bindParam?.match(/^lam_d\d+_valor$/);
+    if (el.priceDisplay && lamValorMatch) {
+      const raw = values[el.bindParam!] ?? "";
+      const parts = raw.split(",");
+      const intPart = (parts[0] || "").trim() || "—";
+      const decPart = "," + ((parts[1] || "00").trim() || "00");
+      const smallSize = Math.round(fSize * 26 / 44);  // V1 ratio 26/44
+      const ff = el.fontFamily ?? "DM Sans";
+      const accent = el.fill || "#000";
+      // Branco real — colorMap substitui #ffffff → P.text se paleta tiver .text
+      const decFill = "#ffffff";
+
+      // measureText em canvas offscreen (só no browser)
+      let wRS = 0, wInt = 0;
+      if (typeof document !== "undefined") {
+        const c = document.createElement("canvas").getContext("2d");
+        if (c) {
+          c.font = `normal ${smallSize}px "${ff}", sans-serif`;
+          wRS = c.measureText("R$ ").width;
+          c.font = `bold ${fSize}px "${ff}", sans-serif`;
+          wInt = c.measureText(intPart).width;
+        }
+      }
+      // Fallback se measureText falhar
+      if (wRS === 0) wRS = smallSize * 1.4;
+      if (wInt === 0) wInt = intPart.length * fSize * 0.55;
+
+      return (
+        <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1}>
+          <KText
+            x={0}
+            y={Math.round(fSize * 0.3)}  /* baseline alignment: R$ sits ~30% lower than big number top */
+            text="R$"
+            fontSize={smallSize}
+            fontFamily={ff}
+            fill={accent}
+          />
+          <KText
+            x={Math.round(wRS + 2)}
+            y={0}
+            text={intPart}
+            fontSize={fSize}
+            fontFamily={ff}
+            fontStyle="bold"
+            fill={accent}
+          />
+          <KText
+            x={Math.round(wRS + wInt + 6)}
+            y={Math.round(fSize * 0.3)}  /* mesmo baseline de R$ */
+            text={decPart}
+            fontSize={smallSize}
+            fontFamily={ff}
+            fill={decFill}
+          />
+        </Group>
+      );
+    }
+
     return (
       <KText
         x={el.x} y={el.y}
