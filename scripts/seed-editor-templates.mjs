@@ -129,10 +129,9 @@ function quatroDestinos(w, h) {
   // Média pra tamanhos de fonte (evita fontes gigantes no TV landscape)
   const sf = Math.min(sx, sy);
 
+  // Fundo: `schema.background` do payload fica #0B1D3A (sólido da paleta V1 default).
+  // Imagem de fundo opcional (upload/aleatório) desenhada por cima do background do stage.
   const els = [
-    // Fundo sólido (cor será trocada em render via lam_palette)
-    { id: nid("bg_rect"), type: "rect", name: "Fundo", x: 0, y: 0, width: w, height: h, fill: LAM_V1_BG, opacity: 1 },
-    // Imagem de fundo opcional (upload/aleatório) por cima do sólido
     { id: nid("bg_img"), type: "image", name: "Imagem de fundo", x: 0, y: 0, width: w, height: h, bindParam: "img_fundo", imageFit: "cover", opacity: 1 },
   ];
 
@@ -210,7 +209,8 @@ async function main() {
       const elements = fn(w, h);
       const payload = {
         elements,
-        background: BG,
+        // Card WhatsApp usa o azul V1 #0B1D3A; demais mantêm o azul campanha BG.
+        background: tipoKey === "quatro_destinos" ? LAM_V1_BG : BG,
         duration: 5,
         width: w, height: h,
         format: fmt,

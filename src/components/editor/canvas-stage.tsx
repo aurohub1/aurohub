@@ -215,9 +215,11 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   }
   if (el.type === "image") {
     if (!img) {
+      // Placeholder transparente — mantém border tracejado + label para designers,
+      // mas NÃO preenche cinza, deixando o background do template visível por baixo.
       return <>
-        <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={el.height} fill="#e8e8e8" stroke="#aaa" strokeWidth={1.5} dash={[6, 4]} cornerRadius={el.cornerRadius || 0} />
-        <Text x={el.x + el.width / 2 - 40} y={el.y + el.height / 2 - 8} text={el.bindParam ? `📸 ${el.bindParam}` : "Placeholder"} fontSize={14} fill="#888" listening={false} />
+        <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={el.height} fill="" stroke="#aaa" strokeWidth={1.5} dash={[6, 4]} cornerRadius={el.cornerRadius || 0} />
+        <Text x={el.x + el.width / 2 - 40} y={el.y + el.height / 2 - 8} text={el.bindParam ? `📸 ${el.bindParam}` : "Placeholder"} fontSize={14} fill="#aaa" listening={false} />
       </>;
     }
     // Crop: explícito (do CropModal) tem precedência; senão auto-calc via imageFit
