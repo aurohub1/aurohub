@@ -781,10 +781,10 @@ const LAM_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`);
 
 // 4 paletas do V1 (lamina.html:286-292). Default = índice 0 (Verde).
 const LAM_PALETTES = [
-  { name: "Verde",       accent: "#D4E600" },
-  { name: "Azul",        accent: "#1A56C4", bg: "#E8F0FE", text: "#0B1D3A" },
-  { name: "Azul Claro",  accent: "#16b5eb" },
-  { name: "Azul Escuro", accent: "#003366", bg: "#D6E4F0", text: "#0B1D3A" },
+  { name: "Verde",       emoji: "🟡", accent: "#D4E600" },
+  { name: "Azul",        emoji: "🔵", accent: "#1A56C4", bg: "#E8F0FE", text: "#0B1D3A" },
+  { name: "Azul Claro",  emoji: "🩵", accent: "#16b5eb" },
+  { name: "Azul Escuro", emoji: "🌑", accent: "#003366", bg: "#D6E4F0", text: "#0B1D3A" },
 ];
 
 // 20 templates de título (V1 lamina.html:520-543). "{destino}" substituído pelo primeiro destino.
@@ -863,6 +863,9 @@ export function QuatroDestinosForm({
   const [hotelOpts, setHotelOpts] = useState<string[]>([]);
   const [palette, setPalette] = useState(0);
   const [bgLoading, setBgLoading] = useState(false);
+  const [legenda, setLegenda] = useState(String(fields.lam_legenda ?? ""));
+  const [legLoading, setLegLoading] = useState(false);
+  const [legCopied, setLegCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -913,17 +916,20 @@ export function QuatroDestinosForm({
   async function handleShuffleBg() {
     setBgLoading(true);
     try {
-      // Tenta primeiro tabela "artes"; se não existir, cai pra "imgfundo" (99 fundos)
-      const tryTable = async (table: string) =>
-        _sb_for_lamina.from(table).select("url").limit(500);
-      let res = await tryTable("artes");
-      if (res.error) res = await tryTable("imgfundo");
-      const rows = (res.data ?? []) as { url: string }[];
-      if (!rows.length) { alert("Nenhum fundo disponível na biblioteca."); return; }
+      // Biblioteca de fundos do V2 = tabela `imgfundo` (confirmado via information_schema).
+      const { data, error } = await _sb_for_lamina
+        .from("imgfundo")
+        .select("url")
+        .not("url", "is", null)
+        .limit(1000);
+      if (error) { console.error("[Lâmina] imgfundo query:", error); alert("Erro ao buscar fundos."); return; }
+      const rows = (data ?? []) as { url: string }[];
+      if (!rows.length) { alert("Biblioteca de fundos vazia."); return; }
       const pick = rows[Math.floor(Math.random() * rows.length)];
       if (pick?.url) set("img_fundo", pick.url);
     } catch (err) {
       console.error("[Lâmina] shuffle bg:", err);
+      alert("Erro ao sortear fundo.");
     } finally {
       setBgLoading(false);
     }
@@ -952,6 +958,62 @@ export function QuatroDestinosForm({
     if (l1.length > 25) l1 = l1.slice(0, 24) + "…";
     if (l2.length > 30) l2 = l2.slice(0, 29) + "…";
     setCab({ titulo1: l1, titulo2: l2 });
+  }
+
+  async function handleIALegenda() {
+    setLegLoading(true);
+    setLegCopied(false);
+    try {
+      // Agrega dados dos 4 destinos preenchidos pra montar um contexto rico
+      const destFilled = dests.filter((x) => x.destino.trim());
+      const destNames = destFilled.map((d) => d.destino.toUpperCase()).join(", ") || "vários destinos";
+      const precos = destFilled.map((d) => d.valor).filter(Boolean);
+      const menorPreco = precos.length
+        ? precos.reduce((a, b) => {
+            const na = parseFloat(a.replace(/\./g, "").replace(",", ".")) || Infinity;
+            const nb = parseFloat(b.replace(/\./g, "").replace(",", ".")) || Infinity;
+            return na <= nb ? a : b;
+          })
+        : "";
+      const payload = {
+        destino: destNames,
+        hotel: destFilled.map((d) => d.hotel).filter(Boolean).slice(0, 2).join(" / "),
+        servicos: destFilled.map((d) => d.incluso).filter(Boolean)[0] ?? "",
+        preco: menorPreco ? `a partir de R$ ${menorPreco}` : "",
+        parcelas: destFilled.map((d) => d.parc).filter(Boolean)[0] ?? "",
+        datas: destFilled.map((d) => lamFormatPeriodo(d.ida, d.volta)).filter(Boolean).slice(0, 2).join(" / "),
+        tipo: "Card WhatsApp — 4 destinos (promocional, tom informal para WhatsApp)",
+      };
+      const res = await fetch("/api/ai/legenda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      const txt = (json?.legenda ?? "").toString();
+      if (txt) {
+        setLegenda(txt);
+        set("lam_legenda", txt);
+      } else {
+        alert("Não consegui gerar a legenda. Tente novamente.");
+      }
+    } catch (err) {
+      console.error("[Lâmina] IA legenda:", err);
+      alert("Erro ao gerar legenda.");
+    } finally {
+      setLegLoading(false);
+    }
+  }
+
+  async function handleCopyLegenda() {
+    if (!legenda) return;
+    try {
+      await navigator.clipboard.writeText(legenda);
+      setLegCopied(true);
+      setTimeout(() => setLegCopied(false), 2000);
+    } catch {
+      /* ignorado */
+    }
   }
 
   return (
@@ -1150,9 +1212,45 @@ export function QuatroDestinosForm({
         </Field>
       </Section>
 
+      <Section title="Legenda WhatsApp (IA)" icon="✨">
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={handleIALegenda}
+            disabled={legLoading}
+            className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all disabled:opacity-50"
+            style={{ borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }}
+          >
+            {legLoading ? "Gerando…" : "✦ Gerar legenda"}
+          </button>
+          {legenda && (
+            <button
+              type="button"
+              onClick={handleCopyLegenda}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+              style={{ borderColor: "var(--bdr)", color: legCopied ? "var(--green, #10B981)" : "var(--txt2)" }}
+            >
+              {legCopied ? "✓ Copiado" : "📋 Copiar"}
+            </button>
+          )}
+        </div>
+        {legenda && (
+          <textarea
+            value={legenda}
+            onChange={(e) => { setLegenda(e.target.value); set("lam_legenda", e.target.value); }}
+            rows={4}
+            className={`${INPUT_CLASS} !h-auto py-2 resize-y min-h-[80px] leading-snug`}
+            placeholder="Legenda gerada aparecerá aqui…"
+          />
+        )}
+        {!legenda && (
+          <p className="text-[10px] text-[var(--txt3)]">Preencha pelo menos 1 destino e clique em &quot;Gerar legenda&quot; — Claude Haiku cria uma legenda promocional pra WhatsApp.</p>
+        )}
+      </Section>
+
       <Section title="Personalização Visual" icon="✦">
         <Field label="Cor tema">
-          <div className="flex gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             {LAM_PALETTES.map((p, i) => {
               const active = palette === i;
               return (
@@ -1161,18 +1259,28 @@ export function QuatroDestinosForm({
                   type="button"
                   onClick={() => setPalette(i)}
                   title={p.name}
-                  className="rounded-md transition-all"
-                  style={{
-                    width: 26, height: 26,
-                    background: p.accent,
-                    border: active ? "2px solid var(--txt)" : "2px solid transparent",
-                    transform: active ? "scale(1.12)" : "scale(1)",
-                  }}
-                />
+                  className="flex flex-col items-center gap-1 rounded-lg border px-1 py-1.5 transition-all"
+                  style={
+                    active
+                      ? { borderColor: "var(--orange)", background: "var(--bg1)" }
+                      : { borderColor: "var(--bdr)", background: "transparent" }
+                  }
+                >
+                  <span
+                    className="block rounded-md"
+                    style={{
+                      width: 24, height: 24,
+                      background: p.accent,
+                      boxShadow: active ? "0 0 0 2px var(--txt) inset" : "none",
+                    }}
+                  />
+                  <span className="text-[9px] font-semibold text-[var(--txt2)] leading-none">
+                    {p.emoji} {p.name}
+                  </span>
+                </button>
               );
             })}
           </div>
-          <p className="mt-1 text-[10px] text-[var(--txt3)]">Selecionado: <strong>{LAM_PALETTES[palette].name}</strong></p>
         </Field>
         <Field label="Fundo">
           <div className="flex flex-wrap gap-1.5">
