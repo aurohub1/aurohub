@@ -88,19 +88,20 @@ function buildElements() {
       cornerRadius: 18, opacity: 1,
     });
 
-    // 5b. pill accent #D4E600 (y=14, x=16, w=300, h=32, radius 16)
+    // 5b. pill stroke-only accent #D4E600 (V1 original — sem preenchimento)
     els.push({
       id: nid(`d${n}_pill`), type: "rect", name: `D${n} Pill`,
       x: cx + 16, y: cy + 14, width: 300, height: 32,
-      fill: ACCENT, cornerRadius: 16, opacity: 1,
+      fill: "", stroke: ACCENT, strokeWidth: 1.5,
+      cornerRadius: 16, opacity: 1,
     });
 
-    // 5c. destino x=30 y=30 fs=19 bold #0B1D3A uppercase (sobre a pill)
+    // 5c. destino fs=19 bold accent uppercase (texto amarelo dentro da pill com borda amarela)
     els.push({
       id: nid(`d${n}_dst`), type: "text", name: `D${n} Destino`,
       x: cx + 30, y: cy + 30, width: 270, height: 24,
       text: `[lam_d${n}_destino]`, fontSize: 19, fontFamily: FONT, fontStyle: "bold",
-      fill: TXT_DARK, align: "left", bindParam: `lam_d${n}_destino`,
+      fill: ACCENT, align: "left", bindParam: `lam_d${n}_destino`,
       textTransform: "uppercase", opacity: 1,
     });
 
