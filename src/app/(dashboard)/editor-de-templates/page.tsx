@@ -44,6 +44,15 @@ const FORM_TYPE_LABELS: Record<string, string> = {
   quatro_destinos: "Cards",
   lamina: "Lâmina",
 };
+const FORM_TYPE_ICONS: Record<string, string> = {
+  pacote: "✈️",
+  campanha: "📢",
+  passagem: "🎫",
+  cruzeiro: "🚢",
+  anoiteceu: "🌙",
+  quatro_destinos: "🗺️",
+  lamina: "📄",
+};
 
 function inferBaseSegmento(t: { segmento: string; formType: string; baseTipo: string | null }): string {
   if (t.segmento && t.segmento !== "Geral") return t.segmento;
@@ -156,65 +165,6 @@ export default function EditorTemplatesPage() {
 
   // Novo template (abre editor com licensee pré-selecionado)
   const [newTmplLicensee, setNewTmplLicensee] = useState<string | null>(null);
-
-  // Imagens dos tipos de publicação — system_config key publicar_thumb_{tipo}
-  const PUBLICAR_TIPOS: { k: string; l: string }[] = [
-    { k: "pacote", l: "Pacote" },
-    { k: "campanha", l: "Campanha" },
-    { k: "passagem", l: "Passagem" },
-    { k: "cruzeiro", l: "Cruzeiro" },
-    { k: "anoiteceu", l: "Anoiteceu" },
-    { k: "quatro_destinos", l: "Cards" },
-  ];
-  const [publicarThumbs, setPublicarThumbs] = useState<Record<string, string>>({});
-  const [publicarThumbUploading, setPublicarThumbUploading] = useState<string | null>(null);
-
-  const loadPublicarThumbs = useCallback(async () => {
-    const { data } = await supabase
-      .from("system_config")
-      .select("key, value")
-      .like("key", "publicar_thumb_%");
-    const map: Record<string, string> = {};
-    for (const r of (data ?? []) as { key: string; value: string }[]) {
-      const tipo = r.key.replace(/^publicar_thumb_/, "");
-      let url = "";
-      try { const p = JSON.parse(r.value); url = p?.url ?? p ?? ""; } catch { url = r.value; }
-      if (url && typeof url === "string") map[tipo] = url;
-    }
-    setPublicarThumbs(map);
-  }, []);
-
-  useEffect(() => { loadPublicarThumbs(); }, [loadPublicarThumbs]);
-
-  async function handlePublicarThumbUpload(tipo: string, file: File) {
-    console.log("[publicar-thumb] upload start", { tipo, fileName: file.name, size: file.size });
-    setPublicarThumbUploading(tipo);
-    try {
-      const url = await uploadToCloudinary(file, "aurohubv2/publicar-thumbs");
-      console.log("[publicar-thumb] cloudinary ok", { tipo, url });
-      const { error } = await supabase.from("system_config").upsert(
-        { key: `publicar_thumb_${tipo}`, value: JSON.stringify({ url }), updated_at: new Date().toISOString() },
-        { onConflict: "key" }
-      );
-      if (error) { console.error("[publicar-thumb] upsert error", error); alert(`Falha ao salvar: ${error.message}`); return; }
-      setPublicarThumbs((p) => ({ ...p, [tipo]: url }));
-    } catch (err) {
-      console.error("[publicar-thumb upload]", err);
-      alert("Falha no upload.");
-    } finally {
-      setPublicarThumbUploading(null);
-    }
-  }
-
-  async function handlePublicarThumbRemove(tipo: string) {
-    if (!confirm(`Remover imagem de ${tipo}?`)) return;
-    await supabase.from("system_config").delete().eq("key", `publicar_thumb_${tipo}`);
-    setPublicarThumbs((p) => {
-      const next = { ...p };
-      delete next[tipo];
-      return next;
-    });
-  }
 
   useEffect(() => {
     (async () => {
@@ -395,7 +345,10 @@ export default function EditorTemplatesPage() {
   useEffect(() => { loadCanvasTemplates(); }, [loadCanvasTemplates]);
 
   const editCanvasTmpl = (key: string) => {
-    router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`);
+    // ft_<uuid> → preserva prefixo pro editor buscar em form_templates
+    // tmpl_<slug> → remove prefixo pro editor buscar em system_config
+    const id = key.startsWith("ft_") ? key : key.replace(/^tmpl_/, "");
+    router.push(`/editor?id=${id}`);
   };
 
   // Filtra base templates (usa filtros globais)
@@ -502,15 +455,16 @@ export default function EditorTemplatesPage() {
           .eq("id", cloneKey.slice(3))
           .single();
         if (!data) throw new Error("Template base não encontrado");
-        const ft = data as { name: string | null; form_type: string; format: string; width: number; height: number; schema: unknown; thumbnail_url: string | null };
+        const ft = data as { name: string | null; form_type: string; format: string; width: number; height: number; schema: Record<string, unknown> | null; thumbnail_url: string | null };
+        // Achata schema (elements/background/duration/qtdDestinos) no topo do payload — formato esperado por system_config tmpl_*
         parsed = {
+          ...(ft.schema ?? {}),
           nome: ft.name || `${FORM_TYPE_LABELS[ft.form_type] ?? ft.form_type} ${ft.format}`,
           format: ft.format,
           formType: ft.form_type,
           segmento: TURISMO_TYPES.has(ft.form_type) ? "Turismo" : "Geral",
           width: ft.width,
           height: ft.height,
-          schema: ft.schema,
           thumbnail: ft.thumbnail_url,
         };
         baseSuffix = `${ft.form_type}_${ft.format}`;
@@ -833,7 +787,13 @@ export default function EditorTemplatesPage() {
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={t.thumbnail} alt="" className="h-24 w-full object-cover" />
         ) : (
-          <div className="flex h-24 items-center justify-center" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}>
+          <div
+            className="flex h-24 flex-col items-center justify-center gap-1"
+            style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}
+          >
+            <span className="text-[28px] leading-none" aria-hidden>
+              {FORM_TYPE_ICONS[t.formType] ?? FORM_TYPE_ICONS[t.baseTipo ?? ""] ?? "📄"}
+            </span>
             <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">{t.format}</span>
           </div>
         )}
@@ -998,70 +958,6 @@ export default function EditorTemplatesPage() {
         </div>
       </div>
 
-      {/* Imagens dos tipos de publicação (só ADM) — fundo dos cards do PublicarFlow */}
-      {isAdm && (
-        <section className="border-b border-[var(--bdr)] pb-6">
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <h2 className="text-[18px] font-bold tracking-tight text-[var(--txt)]">Imagens dos tipos de publicação</h2>
-              <p className="mt-0.5 text-[12px] text-[var(--txt3)]">Fundo dos cards do seletor de tipo. Sem imagem → ícone padrão.</p>
-            </div>
-          </div>
-          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
-            {PUBLICAR_TIPOS.map((t) => {
-              const url = publicarThumbs[t.k];
-              const uploading = publicarThumbUploading === t.k;
-              return (
-                <div
-                  key={t.k}
-                  className="relative overflow-hidden rounded-xl border border-[var(--bdr)]"
-                  style={{ background: "var(--bg1)" }}
-                >
-                  <div
-                    className="relative flex h-32 items-end justify-start"
-                    style={{
-                      background: url
-                        ? `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.7) 100%), url(${url}) center/cover`
-                        : "linear-gradient(135deg, var(--bg2), var(--bg3))",
-                    }}
-                  >
-                    <div className="px-3 py-2 text-[13px] font-bold" style={{ color: url ? "#FFFFFF" : "var(--txt2)" }}>
-                      {t.l}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 border-t border-[var(--bdr)] px-3 py-2">
-                    <label className={`inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)] ${uploading ? "opacity-50" : ""}`}>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={uploading}
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) handlePublicarThumbUpload(t.k, f);
-                          e.currentTarget.value = "";
-                        }}
-                      />
-                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M2 11l3.5-4 2.5 3 2-2 4 5M2 4h12v8H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
-                      {uploading ? "Enviando…" : url ? "Trocar" : "Upload"}
-                    </label>
-                    {url && !uploading && (
-                      <button
-                        type="button"
-                        onClick={() => handlePublicarThumbRemove(t.k)}
-                        className="text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--red)]"
-                      >
-                        Remover
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
       {/* Templates Base (somente ADM) */}
       {isAdm && (
         <section className="border-b border-[var(--bdr)] pb-6">
@@ -1087,7 +983,7 @@ export default function EditorTemplatesPage() {
               {Object.entries(baseTemplatesGrouped).map(([seg, { licensees }]) => {
                 const icon = SEGMENTO_ICONS[seg] ?? "📄";
                 const segCount = Object.values(licensees).reduce(
-                  (a, l) => a + Object.values(l.lojas).reduce((b, arr) => b + arr.length, 0),
+                  (a, l) => a + Object.values(l.subgroups).reduce((b, arr) => b + arr.length, 0),
                   0,
                 );
                 return (
