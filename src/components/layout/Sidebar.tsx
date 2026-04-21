@@ -314,6 +314,7 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     title: "Minhas atividades",
     items: [
       { label: "Início", href: "/consultor/inicio", icon: I.home },
+      { label: "Publicar", href: "/consultor/publicar", icon: I.publish, feature: "publicar" },
       { label: "Card WhatsApp", href: "/consultor/publicar/cards", icon: I.whatsapp, feature: "lamina_4destinos" },
       { label: "Agendamentos", href: "/consultor/agendamentos", icon: I.calendar },
       { label: "Suporte", href: "/consultor/suporte", icon: I.support },

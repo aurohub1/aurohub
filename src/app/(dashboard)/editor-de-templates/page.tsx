@@ -159,13 +159,16 @@ export default function EditorTemplatesPage() {
   useEffect(() => { loadPublicarThumbs(); }, [loadPublicarThumbs]);
 
   async function handlePublicarThumbUpload(tipo: string, file: File) {
+    console.log("[publicar-thumb] upload start", { tipo, fileName: file.name, size: file.size });
     setPublicarThumbUploading(tipo);
     try {
       const url = await uploadToCloudinary(file, "aurohubv2/publicar-thumbs");
-      await supabase.from("system_config").upsert(
+      console.log("[publicar-thumb] cloudinary ok", { tipo, url });
+      const { error } = await supabase.from("system_config").upsert(
         { key: `publicar_thumb_${tipo}`, value: JSON.stringify({ url }), updated_at: new Date().toISOString() },
         { onConflict: "key" }
       );
+      if (error) { console.error("[publicar-thumb] upsert error", error); alert(`Falha ao salvar: ${error.message}`); return; }
       setPublicarThumbs((p) => ({ ...p, [tipo]: url }));
     } catch (err) {
       console.error("[publicar-thumb upload]", err);

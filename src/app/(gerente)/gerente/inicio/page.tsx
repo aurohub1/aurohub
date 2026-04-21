@@ -282,15 +282,17 @@ export default function GerenteInicioPage() {
         const [, mesStr, diaStr] = hoje.split("-");
         const mes = parseInt(mesStr, 10);
         const dia = parseInt(diaStr, 10);
-        const { data: dc } = await supabase
+        console.log("[GerenteInicio][feriados] query", { hoje, mes, dia });
+        const { data: dc, error } = await supabase
           .from("datas_comemorativas")
           .select("id, nome, data_mes, data_dia")
           .eq("data_mes", mes)
           .gte("data_dia", dia)
           .order("data_dia")
           .limit(5);
+        console.log("[GerenteInicio][feriados] result", { count: dc?.length ?? 0, error, data: dc });
         setDbFeriados((dc ?? []) as DataComemorativa[]);
-      } catch { /* tabela ausente — silent */ }
+      } catch (err) { console.error("[GerenteInicio][feriados] error", err); }
 
       // Notícias do setor
       try {
