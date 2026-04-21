@@ -552,9 +552,9 @@ export function PacoteForm({
     !binds ||
     binds.has("servicoslista") ||
     [1, 2, 3, 4, 5, 6].some((i) => binds.has(`servico${i}`));
-  const showAllInc = hasBind(binds, "allinclusive");
-  const showUltCh = hasBind(binds, "ultimachamada");
-  const showUltLug = hasBind(binds, "ultimoslugares");
+  const showAllInc = hasBind(binds, "allinclusive", "all_inclusive_badge");
+  const showUltCh = hasBind(binds, "ultimachamada", "ultima_chamada_badge");
+  const showUltLug = hasBind(binds, "ultimoslugares", "ultimos_lugares_badge");
   const showOfertas = hasBind(binds, "ofertas", "ofertas_azul_badge");
   const showBadges = showAllInc || showUltCh || showUltLug || showOfertas;
   const showForma = hasBind(binds, "formapagamento");
@@ -568,7 +568,7 @@ export function PacoteForm({
   return (
     <>
       {(showDestino || showSaida || showTipovoo) && (
-        <Section title="Destino & Saída" icon="✈️">
+        <Section title="Destino & Saída">
           {showDestino && (
             <Field label="Destino *">
               <SearchableSelect
@@ -600,7 +600,7 @@ export function PacoteForm({
               {showTipovoo && (
                 <Field label="Tipo de Voo">
                   <div className="flex gap-1">
-                    {["Voo Direto", "Voo Conexão"].map((opt) => {
+                    {["( Voo Direto )", "( Voo Conexão )"].map((opt) => {
                       const sel = fields.tipovoo === opt;
                       return (
                         <button
@@ -627,7 +627,7 @@ export function PacoteForm({
       )}
 
       {(showIda || showVolta || showFeriado) && (
-        <Section title="Datas" icon="📅">
+        <Section title="Datas">
           {(showIda || showVolta) && (
             <div className="grid grid-cols-2 gap-2">
               {showIda && (
@@ -675,7 +675,7 @@ export function PacoteForm({
       )}
 
       {showHotel && (
-        <Section title="Hotel" icon="🏨">
+        <Section title="Hotel">
           <Field label="Hotel *">
             <SearchableSelect
               value={(fields.hotel as string) || ""}
@@ -693,7 +693,7 @@ export function PacoteForm({
       )}
 
       {showServicos && (
-        <Section title="Serviços Inclusos" icon="🎒">
+        <Section title="Serviços Inclusos">
           {Array.from({ length: 6 }, (_, i) => {
             if (binds && !binds.has(`servico${i + 1}`) && !binds.has("servicoslista")) return null;
             const val = servicos[i] ?? "";
@@ -795,12 +795,16 @@ export function PacoteForm({
             <div className="grid grid-cols-2 gap-2">
               {showParcelas && (
                 <Field label="Parcelas *">
-                  <SearchableSelect
+                  <select
                     value={(fields.parcelas as string) || ""}
-                    onChange={(v) => set("parcelas", v)}
-                    options={PACOTE_PARCELAS_OPTS}
-                    placeholder="12x"
-                  />
+                    onChange={(e) => set("parcelas", e.target.value)}
+                    className={INPUT_CLASS}
+                  >
+                    <option value="">— nenhum —</option>
+                    {PACOTE_PARCELAS_OPTS.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
                 </Field>
               )}
               {showValorParc && (
