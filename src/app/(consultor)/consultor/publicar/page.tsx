@@ -514,7 +514,7 @@ export default function PublicarPage() {
             if (ft) types.add(ft);
             const fmt = (parsed.format || "stories") as Format;
             const [defW2, defH2] = FORMAT_DIMS[fmt] || [1080, 1920];
-            const sch = parsed.schema ?? {};
+            const sch = parsed.schema ?? parsed;
             scRows.push({
               key: r.key,
               id: r.key,
