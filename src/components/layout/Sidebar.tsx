@@ -170,17 +170,6 @@ const ADM_SECTIONS: NavSection[] = [
           </svg>
         ),
       },
-      {
-        label: "Datas Comemorativas",
-        href: "/adm/datas-comemorativas",
-        icon: (
-          <svg viewBox="0 0 20 20" fill="none">
-            <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M3 8h14M7 2v4M13 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="7" cy="12" r="1" fill="currentColor" />
-          </svg>
-        ),
-      },
     ],
   },
   {

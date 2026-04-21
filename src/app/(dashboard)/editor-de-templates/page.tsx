@@ -24,6 +24,25 @@ interface CanvasTemplate {
 
 const SEGMENTOS = ["Turismo", "Eventos", "Gastronomia", "Imobiliário", "Saúde", "Educação", "Geral"];
 
+const TURISMO_TYPES = new Set(["pacote", "campanha", "cruzeiro", "passagem", "anoiteceu", "quatro_destinos", "lamina"]);
+const SEGMENTO_ICONS: Record<string, string> = {
+  Turismo: "✈️",
+  Eventos: "🎉",
+  Gastronomia: "🍽️",
+  Imobiliário: "🏠",
+  Saúde: "⚕️",
+  Educação: "🎓",
+  Geral: "📄",
+};
+const AZV_LICENSEE_PREFIX = "2acbabe7";
+
+function inferBaseSegmento(t: { segmento: string; formType: string; baseTipo: string | null }): string {
+  if (t.segmento && t.segmento !== "Geral") return t.segmento;
+  const tipo = t.baseTipo || t.formType;
+  if (tipo && TURISMO_TYPES.has(tipo)) return "Turismo";
+  return t.segmento || "Geral";
+}
+
 /* ── Types ───────────────────────────────────────── */
 
 interface Template {
@@ -339,6 +358,30 @@ export default function EditorTemplatesPage() {
   }, [canvasTemplates, globalFilterType, globalFilterFormat]);
 
   const hasAnyBaseTemplate = useMemo(() => canvasTemplates.some((t) => t.isBase), [canvasTemplates]);
+
+  // Base templates agrupados: segmento → licenseeGroup → (AZV: lojas; outros: __all__)
+  const baseTemplatesGrouped = useMemo(() => {
+    const out: Record<string, {
+      licensees: Record<string, { name: string; isAZV: boolean; lojas: Record<string, CanvasTemplate[]> }>;
+    }> = {};
+    for (const t of baseTemplatesFiltered) {
+      const seg = inferBaseSegmento(t);
+      if (!out[seg]) out[seg] = { licensees: {} };
+      const isAZV = !!t.licenseeId && t.licenseeId.startsWith(AZV_LICENSEE_PREFIX);
+      const licKey = !t.licenseeId ? "__base__" : (t.licenseeNome || "Sem marca");
+      if (!out[seg].licensees[licKey]) {
+        out[seg].licensees[licKey] = {
+          name: !t.licenseeId ? "Base do sistema" : (t.licenseeNome || "Sem marca"),
+          isAZV,
+          lojas: {},
+        };
+      }
+      const lojaKey = isAZV ? (t.lojaNome || "Sem loja") : "__all__";
+      if (!out[seg].licensees[licKey].lojas[lojaKey]) out[seg].licensees[licKey].lojas[lojaKey] = [];
+      out[seg].licensees[licKey].lojas[lojaKey].push(t);
+    }
+    return out;
+  }, [baseTemplatesFiltered]);
 
   // Agrupa templates de cliente por licensee (sem sub-agrupamento por segmento)
   const userTemplatesByLicensee = useMemo(() => {
@@ -946,8 +989,61 @@ export default function EditorTemplatesPage() {
               Nenhum template encontrado com esses filtros.
             </div>
           ) : (
-            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-              {baseTemplatesFiltered.map((t) => renderCanvasCard(t))}
+            <div className="flex flex-col gap-5">
+              {Object.entries(baseTemplatesGrouped).map(([seg, { licensees }]) => {
+                const icon = SEGMENTO_ICONS[seg] ?? "📄";
+                const segCount = Object.values(licensees).reduce(
+                  (a, l) => a + Object.values(l.lojas).reduce((b, arr) => b + arr.length, 0),
+                  0,
+                );
+                return (
+                  <div
+                    key={seg}
+                    className="overflow-hidden rounded-xl border border-[var(--bdr)]"
+                    style={{ background: "var(--card-bg)" }}
+                  >
+                    <div className="flex items-center gap-2 border-b border-[var(--bdr)] px-4 py-3">
+                      <span className="text-[16px]" aria-hidden>{icon}</span>
+                      <span className="text-[14px] font-bold text-[var(--txt)]">{seg}</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+                        · {segCount} template{segCount !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-4 px-4 py-4">
+                      {Object.entries(licensees).map(([licKey, lic]) => {
+                        const licCount = Object.values(lic.lojas).reduce((a, arr) => a + arr.length, 0);
+                        return (
+                          <div key={licKey}>
+                            <div className="mb-2 flex items-center gap-2">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--orange)]" />
+                              <span className="text-[12px] font-semibold text-[var(--txt2)]">{lic.name}</span>
+                              <span className="text-[10px] text-[var(--txt3)]">({licCount})</span>
+                            </div>
+                            {lic.isAZV ? (
+                              <div className="flex flex-col gap-3 pl-4">
+                                {Object.entries(lic.lojas).map(([lojaName, items]) => (
+                                  <div key={lojaName}>
+                                    <div className="mb-1.5 text-[11px] text-[var(--txt3)]">
+                                      → {lojaName} <span className="text-[10px]">({items.length})</span>
+                                    </div>
+                                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                                      {items.map((t) => renderCanvasCard(t))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                                {lic.lojas["__all__"]?.map((t) => renderCanvasCard(t))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
