@@ -1044,301 +1044,95 @@ export function PassagemForm({
   );
 }
 
-/* ── QuatroDestinosForm (Card WhatsApp / Lâmina V1) ─────
- * Port fiel do V1 app.aurovista.com.br/lamina (AUROHUB FIRE/lamina.html):
- *   - Globais: lam_titulo1, lam_titulo2, img_fundo, lam_palette
- *   - 4 sub-abas destino → binds lam_d{n}_{campo}
- *   - Paletas (4 cores), fundo aleatório (imgfundo table), upload, IA título
- * Layout no template seedado usa as coords hardcoded do V1 (stories 1080×1920).
+/* ── QuatroDestinosForm ──────────────────────────────
+ * Card WhatsApp com 4 sub-abas (destinos 1-4).
+ *   - Globais: titulo, subtitulo
+ *   - Por destino: d{n}_{destino, saida, voo, ida, volta, hotel, incluso,
+ *                        formapagamento, parcelas, valorparcela, avista}
+ * Binds antigos `lam_*` foram renomeados via database/rename_lam_to_d_binds.sql.
  */
 
-const LAM_INCLUSO_OPTS = ["Aéreo + Hotel + Transfer", "Aéreo + Hotel", "Hotel + Transfer", "Só Hotel", "Cruzeiro"];
-const LAM_VOO_OPTS = ["Voo Direto", "Voo Conexão"];
-const LAM_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`);
+const D_VOO_OPTS = ["Voo Direto", "Voo Conexão"];
+const D_INCLUSO_OPTS = ["Aéreo + Hotel + Transfer", "Aéreo + Hotel", "Hotel + Transfer", "Só Hotel", "Cruzeiro"];
+const D_FORMA_PGTO_OPTS = ["Cartão de Crédito", "Boleto"];
 
-// 4 paletas do V1 (lamina.html:286-292). Default = índice 0 (Verde).
-const LAM_PALETTES = [
-  { name: "Verde",       emoji: "🟡", accent: "#D4E600" },
-  { name: "Azul",        emoji: "🔵", accent: "#1A56C4", bg: "#E8F0FE", text: "#0B1D3A" },
-  { name: "Azul Claro",  emoji: "🩵", accent: "#16b5eb" },
-  { name: "Azul Escuro", emoji: "🌑", accent: "#003366", bg: "#D6E4F0", text: "#0B1D3A" },
-];
-
-// 20 templates de título (V1 lamina.html:520-543). "{destino}" substituído pelo primeiro destino.
-const LAM_TITULO_TEMPLATES = [
-  { l1: "Férias dos Sonhos!",     l2: "Voe com a Azul Viagens" },
-  { l1: "Seu Paraíso te Espera",  l2: "Pacotes imperdíveis!" },
-  { l1: "Hora de Viajar!",        l2: "As melhores ofertas pra você" },
-  { l1: "Destinos Incríveis",     l2: "Reserve já sua viagem" },
-  { l1: "Viaje com a Azul!",      l2: "Preços que cabem no bolso" },
-  { l1: "Embarque Nessa!",        l2: "Ofertas exclusivas Azul" },
-  { l1: "Realize Seu Sonho",      l2: "Viaje com a Azul Viagens" },
-  { l1: "Promoção Relâmpago!",    l2: "Garanta já seu pacote" },
-  { l1: "Vem Pra Azul!",          l2: "Os melhores destinos te esperam" },
-  { l1: "Aventura te Chama!",     l2: "Pacotes a partir de 10x" },
-  { l1: "Escapada Perfeita",      l2: "Conheça destinos únicos" },
-  { l1: "Férias Inesquecíveis",   l2: "Faça suas malas!" },
-  { l1: "Oferta Especial!",       l2: "Só na Azul Viagens" },
-  { l1: "Próxima Parada:",        l2: "{destino}" },
-  { l1: "Bora pra {destino}?",    l2: "Pacotes com a Azul Viagens" },
-  { l1: "{destino} te Espera!",   l2: "Reserve com a Azul" },
-  { l1: "Partiu {destino}!",      l2: "As melhores condições" },
-  { l1: "Sonhe. Planeje. Viaje.", l2: "Azul Viagens te leva!" },
-  { l1: "Seu Destino é Aqui!",    l2: "Confira as ofertas" },
-  { l1: "Viaje Mais, Pague Menos", l2: "Ofertas Azul Viagens" },
-];
-
-interface LamDest {
-  destino: string; saida: string; voo: string;
-  ida: string; volta: string;
-  hotel: string; incluso: string;
-  pgto: "cartao" | "boleto" | "";
-  entrada: string; parc: string;
-  valor: string; total: string;
-}
-
-function emptyLamDest(): LamDest {
-  return {
-    destino: "", saida: "", voo: "Voo Direto",
-    ida: "", volta: "",
-    hotel: "", incluso: "Aéreo + Hotel + Transfer",
-    pgto: "cartao", entrada: "", parc: "",
-    valor: "", total: "",
-  };
-}
-
-/** V1 lamina.html:623-631 — formato do período por período ida/volta. */
-function lamFormatPeriodo(ida: string, volta: string): string {
-  if (!ida || !volta) return "";
-  const [yi, mi, di] = ida.split("-");
-  const [yv, mv, dv] = volta.split("-");
-  const p = (n: string) => n.padStart(2, "0");
-  if (yi === yv && mi === mv) return `${p(di)} a ${p(dv)}/${p(mi)}/${yi}`;
-  if (yi === yv) return `${p(di)}/${p(mi)} a ${p(dv)}/${p(mv)}/${yi}`;
-  return `${p(di)}/${p(mi)}/${yi} a ${p(dv)}/${p(mv)}/${yv}`;
-}
-
-export function QuatroDestinosForm({
-  fields, set, today,
-  loadDestinos, loadHoteis,
-}: {
+type QuatroDestinosFormProps = {
   fields: Fields;
   set: Setter;
-  today: string;
+  today?: string;
+  binds?: Set<string>;
+  // Props legado (lâmina V1) — aceitas para compat mas ignoradas.
   loadDestinos?: () => Promise<string[]>;
   loadHoteis?: () => Promise<string[]>;
-}) {
-  const [cab, setCab] = useState({
-    titulo1: String(fields.lam_titulo1 ?? ""),
-    titulo2: String(fields.lam_titulo2 ?? ""),
-  });
-  const [dests, setDests] = useState<LamDest[]>(() => [
-    emptyLamDest(), emptyLamDest(), emptyLamDest(), emptyLamDest(),
-  ]);
-  const [curDest, setCurDest] = useState(0);
-  const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
-  const [hotelOpts, setHotelOpts] = useState<string[]>([]);
-  const [palette, setPalette] = useState(0);
-  const [bgLoading, setBgLoading] = useState(false);
-  const [legenda, setLegenda] = useState(String(fields.lam_legenda ?? ""));
-  const [legLoading, setLegLoading] = useState(false);
-  const [legCopied, setLegCopied] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+};
 
-  useEffect(() => {
-    if (loadDestinos) loadDestinos().then(setDestinoOpts).catch(() => {});
-    if (loadHoteis) loadHoteis().then(setHotelOpts).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+export function QuatroDestinosForm({ fields, set, today, binds }: QuatroDestinosFormProps) {
+  const [destIdx, setDestIdx] = useState<1 | 2 | 3 | 4>(1);
 
-  // Sync para binds lam_* e img_fundo/logo_loja/lam_palette
-  useEffect(() => {
-    set("lam_titulo1", cab.titulo1);
-    set("lam_titulo2", cab.titulo2);
-    set("lam_palette", String(palette));
-    dests.forEach((d, i) => {
-      const n = i + 1;
-      set(`lam_d${n}_destino`, d.destino ? d.destino.toUpperCase() : "");
-      set(`lam_d${n}_saida`, d.saida);
-      set(`lam_d${n}_voo`, d.voo);
-      set(`lam_d${n}_periodo`, lamFormatPeriodo(d.ida, d.volta));
-      set(`lam_d${n}_hotel`, d.hotel);
-      set(`lam_d${n}_incluso`, d.incluso);
-      // pgto: V1 resolution rules
-      set(
-        `lam_d${n}_pgto`,
-        d.pgto === "cartao"
-          ? "No Cartão de Crédito S/ Juros"
-          : d.pgto === "boleto"
-            ? (d.entrada ? `Entrada de R$ ${d.entrada} +` : "Boleto")
-            : "",
-      );
-      // parcelas: adiciona "x" se não tiver
-      set(`lam_d${n}_parcelas`, d.parc ? (/x$/i.test(d.parc) ? d.parc : `${d.parc}x`) : "");
-      set(`lam_d${n}_valor`, d.valor);
-      // total: "ou R$ X à vista por pessoa"
-      set(`lam_d${n}_total`, d.total ? `ou R$ ${d.total} à vista por pessoa` : "");
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cab, dests, palette]);
+  const k = (n: number, suffix: string) => `d${n}_${suffix}`;
+  const numeric = (v: string) => v.replace(/[^0-9,.]/g, "");
+  const upperOnBlur = (key: string) => (e: React.FocusEvent<HTMLInputElement>) =>
+    set(key, e.target.value.toUpperCase());
 
-  const updateDest = (idx: number, patch: Partial<LamDest>) =>
-    setDests((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
+  const showTitulo = hasBind(binds, "titulo");
+  const showSubtitulo = hasBind(binds, "subtitulo");
 
-  const d = dests[curDest];
-  const nts = d.ida && d.volta ? calcularNoites(d.ida, d.volta) : 0;
+  const n = destIdx;
+  const showDestino = hasBind(binds, k(n, "destino"));
+  const showSaida = hasBind(binds, k(n, "saida"));
+  const showVoo = hasBind(binds, k(n, "voo"));
+  const showIda = hasBind(binds, k(n, "ida"));
+  const showVolta = hasBind(binds, k(n, "volta"));
+  const showHotel = hasBind(binds, k(n, "hotel"));
+  const showIncluso = hasBind(binds, k(n, "incluso"));
+  const showFormaPgto = hasBind(binds, k(n, "formapagamento"));
+  const showParcelas = hasBind(binds, k(n, "parcelas"));
+  const showValorParc = hasBind(binds, k(n, "valorparcela"));
+  const showAvista = hasBind(binds, k(n, "avista"));
 
-  /* ── Ações de personalização ──────────────────── */
-
-  async function handleShuffleBg() {
-    setBgLoading(true);
-    try {
-      // Biblioteca de fundos do V2 = tabela `imgfundo` (confirmado via information_schema).
-      const { data, error } = await _sb_for_lamina
-        .from("imgfundo")
-        .select("url")
-        .not("url", "is", null)
-        .limit(1000);
-      if (error) { console.error("[Lâmina] imgfundo query:", error); alert("Erro ao buscar fundos."); return; }
-      const rows = (data ?? []) as { url: string }[];
-      if (!rows.length) { alert("Biblioteca de fundos vazia."); return; }
-      const pick = rows[Math.floor(Math.random() * rows.length)];
-      if (pick?.url) set("img_fundo", pick.url);
-    } catch (err) {
-      console.error("[Lâmina] shuffle bg:", err);
-      alert("Erro ao sortear fundo.");
-    } finally {
-      setBgLoading(false);
-    }
-  }
-
-  function handleUploadBg(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result) set("img_fundo", String(reader.result));
-    };
-    reader.readAsDataURL(f);
-    e.target.value = "";
-  }
-
-  function handleClearBg() {
-    set("img_fundo", "");
-  }
-
-  function handleIATitulo() {
-    const firstDst = dests.map((x) => x.destino).filter(Boolean)[0] || "seu destino";
-    const tmpl = LAM_TITULO_TEMPLATES[Math.floor(Math.random() * LAM_TITULO_TEMPLATES.length)];
-    let l1 = tmpl.l1.replace("{destino}", firstDst);
-    let l2 = tmpl.l2.replace("{destino}", firstDst);
-    if (l1.length > 25) l1 = l1.slice(0, 24) + "…";
-    if (l2.length > 30) l2 = l2.slice(0, 29) + "…";
-    setCab({ titulo1: l1, titulo2: l2 });
-  }
-
-  async function handleIALegenda() {
-    setLegLoading(true);
-    setLegCopied(false);
-    try {
-      // Agrega dados dos 4 destinos preenchidos pra montar um contexto rico
-      const destFilled = dests.filter((x) => x.destino.trim());
-      const destNames = destFilled.map((d) => d.destino.toUpperCase()).join(", ") || "vários destinos";
-      const precos = destFilled.map((d) => d.valor).filter(Boolean);
-      const menorPreco = precos.length
-        ? precos.reduce((a, b) => {
-            const na = parseFloat(a.replace(/\./g, "").replace(",", ".")) || Infinity;
-            const nb = parseFloat(b.replace(/\./g, "").replace(",", ".")) || Infinity;
-            return na <= nb ? a : b;
-          })
-        : "";
-      const payload = {
-        destino: destNames,
-        hotel: destFilled.map((d) => d.hotel).filter(Boolean).slice(0, 2).join(" / "),
-        servicos: destFilled.map((d) => d.incluso).filter(Boolean)[0] ?? "",
-        preco: menorPreco ? `a partir de R$ ${menorPreco}` : "",
-        parcelas: destFilled.map((d) => d.parc).filter(Boolean)[0] ?? "",
-        datas: destFilled.map((d) => lamFormatPeriodo(d.ida, d.volta)).filter(Boolean).slice(0, 2).join(" / "),
-        tipo: "Card WhatsApp — 4 destinos (promocional, tom informal para WhatsApp)",
-      };
-      const res = await fetch("/api/ai/legenda", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
-      const txt = (json?.legenda ?? "").toString();
-      if (txt) {
-        setLegenda(txt);
-        set("lam_legenda", txt);
-      } else {
-        alert("Não consegui gerar a legenda. Tente novamente.");
-      }
-    } catch (err) {
-      console.error("[Lâmina] IA legenda:", err);
-      alert("Erro ao gerar legenda.");
-    } finally {
-      setLegLoading(false);
-    }
-  }
-
-  async function handleCopyLegenda() {
-    if (!legenda) return;
-    try {
-      await navigator.clipboard.writeText(legenda);
-      setLegCopied(true);
-      setTimeout(() => setLegCopied(false), 2000);
-    } catch {
-      /* ignorado */
-    }
-  }
+  const anyRotulos = showDestino || showSaida || showVoo;
+  const anyDatas = showIda || showVolta;
+  const anyHotel = showHotel || showIncluso;
+  const anyPgto = showFormaPgto || showParcelas || showValorParc || showAvista;
 
   return (
     <>
-      <Section title="Título da Arte" icon="✦">
-        <Field label="Linha 1">
-          <div className="flex gap-1.5">
-            <input
-              value={cab.titulo1}
-              onChange={(e) => setCab((p) => ({ ...p, titulo1: e.target.value }))}
-              placeholder="Férias dos Sonhos Já!"
-              className={`${INPUT_CLASS} flex-1`}
-              maxLength={25}
-            />
-            <button
-              type="button"
-              onClick={handleIATitulo}
-              title="Sugerir com IA (offline)"
-              className="shrink-0 rounded-lg border px-2.5 text-[10px] font-bold"
-              style={{ borderColor: "var(--orange)", color: "var(--orange)", background: "rgba(255,122,26,0.08)" }}
-            >
-              ✦ IA
-            </button>
-          </div>
-        </Field>
-        <Field label="Linha 2">
-          <input
-            value={cab.titulo2}
-            onChange={(e) => setCab((p) => ({ ...p, titulo2: e.target.value }))}
-            placeholder="Voe com a Azul Viagens"
-            className={INPUT_CLASS}
-            maxLength={30}
-          />
-        </Field>
-      </Section>
+      {(showTitulo || showSubtitulo) && (
+        <Section title="Título do Card" icon="✦">
+          {showTitulo && (
+            <Field label="Linha 1">
+              <input
+                value={(fields.titulo as string) || ""}
+                onChange={(e) => set("titulo", e.target.value)}
+                placeholder="ex. FÉRIAS DOS SONHOS"
+                className={INPUT_CLASS}
+                maxLength={30}
+              />
+            </Field>
+          )}
+          {showSubtitulo && (
+            <Field label="Linha 2">
+              <input
+                value={(fields.subtitulo as string) || ""}
+                onChange={(e) => set("subtitulo", e.target.value)}
+                placeholder="ex. Pacotes com a Azul Viagens"
+                className={INPUT_CLASS}
+                maxLength={40}
+              />
+            </Field>
+          )}
+        </Section>
+      )}
 
-      {/* Sub-abas destino */}
       <div className="grid grid-cols-4 gap-1.5">
-        {[0, 1, 2, 3].map((i) => {
-          const active = curDest === i;
-          const label = dests[i].destino
-            ? dests[i].destino.toUpperCase().slice(0, 8)
-            : `Dest ${i + 1}`;
+        {[1, 2, 3, 4].map((i) => {
+          const active = destIdx === i;
+          const label = (fields[k(i, "destino")] as string)?.toUpperCase().slice(0, 8) || `Dest ${i}`;
           return (
             <button
               key={i}
               type="button"
-              onClick={() => setCurDest(i)}
+              onClick={() => setDestIdx(i as 1 | 2 | 3 | 4)}
               className="rounded-lg border px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all"
               style={
                 active
@@ -1352,246 +1146,161 @@ export function QuatroDestinosForm({
         })}
       </div>
 
-      <Section title="Destino & Voo" icon="📍">
-        <Field label="Destino">
-          <SearchableSelect
-            value={d.destino}
-            onChange={(v) => updateDest(curDest, { destino: capitalizarDestino(v) })}
-            options={destinoOpts}
-            placeholder="Buscar destino..."
-            allowCustom
-          />
-        </Field>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Saída">
-            <input
-              value={d.saida}
-              onChange={(e) => updateDest(curDest, { saida: e.target.value })}
-              placeholder="GRU"
-              className={INPUT_CLASS}
-            />
-          </Field>
-          <Field label="Tipo Voo">
-            <select
-              value={d.voo}
-              onChange={(e) => updateDest(curDest, { voo: e.target.value })}
-              className={INPUT_CLASS}
-            >
-              {LAM_VOO_OPTS.map((v) => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
-          </Field>
-        </div>
-      </Section>
-
-      <Section title="Datas" icon="📅">
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Ida">
-            <input
-              type="date"
-              min={today}
-              value={d.ida}
-              onChange={(e) => updateDest(curDest, { ida: e.target.value })}
-              className={INPUT_CLASS}
-            />
-          </Field>
-          <Field label="Volta">
-            <input
-              type="date"
-              min={d.ida || today}
-              value={d.volta}
-              onChange={(e) => updateDest(curDest, { volta: e.target.value })}
-              className={INPUT_CLASS}
-            />
-          </Field>
-        </div>
-        {nts > 0 && (
-          <p className="text-[10px] text-[var(--txt3)]">
-            ✈ {nts} noite{nts === 1 ? "" : "s"} · {lamFormatPeriodo(d.ida, d.volta)}
-          </p>
-        )}
-      </Section>
-
-      <Section title="Hotel & Incluso" icon="🏨">
-        <Field label="Hotel">
-          <SearchableSelect
-            value={d.hotel}
-            onChange={(v) => updateDest(curDest, { hotel: v })}
-            options={hotelOpts}
-            placeholder="Buscar hotel..."
-            allowCustom
-          />
-        </Field>
-        <Field label="Incluso">
-          <select
-            value={d.incluso}
-            onChange={(e) => updateDest(curDest, { incluso: e.target.value })}
-            className={INPUT_CLASS}
-          >
-            {LAM_INCLUSO_OPTS.map((v) => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
-        </Field>
-      </Section>
-
-      <Section title="Pagamento" icon="💰">
-        <Field label="Forma de Pagamento">
-          <select
-            value={d.pgto}
-            onChange={(e) => {
-              const v = e.target.value as LamDest["pgto"];
-              updateDest(curDest, { pgto: v, ...(v === "cartao" ? { entrada: "" } : {}) });
-            }}
-            className={INPUT_CLASS}
-          >
-            <option value="">– selecione –</option>
-            <option value="cartao">Cartão de Crédito</option>
-            <option value="boleto">Boleto</option>
-          </select>
-        </Field>
-        {d.pgto === "boleto" && (
-          <Field label="Valor da Entrada (R$)">
-            <input
-              value={d.entrada}
-              onChange={(e) => updateDest(curDest, { entrada: e.target.value })}
-              placeholder="1.500,00"
-              className={INPUT_CLASS}
-            />
-          </Field>
-        )}
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Parcelas">
-            <SearchableSelect
-              value={d.parc}
-              onChange={(v) => updateDest(curDest, { parc: v })}
-              options={LAM_PARCELAS_OPTS}
-              placeholder="12x"
-            />
-          </Field>
-          <Field label="Valor Parcela">
-            <input
-              value={d.valor}
-              onChange={(e) => updateDest(curDest, { valor: e.target.value })}
-              placeholder="890,00"
-              className={INPUT_CLASS}
-            />
-          </Field>
-        </div>
-        <Field label="À Vista (por pessoa)">
-          <input
-            value={d.total}
-            onChange={(e) => updateDest(curDest, { total: e.target.value })}
-            placeholder="8.900,00"
-            className={INPUT_CLASS}
-          />
-        </Field>
-      </Section>
-
-      <Section title="Legenda WhatsApp (IA)" icon="✨">
-        <div className="flex gap-1.5">
-          <button
-            type="button"
-            onClick={handleIALegenda}
-            disabled={legLoading}
-            className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all disabled:opacity-50"
-            style={{ borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }}
-          >
-            {legLoading ? "Gerando…" : "✦ Gerar legenda"}
-          </button>
-          {legenda && (
-            <button
-              type="button"
-              onClick={handleCopyLegenda}
-              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
-              style={{ borderColor: "var(--bdr)", color: legCopied ? "var(--green, #10B981)" : "var(--txt2)" }}
-            >
-              {legCopied ? "✓ Copiado" : "📋 Copiar"}
-            </button>
+      {anyRotulos && (
+        <Section title={`Destino ${n} — Voo`} icon="📍">
+          {showDestino && (
+            <Field label="Destino *">
+              <input
+                value={(fields[k(n, "destino")] as string) || ""}
+                onChange={(e) => set(k(n, "destino"), e.target.value)}
+                onBlur={upperOnBlur(k(n, "destino"))}
+                placeholder="ex. CANCÚN"
+                className={`${INPUT_CLASS} uppercase`}
+              />
+            </Field>
           )}
-        </div>
-        {legenda && (
-          <textarea
-            value={legenda}
-            onChange={(e) => { setLegenda(e.target.value); set("lam_legenda", e.target.value); }}
-            rows={4}
-            className={`${INPUT_CLASS} !h-auto py-2 resize-y min-h-[80px] leading-snug`}
-            placeholder="Legenda gerada aparecerá aqui…"
-          />
-        )}
-        {!legenda && (
-          <p className="text-[10px] text-[var(--txt3)]">Preencha pelo menos 1 destino e clique em &quot;Gerar legenda&quot; — Claude Haiku cria uma legenda promocional pra WhatsApp.</p>
-        )}
-      </Section>
-
-      <Section title="Personalização Visual" icon="✦">
-        <Field label="Cor tema">
-          <div className="grid grid-cols-4 gap-1.5">
-            {LAM_PALETTES.map((p, i) => {
-              const active = palette === i;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setPalette(i)}
-                  title={p.name}
-                  className="flex flex-col items-center gap-1 rounded-lg border px-1 py-1.5 transition-all"
-                  style={
-                    active
-                      ? { borderColor: "var(--orange)", background: "var(--bg1)" }
-                      : { borderColor: "var(--bdr)", background: "transparent" }
-                  }
-                >
-                  <span
-                    className="block rounded-md"
-                    style={{
-                      width: 24, height: 24,
-                      background: p.accent,
-                      boxShadow: active ? "0 0 0 2px var(--txt) inset" : "none",
-                    }}
+          {(showSaida || showVoo) && (
+            <div className="grid grid-cols-2 gap-2">
+              {showSaida && (
+                <Field label="Saída">
+                  <input
+                    value={(fields[k(n, "saida")] as string) || ""}
+                    onChange={(e) => set(k(n, "saida"), e.target.value)}
+                    onBlur={upperOnBlur(k(n, "saida"))}
+                    placeholder="ex. GRU"
+                    className={`${INPUT_CLASS} uppercase`}
                   />
-                  <span className="text-[9px] font-semibold text-[var(--txt2)] leading-none">
-                    {p.emoji} {p.name}
-                  </span>
-                </button>
-              );
-            })}
+                </Field>
+              )}
+              {showVoo && (
+                <Field label="Tipo de Voo">
+                  <select
+                    value={(fields[k(n, "voo")] as string) || "Voo Direto"}
+                    onChange={(e) => set(k(n, "voo"), e.target.value)}
+                    className={INPUT_CLASS}
+                  >
+                    {D_VOO_OPTS.map((v) => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </Field>
+              )}
+            </div>
+          )}
+        </Section>
+      )}
+
+      {anyDatas && (
+        <Section title="Datas" icon="📅">
+          <div className="grid grid-cols-2 gap-2">
+            {showIda && (
+              <Field label="Ida">
+                <input
+                  type="date"
+                  min={today}
+                  value={(fields[k(n, "ida")] as string) || ""}
+                  onChange={(e) => set(k(n, "ida"), e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
+            {showVolta && (
+              <Field label="Volta">
+                <input
+                  type="date"
+                  min={(fields[k(n, "ida")] as string) || today}
+                  value={(fields[k(n, "volta")] as string) || ""}
+                  onChange={(e) => set(k(n, "volta"), e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
           </div>
-        </Field>
-        <Field label="Fundo">
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={handleShuffleBg}
-              disabled={bgLoading}
-              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
-              style={{ borderColor: "var(--bdr)", color: "var(--txt2)" }}
-            >
-              {bgLoading ? "Buscando…" : "⟳ Aleatório"}
-            </button>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
-              style={{ borderColor: "var(--bdr)", color: "var(--txt2)" }}
-            >
-              ↑ Upload
-            </button>
-            {fields.img_fundo ? (
-              <button
-                type="button"
-                onClick={handleClearBg}
-                className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
-                style={{ borderColor: "var(--bdr)", color: "var(--txt3)" }}
+        </Section>
+      )}
+
+      {anyHotel && (
+        <Section title="Hotel & Incluso" icon="🏨">
+          {showHotel && (
+            <Field label="Hotel">
+              <input
+                value={(fields[k(n, "hotel")] as string) || ""}
+                onChange={(e) => set(k(n, "hotel"), e.target.value)}
+                placeholder="Nome do hotel"
+                className={INPUT_CLASS}
+              />
+            </Field>
+          )}
+          {showIncluso && (
+            <Field label="Incluso">
+              <select
+                value={(fields[k(n, "incluso")] as string) || ""}
+                onChange={(e) => set(k(n, "incluso"), e.target.value)}
+                className={INPUT_CLASS}
               >
-                ✕ Limpar
-              </button>
-            ) : null}
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUploadBg} />
-          </div>
-        </Field>
-      </Section>
+                <option value="">—</option>
+                {D_INCLUSO_OPTS.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </Field>
+          )}
+        </Section>
+      )}
+
+      {anyPgto && (
+        <Section title="Pagamento" icon="💰">
+          {showFormaPgto && (
+            <Field label="Forma de Pagamento">
+              <select
+                value={(fields[k(n, "formapagamento")] as string) || ""}
+                onChange={(e) => set(k(n, "formapagamento"), e.target.value)}
+                className={INPUT_CLASS}
+              >
+                <option value="">—</option>
+                {D_FORMA_PGTO_OPTS.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </Field>
+          )}
+          {(showParcelas || showValorParc) && (
+            <div className="grid grid-cols-2 gap-2">
+              {showParcelas && (
+                <Field label="Parcelas">
+                  <select
+                    value={(fields[k(n, "parcelas")] as string) || ""}
+                    onChange={(e) => set(k(n, "parcelas"), e.target.value)}
+                    className={INPUT_CLASS}
+                  >
+                    <option value="">—</option>
+                    {PARCELAS_OPTS_FORM.map((v) => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </Field>
+              )}
+              {showValorParc && (
+                <Field label="Valor da Parcela (R$)">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={(fields[k(n, "valorparcela")] as string) || ""}
+                    onChange={(e) => set(k(n, "valorparcela"), numeric(e.target.value))}
+                    placeholder="ex. 890,00"
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              )}
+            </div>
+          )}
+          {showAvista && (
+            <Field label="À Vista (R$)">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={(fields[k(n, "avista")] as string) || ""}
+                onChange={(e) => set(k(n, "avista"), numeric(e.target.value))}
+                placeholder="ex. 8.900,00"
+                className={INPUT_CLASS}
+              />
+            </Field>
+          )}
+        </Section>
+      )}
     </>
   );
 }
+
