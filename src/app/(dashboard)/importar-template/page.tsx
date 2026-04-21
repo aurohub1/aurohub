@@ -85,6 +85,8 @@ export default function ImportarTemplatePage() {
   const [elements, setElements] = useState<DetectedElement[]>([]);
   const [formType, setFormType] = useState<FormType>("pacote");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [imgRect, setImgRect] = useState<DOMRect | null>(null);
 
   // Step 3 — rules
   const [rules, setRules] = useState<Rule[]>([]);
@@ -175,6 +177,13 @@ export default function ImportarTemplatePage() {
   function updateBind(idx: number, newBind: string) {
     setElements((prev) => prev.map((el, i) => (i === idx ? { ...el, bind: newBind } : el)));
   }
+
+  useEffect(() => {
+    if (imgRef.current) {
+      const rect = imgRef.current.getBoundingClientRect();
+      setImgRect(rect);
+    }
+  }, [imageData, elements]);
 
   /* ── Step 3: Rules ───────────────────────────── */
   async function generateRule() {
@@ -411,40 +420,62 @@ export default function ImportarTemplatePage() {
                   style={{ aspectRatio: FORMAT_ASPECT[detectedFormat], maxHeight: "60vh" }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageData} alt="Preview" className="h-full w-full object-contain" />
+                  <img
+                    ref={imgRef}
+                    src={imageData}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                    onLoad={() => {
+                      if (imgRef.current) {
+                        setImgRect(imgRef.current.getBoundingClientRect());
+                      }
+                    }}
+                  />
 
-                  {/* Overlays */}
-                  {elements.map((el, idx) => (
+                  {/* Overlays container */}
+                  {imgRect && (
                     <div
-                      key={idx}
-                      onMouseEnter={() => setHoveredIdx(idx)}
-                      onMouseLeave={() => setHoveredIdx(null)}
-                      className={`absolute border-2 transition-all ${
-                        hoveredIdx === idx
-                          ? "border-[var(--orange)] bg-[var(--orange)]/30 z-10"
-                          : "border-blue-400 bg-blue-400/15"
-                      }`}
+                      className="pointer-events-none absolute"
                       style={{
-                        left: `${el.x}%`,
-                        top: `${el.y}%`,
-                        width: `${el.w}%`,
-                        height: `${el.h}%`,
-                        cursor: "pointer",
+                        left: 0,
+                        top: 0,
+                        width: imgRect.width,
+                        height: imgRect.height,
                       }}
                     >
-                      {el.bind && (
+                      {elements.map((el, idx) => (
                         <div
-                          className={`absolute -top-5 left-0 rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                          key={idx}
+                          onMouseEnter={() => setHoveredIdx(idx)}
+                          onMouseLeave={() => setHoveredIdx(null)}
+                          className={`absolute border-2 transition-all pointer-events-auto ${
                             hoveredIdx === idx
-                              ? "bg-[var(--orange)] text-white"
-                              : "bg-blue-500 text-white"
+                              ? "border-[var(--orange)] bg-[var(--orange)]/30 z-10"
+                              : "border-blue-400 bg-blue-400/15"
                           }`}
+                          style={{
+                            left: `${el.x}%`,
+                            top: `${el.y}%`,
+                            width: `${el.w}%`,
+                            height: `${el.h}%`,
+                            cursor: "pointer",
+                          }}
                         >
-                          {el.bind}
+                          {el.bind && (
+                            <div
+                              className={`px-1.5 py-0.5 text-[10px] font-bold ${
+                                hoveredIdx === idx
+                                  ? "bg-[var(--orange)]/80 text-white"
+                                  : "bg-blue-500/80 text-white"
+                              }`}
+                            >
+                              {el.bind}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
                 <p className="mt-2 text-xs text-[var(--txt3)]">
                   {imgW}×{imgH}px • {FORMAT_LABEL[detectedFormat]}
