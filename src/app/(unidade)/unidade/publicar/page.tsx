@@ -364,6 +364,14 @@ export default function UnidadePublicarPage() {
     return (Object.keys(FORMAT_LABELS) as Format[]).filter((f) => set.has(f));
   }, [templates, tab, visibleFormats]);
 
+  // Se o formato atual não tem template pro tipo selecionado, troca pro primeiro disponível (prefere Stories)
+  useEffect(() => {
+    if (formatsForCurrentType.length === 0) return;
+    if (formatsForCurrentType.includes(format)) return;
+    const prefer = formatsForCurrentType.includes("stories") ? "stories" : formatsForCurrentType[0];
+    setFormat(prefer);
+  }, [formatsForCurrentType, format]);
+
   const canPublishFeature = features.has("publicar");
   const canIaLegenda = features.has("ia_legenda") || profile?.role === "adm";
   // "drive" ainda não é feature liberada — mantemos hardcode false
@@ -1123,11 +1131,14 @@ export default function UnidadePublicarPage() {
         availableTypes={availableTypes}
         onSelectType={(type) => {
           setTab(type as FormType);
-          const first = templates.find((t) => {
+          // Prefere Stories; fallback pro primeiro formato com template pro tipo
+          const withTpl = templates.filter((t) => {
             const ft = t.formType === "lamina" ? "quatro_destinos" : t.formType;
             return ft === type && visibleFormats.includes(t.format);
           });
-          if (first) setFormat(first.format);
+          const storiesTpl = withTpl.find((t) => t.format === "stories");
+          const chosen = storiesTpl ?? withTpl[0];
+          if (chosen) setFormat(chosen.format);
           setShowTypePicker(false);
         }}
       />
