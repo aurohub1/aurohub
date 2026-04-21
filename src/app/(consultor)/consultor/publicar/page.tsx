@@ -12,6 +12,7 @@ import { usePublishQueue } from "@/hooks/usePublishQueue";
 import type { EditorSchema } from "@/components/editor/types";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
 import { CampanhaForm, CruzeiroForm, AnoiteceuForm, QuatroDestinosForm } from "@/components/publish/FormSections";
+import PublicarFlow, { type PublicarFlowType } from "@/components/publish/PublicarFlow";
 
 import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
@@ -264,6 +265,12 @@ export default function PublicarPage() {
   const [tab, setTab] = useState<FormType>("pacote");
   const [format, setFormat] = useState<Format>("stories");
 
+  // Seletor de tipo (tela inicial). Ativo até escolher; "← Trocar tipo" volta.
+  const [showTypePicker, setShowTypePicker] = useState(true);
+
+  // Tipos com template em system_config (complementa form_templates). "lamina" → "quatro_destinos".
+  const [canvasFormTypes, setCanvasFormTypes] = useState<Set<string>>(new Set());
+
   // Cache de dados por aba (preserva ao trocar)
   const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>(() => {
     const defaults = { formapagamento: "Cartão de Crédito", tipovoo: "( Voo Direto )" };
@@ -352,6 +359,28 @@ export default function PublicarPage() {
       setFormat(visibleFormats[0]);
     }
   }, [visibleFormats, format]);
+
+  // Tipos com template (form_templates + system_config). "lamina" → "quatro_destinos".
+  const availableTypes = useMemo<Set<PublicarFlowType>>(() => {
+    const set = new Set<PublicarFlowType>();
+    const supported: PublicarFlowType[] = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu", "quatro_destinos"];
+    const add = (ft: string) => {
+      if (ft === "lamina") set.add("quatro_destinos");
+      else if ((supported as string[]).includes(ft)) set.add(ft as PublicarFlowType);
+    };
+    for (const t of templates) add(String(t.formType));
+    for (const ft of canvasFormTypes) add(ft);
+    return set;
+  }, [templates, canvasFormTypes]);
+
+  const formatsForCurrentType = useMemo<Format[]>(() => {
+    const set = new Set<Format>();
+    for (const t of templates) {
+      const ft = t.formType === "lamina" ? "quatro_destinos" : t.formType;
+      if (ft === tab && visibleFormats.includes(t.format)) set.add(t.format);
+    }
+    return (Object.keys(FORMAT_LABELS) as Format[]).filter((f) => set.has(f));
+  }, [templates, tab, visibleFormats]);
 
   const canPublishFeature = features.has("publicar");
   const canIaLegenda = features.has("ia_legenda") || profile?.role === "adm";
@@ -451,20 +480,34 @@ export default function PublicarPage() {
       });
       setTemplates(rows);
 
-      // Auto-select tab/format do template via URL param ou primeiro disponível.
-      // Tab é derivada dos binds do schema (prioridade sobre formType).
+      // system_config.tmpl_* — agrega formTypes (licensee do user ou base)
+      try {
+        const { data: sc } = await supabase
+          .from("system_config")
+          .select("key, value")
+          .like("key", "tmpl_%");
+        const types = new Set<string>();
+        for (const r of (sc ?? []) as { key: string; value: string }[]) {
+          try {
+            const parsed = JSON.parse(r.value);
+            const lid = parsed.licenseeId ?? parsed.licensee_id ?? null;
+            if (lid && lid.trim && lid.trim() !== p.licensee_id.trim()) continue;
+            const ft = parsed.formType || parsed.schema?.formType;
+            if (ft) types.add(String(ft));
+          } catch { /* skip */ }
+        }
+        setCanvasFormTypes(types);
+      } catch { /* silent */ }
+
+      // Auto-select via URL param (deep link). Sem param → mostra picker.
       if (templateParam) {
         const match = rows.find(t => t.key.includes(templateParam) || t.id === templateParam);
         if (match) {
           const derived = deriveTabFromBinds(getSchemaBinds(match.schema), (match.formType as FormType) || "pacote");
           setTab(derived);
           setFormat(match.format);
+          setShowTypePicker(false);
         }
-      } else if (rows.length > 0) {
-        const first = rows[0];
-        const derived = deriveTabFromBinds(getSchemaBinds(first.schema), (first.formType as FormType) || "pacote");
-        setTab(derived);
-        if (first.format) setFormat(first.format);
       }
 
       // Stores / publish targets
@@ -1090,6 +1133,24 @@ export default function PublicarPage() {
 
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
+  if (showTypePicker) {
+    return (
+      <PublicarFlow
+        agencyName={profile?.store?.name || profile?.licensee?.name || undefined}
+        availableTypes={availableTypes}
+        onSelectType={(type) => {
+          setTab(type as FormType);
+          const first = templates.find((t) => {
+            const ft = t.formType === "lamina" ? "quatro_destinos" : t.formType;
+            return ft === type && visibleFormats.includes(t.format);
+          });
+          if (first) setFormat(first.format);
+          setShowTypePicker(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr] page-fade publicar-mobile">
       <style>{`
@@ -1136,33 +1197,18 @@ export default function PublicarPage() {
           </div>
         </div>
 
-        {/* Tabs — linha única, sem quebra */}
-        <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-2">
-          <div className="flex flex-nowrap items-center gap-0.5" style={{ whiteSpace: "nowrap" }}>
-            {FORM_ORDER.filter((f) => f !== "quatro_destinos" || features.has("lamina_4destinos")).map((f) => {
-              const active = tab === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setTab(f)}
-                  className="flex h-7 flex-1 items-center justify-center whitespace-nowrap rounded-full px-2 text-[10px] font-semibold transition-all"
-                  style={
-                    active
-                      ? { background: "var(--orange)", color: "#FFFFFF", boxShadow: "0 2px 6px rgba(255,122,26,0.35)" }
-                      : { background: "transparent", color: "var(--txt2)" }
-                  }
-                  onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt2)";
-                  }}
-                >
-                  {FORM_LABELS[f]}
-                </button>
-              );
-            })}
-          </div>
+        {/* Barra "Trocar tipo" — tipo é escolhido no seletor inicial */}
+        <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowTypePicker(true)}
+            className="rounded-full border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt2)] hover:text-[var(--txt)]"
+          >
+            ← Trocar tipo
+          </button>
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
+            {FORM_LABELS[tab]}
+          </span>
         </div>
 
         {/* Scroll dos campos */}
@@ -1720,28 +1766,27 @@ export default function PublicarPage() {
             </div>
           )}
         </div>
-        {/* Format pills flutuantes — só aparece se o plano libera >1 formato */}
-        {visibleFormats.length > 1 && (
-          <div className="pointer-events-none absolute bottom-5 left-0 right-0 flex justify-center">
-            <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg1)] p-1 shadow-xl">
-              {visibleFormats.map((f) => {
-                const active = format === f;
-                return (
-                  <button
-                    key={f}
-                    onClick={() => setFormat(f)}
-                    className="rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
-                    style={
-                      active
-                        ? { background: "#D4A843", color: "#060B16" }
-                        : { color: "var(--txt3)" }
-                    }
-                  >
-                    {FORMAT_LABELS[f]}
-                  </button>
-                );
-              })}
-            </div>
+        {/* Format pills — abaixo do preview, só formatos liberados pelo plano + com template pro tipo escolhido */}
+        {formatsForCurrentType.length > 1 && (
+          <div className="shrink-0 border-t border-[var(--bdr)] px-4 py-3 flex items-center justify-center gap-1">
+            {formatsForCurrentType.map((f) => {
+              const active = format === f;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFormat(f)}
+                  className="rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                  style={
+                    active
+                      ? { background: "#D4A843", color: "#060B16" }
+                      : { background: "transparent", color: "var(--txt3)", border: "1px solid var(--bdr)" }
+                  }
+                >
+                  {FORMAT_LABELS[f]}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
