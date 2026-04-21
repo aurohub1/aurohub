@@ -414,10 +414,10 @@ export default function ImportarTemplatePage() {
 
           {!analyzing && !analyzeError && (
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.2fr]">
-              <div>
+              <div className="flex flex-col items-center">
                 <div
-                  className="relative w-full overflow-hidden rounded-lg border border-[var(--bdr)]"
-                  style={{ aspectRatio: FORMAT_ASPECT[detectedFormat], maxHeight: "60vh" }}
+                  className="relative overflow-hidden rounded-lg border border-[var(--bdr)]"
+                  style={{ aspectRatio: FORMAT_ASPECT[detectedFormat], maxHeight: "45vh", maxWidth: "320px", width: "100%" }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
