@@ -230,6 +230,7 @@ export default function ImportarTemplatePage() {
   }
 
   /* ── Step 4: Save ────────────────────────────── */
+  console.log("elements ao salvar:", elements);
   const templateJson = {
     nome: templateName,
     format: detectedFormat,
@@ -269,11 +270,43 @@ export default function ImportarTemplatePage() {
     setSaving(true);
     setSaveError("");
     try {
+      const canvasW = detectedFormat === "tv" ? 1920 : 1080;
+      const canvasH = detectedFormat === "stories" ? 1920 : detectedFormat === "feed" ? 1350 : 1080;
+
+      const konvaElements = elements.map((el, i) => ({
+        id: `imported_${i}_${Date.now()}`,
+        name: el.bind || `elemento_${i}`,
+        type: el.type === "image" ? "image" : "text",
+        x: Math.round((el.x / 100) * canvasW),
+        y: Math.round((el.y / 100) * canvasH),
+        width: Math.round((el.w / 100) * canvasW),
+        height: Math.round((el.h / 100) * canvasH),
+        fontSize: el.fontSize || 32,
+        fontFamily: "Helvetica Neue",
+        fontStyle: "bold",
+        fill: el.color || "#FFFFFF",
+        text: el.bind ? `[${el.bind}]` : el.label || "",
+        bindParam: el.bind || "",
+        visible: true,
+        locked: false,
+        rotation: 0,
+        opacity: 1,
+        imageFit: el.type === "image" ? "cover" : undefined,
+      }));
+
+      const finalJson = {
+        ...templateJson,
+        schema: {
+          ...templateJson.schema,
+          elements: konvaElements,
+        },
+      };
+
       const key = `tmpl_${Date.now()}`;
       const { error } = await supabase.from("system_config").upsert(
         {
           key,
-          value: JSON.stringify(templateJson),
+          value: JSON.stringify(finalJson),
           updated_at: new Date().toISOString(),
         },
         { onConflict: "key" },

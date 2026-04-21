@@ -1623,7 +1623,7 @@ export default function GerentePublicarPage() {
                     className="rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
                     style={
                       active
-                        ? { background: "#D4A843", color: "#060B16" }
+                        ? { background: "var(--brand-primary)", color: "#FFFFFF" }
                         : { color: "var(--txt3)" }
                     }
                   >
