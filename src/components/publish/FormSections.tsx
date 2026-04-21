@@ -466,9 +466,12 @@ export function PacoteForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Busca URL aleatória na tabela imgfundo: match por nome (ILIKE), fallback any.
+  // Busca imgfundo aleatório: match ILIKE por destino, fallback any. Cancela fetch
+  // anterior via token — se o usuário troca destino rápido, só o último commit vence.
+  const fetchTokenRef = useRef(0);
   async function fetchImgFundo(needle: string) {
     if (!onImgFundo) return;
+    const token = ++fetchTokenRef.current;
     try {
       let url: string | null = null;
       if (needle.trim()) {
@@ -477,11 +480,13 @@ export function PacoteForm({
           .select("url")
           .ilike("nome", `%${needle.trim()}%`)
           .limit(50);
+        if (token !== fetchTokenRef.current) return; // stale
         const rows = (data ?? []) as { url: string }[];
         if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
       }
       if (!url) {
         const { data } = await _sb_for_lamina.from("imgfundo").select("url").limit(500);
+        if (token !== fetchTokenRef.current) return; // stale
         const rows = (data ?? []) as { url: string }[];
         if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
       }
@@ -599,7 +604,11 @@ export function PacoteForm({
               )}
               {showTipovoo && (
                 <Field label="Tipo de Voo">
-                  <div className="flex gap-1">
+                  {/* V1 .radio-group + .radio-btn.on — background gold #D4A843, texto escuro, shadow sutil. */}
+                  <div
+                    className="flex gap-1 rounded-lg border p-0.5"
+                    style={{ background: "var(--bg2)", borderColor: "var(--bdr)" }}
+                  >
                     {["( Voo Direto )", "( Voo Conexão )"].map((opt) => {
                       const sel = fields.tipovoo === opt;
                       return (
@@ -607,11 +616,11 @@ export function PacoteForm({
                           key={opt}
                           type="button"
                           onClick={() => set("tipovoo", opt)}
-                          className="flex-1 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-wide transition-all"
+                          className="flex-1 rounded-md px-2 py-1 text-[10px] font-bold tracking-wide transition-all"
                           style={
                             sel
-                              ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                              : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                              ? { background: "#D4A843", color: "#060B16", boxShadow: "0 1px 6px rgba(212,168,67,0.4)" }
+                              : { background: "transparent", color: "var(--txt3)" }
                           }
                         >
                           {opt}
@@ -677,13 +686,10 @@ export function PacoteForm({
       {showHotel && (
         <Section title="Hotel">
           <Field label="Hotel *">
+            {/* Hotel só grava hotel — imghotel é bindParam separado que fica com page-level logic. */}
             <SearchableSelect
               value={(fields.hotel as string) || ""}
               onChange={(v) => set("hotel", v)}
-              onBlur={(v) => {
-                set("hotel", v);
-                if (v.trim()) fetchImgFundo(v);
-              }}
               options={hotelOpts}
               placeholder="Nome do hotel"
               allowCustom

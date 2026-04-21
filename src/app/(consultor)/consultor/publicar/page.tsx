@@ -1145,17 +1145,17 @@ export default function PublicarPage() {
                 <button
                   key={f}
                   onClick={() => setTab(f)}
-                  className="flex h-7 flex-1 items-center justify-center whitespace-nowrap rounded-full px-2 text-[10px] font-semibold transition-all"
+                  className="flex h-7 flex-1 items-center justify-center whitespace-nowrap px-2 text-[10px] font-bold uppercase tracking-[0.07em] transition-all"
                   style={
                     active
-                      ? { background: "var(--orange)", color: "#FFFFFF", boxShadow: "0 2px 6px rgba(255,122,26,0.35)" }
-                      : { background: "transparent", color: "var(--txt2)" }
+                      ? { color: "#D4A843", background: "rgba(212,168,67,0.05)", boxShadow: "inset 0 -2px 0 #D4A843" }
+                      : { color: "var(--txt3)", background: "transparent" }
                   }
                   onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt)";
+                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt2)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt2)";
+                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt3)";
                   }}
                 >
                   {FORM_LABELS[f]}
@@ -1602,7 +1602,7 @@ export default function PublicarPage() {
         </div>
         {/* Format pills flutuantes — só aparece se o plano libera >1 formato */}
         {visibleFormats.length > 1 && (
-          <div className="pointer-events-none absolute bottom-5 left-0 right-0 flex justify-center">
+          <div className="pointer-events-none absolute top-5 left-0 right-0 flex justify-center">
             <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg1)] p-1 shadow-xl">
               {visibleFormats.map((f) => {
                 const active = format === f;
