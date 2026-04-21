@@ -120,7 +120,7 @@ export default function ClienteTemplatesPage() {
   }, [templates, filterType, filterFormat, search]);
 
   const useTemplate = (id: string) => {
-    router.push(`/gerente/publicar?template=${id}`);
+    router.push(`/cliente/publicar?template=${id}`);
   };
 
   /* ── Render ────────────────────────────────────── */
