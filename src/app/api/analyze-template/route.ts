@@ -18,8 +18,19 @@ Sua tarefa é inspecionar a imagem e listar TODOS os elementos do template:
 1) Para cada região verde: inferir o bind provável (destino, preco, parcelas, hotel, dataida,
    datavolta, noites, servicos, imgdestino, imghotel, imgloja, loja, agente, fone, titulo,
    subtitulo, texto1, etc.) a partir da posição, proporção e contexto visual.
-2) Para textos estáticos visíveis: incluí-los também (bind vazio "" e label descritivo).
+2) Para textos estáticos visíveis: incluí-los também com bind descritivo e label.
 3) Sugerir o formType mais provável: pacote, campanha, passagem, cruzeiro, anoiteceu, quatro_destinos.
+
+IMPORTANTE: O campo "bind" NUNCA pode ficar vazio.
+Sempre infere o bind pelo conteúdo visual e posição:
+- Texto grande azul/colorido no topo = "destino"
+- "Saída:" seguido de cidade = "saida"
+- "( Voo Direto )" ou "( Voo Conexão )" = "tipovoo"
+- "Período:" com datas = "dataperiodo"
+- Número grande isolado = "valorint"
+- Texto pequeno abaixo do número grande = "formapagamento"
+- Bullet list de serviços = "servicoslista"
+- Imagem de avião/destino no topo = tipo image, bind "imgfundo"
 
 Coordenadas: sempre em porcentagem (0-100) relativa à imagem original (x, y, w, h).
 fontSize: em pixels relativos a uma arte 1080px de largura.

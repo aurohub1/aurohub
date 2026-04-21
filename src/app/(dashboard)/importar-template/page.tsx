@@ -42,6 +42,13 @@ const FORMAT_LABEL: Record<Format, string> = {
   tv: "TV 16:9",
 };
 
+const FORMAT_ASPECT: Record<Format, string> = {
+  feed: "4/5",
+  stories: "9/16",
+  reels: "9/16",
+  tv: "16/9",
+};
+
 const FORM_TYPES: { value: FormType; label: string }[] = [
   { value: "pacote", label: "Pacote" },
   { value: "campanha", label: "Campanha" },
@@ -397,8 +404,13 @@ export default function ImportarTemplatePage() {
           {!analyzing && !analyzeError && (
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.2fr]">
               <div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imageData} alt="Preview" className="w-full rounded-lg border border-[var(--bdr)]" />
+                <div
+                  className="w-full overflow-hidden rounded-lg border border-[var(--bdr)]"
+                  style={{ aspectRatio: FORMAT_ASPECT[detectedFormat] }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageData} alt="Preview" className="h-full w-full object-contain" />
+                </div>
                 <p className="mt-2 text-xs text-[var(--txt3)]">
                   {imgW}×{imgH}px • {FORMAT_LABEL[detectedFormat]}
                 </p>
@@ -435,25 +447,36 @@ export default function ImportarTemplatePage() {
                       {elements.map((el, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-3 rounded-lg border border-[var(--bdr)] bg-[var(--bg)] px-3 py-2"
+                          className="flex flex-col gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg)] px-3 py-2"
                         >
-                          <span
-                            className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
-                              el.type === "image" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"
-                            }`}
-                          >
-                            {el.type}
-                          </span>
-                          <input
-                            value={el.bind}
-                            onChange={(e) => updateBind(idx, e.target.value)}
-                            className="flex-1 rounded border border-transparent bg-transparent px-2 py-1 text-sm text-[var(--txt)] hover:border-[var(--bdr)] focus:border-[var(--orange)] focus:outline-none"
-                            placeholder="bind"
-                          />
-                          <span className="font-mono text-[10px] text-[var(--txt3)]">
-                            {el.x.toFixed(0)},{el.y.toFixed(0)} {el.w.toFixed(0)}×{el.h.toFixed(0)}
-                          </span>
-                          {el.color && <span className="h-4 w-4 rounded border border-[var(--bdr)]" style={{ background: el.color }} />}
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                el.type === "image" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"
+                              }`}
+                            >
+                              {el.type}
+                            </span>
+                            <input
+                              value={el.bind}
+                              onChange={(e) => updateBind(idx, e.target.value)}
+                              className={`flex-1 rounded border px-2 py-1 text-sm ${
+                                el.bind === ""
+                                  ? "border-[var(--orange3)] bg-[var(--orange3)]/10 text-[var(--txt)] placeholder:text-[var(--txt3)]"
+                                  : "border-transparent bg-transparent text-[var(--txt)]"
+                              } hover:border-[var(--bdr)] focus:border-[var(--orange)] focus:outline-none`}
+                              placeholder={el.bind === "" ? "ex: destino, valorint, parcelas..." : "bind"}
+                            />
+                            <span className="font-mono text-[10px] text-[var(--txt3)]">
+                              {el.x.toFixed(0)},{el.y.toFixed(0)} {el.w.toFixed(0)}×{el.h.toFixed(0)}
+                            </span>
+                            {el.color && <span className="h-4 w-4 rounded border border-[var(--bdr)]" style={{ background: el.color }} />}
+                          </div>
+                          {el.label && (
+                            <div className="text-[11px] text-[var(--txt3)]">
+                              Detectado: <span className="italic">{el.label}</span>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -489,8 +512,14 @@ export default function ImportarTemplatePage() {
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--txt3)]">Campos</h3>
-              <div className="flex flex-col gap-1.5">
-                {elements.filter((e) => e.bind).map((el, idx) => {
+              {elements.filter((e) => e.bind).length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-[var(--bdr)] py-12 text-center">
+                  <ListChecks className="mb-3 h-8 w-8 text-[var(--txt3)]" />
+                  <p className="text-sm text-[var(--txt3)]">Preencha os binds na etapa anterior para adicionar regras.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {elements.filter((e) => e.bind).map((el, idx) => {
                   const ruleCount = rules.filter((r) => r.field === el.bind).length;
                   return (
                     <div
@@ -518,8 +547,9 @@ export default function ImportarTemplatePage() {
                       </button>
                     </div>
                   );
-                })}
-              </div>
+                  })}
+                </div>
+              )}
 
               {rules.length > 0 && (
                 <>
