@@ -424,7 +424,12 @@ function pacoteFormatReal(raw: string): string {
 
 const PACOTE_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`); // 2x..36x V1
 const PACOTE_DESCONTO_OPTS = ["5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"]; // V1 DESCONTO_VALS
-const PACOTE_FORMA_PGTO_OPTS = ["Cartão de Crédito", "Boleto"]; // V1 FORMA_PGTO_LOCAL
+// Valores spec ("cartao"/"entrada") — useFormAdapter traduz p/ legacy "Cartão de Crédito"/"Boleto" no write
+// e legacy → spec no read, consistente com PagamentoSection compartilhado.
+const PACOTE_FORMA_PGTO_OPTS: { value: string; label: string }[] = [
+  { value: "cartao",  label: "Cartão de Crédito" },
+  { value: "entrada", label: "Boleto" },
+];
 
 export function PacoteForm({
   fields, set, servicos, setServicos,
@@ -509,7 +514,7 @@ export function PacoteForm({
   const showOfertas = hasBind(binds, "ofertas", "ofertas_azul_badge");
   const showBadges = showAllInc || showUltCh || showUltLug || showOfertas;
   const showForma = hasBind(binds, "formapagamento");
-  const showEntrada = fields.formapagamento === "Boleto" && hasBind(binds, "entrada");
+  const showEntrada = fields.formapagamento === "entrada" && hasBind(binds, "entrada");
   const showParcelas = hasBind(binds, "parcelas");
   const showValorParc = hasBind(binds, "valorparcela", "valorint", "valdec");
   const showDesconto = hasBind(binds, "numerodesconto", "desconto");
@@ -700,12 +705,12 @@ export function PacoteForm({
             <Field label="Forma de Pagamento *">
               <div className="flex gap-1">
                 {PACOTE_FORMA_PGTO_OPTS.map((opt) => {
-                  const sel = fields.formapagamento === opt;
+                  const sel = fields.formapagamento === opt.value;
                   return (
                     <button
-                      key={opt}
+                      key={opt.value}
                       type="button"
-                      onClick={() => set("formapagamento", opt)}
+                      onClick={() => set("formapagamento", opt.value)}
                       className="flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all"
                       style={
                         sel
@@ -713,7 +718,7 @@ export function PacoteForm({
                           : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
                       }
                     >
-                      {opt}
+                      {opt.label}
                     </button>
                   );
                 })}

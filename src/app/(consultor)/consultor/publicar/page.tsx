@@ -11,7 +11,7 @@ import { useBadges } from "@/hooks/useBadges";
 import { usePublishQueue } from "@/hooks/usePublishQueue";
 import type { EditorSchema } from "@/components/editor/types";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
-import { CampanhaForm, CruzeiroForm, AnoiteceuForm, QuatroDestinosForm } from "@/components/publish/FormSections";
+import { PacoteForm, CampanhaForm, CruzeiroForm, AnoiteceuForm, QuatroDestinosForm } from "@/components/publish/FormSections";
 
 import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
@@ -1200,138 +1200,17 @@ export default function PublicarPage() {
               )}
 
               {tab === "pacote" && (
-                <>
-                  {(templateBinds.has("destino") || templateBinds.has("saida") || templateBinds.has("tipovoo")) && (
-                    <Section title="Destino & Saída">
-                      {templateBinds.has("destino") && (
-                        <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
-                      )}
-                      {(templateBinds.has("saida") || templateBinds.has("tipovoo")) && (
-                        <Row2>
-                          {templateBinds.has("saida") && (
-                            <Field label="Saída">
-                              <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" />
-                            </Field>
-                          )}
-                          {templateBinds.has("tipovoo") && (
-                            <Field label="Tipo de voo">
-                              <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
-                            </Field>
-                          )}
-                        </Row2>
-                      )}
-                    </Section>
-                  )}
-
-                  {(templateBinds.has("dataida") || templateBinds.has("datavolta") || templateBinds.has("feriado")) && (
-                    <Section title="Datas">
-                      {(templateBinds.has("dataida") || templateBinds.has("datavolta")) && (
-                        <Row2>
-                          {templateBinds.has("dataida") && (
-                            <Field label="Data ida">
-                              <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
-                            </Field>
-                          )}
-                          {templateBinds.has("datavolta") && (
-                            <Field label="Data volta">
-                              <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
-                            </Field>
-                          )}
-                        </Row2>
-                      )}
-                      {values.noites && parseInt(values.noites) > 0 && (
-                        <div className="text-[10px] text-[var(--txt3)]">
-                          Duração: <span className="font-bold text-[var(--txt2)]">{values.noites} noite{parseInt(values.noites) === 1 ? "" : "s"}</span>
-                        </div>
-                      )}
-                      {templateBinds.has("feriado") && (
-                        <Field label="Feriado">
-                          <Select value={values.feriado || ""} onChange={(v) => setField("feriado", v)} options={feriadoOpts} disabled={!feriadosReady} />
-                        </Field>
-                      )}
-                    </Section>
-                  )}
-
-                  {(templateBinds.has("hotel") || templateBinds.has("imghotel")) && (
-                    <Section title="Hotel">
-                      <Combobox label="Nome do hotel" value={values.hotel || ""} onChange={(v) => setField("hotel", v)} onBlur={onHotelBlur} loader={loadHoteis} placeholder="Nome do hotel" />
-                    </Section>
-                  )}
-
-                  {Array.from({ length: 6 }, (_, i) => `servico${i + 1}`).some((k) => templateBinds.has(k)) && (
-                    <Section title="Serviços inclusos" defaultOpen={true}>
-                      <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={6} />
-                    </Section>
-                  )}
-
-                  {(templateBinds.has("ultima_chamada_badge") || templateBinds.has("ultimos_lugares_badge") || templateBinds.has("ofertas_azul_badge") || templateBinds.has("ultimachamada") || templateBinds.has("ultimoslugares") || templateBinds.has("ofertas")) && (
-                    <Section title="Selos" defaultOpen={false}>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {(templateBinds.has("ultima_chamada_badge") || templateBinds.has("ultimachamada")) && (
-                          <BadgeBtn label="Última chamada" on={!!badges.ultima_chamada_badge} onClick={() => setBadge("ultima_chamada_badge", !badges.ultima_chamada_badge)} />
-                        )}
-                        {(templateBinds.has("ultimos_lugares_badge") || templateBinds.has("ultimoslugares")) && (
-                          <BadgeBtn label="Últimos lugares" on={!!badges.ultimos_lugares_badge} onClick={() => setBadge("ultimos_lugares_badge", !badges.ultimos_lugares_badge)} />
-                        )}
-                        {(templateBinds.has("ofertas_azul_badge") || templateBinds.has("ofertas")) && (
-                          <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
-                        )}
-                      </div>
-                    </Section>
-                  )}
-
-                  {(templateBinds.has("formapagamento") || templateBinds.has("parcelas") || templateBinds.has("valorparcela") || templateBinds.has("desconto") || templateBinds.has("totalduplo") || templateBinds.has("entrada")) && (
-                    <Section title="Pagamento">
-                      {templateBinds.has("formapagamento") && (
-                        <Field label="Forma de pagamento">
-                          <Select
-                            value={values.formapagamento || FORMA_PGTO_OPTS[0]}
-                            onChange={(v) => setField("formapagamento", v)}
-                            options={FORMA_PGTO_OPTS}
-                          />
-                        </Field>
-                      )}
-                      {values.formapagamento === "Boleto" && templateBinds.has("entrada") && (
-                        <Field label="Valor de entrada">
-                          <TextInput
-                            value={formatMoeda(values.entrada || "")}
-                            inputMode="decimal"
-                            onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
-                            placeholder="R$ 0,00"
-                          />
-                        </Field>
-                      )}
-                      {(templateBinds.has("parcelas") || templateBinds.has("valorparcela")) && (
-                        <Row2>
-                          {templateBinds.has("parcelas") && (
-                            <Field label="Parcelas">
-                              <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
-                            </Field>
-                          )}
-                          {templateBinds.has("valorparcela") && (
-                            <Field label="Valor parcela">
-                              <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                            </Field>
-                          )}
-                        </Row2>
-                      )}
-                      {(templateBinds.has("desconto") || templateBinds.has("totalduplo")) && (
-                        <Row2>
-                          {templateBinds.has("desconto") && (
-                            <Field label="% Desconto">
-                              <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
-                            </Field>
-                          )}
-                          {templateBinds.has("totalduplo") && (
-                            <Field label="Total">
-                              <TextInput value={formatMoeda(values.totalduplo || "")} inputMode="decimal" onChange={(v) => setField("totalduplo", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                            </Field>
-                          )}
-                        </Row2>
-                      )}
-                    </Section>
-                  )}
-                </>
+                <PacoteForm
+                  fields={formAdapter.fields}
+                  set={formAdapter.set}
+                  servicos={formAdapter.servicos}
+                  setServicos={formAdapter.setServicos}
+                  today={hoje}
+                  feriadoOpts={feriadoOpts}
+                  loadDestinos={loadDestinos}
+                  loadHoteis={loadHoteis}
+                  binds={templateBinds}
+                />
               )}
 
               {tab === "passagem" && (

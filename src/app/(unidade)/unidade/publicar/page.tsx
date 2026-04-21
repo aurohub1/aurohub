@@ -14,7 +14,8 @@ import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
   Image as ImageIcon, Search as SearchIcon, ChevronDown,
 } from "lucide-react";
-import { QuatroDestinosForm } from "@/components/publish/FormSections";
+import { PacoteForm, QuatroDestinosForm } from "@/components/publish/FormSections";
+import { useFormAdapter } from "@/components/publish/useFormAdapter";
 
 const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
 
@@ -1069,6 +1070,9 @@ export default function UnidadePublicarPage() {
     return merged;
   }, [values, badges]);
 
+  // Adapter bidirecional: traduz values/badges legados ↔ contrato fields/set dos novos forms.
+  const formAdapter = useFormAdapter({ tab, values, badges, setField, setBadge });
+
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
@@ -1169,90 +1173,17 @@ export default function UnidadePublicarPage() {
           {currentTemplate && (
             <div className="flex flex-col gap-4">
               {(tab === "pacote" || tab === "campanha") && (
-                <>
-                  <Section title="Destino & Saída">
-                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
-                    <Row2>
-                      <Field label="Saída">
-                        <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" />
-                      </Field>
-                      <Field label="Tipo de voo">
-                        <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
-                      </Field>
-                    </Row2>
-                  </Section>
-
-                  <Section title="Datas">
-                    <Row2>
-                      <Field label="Data ida">
-                        <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
-                      </Field>
-                      <Field label="Data volta">
-                        <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
-                      </Field>
-                    </Row2>
-                    {values.noites && parseInt(values.noites) > 0 && (
-                      <div className="text-[10px] text-[var(--txt3)]">
-                        Duração: <span className="font-bold text-[var(--txt2)]">{values.noites} noite{parseInt(values.noites) === 1 ? "" : "s"}</span>
-                      </div>
-                    )}
-                    <Field label="Feriado">
-                      <Select value={values.feriado || ""} onChange={(v) => setField("feriado", v)} options={feriadoOpts} disabled={!feriadosReady} />
-                    </Field>
-                  </Section>
-
-                  <Section title="Hotel">
-                    <Combobox label="Nome do hotel" value={values.hotel || ""} onChange={(v) => setField("hotel", v)} onBlur={onHotelBlur} loader={loadHoteis} placeholder="Nome do hotel" />
-                  </Section>
-
-                  <Section title="Serviços inclusos" defaultOpen={true}>
-                    <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={6} />
-                  </Section>
-
-                  <Section title="Selos" defaultOpen={false}>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <BadgeBtn label="Última chamada" on={!!badges.ultima_chamada_badge} onClick={() => setBadge("ultima_chamada_badge", !badges.ultima_chamada_badge)} />
-                      <BadgeBtn label="Últimos lugares" on={!!badges.ultimos_lugares_badge} onClick={() => setBadge("ultimos_lugares_badge", !badges.ultimos_lugares_badge)} />
-                      <BadgeBtn label="Ofertas" on={!!badges.ofertas_azul_badge} onClick={() => setBadge("ofertas_azul_badge", !badges.ofertas_azul_badge)} />
-                    </div>
-                  </Section>
-
-                  <Section title="Pagamento">
-                    <Field label="Forma de pagamento">
-                      <Select
-                        value={values.formapagamento || FORMA_PGTO_OPTS[0]}
-                        onChange={(v) => setField("formapagamento", v)}
-                        options={FORMA_PGTO_OPTS}
-                      />
-                    </Field>
-                    {values.formapagamento === "Boleto" && (
-                      <Field label="Valor de entrada">
-                        <TextInput
-                          value={formatMoeda(values.entrada || "")}
-                          inputMode="decimal"
-                          onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
-                          placeholder="R$ 0,00"
-                        />
-                      </Field>
-                    )}
-                    <Row2>
-                      <Field label="Parcelas">
-                        <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
-                      </Field>
-                      <Field label="Valor parcela">
-                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                    <Row2>
-                      <Field label="% Desconto">
-                        <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
-                      </Field>
-                      <Field label="Total">
-                        <TextInput value={formatMoeda(values.totalduplo || "")} inputMode="decimal" onChange={(v) => setField("totalduplo", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                  </Section>
-                </>
+                <PacoteForm
+                  fields={formAdapter.fields}
+                  set={formAdapter.set}
+                  servicos={formAdapter.servicos}
+                  setServicos={formAdapter.setServicos}
+                  today={hoje}
+                  feriadoOpts={feriadoOpts}
+                  loadDestinos={loadDestinos}
+                  loadHoteis={loadHoteis}
+                  binds={templateBinds}
+                />
               )}
 
               {tab === "passagem" && (
