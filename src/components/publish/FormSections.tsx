@@ -373,6 +373,439 @@ export function PagamentoSection({
   );
 }
 
+/* ── PacoteForm (port V1 _fPacote + _fGrpPreco) ───────────
+ * Binds específicos do Pacote — destino, saida, tipovoo, dataida/datavolta,
+ * dataperiodo (derivado), feriado, hotel, servico1..6, servicoslista (derivado),
+ * allinclusive/ultimachamada/ultimoslugares/ofertas, formapagamento, entrada,
+ * parcelas, valorparcela, valorint/valdec (derivados), numerodesconto,
+ * valortotal, valortotalfmt/totalduplo (derivados). Não toca PagamentoSection
+ * compartilhado — mantém os valores V1 exatos ("Cartão de Crédito" / "Boleto"). */
+
+// Dicionário (subset V1 utils.js:548-592) aplicado no blur dos serviços.
+function pacoteApplyServicoDict(v: string): string {
+  if (!v) return v;
+  const s = v.trim();
+  if (/^traslado(\s+(ida\s+e\s+volta|i\/v))?$/i.test(s)) return "Transfer";
+  if (/^translado(\s+(ida\s+e\s+volta|i\/v))?$/i.test(s)) return "Transfer";
+  if (/^transfer(\s+(ida\s+e\s+volta|i\/v))?$/i.test(s)) return "Transfer";
+  if (/^caf[eé]\s+da\s+manh[aã]\s+e\s+(almo[cç]o|jan(tar)?)$/i.test(s)) return "Meia Pensão";
+  if (/^meia\s+pens[aã]o$/i.test(s)) return "Meia Pensão";
+  if (/^(caf[eé]\s+da\s+manh[aã],?\s+almo[cç]o\s+e\s+jantar|pens[aã]o\s+completa)$/i.test(s)) return "Pensão Completa";
+  if (/^caf[eé]\s+da\s+manh[aã]$/i.test(s)) return "Café da Manhã";
+  if (/^all\s+inclusive$/i.test(s)) return "All Inclusive";
+  if (/^tudo\s+inclu[ií]do$/i.test(s)) return "All Inclusive";
+  if (/^almo[cç]o$/i.test(s)) return "Almoço";
+  if (/^jantar$/i.test(s)) return "Jantar";
+  return s;
+}
+function pacoteIsAllInclusive(v: string): boolean {
+  return /all\s*inclusive|tudo\s*inclu[ií]do/i.test(v || "");
+}
+
+// Período "DD/MM a DD/MM/AAAA" — regras V1 (mesmo mês, mesmo ano, cross-ano).
+function pacoteFormatPeriodo(ida: string, volta: string): string {
+  if (!ida || !volta) return "";
+  const [yi, mi, di] = ida.split("-");
+  const [yv, mv, dv] = volta.split("-");
+  if (!yi || !yv) return "";
+  const p = (n: string) => n.padStart(2, "0");
+  if (yi === yv && mi === mv) return `${p(di)} a ${p(dv)}/${p(mi)}/${yi}`;
+  if (yi === yv) return `${p(di)}/${p(mi)} a ${p(dv)}/${p(mv)}/${yi}`;
+  return `${p(di)}/${p(mi)}/${yi} a ${p(dv)}/${p(mv)}/${yv}`;
+}
+
+// "12345678" (cents) → "123.456,78"
+function pacoteFormatReal(raw: string): string {
+  const nums = (raw || "").replace(/\D/g, "");
+  if (!nums) return "";
+  const n = parseInt(nums, 10);
+  return Math.floor(n / 100).toLocaleString("pt-BR") + "," + String(n % 100).padStart(2, "0");
+}
+
+const PACOTE_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`); // 2x..36x V1
+const PACOTE_DESCONTO_OPTS = ["5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"]; // V1 DESCONTO_VALS
+const PACOTE_FORMA_PGTO_OPTS = ["Cartão de Crédito", "Boleto"]; // V1 FORMA_PGTO_LOCAL
+
+export function PacoteForm({
+  fields, set, servicos, setServicos,
+  today, feriadoOpts,
+  loadDestinos, loadHoteis,
+  binds,
+}: {
+  fields: Fields;
+  set: Setter;
+  servicos: string[];
+  setServicos: (s: string[]) => void;
+  today: string;
+  feriadoOpts?: string[];
+  loadDestinos?: () => Promise<string[]>;
+  loadHoteis?: () => Promise<string[]>;
+  binds?: Set<string>;
+}) {
+  const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
+  const [hotelOpts, setHotelOpts] = useState<string[]>([]);
+  useEffect(() => {
+    loadDestinos?.().then(setDestinoOpts).catch(() => {});
+    loadHoteis?.().then(setHotelOpts).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Handlers com cálculos derivados ─────────────────
+  const onIdaChange = (v: string) => {
+    set("dataida", v);
+    const volta = (fields.datavolta as string) || "";
+    set("dataperiodo", volta ? pacoteFormatPeriodo(v, volta) : "");
+  };
+  const onVoltaChange = (v: string) => {
+    set("datavolta", v);
+    const ida = (fields.dataida as string) || "";
+    set("dataperiodo", ida ? pacoteFormatPeriodo(ida, v) : "");
+  };
+  const onValorParcelaChange = (raw: string) => {
+    const clean = raw.replace(/[^\d,.]/g, "");
+    set("valorparcela", clean);
+    const nums = clean.replace(/\D/g, "");
+    if (nums) {
+      const n = parseInt(nums, 10);
+      set("valorint", Math.floor(n / 100).toLocaleString("pt-BR"));
+      set("valdec", "," + String(n % 100).padStart(2, "0"));
+    } else {
+      set("valorint", "");
+      set("valdec", "");
+    }
+  };
+  const onValorTotalChange = (raw: string) => {
+    const clean = raw.replace(/[^\d,.]/g, "");
+    set("valortotal", clean);
+    set("totalduplo", clean); // compat com PreviewStage.resolveBindParam("valortotalfmt")
+    const fmt = pacoteFormatReal(clean);
+    set("valortotalfmt", fmt ? `ou R$ ${fmt} por pessoa apto. duplo` : "");
+  };
+  const onEntradaChange = (raw: string) => {
+    set("entrada", raw.replace(/[^\d,.]/g, ""));
+  };
+
+  function updateServicos(n: string[]) {
+    setServicos(n);
+    for (let i = 0; i < 6; i++) set(`servico${i + 1}`, n[i] || "");
+    set("servicoslista", n.filter(Boolean).map((s) => `• ${s}`).join("\n"));
+  }
+
+  // ── Visibilidade por binds do template ─────────────
+  const showDestino = hasBind(binds, "destino");
+  const showSaida = hasBind(binds, "saida");
+  const showTipovoo = hasBind(binds, "tipovoo");
+  const showIda = hasBind(binds, "dataida", "dataperiodo");
+  const showVolta = hasBind(binds, "datavolta", "dataperiodo");
+  const showFeriado = hasBind(binds, "feriado");
+  const showHotel = hasBind(binds, "hotel", "imghotel");
+  const showServicos =
+    !binds ||
+    binds.has("servicoslista") ||
+    [1, 2, 3, 4, 5, 6].some((i) => binds.has(`servico${i}`));
+  const showAllInc = hasBind(binds, "allinclusive");
+  const showUltCh = hasBind(binds, "ultimachamada");
+  const showUltLug = hasBind(binds, "ultimoslugares");
+  const showOfertas = hasBind(binds, "ofertas", "ofertas_azul_badge");
+  const showBadges = showAllInc || showUltCh || showUltLug || showOfertas;
+  const showForma = hasBind(binds, "formapagamento");
+  const showEntrada = fields.formapagamento === "Boleto" && hasBind(binds, "entrada");
+  const showParcelas = hasBind(binds, "parcelas");
+  const showValorParc = hasBind(binds, "valorparcela", "valorint", "valdec");
+  const showDesconto = hasBind(binds, "numerodesconto", "desconto");
+  const showValorTotal = hasBind(binds, "valortotal", "valortotalfmt", "totalduplo");
+  const showPgtoBlock = showForma || showEntrada || showParcelas || showValorParc || showDesconto || showValorTotal;
+
+  return (
+    <>
+      {(showDestino || showSaida || showTipovoo) && (
+        <Section title="Destino & Saída" icon="✈️">
+          {showDestino && (
+            <Field label="Destino *">
+              <SearchableSelect
+                value={(fields.destino as string) || ""}
+                onChange={(v) => set("destino", v.toUpperCase())}
+                options={destinoOpts}
+                placeholder="ex. CANCÚN"
+                allowCustom
+              />
+            </Field>
+          )}
+          {(showSaida || showTipovoo) && (
+            <div className="grid grid-cols-2 gap-2">
+              {showSaida && (
+                <Field label="Saída">
+                  <input
+                    value={(fields.saida as string) || ""}
+                    onChange={(e) => set("saida", e.target.value)}
+                    placeholder="ex. GRU"
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              )}
+              {showTipovoo && (
+                <Field label="Tipo de Voo">
+                  <div className="flex gap-1">
+                    {["Voo Direto", "Voo Conexão"].map((opt) => {
+                      const sel = fields.tipovoo === opt;
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => set("tipovoo", opt)}
+                          className="flex-1 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-wide transition-all"
+                          style={
+                            sel
+                              ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                              : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                          }
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+              )}
+            </div>
+          )}
+        </Section>
+      )}
+
+      {(showIda || showVolta || showFeriado) && (
+        <Section title="Datas" icon="📅">
+          {(showIda || showVolta) && (
+            <div className="grid grid-cols-2 gap-2">
+              {showIda && (
+                <Field label="Ida *">
+                  <input
+                    type="date"
+                    min={today}
+                    value={(fields.dataida as string) || ""}
+                    onChange={(e) => onIdaChange(e.target.value)}
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              )}
+              {showVolta && (
+                <Field label="Volta *">
+                  <input
+                    type="date"
+                    min={(fields.dataida as string) || today}
+                    value={(fields.datavolta as string) || ""}
+                    onChange={(e) => onVoltaChange(e.target.value)}
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              )}
+            </div>
+          )}
+          {fields.dataperiodo ? (
+            <p className="text-[11px] text-[var(--txt3)]">
+              Período: <strong>{String(fields.dataperiodo)}</strong>
+            </p>
+          ) : null}
+          {showFeriado && (
+            <Field label="Feriado">
+              <SearchableSelect
+                value={(fields.feriado as string) || ""}
+                onChange={(v) => set("feriado", v)}
+                options={feriadoOpts ?? []}
+                placeholder="Selecionar feriado..."
+                allowCustom
+              />
+            </Field>
+          )}
+        </Section>
+      )}
+
+      {showHotel && (
+        <Section title="Hotel" icon="🏨">
+          <Field label="Hotel *">
+            <SearchableSelect
+              value={(fields.hotel as string) || ""}
+              onChange={(v) => set("hotel", v)}
+              options={hotelOpts}
+              placeholder="Nome do hotel"
+              allowCustom
+            />
+          </Field>
+        </Section>
+      )}
+
+      {showServicos && (
+        <Section title="Serviços Inclusos" icon="🎒">
+          {Array.from({ length: 6 }, (_, i) => {
+            if (binds && !binds.has(`servico${i + 1}`) && !binds.has("servicoslista")) return null;
+            const val = servicos[i] ?? "";
+            return (
+              <input
+                key={i}
+                value={val}
+                onChange={(e) => {
+                  const n = [...servicos];
+                  n[i] = e.target.value;
+                  updateServicos(n);
+                }}
+                onBlur={(e) => {
+                  const v = pacoteApplyServicoDict(e.target.value);
+                  if (v !== e.target.value) {
+                    const n = [...servicos];
+                    n[i] = v;
+                    updateServicos(n);
+                  }
+                  if (pacoteIsAllInclusive(v)) set("allinclusive", true);
+                }}
+                placeholder={`Serviço ${i + 1}`}
+                className={INPUT_CLASS}
+              />
+            );
+          })}
+        </Section>
+      )}
+
+      {showBadges && (
+        <Section title="Selos & Destaques" icon="🏷️">
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { key: "allinclusive",    label: "All Inclusive",    show: showAllInc  },
+              { key: "ultimachamada",   label: "Última Chamada",   show: showUltCh   },
+              { key: "ultimoslugares",  label: "Últimos Lugares",  show: showUltLug  },
+              { key: "ofertas",         label: "Ofertas Azul",     show: showOfertas },
+            ].filter((b) => b.show).map((b) => {
+              const on = !!fields[b.key];
+              return (
+                <button
+                  key={b.key}
+                  type="button"
+                  onClick={() => set(b.key, !on)}
+                  className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
+                  style={
+                    on
+                      ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                      : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                  }
+                >
+                  {on ? "✓ " : ""}{b.label}
+                </button>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      {showPgtoBlock && (
+        <Section title="Pagamento" icon="💳">
+          {showForma && (
+            <Field label="Forma de Pagamento *">
+              <div className="flex gap-1">
+                {PACOTE_FORMA_PGTO_OPTS.map((opt) => {
+                  const sel = fields.formapagamento === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => set("formapagamento", opt)}
+                      className="flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all"
+                      style={
+                        sel
+                          ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                          : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                      }
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
+          {showEntrada && (
+            <Field label="Valor Entrada (R$) *">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={(fields.entrada as string) || ""}
+                onChange={(e) => onEntradaChange(e.target.value)}
+                placeholder="ex. 1.500,00"
+                className={INPUT_CLASS}
+              />
+            </Field>
+          )}
+          {(showParcelas || showValorParc) && (
+            <div className="grid grid-cols-2 gap-2">
+              {showParcelas && (
+                <Field label="Parcelas *">
+                  <SearchableSelect
+                    value={(fields.parcelas as string) || ""}
+                    onChange={(v) => set("parcelas", v)}
+                    options={PACOTE_PARCELAS_OPTS}
+                    placeholder="12x"
+                  />
+                </Field>
+              )}
+              {showValorParc && (
+                <Field label="Valor da Parcela (R$)">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={(fields.valorparcela as string) || ""}
+                    onChange={(e) => onValorParcelaChange(e.target.value)}
+                    placeholder="ex. 890,00"
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              )}
+            </div>
+          )}
+          {showDesconto && (
+            <Field label="% Desconto">
+              <div className="flex flex-wrap gap-1">
+                {PACOTE_DESCONTO_OPTS.map((d) => {
+                  const num = d.replace("%", "");
+                  const sel = fields.numerodesconto === num;
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => set("numerodesconto", sel ? "" : num)}
+                      className="rounded-lg border px-2 py-0.5 text-[11px] font-bold transition-all"
+                      style={
+                        sel
+                          ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                          : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                      }
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
+          {showValorTotal && (
+            <Field label="Valor Total (R$)">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={(fields.valortotal as string) || ""}
+                onChange={(e) => onValorTotalChange(e.target.value)}
+                placeholder="ex. 8.900,00"
+                className={INPUT_CLASS}
+              />
+              {fields.valortotalfmt ? (
+                <p className="mt-1 text-[10px] text-[var(--txt3)]">
+                  Arte: <strong>{String(fields.valortotalfmt)}</strong>
+                </p>
+              ) : null}
+            </Field>
+          )}
+        </Section>
+      )}
+    </>
+  );
+}
+
 /* ── CampanhaForm ───────────────────────────────────── */
 
 export function CampanhaForm({
