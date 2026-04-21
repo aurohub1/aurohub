@@ -619,7 +619,7 @@ export function PacoteForm({
                           className="flex-1 whitespace-nowrap rounded-md px-3 font-semibold transition-all"
                           style={
                             sel
-                              ? { background: "#D4A843", color: "#060B16", boxShadow: "0 1px 6px rgba(212,168,67,0.4)", height: "32px", fontSize: "12px" }
+                              ? { background: "var(--brand-primary)", color: "#FFFFFF", boxShadow: "0 1px 6px color-mix(in srgb, var(--brand-primary) 40%, transparent)", height: "32px", fontSize: "12px" }
                               : { background: "transparent", color: "var(--txt3)", height: "32px", fontSize: "12px" }
                           }
                         >

@@ -1133,7 +1133,7 @@ export default function UnidadePublicarPage() {
                   className="flex h-7 flex-1 items-center justify-center whitespace-nowrap px-2 text-[10px] font-bold uppercase tracking-[0.07em] transition-all"
                   style={
                     active
-                      ? { color: "#D4A843", background: "rgba(212,168,67,0.05)", boxShadow: "inset 0 -2px 0 #D4A843" }
+                      ? { color: "var(--brand-primary)", background: "color-mix(in srgb, var(--brand-primary) 8%, transparent)", boxShadow: "inset 0 -2px 0 var(--brand-primary)" }
                       : { color: "var(--txt3)", background: "transparent" }
                   }
                   onMouseEnter={(e) => {
