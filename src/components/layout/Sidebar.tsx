@@ -299,6 +299,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
     title: "Operação",
     items: [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
+      { label: "Publicar", href: "/gerente/publicar", icon: I.publish, feature: "publicar" },
       { label: "Card WhatsApp", href: "/gerente/publicar/cards", icon: I.whatsapp, feature: "lamina_4destinos" },
       { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
