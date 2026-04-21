@@ -472,8 +472,16 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
       // Badges dinâmicos: condição vem de shouldRenderBadge (servicos, desconto, feriado).
       if (!shouldRenderBadge(bp, values)) return null;
     } else if (!values[bp]) {
-      // Fallback: bind depende de values[bp] estar preenchido (toggles on/off, imagens do form).
-      return null;
+      // Bind vazio → placeholder translúcido pra manter o layout visível no preview.
+      return (
+        <Rect
+          x={el.x} y={el.y} width={el.width} height={el.height}
+          rotation={el.rotation ?? 0}
+          fill="rgba(255,255,255,0.05)"
+          opacity={el.opacity ?? 1}
+          cornerRadius={el.cornerRadius ?? 0}
+        />
+      );
     }
     return <RenderImage el={{ ...el, type: "image", src: values[bp] }} values={values} />;
   }

@@ -1192,7 +1192,7 @@ export default function UnidadePublicarPage() {
         />
 
         {/* Scroll dos campos */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 max-w-full">
           {tab === "quatro_destinos" && (
             <QuatroDestinosForm
               fields={values}
