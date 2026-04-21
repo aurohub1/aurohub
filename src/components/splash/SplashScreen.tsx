@@ -1388,14 +1388,16 @@ export default function SplashScreen({
       <canvas ref={canvasRef} className="absolute inset-0" style={embedded ? { width: embedded.width, height: embedded.height } : preview ? { width: "100%", height: "100%" } : undefined} />
       <div className="relative z-10 flex items-center justify-center"
         style={{ position: "relative", width: logoDims.width, height: logoDims.height + 40 }}>
-        <img src={logoUrl} alt="Logo"
-          style={{
-            position: "absolute",
-            width: logoDims.width, height: logoDims.height, objectFit: "contain",
-            opacity: logoVisible ? 1 : 0,
-            transform: logoVisible ? "scale(1)" : "scale(0.85)",
-            transition: "opacity 0.5s ease, transform 0.5s ease",
-          }} />
+        {logoUrl ? (
+          <img src={logoUrl} alt="Logo"
+            style={{
+              position: "absolute",
+              width: logoDims.width, height: logoDims.height, objectFit: "contain",
+              opacity: logoVisible ? 1 : 0,
+              transform: logoVisible ? "scale(1)" : "scale(0.85)",
+              transition: "opacity 0.5s ease, transform 0.5s ease",
+            }} />
+        ) : null}
         {userName && activeEffect !== "aurovista_adm" && (
           <p style={{
             position: "absolute",
