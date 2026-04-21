@@ -33,11 +33,34 @@ Responda APENAS JSON válido, sem markdown, no formato:
   "summary": "Formata como moeda BRL"
 }`;
 
+const GLOBAL_DATE_RULES: Record<string, { type: string; params: Record<string, unknown>; summary: string }> = {
+  dataida: {
+    type: "validation",
+    params: { minDate: "today", message: "Data de ida não pode ser anterior a hoje" },
+    summary: "Valida data de ida >= hoje",
+  },
+  datavolta: {
+    type: "validation",
+    params: { minDateField: "dataida", message: "Data de volta deve ser >= data de ida" },
+    summary: "Valida data de volta >= data de ida",
+  },
+};
+
 export async function POST(request: Request) {
   try {
     const data: GenerateRuleRequest = await request.json();
     if (!data.field || !data.description) {
       return NextResponse.json({ error: "field e description são obrigatórios" }, { status: 400 });
+    }
+
+    // Regra global automática
+    if (GLOBAL_DATE_RULES[data.field]) {
+      return NextResponse.json({
+        field: data.field,
+        description: data.description,
+        rule: GLOBAL_DATE_RULES[data.field],
+        isGlobal: true,
+      });
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;

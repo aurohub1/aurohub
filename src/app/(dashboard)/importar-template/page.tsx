@@ -84,6 +84,7 @@ export default function ImportarTemplatePage() {
   const [analyzeError, setAnalyzeError] = useState("");
   const [elements, setElements] = useState<DetectedElement[]>([]);
   const [formType, setFormType] = useState<FormType>("pacote");
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   // Step 3 — rules
   const [rules, setRules] = useState<Rule[]>([]);
@@ -92,6 +93,7 @@ export default function ImportarTemplatePage() {
   const [rulePreview, setRulePreview] = useState<Rule | null>(null);
   const [generatingRule, setGeneratingRule] = useState(false);
   const [ruleError, setRuleError] = useState("");
+  const [dateFormatOverride, setDateFormatOverride] = useState<Record<string, "full" | "short">>({});
 
   // Step 4 — save
   const [templateName, setTemplateName] = useState("");
@@ -405,11 +407,44 @@ export default function ImportarTemplatePage() {
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.2fr]">
               <div>
                 <div
-                  className="w-full overflow-hidden rounded-lg border border-[var(--bdr)]"
-                  style={{ aspectRatio: FORMAT_ASPECT[detectedFormat] }}
+                  className="relative w-full overflow-hidden rounded-lg border border-[var(--bdr)]"
+                  style={{ aspectRatio: FORMAT_ASPECT[detectedFormat], maxHeight: "60vh" }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={imageData} alt="Preview" className="h-full w-full object-contain" />
+
+                  {/* Overlays */}
+                  {elements.map((el, idx) => (
+                    <div
+                      key={idx}
+                      onMouseEnter={() => setHoveredIdx(idx)}
+                      onMouseLeave={() => setHoveredIdx(null)}
+                      className={`absolute border-2 transition-all ${
+                        hoveredIdx === idx
+                          ? "border-[var(--orange)] bg-[var(--orange)]/30 z-10"
+                          : "border-blue-400 bg-blue-400/15"
+                      }`}
+                      style={{
+                        left: `${el.x}%`,
+                        top: `${el.y}%`,
+                        width: `${el.w}%`,
+                        height: `${el.h}%`,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {el.bind && (
+                        <div
+                          className={`absolute -top-5 left-0 rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                            hoveredIdx === idx
+                              ? "bg-[var(--orange)] text-white"
+                              : "bg-blue-500 text-white"
+                          }`}
+                        >
+                          {el.bind}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
                 <p className="mt-2 text-xs text-[var(--txt3)]">
                   {imgW}×{imgH}px • {FORMAT_LABEL[detectedFormat]}
@@ -447,7 +482,13 @@ export default function ImportarTemplatePage() {
                       {elements.map((el, idx) => (
                         <div
                           key={idx}
-                          className="flex flex-col gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg)] px-3 py-2"
+                          onMouseEnter={() => setHoveredIdx(idx)}
+                          onMouseLeave={() => setHoveredIdx(null)}
+                          className={`flex flex-col gap-2 rounded-lg border px-3 py-2 transition-colors ${
+                            hoveredIdx === idx
+                              ? "border-[var(--orange)] bg-[var(--orange3)]/20"
+                              : "border-[var(--bdr)] bg-[var(--bg)]"
+                          }`}
                         >
                           <div className="flex items-center gap-3">
                             <span
@@ -521,30 +562,67 @@ export default function ImportarTemplatePage() {
                 <div className="flex flex-col gap-1.5">
                   {elements.filter((e) => e.bind).map((el, idx) => {
                   const ruleCount = rules.filter((r) => r.field === el.bind).length;
+                  const isDateField = el.bind === "dataida" || el.bind === "datavolta";
                   return (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between rounded-lg border border-[var(--bdr)] bg-[var(--bg)] px-3 py-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm text-[var(--txt)]">{el.bind}</span>
-                        {ruleCount > 0 && (
-                          <span className="rounded-full bg-[var(--orange3)] px-2 py-0.5 text-[10px] font-bold text-[var(--orange)]">
-                            {ruleCount} regra{ruleCount === 1 ? "" : "s"}
-                          </span>
-                        )}
+                    <div key={idx} className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between rounded-lg border border-[var(--bdr)] bg-[var(--bg)] px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm text-[var(--txt)]">{el.bind}</span>
+                          {isDateField && (
+                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-bold text-green-700">
+                              REGRA GLOBAL
+                            </span>
+                          )}
+                          {ruleCount > 0 && (
+                            <span className="rounded-full bg-[var(--orange3)] px-2 py-0.5 text-[10px] font-bold text-[var(--orange)]">
+                              {ruleCount} regra{ruleCount === 1 ? "" : "s"}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setRuleField(el.bind);
+                            setRuleDesc("");
+                            setRulePreview(null);
+                            setRuleError("");
+                          }}
+                          className="flex items-center gap-1 rounded-md border border-[var(--bdr)] px-2 py-1 text-[11px] font-medium text-[var(--txt2)] hover:border-[var(--orange)] hover:text-[var(--orange)]"
+                        >
+                          <Plus size={10} /> Regra
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          setRuleField(el.bind);
-                          setRuleDesc("");
-                          setRulePreview(null);
-                          setRuleError("");
-                        }}
-                        className="flex items-center gap-1 rounded-md border border-[var(--bdr)] px-2 py-1 text-[11px] font-medium text-[var(--txt2)] hover:border-[var(--orange)] hover:text-[var(--orange)]"
-                      >
-                        <Plus size={10} /> Regra
-                      </button>
+                      {isDateField && (
+                        <div className="ml-6 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-[11px]">
+                          <div className="mb-1 font-semibold text-green-800">
+                            {el.bind === "dataida" ? "Validação automática: >= hoje" : "Validação automática: >= data de ida"}
+                          </div>
+                          <div className="mb-2 text-green-700">
+                            Formato de exibição:
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setDateFormatOverride((prev) => ({ ...prev, [el.bind]: "full" }))}
+                              className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${
+                                dateFormatOverride[el.bind] === "full"
+                                  ? "border-green-600 bg-green-600 text-white"
+                                  : "border-green-300 bg-white text-green-700 hover:border-green-500"
+                              }`}
+                            >
+                              Completa (25/03/2026)
+                            </button>
+                            <button
+                              onClick={() => setDateFormatOverride((prev) => ({ ...prev, [el.bind]: "short" }))}
+                              className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${
+                                dateFormatOverride[el.bind] === "short"
+                                  ? "border-green-600 bg-green-600 text-white"
+                                  : "border-green-300 bg-white text-green-700 hover:border-green-500"
+                              }`}
+                            >
+                              Abreviada (25/03)
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                   })}
