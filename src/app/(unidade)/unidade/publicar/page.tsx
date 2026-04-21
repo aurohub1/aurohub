@@ -474,30 +474,57 @@ export default function UnidadePublicarPage() {
           },
         };
       });
-      setTemplates(rows);
-
-      // system_config.tmpl_* — agrega formTypes (licensee do user ou base)
+      // system_config.tmpl_* — templates legados (base ou do licensee) ainda não migrados pra form_templates.
+      // Mescla no mesmo array `templates` pra o lookup por tipo+formato funcionar igual.
+      const scRows: TemplateRow[] = [];
+      const types = new Set<string>();
       try {
         const { data: sc } = await supabase
           .from("system_config")
           .select("key, value")
           .like("key", "tmpl_%");
-        const types = new Set<string>();
         for (const r of (sc ?? []) as { key: string; value: string }[]) {
           try {
             const parsed = JSON.parse(r.value);
             const lid = parsed.licenseeId ?? parsed.licensee_id ?? null;
-            if (lid && lid.trim && lid.trim() !== p.licensee_id.trim()) continue;
-            const ft = parsed.formType || parsed.schema?.formType;
-            if (ft) types.add(String(ft));
-          } catch { /* skip */ }
+            const isBase = parsed.is_base === true || r.key.startsWith("tmpl_base_");
+            if (!isBase) {
+              if (!lid) continue;
+              if (String(lid).trim() !== String(p.licensee_id).trim()) continue;
+            }
+            const ft = String(parsed.formType || parsed.schema?.formType || "pacote");
+            if (ft) types.add(ft);
+            const fmt = (parsed.format || "stories") as Format;
+            const [defW2, defH2] = FORMAT_DIMS[fmt] || [1080, 1920];
+            const sch = parsed.schema ?? {};
+            scRows.push({
+              key: r.key,
+              id: r.key,
+              nome: parsed.nome || parsed.name || r.key.replace(/^tmpl_/, ""),
+              format: fmt,
+              formType: ft,
+              width: Number(parsed.width) || defW2,
+              height: Number(parsed.height) || defH2,
+              schema: {
+                elements: (sch.elements ?? []) as EditorSchema["elements"],
+                background: sch.background || "#FFFFFF",
+                duration: sch.duration || 5,
+                qtdDestinos: sch.qtdDestinos,
+                formType: ft,
+              },
+            });
+          } catch { /* skip row malformado */ }
         }
         setCanvasFormTypes(types);
-      } catch { /* silent */ }
+      } catch { /* silent — tabela ausente ou RLS bloqueou */ }
+
+      const merged = [...rows, ...scRows];
+      setTemplates(merged);
+      console.log("[publicar][loader] form_templates:", rows.length, "system_config:", scRows.length, "merged:", merged.length);
 
       // Deep-link via ?template=xxx: força a aba/formato do template indicado.
       if (templateParam) {
-        const match = rows.find(t => t.key.includes(templateParam) || t.id === templateParam);
+        const match = merged.find(t => t.key.includes(templateParam) || t.id === templateParam);
         if (match) {
           setTab(match.formType as FormType);
           setFormat(match.format);
