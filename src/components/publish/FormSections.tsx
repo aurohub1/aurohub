@@ -74,7 +74,7 @@ export function Section({
   void color;
   return (
     <div
-      className="rounded-xl border px-4 py-3"
+      className="rounded-xl border px-4 py-2"
       style={{ background: "var(--bg1)", borderColor: "var(--bdr)" }}
     >
       <div className="mb-2 flex items-center gap-2">
@@ -106,7 +106,7 @@ export function Field({
 }
 
 const INPUT_CLASS =
-  "h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]";
+  "h-8 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--orange)]";
 
 /* ── SearchableSelect ─────────────────────────────────── */
 
@@ -571,7 +571,7 @@ export function PacoteForm({
   const showPgtoBlock = showForma || showEntrada || showParcelas || showValorParc || showDesconto || showValorTotal;
 
   return (
-    <>
+    <div className="flex flex-col gap-2">
       {(showDestino || showSaida || showTipovoo) && (
         <Section title="Destino & Saída">
           {showDestino && (
@@ -604,10 +604,10 @@ export function PacoteForm({
               )}
               {showTipovoo && (
                 <Field label="Tipo de Voo">
-                  {/* V1 .radio-group + .radio-btn.on — background gold #D4A843, texto escuro, shadow sutil. */}
+                  {/* V1 .radio-group + .radio-btn.on — botões inline, altura 32px, font 12px, gap 8px. */}
                   <div
-                    className="flex gap-1 rounded-lg border p-0.5"
-                    style={{ background: "var(--bg2)", borderColor: "var(--bdr)" }}
+                    className="flex rounded-lg border p-0.5"
+                    style={{ background: "var(--bg2)", borderColor: "var(--bdr)", gap: "8px", flexWrap: "nowrap" }}
                   >
                     {["( Voo Direto )", "( Voo Conexão )"].map((opt) => {
                       const sel = fields.tipovoo === opt;
@@ -616,11 +616,11 @@ export function PacoteForm({
                           key={opt}
                           type="button"
                           onClick={() => set("tipovoo", opt)}
-                          className="flex-1 rounded-md px-2 py-1 text-[10px] font-bold tracking-wide transition-all"
+                          className="flex-1 whitespace-nowrap rounded-md px-3 font-semibold transition-all"
                           style={
                             sel
-                              ? { background: "#D4A843", color: "#060B16", boxShadow: "0 1px 6px rgba(212,168,67,0.4)" }
-                              : { background: "transparent", color: "var(--txt3)" }
+                              ? { background: "#D4A843", color: "#060B16", boxShadow: "0 1px 6px rgba(212,168,67,0.4)", height: "32px", fontSize: "12px" }
+                              : { background: "transparent", color: "var(--txt3)", height: "32px", fontSize: "12px" }
                           }
                         >
                           {opt}
@@ -860,7 +860,7 @@ export function PacoteForm({
           )}
         </Section>
       )}
-    </>
+    </div>
   );
 }
 
