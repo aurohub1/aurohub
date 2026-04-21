@@ -444,7 +444,7 @@ export default function UnidadePublicarPage() {
         .from("form_templates")
         .select("id, name, form_type, format, width, height, schema, is_base, licensee_id")
         .or(`is_base.eq.true,licensee_id.eq.${p.licensee_id}`)
-        .eq("active", true)
+        .or("active.eq.true,active.is.null")
         .order("form_type")
         .order("format")
         .order("name");
