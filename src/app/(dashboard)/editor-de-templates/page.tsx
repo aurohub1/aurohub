@@ -35,6 +35,15 @@ const SEGMENTO_ICONS: Record<string, string> = {
   Geral: "📄",
 };
 const AZV_LICENSEE_PREFIX = "2acbabe7";
+const FORM_TYPE_LABELS: Record<string, string> = {
+  pacote: "Pacote",
+  campanha: "Campanha",
+  passagem: "Passagem",
+  cruzeiro: "Cruzeiro",
+  anoiteceu: "Anoiteceu",
+  quatro_destinos: "Cards",
+  lamina: "Lâmina",
+};
 
 function inferBaseSegmento(t: { segmento: string; formType: string; baseTipo: string | null }): string {
   if (t.segmento && t.segmento !== "Geral") return t.segmento;
@@ -228,26 +237,37 @@ export default function EditorTemplatesPage() {
   }
 
   async function saveNome(key: string, nome: string) {
-    await persistField(key, "nome", nome);
+    if (key.startsWith("ft_")) {
+      await supabase.from("form_templates").update({ name: nome }).eq("id", key.slice(3));
+    } else {
+      await persistField(key, "nome", nome);
+    }
     setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, nome } : t)));
   }
 
   async function saveSegmento(key: string, segmento: string) {
-    await persistField(key, "segmento", segmento);
+    // form_templates não tem coluna segmento — é inferido por form_type. Apenas atualiza UI.
+    if (!key.startsWith("ft_")) {
+      await persistField(key, "segmento", segmento);
+    }
     setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, segmento } : t)));
   }
 
   async function persistThumb(key: string, url: string) {
-    const { data: row } = await supabase
-      .from("system_config")
-      .select("value")
-      .eq("key", key)
-      .single();
-    const current = row?.value ? JSON.parse(row.value) : {};
-    current.thumbnail = url;
-    await supabase
-      .from("system_config")
-      .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
+    if (key.startsWith("ft_")) {
+      await supabase.from("form_templates").update({ thumbnail_url: url }).eq("id", key.slice(3));
+    } else {
+      const { data: row } = await supabase
+        .from("system_config")
+        .select("value")
+        .eq("key", key)
+        .single();
+      const current = row?.value ? JSON.parse(row.value) : {};
+      current.thumbnail = url;
+      await supabase
+        .from("system_config")
+        .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
+    }
     setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, thumbnail: url } : t)));
   }
 
@@ -295,48 +315,79 @@ export default function EditorTemplatesPage() {
   const loadCanvasTemplates = useCallback(async () => {
     setCanvasLoading(true);
     try {
-      const { data } = await supabase
-        .from("system_config")
-        .select("key,value,updated_at")
-        .like("key", "tmpl_%")
-        .order("updated_at", { ascending: false });
-      const list: CanvasTemplate[] = (data || []).map((r: { key: string; value: string; updated_at: string }) => {
-        let nome = "", format = "—", formType = "—", segmento = "Geral", licenseeId: string | null = null, licenseeNome = "Sem marca", lojaNome = "Sem loja", thumbnail: string | null = null, parsedIsBase = false;
-        try {
-          const parsed = JSON.parse(r.value);
-          nome = parsed.nome || "";
-          format = parsed.format || "—";
-          formType = parsed.formType || "—";
-          segmento = parsed.segmento || "Geral";
-          licenseeId = parsed.licenseeId ?? null;
-          licenseeNome = parsed.licenseeNome || "Sem marca";
-          lojaNome = parsed.lojaNome || "Sem loja";
-          thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null;
-          parsedIsBase = parsed.is_base === true;
-        } catch {}
-        const isBase = parsedIsBase || r.key.startsWith("tmpl_base_");
-        // Extrai tipo do slug da key. Aceita tanto `tmpl_base_{tipo}_{formato}`
-        // quanto `tmpl_{tipo}_{formato}` (ex: tmpl_cards_stories).
-        const baseTipo = isBase
-          ? (r.key.match(/^tmpl_(?:base_)?(.+)_(stories|reels|feed|tv)$/)?.[1] ?? null)
-          : null;
+      // 1) Templates base ficam na tabela form_templates (is_base = true)
+      // 2) Templates por cliente continuam em system_config (tmpl_*, não-base)
+      const [ftRes, licRes, scRes] = await Promise.all([
+        supabase
+          .from("form_templates")
+          .select("id, name, form_type, format, licensee_id, thumbnail_url, created_at, is_base, active")
+          .eq("is_base", true)
+          .order("form_type"),
+        supabase.from("licensees").select("id, name"),
+        supabase
+          .from("system_config")
+          .select("key,value,updated_at")
+          .like("key", "tmpl_%")
+          .order("updated_at", { ascending: false }),
+      ]);
+      console.log("[CanvasTemplates] base form_templates:", { count: ftRes.data?.length ?? 0, error: ftRes.error });
+      const licMap = new Map<string, string>((licRes.data ?? []).map((l: { id: string; name: string }) => [l.id, l.name]));
+
+      type FTRow = {
+        id: string; name: string | null; form_type: string; format: string;
+        licensee_id: string | null; thumbnail_url: string | null; created_at: string;
+      };
+      const baseList: CanvasTemplate[] = ((ftRes.data as FTRow[] | null) ?? []).map((r) => {
+        const label = FORM_TYPE_LABELS[r.form_type] ?? r.form_type;
+        const fmtLabel = r.format.charAt(0).toUpperCase() + r.format.slice(1);
         return {
-          key: r.key,
-          displayName: r.key.replace(/^tmpl_(base_)?/, ""),
-          nome,
-          format,
-          formType,
-          segmento,
-          updatedAt: r.updated_at,
-          licenseeId,
-          licenseeNome,
-          lojaNome,
-          thumbnail,
-          isBase,
-          baseTipo,
+          key: `ft_${r.id}`,
+          displayName: r.name || `${label} ${fmtLabel}`,
+          nome: r.name || `${label} ${fmtLabel}`,
+          format: r.format || "—",
+          formType: r.form_type || "—",
+          segmento: TURISMO_TYPES.has(r.form_type) ? "Turismo" : "Geral",
+          updatedAt: r.created_at,
+          licenseeId: r.licensee_id ?? null,
+          licenseeNome: r.licensee_id ? (licMap.get(r.licensee_id) || "Sem marca") : "Sem marca",
+          lojaNome: "Sem loja",
+          thumbnail: r.thumbnail_url,
+          isBase: true,
+          baseTipo: r.form_type ?? null,
         };
       });
-      setCanvasTemplates(list);
+
+      const scList: CanvasTemplate[] = ((scRes.data as { key: string; value: string; updated_at: string }[] | null) ?? [])
+        .map((r) => {
+          let nome = "", format = "—", formType = "—", segmento = "Geral", licenseeId: string | null = null, licenseeNome = "Sem marca", lojaNome = "Sem loja", thumbnail: string | null = null, parsedIsBase = false;
+          try {
+            const parsed = JSON.parse(r.value);
+            nome = parsed.nome || "";
+            format = parsed.format || "—";
+            formType = parsed.formType || "—";
+            segmento = parsed.segmento || "Geral";
+            licenseeId = parsed.licenseeId ?? null;
+            licenseeNome = parsed.licenseeNome || "Sem marca";
+            lojaNome = parsed.lojaNome || "Sem loja";
+            thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null;
+            parsedIsBase = parsed.is_base === true;
+          } catch {}
+          const isBase = parsedIsBase || r.key.startsWith("tmpl_base_");
+          const baseTipo = isBase
+            ? (r.key.match(/^tmpl_(?:base_)?(.+)_(stories|reels|feed|tv)$/)?.[1] ?? null)
+            : null;
+          return {
+            key: r.key,
+            displayName: r.key.replace(/^tmpl_(base_)?/, ""),
+            nome, format, formType, segmento,
+            updatedAt: r.updated_at,
+            licenseeId, licenseeNome, lojaNome, thumbnail, isBase, baseTipo,
+          };
+        })
+        // Base agora vem de form_templates — evita duplicar com eventuais tmpl_base_* legados
+        .filter((t) => !t.isBase);
+
+      setCanvasTemplates([...baseList, ...scList]);
     } catch (err) { console.error("[CanvasTemplates] load:", err); }
     finally { setCanvasLoading(false); }
   }, []);
@@ -359,26 +410,41 @@ export default function EditorTemplatesPage() {
 
   const hasAnyBaseTemplate = useMemo(() => canvasTemplates.some((t) => t.isBase), [canvasTemplates]);
 
-  // Base templates agrupados: segmento → licenseeGroup → (AZV: lojas; outros: __all__)
+  // Base templates agrupados: segmento → licensee → subgroup → cards
+  // subgroup varia:
+  //   Base do sistema (sem licenseeId) → por formType (Pacote, Campanha, Cruzeiro, Cards, …)
+  //   AZV                              → por loja (Rio Preto, …)
+  //   outros                           → flat (__all__)
   const baseTemplatesGrouped = useMemo(() => {
     const out: Record<string, {
-      licensees: Record<string, { name: string; isAZV: boolean; lojas: Record<string, CanvasTemplate[]> }>;
+      licensees: Record<string, {
+        name: string;
+        groupBy: "formType" | "loja" | "none";
+        subgroups: Record<string, CanvasTemplate[]>;
+      }>;
     }> = {};
     for (const t of baseTemplatesFiltered) {
       const seg = inferBaseSegmento(t);
       if (!out[seg]) out[seg] = { licensees: {} };
-      const isAZV = !!t.licenseeId && t.licenseeId.startsWith(AZV_LICENSEE_PREFIX);
-      const licKey = !t.licenseeId ? "__base__" : (t.licenseeNome || "Sem marca");
+      const isBaseSistema = !t.licenseeId;
+      const isAZV = !isBaseSistema && t.licenseeId!.startsWith(AZV_LICENSEE_PREFIX);
+      const licKey = isBaseSistema ? "__base__" : (t.licenseeNome || "Sem marca");
+      const groupBy: "formType" | "loja" | "none" = isBaseSistema ? "formType" : isAZV ? "loja" : "none";
       if (!out[seg].licensees[licKey]) {
         out[seg].licensees[licKey] = {
-          name: !t.licenseeId ? "Base do sistema" : (t.licenseeNome || "Sem marca"),
-          isAZV,
-          lojas: {},
+          name: isBaseSistema ? "Base do sistema" : (t.licenseeNome || "Sem marca"),
+          groupBy,
+          subgroups: {},
         };
       }
-      const lojaKey = isAZV ? (t.lojaNome || "Sem loja") : "__all__";
-      if (!out[seg].licensees[licKey].lojas[lojaKey]) out[seg].licensees[licKey].lojas[lojaKey] = [];
-      out[seg].licensees[licKey].lojas[lojaKey].push(t);
+      const lic = out[seg].licensees[licKey];
+      const subKey = lic.groupBy === "formType"
+        ? (FORM_TYPE_LABELS[t.formType] || t.formType || "Outros")
+        : lic.groupBy === "loja"
+        ? (t.lojaNome || "Sem loja")
+        : "__all__";
+      if (!lic.subgroups[subKey]) lic.subgroups[subKey] = [];
+      lic.subgroups[subKey].push(t);
     }
     return out;
   }, [baseTemplatesFiltered]);
@@ -427,13 +493,37 @@ export default function EditorTemplatesPage() {
     setCloning(true);
     try {
       const lic = licensees.find((l) => l.id === cloneLicensee);
-      const { data: row } = await supabase
-        .from("system_config")
-        .select("value")
-        .eq("key", cloneKey)
-        .single();
-      if (!row?.value) throw new Error("Template base não encontrado");
-      const parsed = JSON.parse(row.value);
+      let parsed: Record<string, unknown>;
+      let baseSuffix: string;
+      if (cloneKey.startsWith("ft_")) {
+        const { data } = await supabase
+          .from("form_templates")
+          .select("name, form_type, format, width, height, schema, thumbnail_url")
+          .eq("id", cloneKey.slice(3))
+          .single();
+        if (!data) throw new Error("Template base não encontrado");
+        const ft = data as { name: string | null; form_type: string; format: string; width: number; height: number; schema: unknown; thumbnail_url: string | null };
+        parsed = {
+          nome: ft.name || `${FORM_TYPE_LABELS[ft.form_type] ?? ft.form_type} ${ft.format}`,
+          format: ft.format,
+          formType: ft.form_type,
+          segmento: TURISMO_TYPES.has(ft.form_type) ? "Turismo" : "Geral",
+          width: ft.width,
+          height: ft.height,
+          schema: ft.schema,
+          thumbnail: ft.thumbnail_url,
+        };
+        baseSuffix = `${ft.form_type}_${ft.format}`;
+      } else {
+        const { data: row } = await supabase
+          .from("system_config")
+          .select("value")
+          .eq("key", cloneKey)
+          .single();
+        if (!row?.value) throw new Error("Template base não encontrado");
+        parsed = JSON.parse(row.value);
+        baseSuffix = cloneKey.replace(/^tmpl_(base_)?/, "");
+      }
       const cloneData = {
         ...parsed,
         is_base: false,
@@ -449,7 +539,6 @@ export default function EditorTemplatesPage() {
         .replace(/[̀-ͯ]/g, "")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
-      const baseSuffix = cloneKey.replace(/^tmpl_(base_)?/, "");
       const newKey = `tmpl_${baseSuffix}_${slug}_${Date.now().toString(36)}`;
       await supabase.from("system_config").upsert({
         key: newKey,
@@ -468,9 +557,14 @@ export default function EditorTemplatesPage() {
   };
 
   const deleteCanvasTmpl = async (key: string) => {
-    if (!confirm(`Excluir template "${key.replace(/^tmpl_/, "")}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    const label = key.startsWith("ft_") ? key.slice(3) : key.replace(/^tmpl_/, "");
+    if (!confirm(`Excluir template "${label}"?\n\nEsta ação não pode ser desfeita.`)) return;
     try {
-      await supabase.from("system_config").delete().eq("key", key);
+      if (key.startsWith("ft_")) {
+        await supabase.from("form_templates").delete().eq("id", key.slice(3));
+      } else {
+        await supabase.from("system_config").delete().eq("key", key);
+      }
       await loadCanvasTemplates();
     } catch (err) { console.error("[CanvasTemplates] delete:", err); alert("Erro ao excluir."); }
   };
@@ -1011,7 +1105,7 @@ export default function EditorTemplatesPage() {
                     </div>
                     <div className="flex flex-col gap-4 px-4 py-4">
                       {Object.entries(licensees).map(([licKey, lic]) => {
-                        const licCount = Object.values(lic.lojas).reduce((a, arr) => a + arr.length, 0);
+                        const licCount = Object.values(lic.subgroups).reduce((a, arr) => a + arr.length, 0);
                         return (
                           <div key={licKey}>
                             <div className="mb-2 flex items-center gap-2">
@@ -1019,22 +1113,22 @@ export default function EditorTemplatesPage() {
                               <span className="text-[12px] font-semibold text-[var(--txt2)]">{lic.name}</span>
                               <span className="text-[10px] text-[var(--txt3)]">({licCount})</span>
                             </div>
-                            {lic.isAZV ? (
+                            {lic.groupBy === "none" ? (
+                              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                                {lic.subgroups["__all__"]?.map((t) => renderCanvasCard(t))}
+                              </div>
+                            ) : (
                               <div className="flex flex-col gap-3 pl-4">
-                                {Object.entries(lic.lojas).map(([lojaName, items]) => (
-                                  <div key={lojaName}>
+                                {Object.entries(lic.subgroups).map(([subName, items]) => (
+                                  <div key={subName}>
                                     <div className="mb-1.5 text-[11px] text-[var(--txt3)]">
-                                      → {lojaName} <span className="text-[10px]">({items.length})</span>
+                                      → {subName} <span className="text-[10px]">({items.length})</span>
                                     </div>
                                     <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
                                       {items.map((t) => renderCanvasCard(t))}
                                     </div>
                                   </div>
                                 ))}
-                              </div>
-                            ) : (
-                              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-                                {lic.lojas["__all__"]?.map((t) => renderCanvasCard(t))}
                               </div>
                             )}
                           </div>
