@@ -388,6 +388,14 @@ export default function PublicarPage() {
     setFormat(prefer);
   }, [formatsForCurrentType, format]);
 
+  // Se o tipo atual não estiver liberado, cai no primeiro disponível
+  useEffect(() => {
+    if (availableTypes.size === 0) return;
+    if (availableTypes.has(tab as PublicarFlowType)) return;
+    const first = Array.from(availableTypes)[0];
+    if (first) setTab(first as FormType);
+  }, [availableTypes, tab]);
+
   const canPublishFeature = features.has("publicar");
   const canIaLegenda = features.has("ia_legenda") || profile?.role === "adm";
   // "drive" ainda não é feature liberada — mantemos hardcode false
