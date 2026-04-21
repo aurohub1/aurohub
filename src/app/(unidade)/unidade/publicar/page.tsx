@@ -15,6 +15,7 @@ import {
   Image as ImageIcon, Search as SearchIcon, ChevronDown,
 } from "lucide-react";
 import { QuatroDestinosForm } from "@/components/publish/FormSections";
+import PublicarWizard, { type WizardFormType } from "@/components/publish/PublicarWizard";
 
 const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
 
@@ -256,6 +257,9 @@ export default function UnidadePublicarPage() {
   // Estado por aba
   const [tab, setTab] = useState<FormType>("pacote");
   const [format, setFormat] = useState<Format>("stories");
+
+  // Wizard de 3 passos — fica ativo até o usuário escolher tipo+formato
+  const [wizardMode, setWizardMode] = useState(true);
 
   // Cache de dados por aba (preserva ao trocar)
   const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>(() => {
@@ -1071,6 +1075,31 @@ export default function UnidadePublicarPage() {
 
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
+  if (wizardMode) {
+    return (
+      <PublicarWizard
+        agencyName={profile?.store?.name || profile?.licensee?.name || undefined}
+        templates={templates.map((t) => ({
+          key: t.key,
+          id: t.id,
+          nome: t.nome,
+          format: t.format,
+          formType: t.formType as string,
+        }))}
+        visibleFormats={visibleFormats}
+        initialType={(["pacote", "campanha", "cruzeiro", "anoiteceu", "quatro_destinos"] as const).includes(
+          tab as WizardFormType
+        ) ? (tab as WizardFormType) : undefined}
+        initialFormat={visibleFormats.includes(format) ? format : undefined}
+        onComplete={(type, fmt) => {
+          setTab(type as FormType);
+          setFormat(fmt);
+          setWizardMode(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr] page-fade publicar-mobile">
       <style>{`
@@ -1117,33 +1146,18 @@ export default function UnidadePublicarPage() {
           </div>
         </div>
 
-        {/* Tabs — linha única, sem quebra */}
-        <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-2">
-          <div className="flex flex-nowrap items-center gap-0.5" style={{ whiteSpace: "nowrap" }}>
-            {FORM_ORDER.filter((f) => f !== "quatro_destinos" || features.has("lamina_4destinos")).map((f) => {
-              const active = tab === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setTab(f)}
-                  className="flex h-7 flex-1 items-center justify-center whitespace-nowrap rounded-full px-2 text-[10px] font-semibold transition-all"
-                  style={
-                    active
-                      ? { background: "var(--orange)", color: "#FFFFFF", boxShadow: "0 2px 6px rgba(255,122,26,0.35)" }
-                      : { background: "transparent", color: "var(--txt2)" }
-                  }
-                  onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt2)";
-                  }}
-                >
-                  {FORM_LABELS[f]}
-                </button>
-              );
-            })}
-          </div>
+        {/* Barra "Voltar" (wizard define tipo + formato) */}
+        <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setWizardMode(true)}
+            className="rounded-full border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt2)] hover:text-[var(--txt)]"
+          >
+            ← Voltar
+          </button>
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
+            {FORM_LABELS[tab]} · {FORMAT_LABELS[format]}
+          </span>
         </div>
 
         {/* Scroll dos campos */}
@@ -1702,30 +1716,7 @@ export default function UnidadePublicarPage() {
             </div>
           )}
         </div>
-        {/* Format pills flutuantes — só aparece se o plano libera >1 formato */}
-        {visibleFormats.length > 1 && (
-          <div className="pointer-events-none absolute bottom-5 left-0 right-0 flex justify-center">
-            <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg1)] p-1 shadow-xl">
-              {visibleFormats.map((f) => {
-                const active = format === f;
-                return (
-                  <button
-                    key={f}
-                    onClick={() => setFormat(f)}
-                    className="rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
-                    style={
-                      active
-                        ? { background: "#D4A843", color: "#060B16" }
-                        : { color: "var(--txt3)" }
-                    }
-                  >
-                    {FORMAT_LABELS[f]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Format pills removidas — formato é escolhido no wizard (passo 2) */}
       </div>
     </div>
   );

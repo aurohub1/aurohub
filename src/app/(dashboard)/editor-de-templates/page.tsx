@@ -118,8 +118,16 @@ export default function EditorTemplatesPage() {
   const [canvasLoading, setCanvasLoading] = useState(true);
   const [thumbUploadingKey, setThumbUploadingKey] = useState<string | null>(null);
   const [profile, setProfile] = useState<FullProfile | null>(null);
-  const [baseFilterType, setBaseFilterType] = useState("");
-  const [baseFilterFormat, setBaseFilterFormat] = useState("");
+  const [globalFilterType, setGlobalFilterType] = useState("");
+  const [globalFilterFormat, setGlobalFilterFormat] = useState("");
+
+  // Clone modal (base → licensee)
+  const [cloneKey, setCloneKey] = useState<string | null>(null);
+  const [cloneLicensee, setCloneLicensee] = useState<string>("");
+  const [cloning, setCloning] = useState(false);
+
+  // Novo template (abre editor com licensee pré-selecionado)
+  const [newTmplLicensee, setNewTmplLicensee] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -261,41 +269,101 @@ export default function EditorTemplatesPage() {
     router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`);
   };
 
-  const baseTemplatesGrouped = useMemo(() => {
-    const map: Record<string, CanvasTemplate[]> = {};
-    for (const t of canvasTemplates) {
-      if (!t.isBase) continue;
-      if (baseFilterType && t.baseTipo !== baseFilterType) continue;
-      if (baseFilterFormat && t.format !== baseFilterFormat) continue;
-      const seg = t.segmento || "Sem segmento";
-      if (!map[seg]) map[seg] = [];
-      map[seg].push(t);
-    }
-    return map;
-  }, [canvasTemplates, baseFilterType, baseFilterFormat]);
+  // Filtra base templates (usa filtros globais)
+  const baseTemplatesFiltered = useMemo(() => {
+    return canvasTemplates.filter((t) => {
+      if (!t.isBase) return false;
+      if (globalFilterType && t.baseTipo !== globalFilterType && t.formType !== globalFilterType) return false;
+      if (globalFilterFormat && t.format !== globalFilterFormat) return false;
+      return true;
+    });
+  }, [canvasTemplates, globalFilterType, globalFilterFormat]);
 
   const hasAnyBaseTemplate = useMemo(() => canvasTemplates.some((t) => t.isBase), [canvasTemplates]);
 
-  const userTemplatesGrouped = useMemo(() => {
+  // Agrupa templates de cliente por licensee (sem sub-agrupamento por segmento)
+  const userTemplatesByLicensee = useMemo(() => {
     const isAdm = profile?.role === "adm";
     const ownLic = profile?.licensee_id ?? null;
-    const map: Record<string, Record<string, CanvasTemplate[]>> = {};
+    const map: Record<string, { id: string | null; items: CanvasTemplate[] }> = {};
     for (const t of canvasTemplates) {
       if (t.isBase) continue;
       if (!isAdm && t.licenseeId !== ownLic) continue;
-      const lic = t.licenseeNome;
-      const seg = t.segmento || "Sem segmento";
-      if (!map[lic]) map[lic] = {};
-      if (!map[lic][seg]) map[lic][seg] = [];
-      map[lic][seg].push(t);
+      if (globalFilterType && t.formType !== globalFilterType && t.baseTipo !== globalFilterType) continue;
+      if (globalFilterFormat && t.format !== globalFilterFormat) continue;
+      const lic = t.licenseeNome || "Sem marca";
+      if (!map[lic]) map[lic] = { id: t.licenseeId, items: [] };
+      map[lic].items.push(t);
     }
     return map;
-  }, [canvasTemplates, profile]);
+  }, [canvasTemplates, profile, globalFilterType, globalFilterFormat]);
 
-  const userTemplatesCount = useMemo(() =>
-    Object.values(userTemplatesGrouped).reduce((a, segs) =>
-      a + Object.values(segs).reduce((b, arr) => b + arr.length, 0), 0),
-    [userTemplatesGrouped]);
+  const userTemplatesCount = useMemo(
+    () => Object.values(userTemplatesByLicensee).reduce((a, v) => a + v.items.length, 0),
+    [userTemplatesByLicensee]
+  );
+
+  // Helpers — iniciais e cor a partir do nome do licensee (determinístico)
+  function getInitials(name: string): string {
+    return name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("");
+  }
+  function getLicColor(name: string): string {
+    const palette = ["#FF7A1A", "#D4A843", "#3B82F6", "#10B981", "#8B5CF6", "#EC4899", "#F59E0B", "#06B6D4"];
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return palette[h % palette.length];
+  }
+
+  // Clona template base para um licensee específico
+  const runCloneToLicensee = async () => {
+    if (!cloneKey || !cloneLicensee) return;
+    setCloning(true);
+    try {
+      const lic = licensees.find((l) => l.id === cloneLicensee);
+      const { data: row } = await supabase
+        .from("system_config")
+        .select("value")
+        .eq("key", cloneKey)
+        .single();
+      if (!row?.value) throw new Error("Template base não encontrado");
+      const parsed = JSON.parse(row.value);
+      const cloneData = {
+        ...parsed,
+        is_base: false,
+        licenseeId: lic?.id ?? null,
+        licenseeNome: lic?.name ?? "Sem marca",
+        lojaId: null,
+        lojaNome: "Sem loja",
+      };
+      // Novo key: tmpl_{tipo}_{formato}_{licensee-slug}-{timestamp}
+      const slug = (lic?.name ?? "licensee")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      const baseSuffix = cloneKey.replace(/^tmpl_(base_)?/, "");
+      const newKey = `tmpl_${baseSuffix}_${slug}_${Date.now().toString(36)}`;
+      await supabase.from("system_config").upsert({
+        key: newKey,
+        value: JSON.stringify(cloneData),
+        updated_at: new Date().toISOString(),
+      });
+      setCloneKey(null);
+      setCloneLicensee("");
+      await loadCanvasTemplates();
+    } catch (err) {
+      console.error("[Clone to licensee]", err);
+      alert("Falha ao clonar template.");
+    } finally {
+      setCloning(false);
+    }
+  };
 
   const deleteCanvasTmpl = async (key: string) => {
     if (!confirm(`Excluir template "${key.replace(/^tmpl_/, "")}"?\n\nEsta ação não pode ser desfeita.`)) return;
@@ -547,12 +615,23 @@ export default function EditorTemplatesPage() {
 
   const hasFilters = search || fFormat || fSegment || fStatus;
 
-  /* ── Card do canvas (reused em Templates Base e Meus Templates) ─ */
+  /* ── Card do canvas (reused em Templates Base e Por cliente) ─ */
   function renderCanvasCard(t: CanvasTemplate) {
+    const isAdm = profile?.role === "adm";
+    const licColor = t.isBase ? null : getLicColor(t.licenseeNome);
     return (
       <div key={t.key} data-tmpl-key={t.key} className="relative overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)]" style={{ background: "var(--bg1)" }}>
         {t.isBase && (
-          <span className="absolute top-2 left-2 z-10 rounded-full bg-[#D4A843] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#1E3A6E] shadow">Base</span>
+          <span className="absolute top-2 left-2 z-10 rounded-full bg-[#D4A843] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#1E3A6E] shadow">BASE</span>
+        )}
+        {!t.isBase && licColor && (
+          <span
+            className="absolute top-2 left-2 z-10 inline-flex h-6 min-w-[24px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold uppercase tracking-wider text-white shadow"
+            style={{ background: licColor }}
+            title={t.licenseeNome}
+          >
+            {getInitials(t.licenseeNome) || "·"}
+          </span>
         )}
         {t.thumbnail ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -609,135 +688,201 @@ export default function EditorTemplatesPage() {
         </div>
         <div className="flex border-t border-[var(--bdr)] divide-x divide-[var(--bdr)]">
           <button onClick={() => editCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">Editar</button>
+          {t.isBase && isAdm && (
+            <button onClick={() => setCloneKey(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--orange)] hover:bg-[var(--hover-bg)]" title="Clonar para um licensee">
+              Clonar p/ cliente
+            </button>
+          )}
+          {!t.isBase && (
+            <button onClick={() => duplicateCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">Duplicar</button>
+          )}
           <button onClick={() => deleteCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--red)] hover:bg-[var(--hover-bg)]">Excluir</button>
         </div>
       </div>
     );
   }
 
+  // Duplica um template de cliente (mesmo licensee)
+  async function duplicateCanvasTmpl(key: string) {
+    try {
+      const { data: row } = await supabase.from("system_config").select("value").eq("key", key).single();
+      if (!row?.value) return;
+      const parsed = JSON.parse(row.value);
+      const cloneData = { ...parsed, nome: (parsed.nome || "Template") + " (cópia)" };
+      const baseSuffix = key.replace(/^tmpl_/, "");
+      const newKey = `tmpl_${baseSuffix}_copy_${Date.now().toString(36)}`;
+      await supabase.from("system_config").upsert({
+        key: newKey,
+        value: JSON.stringify(cloneData),
+        updated_at: new Date().toISOString(),
+      });
+      await loadCanvasTemplates();
+    } catch (err) {
+      console.error("[Duplicate]", err);
+      alert("Falha ao duplicar template.");
+    }
+  }
+
   /* ── Render ────────────────────────────────────── */
+
+  const isAdm = profile?.role === "adm";
+  const typeOptions = [
+    { k: "", l: "Todos" },
+    { k: "pacote", l: "Pacote" },
+    { k: "campanha", l: "Campanha" },
+    { k: "cruzeiro", l: "Cruzeiro" },
+    { k: "anoiteceu", l: "Anoiteceu" },
+    { k: "quatro_destinos", l: "Cards" },
+  ];
+  const formatOptions = [
+    { k: "", l: "Todos" },
+    { k: "stories", l: "Stories" },
+    { k: "feed", l: "Feed" },
+    { k: "reels", l: "Reels" },
+    { k: "tv", l: "TV" },
+  ];
+  const hasGlobalFilter = Boolean(globalFilterType || globalFilterFormat);
+
+  const openNewTemplate = (licenseeId: string | null) => {
+    const qs = licenseeId ? `?licensee=${licenseeId}` : "";
+    router.push(`/editor${qs}`);
+  };
 
   return (
     <>
-      {/* Templates Base — visíveis pra todos */}
-      <section className="border-b border-[var(--bdr)] pb-6">
-        <div className="mb-4 flex items-end justify-between">
-          <div>
-            <h2 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Templates Base</h2>
-            <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Modelos prontos pra começar — disponíveis pra todas as marcas</p>
-          </div>
+      {/* Page header */}
+      <div className="flex items-end justify-between border-b border-[var(--bdr)] pb-4">
+        <div>
+          <h1 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Editor de Templates</h1>
+          <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Templates base (sistema) e templates por cliente</p>
         </div>
+        <button
+          type="button"
+          onClick={() => openNewTemplate(profile?.licensee_id ?? null)}
+          className="flex items-center gap-2 rounded-lg bg-[var(--txt)] px-4 py-2 text-[12px] font-semibold text-[var(--bg)] hover:opacity-90"
+        >
+          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+          Novo template
+        </button>
+      </div>
 
-        {/* Filtros tipo + formato */}
-        {hasAnyBaseTemplate && (
-          <div className="mb-4 flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Tipo</span>
-              {([
-                { k: "", l: "Todos" },
-                { k: "campanha", l: "Campanha" },
-                { k: "cruzeiro", l: "Cruzeiro" },
-                { k: "anoiteceu", l: "Anoiteceu" },
-                { k: "quatro_destinos", l: "Card WhatsApp" },
-              ]).map((f) => (
-                <button key={f.k || "all-type"} onClick={() => setBaseFilterType(f.k)} className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${baseFilterType === f.k ? "border-[var(--orange)] bg-[var(--orange3)] text-[var(--orange)]" : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt)]"}`}>
-                  {f.l}
-                </button>
-              ))}
+      {/* Filtros globais (afetam Base + Por cliente) */}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Tipo</span>
+          {typeOptions.map((f) => (
+            <button
+              key={f.k || "all-type"}
+              onClick={() => setGlobalFilterType(f.k)}
+              className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${globalFilterType === f.k ? "border-[var(--orange)] bg-[var(--orange3)] text-[var(--orange)]" : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt)]"}`}
+            >
+              {f.l}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Formato</span>
+          {formatOptions.map((f) => (
+            <button
+              key={f.k || "all-fmt"}
+              onClick={() => setGlobalFilterFormat(f.k)}
+              className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${globalFilterFormat === f.k ? "border-[var(--orange)] bg-[var(--orange3)] text-[var(--orange)]" : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt)]"}`}
+            >
+              {f.l}
+            </button>
+          ))}
+          {hasGlobalFilter && (
+            <button
+              onClick={() => { setGlobalFilterType(""); setGlobalFilterFormat(""); }}
+              className="ml-2 text-[11px] text-[var(--txt3)] hover:text-[var(--red)]"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Templates Base (somente ADM) */}
+      {isAdm && (
+        <section className="border-b border-[var(--bdr)] pb-6">
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <h2 className="text-[18px] font-bold tracking-tight text-[var(--txt)]">Templates Base</h2>
+              <p className="mt-0.5 text-[12px] text-[var(--txt3)]">Modelos do sistema — clone para um cliente pra liberar uso</p>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Formato</span>
-              {([
-                { k: "", l: "Todos" },
-                { k: "stories", l: "Stories" },
-                { k: "reels", l: "Reels" },
-                { k: "feed", l: "Feed" },
-                { k: "tv", l: "TV" },
-              ]).map((f) => (
-                <button key={f.k || "all-fmt"} onClick={() => setBaseFilterFormat(f.k)} className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${baseFilterFormat === f.k ? "border-[var(--orange)] bg-[var(--orange3)] text-[var(--orange)]" : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt)]"}`}>
-                  {f.l}
-                </button>
-              ))}
+          </div>
+
+          {canvasLoading ? (
+            <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
+          ) : !hasAnyBaseTemplate ? (
+            <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
+              Nenhum template base cadastrado.
             </div>
-          </div>
-        )}
+          ) : baseTemplatesFiltered.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
+              Nenhum template encontrado com esses filtros.
+            </div>
+          ) : (
+            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+              {baseTemplatesFiltered.map((t) => renderCanvasCard(t))}
+            </div>
+          )}
+        </section>
+      )}
 
-        {canvasLoading ? (
-          <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
-        ) : !hasAnyBaseTemplate ? (
-          <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
-            Nenhum template base cadastrado.
-          </div>
-        ) : Object.keys(baseTemplatesGrouped).length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
-            Nenhum template encontrado com esses filtros.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {Object.entries(baseTemplatesGrouped).map(([segName, items]) => (
-              <div key={segName}>
-                <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
-                  <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M8 1l2.5 5H14l-4 3.5 1.5 5.5L8 12l-3.5 3 1.5-5.5L2 6h3.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>
-                  {segName}
-                  <span className="text-[10px] font-normal text-[var(--txt3)]">· {items.length}</span>
-                </div>
-                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-                  {items.map((t) => renderCanvasCard(t))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Meus Templates — filtrados por licensee (ADM vê tudo) */}
-      <section className="border-b border-[var(--bdr)] pb-6">
+      {/* Por cliente (agrupado por licensee) */}
+      <section>
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <h2 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Meus Templates</h2>
-            <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Designs salvos direto do editor visual</p>
+            <h2 className="text-[18px] font-bold tracking-tight text-[var(--txt)]">Por cliente</h2>
+            <p className="mt-0.5 text-[12px] text-[var(--txt3)]">
+              {isAdm ? "Templates de cada marca — ADM vê tudo" : "Templates da sua marca"}
+            </p>
           </div>
-          <a href="/editor" className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] px-4 py-2 text-[12px] font-semibold text-[var(--txt)] hover:border-[var(--bdr2)]">
-            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-            Novo design
-          </a>
         </div>
         {canvasLoading ? (
           <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
         ) : userTemplatesCount === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
-            Nenhum template salvo ainda. Clique em &quot;Novo design&quot; para abrir o editor.
+            {hasGlobalFilter
+              ? "Nenhum template encontrado com esses filtros."
+              : "Nenhum template por cliente ainda. Clone um template base ou crie um novo pelo editor."}
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {Object.entries(userTemplatesGrouped).map(([licName, segments]) => {
-              const licTotal = Object.values(segments).reduce((a, arr) => a + arr.length, 0);
+            {Object.entries(userTemplatesByLicensee).map(([licName, group]) => {
+              const color = getLicColor(licName);
               return (
-                <details key={licName} open className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
-                  <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-[14px] font-bold text-[var(--txt)] hover:bg-[var(--hover-bg)]">
+                <details
+                  key={licName}
+                  open
+                  className="overflow-hidden rounded-xl border border-[var(--bdr)]"
+                  style={{ background: "var(--card-bg)" }}
+                >
+                  <summary className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-[var(--hover-bg)]">
                     <span className="flex items-center gap-2">
-                      <span className="inline-block h-2 w-2 rounded-full bg-[#D4A843]" />
-                      {licName}
+                      <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+                      <span className="text-[14px] font-bold text-[var(--txt)]">{licName}</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+                        · {group.items.length} template{group.items.length !== 1 ? "s" : ""}
+                      </span>
                     </span>
-                    <span className="text-[11px] font-semibold text-[var(--txt3)]">{licTotal} template{licTotal !== 1 ? "s" : ""}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openNewTemplate(group.id);
+                      }}
+                      className="flex items-center gap-1 rounded-lg border border-[var(--bdr)] px-3 py-1 text-[11px] font-semibold text-[var(--txt2)] hover:text-[var(--txt)] hover:border-[var(--bdr2)]"
+                    >
+                      + Novo template
+                    </button>
                   </summary>
-                  <div className="flex flex-col gap-3 border-t border-[var(--bdr)] px-4 py-4">
-                    {Object.entries(segments).map(([segName, items]) => (
-                      <div key={segName}>
-                        <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
-                          <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M8 1l2.5 5H14l-4 3.5 1.5 5.5L8 12l-3.5 3 1.5-5.5L2 6h3.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>
-                          {segName}
-                          <span className="text-[10px] font-normal text-[var(--txt3)]">· {items.length}</span>
-                        </div>
-                        {items.length === 0 ? (
-                          <div className="rounded-lg border border-dashed border-[var(--bdr)] p-4 text-center text-[11px] text-[var(--txt3)]">Sem templates</div>
-                        ) : (
-                          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-                            {items.map((t) => renderCanvasCard(t))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                  <div className="border-t border-[var(--bdr)] px-4 py-4">
+                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                      {group.items.map((t) => renderCanvasCard(t))}
+                    </div>
                   </div>
                 </details>
               );
@@ -746,234 +891,64 @@ export default function EditorTemplatesPage() {
         )}
       </section>
 
-      {/* KPIs */}
-      <div className="flex flex-wrap gap-6">
-        <KI label="Total" value={String(kpis.total)} />
-        <KI label="Ativos" value={String(kpis.active)} accent />
-        <KI label="Feed" value={String(kpis.feed)} />
-        <KI label="Stories" value={String(kpis.stories)} />
-        <KI label="Reels" value={String(kpis.reels)} />
-        <KI label="TV" value={String(kpis.tv)} />
-      </div>
-
-      {/* Header */}
-      <div className="flex items-end justify-between border-b border-[var(--bdr)] pb-4">
-        <div>
-          <h2 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Editor de Templates</h2>
-          <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Crie e gerencie os templates visuais</p>
-        </div>
-        <a href="/editor" className="flex items-center gap-2 rounded-lg bg-[var(--txt)] px-4 py-2 text-[12px] font-semibold text-[var(--bg)]">
-          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-          Novo template
-        </a>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[180px] flex-1">
-          <svg viewBox="0 0 20 20" fill="none" className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--txt3)]"><circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" /><path d="M14 14l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-          <input type="text" placeholder="Buscar template..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent pl-9 pr-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
-        </div>
-        <select value={fFormat} onChange={(e) => setFFormat(e.target.value)} className="h-9 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[12px] text-[var(--txt)] outline-none">
-          <option value="">Formato</option>
-          {FORMAT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
-        <select value={fSegment} onChange={(e) => setFSegment(e.target.value)} className="h-9 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[12px] text-[var(--txt)] outline-none">
-          <option value="">Segmento</option>
-          {segments.map((s) => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
-        </select>
-        <div className="flex gap-0.5 rounded-lg border border-[var(--bdr)] p-0.5">
-          {[{ k: "", l: "Todos" }, { k: "active", l: "Ativos" }, { k: "draft", l: "Rascunho" }].map((t) => (
-            <button key={t.k} onClick={() => setFStatus(t.k)} className={`rounded-md px-3 py-1.5 text-[12px] font-medium ${fStatus === t.k ? "bg-[var(--bg3)] text-[var(--txt)]" : "text-[var(--txt3)]"}`}>{t.l}</button>
-          ))}
-        </div>
-        {hasFilters && <button onClick={() => { setSearch(""); setFFormat(""); setFSegment(""); setFStatus(""); }} className="text-[12px] text-[var(--txt3)] hover:text-[var(--red)]">Limpar</button>}
-      </div>
-
-      {/* Grid */}
-      {loading ? <div className="py-16 text-center text-[13px] text-[var(--txt3)]">Carregando...</div>
-      : filtered.length === 0 ? <div className="py-16 text-center text-[13px] text-[var(--txt3)]">{hasFilters ? "Nenhum template encontrado." : "Nenhum template cadastrado."}</div>
-      : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((t) => {
-            const name = getGroupName(t);
-            const seg = getSegment(t);
-            const fieldCount = fieldsPerTemplate[t.id]?.length ?? 0;
-            const licCount = getLicenseeCount(t);
-            const fmtLabel = FORMAT_OPTIONS.find((f) => f.value === t.format)?.label ?? t.format;
-
-            return (
-              <div key={t.id} className="overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)] page-fade" style={{ background: "var(--card-bg)" }}>
-                {/* Thumbnail */}
-                <div className="relative aspect-[4/3] overflow-hidden bg-[var(--bg3)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={t.image_url} alt={name} className="h-full w-full object-cover" />
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <span className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold backdrop-blur-sm ${t.active ? "bg-[var(--green3)] text-[var(--green)]" : "bg-[var(--bg3)] text-[var(--txt3)]"}`}>
-                      {t.active ? "Ativo" : "Rascunho"}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-2 left-2">
-                    <span className="rounded-md bg-black/50 px-2 py-0.5 text-[0.6rem] font-bold text-white backdrop-blur-sm">{fmtLabel}</span>
-                  </div>
-                </div>
-
-                {/* Info */}
-                <div className="px-4 py-3">
-                  <div className="text-[14px] font-bold text-[var(--txt)] truncate">{name}</div>
-                  <div className="mt-1 flex items-center gap-3 text-[11px] text-[var(--txt3)]">
-                    {seg && <span>{seg.icon} {seg.name}</span>}
-                    <span>{fieldCount} campo{fieldCount !== 1 ? "s" : ""}</span>
-                    {licCount > 0 && <span>{licCount} acesso{licCount !== 1 ? "s" : ""}</span>}
-                  </div>
-                  <div className="mt-1 text-[10px] text-[var(--txt3)]">{new Date(t.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex border-t border-[var(--bdr)] divide-x divide-[var(--bdr)]">
-                  <button onClick={() => openEdit(t)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">Editar</button>
-                  <button onClick={() => duplicateTemplate(t)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">Duplicar</button>
-                  <button onClick={() => toggleActive(t.id, t.active)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">{t.active ? "Desativar" : "Ativar"}</button>
-                  <button onClick={() => setDeleteId(t.id)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--red)] hover:bg-[var(--hover-bg)]">Excluir</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Delete confirm */}
-      {deleteId && (
-        <Ov onClose={() => setDeleteId(null)}>
-          <div className="mx-4 w-full max-w-[360px] rounded-2xl border border-[var(--bdr)] p-6" style={{ background: "var(--card-bg)" }}>
-            <div className="mb-4 text-center">
-              <div className="text-[15px] font-bold text-[var(--txt)]">Excluir template?</div>
-              <div className="mt-1 text-[13px] text-[var(--txt3)]">Template e campos vinculados serão removidos.</div>
+      {/* Clone modal (base → licensee) */}
+      {cloneKey && (
+        <Ov onClose={() => setCloneKey(null)}>
+          <div className="mx-4 flex w-full max-w-[420px] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
+            <div className="border-b border-[var(--bdr)] px-6 py-4">
+              <div className="text-[15px] font-bold text-[var(--txt)]">Clonar template para cliente</div>
+              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Escolha o licensee que receberá a cópia</div>
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)} className="flex-1 rounded-lg py-2 text-[13px] text-[var(--txt3)]">Cancelar</button>
-              <button onClick={() => deleteTemplate(deleteId)} className="flex-1 rounded-lg bg-[var(--red)] py-2 text-[13px] font-semibold text-white">Excluir</button>
-            </div>
-          </div>
-        </Ov>
-      )}
-
-      {/* New/Edit modal */}
-      {modalOpen && (
-        <Ov onClose={() => setModalOpen(false)}>
-          <div className="mx-4 flex w-full max-w-[640px] max-h-[90vh] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
-            <div className="flex items-center justify-between border-b border-[var(--bdr)] px-6 py-5 shrink-0">
-              <h2 className="text-[16px] font-bold text-[var(--txt)]">{editId ? "Editar template" : "Novo template"}</h2>
-              <button onClick={() => setModalOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] hover:bg-[var(--bg3)] hover:text-[var(--txt)]">
-                <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex border-b border-[var(--bdr)] px-6">
-              {(["dados", "campos", "acesso"] as ModalTab[]).map((t) => (
-                <button key={t} onClick={() => setModalTab(t)} className={`border-b-2 px-4 py-2.5 text-[12px] font-medium ${modalTab === t ? "border-[var(--txt)] text-[var(--txt)]" : "border-transparent text-[var(--txt3)]"}`}>
-                  {t === "dados" ? "Dados" : t === "campos" ? `Campos (${selectedBinds.length})` : `Acesso (${accessLicensees.length})`}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              {/* TAB: Dados */}
-              {modalTab === "dados" && (
-                <div className="flex flex-col gap-4">
-                  <F label="Nome do template" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Pacote Premium Cancún" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Formato</label>
-                      <select value={form.format} onChange={(e) => setForm({ ...form, format: e.target.value })} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none">
-                        {FORMAT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Segmento</label>
-                      <select value={form.segment_id} onChange={(e) => setForm({ ...form, segment_id: e.target.value })} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none">
-                        <option value="">Nenhum</option>
-                        {segments.map((s) => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <F label="Descrição" value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder="Descrição do template (opcional)" />
-
-                  {/* Image */}
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Imagem base</label>
-                    <div className="flex items-start gap-4">
-                      {form.image_url ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={form.image_url} alt="Preview" className="h-24 w-24 shrink-0 rounded-xl object-cover border border-[var(--bdr)]" />
-                      ) : (
-                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-[var(--bg3)] text-[var(--txt3)]">
-                          <svg viewBox="0 0 24 24" fill="none" className="h-8 w-8"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.5" /><circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1" /><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="1" /></svg>
-                        </div>
-                      )}
-                      <div className="flex flex-1 flex-col gap-1.5">
-                        <input ref={imgRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-                        <button type="button" onClick={() => imgRef.current?.click()} disabled={uploading} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
-                          {uploading ? "Enviando..." : "Upload imagem"}
-                        </button>
-                        <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="ou cole URL Cloudinary" className="h-7 w-full rounded border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Status toggle */}
-                  <div className="flex gap-0.5 rounded-lg border border-[var(--bdr)] p-0.5">
-                    <button onClick={() => setForm({ ...form, active: true })} className={`flex-1 rounded-md py-1.5 text-[12px] font-medium ${form.active ? "bg-[var(--green3)] text-[var(--green)]" : "text-[var(--txt3)]"}`}>Ativo</button>
-                    <button onClick={() => setForm({ ...form, active: false })} className={`flex-1 rounded-md py-1.5 text-[12px] font-medium ${!form.active ? "bg-[var(--bg3)] text-[var(--txt)]" : "text-[var(--txt3)]"}`}>Rascunho</button>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB: Campos bind */}
-              {modalTab === "campos" && (
-                <div className="flex flex-col gap-5">
-                  {BIND_GROUPS.map((bg) => (
-                    <div key={bg.group}>
-                      <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">{bg.group}</div>
-                      <div className="flex flex-wrap gap-2">
-                        {bg.fields.map((key) => {
-                          const sel = selectedBinds.includes(key);
-                          return (
-                            <button key={key} onClick={() => toggleBind(key)} className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${sel ? "border-[var(--orange)] bg-[var(--orange3)] text-[var(--orange)]" : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt)]"}`}>
-                              {key}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* TAB: Acesso */}
-              {modalTab === "acesso" && (
-                <div className="flex flex-col gap-2">
-                  <div className="mb-2 text-[12px] text-[var(--txt3)]">Selecione os licenciados que podem usar este template</div>
-                  {licensees.map((l) => {
-                    const sel = accessLicensees.includes(l.id);
+            <div className="max-h-[50vh] flex-1 overflow-y-auto px-6 py-4">
+              <div className="flex flex-col gap-1.5">
+                {licensees.length === 0 ? (
+                  <div className="text-[12px] text-[var(--txt3)]">Nenhum licensee cadastrado.</div>
+                ) : (
+                  licensees.map((l) => {
+                    const sel = cloneLicensee === l.id;
                     return (
-                      <label key={l.id} className={`flex items-center justify-between rounded-lg border px-4 py-3 cursor-pointer hover:bg-[var(--hover-bg)] ${sel ? "border-[var(--green)] bg-[var(--green3)]" : "border-[var(--bdr)]"}`}>
-                        <span className={`text-[13px] font-medium ${sel ? "text-[var(--green)]" : "text-[var(--txt)]"}`}>{l.name}</span>
-                        <input type="checkbox" checked={sel} onChange={() => toggleAccess(l.id)} className="accent-[var(--green)]" />
+                      <label
+                        key={l.id}
+                        className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2.5 hover:bg-[var(--hover-bg)] ${sel ? "border-[var(--orange)] bg-[var(--orange3)]" : "border-[var(--bdr)]"}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                            style={{ background: getLicColor(l.name) }}
+                          >
+                            {getInitials(l.name) || "·"}
+                          </span>
+                          <span className={`text-[13px] font-medium ${sel ? "text-[var(--orange)]" : "text-[var(--txt)]"}`}>{l.name}</span>
+                        </span>
+                        <input
+                          type="radio"
+                          name="clone-lic"
+                          checked={sel}
+                          onChange={() => setCloneLicensee(l.id)}
+                          className="accent-[var(--orange)]"
+                        />
                       </label>
                     );
-                  })}
-                  {licensees.length === 0 && <div className="text-[12px] text-[var(--txt3)]">Nenhum licenciado cadastrado.</div>}
-                </div>
-              )}
-
-              {modalError && <div className="mt-4 rounded-lg bg-[var(--red3)] px-3 py-2 text-center text-[12px] font-medium text-[var(--red)]">{modalError}</div>}
+                  })
+                )}
+              </div>
             </div>
-
-            <div className="flex justify-end gap-3 border-t border-[var(--bdr)] px-6 py-4 shrink-0">
-              <button onClick={() => setModalOpen(false)} className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="rounded-lg bg-[var(--txt)] px-5 py-2 text-[13px] font-semibold text-[var(--bg)] disabled:opacity-60">{saving ? "Salvando..." : editId ? "Salvar" : "Criar"}</button>
+            <div className="flex justify-end gap-3 border-t border-[var(--bdr)] px-6 py-4">
+              <button
+                type="button"
+                onClick={() => { setCloneKey(null); setCloneLicensee(""); }}
+                className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={runCloneToLicensee}
+                disabled={!cloneLicensee || cloning}
+                className="rounded-lg bg-[var(--orange)] px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+              >
+                {cloning ? "Clonando..." : "Clonar"}
+              </button>
             </div>
           </div>
         </Ov>
