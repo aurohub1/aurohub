@@ -63,44 +63,18 @@ function EditorInner() {
     if (!templateId) return;
     (async () => {
       try {
-        if (templateId.startsWith("ft_")) {
-          // Template base em form_templates (UUID = templateId sem prefixo ft_)
-          const { data } = await supabase
-            .from("form_templates")
-            .select("name, form_type, format, schema, thumbnail_url, licensee_id")
-            .eq("id", templateId.slice(3))
-            .single();
-          if (data) {
-            const schemaObj = (data.schema ?? {}) as { elements?: unknown; background?: string; bgColor?: string; duration?: number; qtdDestinos?: number };
-            if (schemaObj.elements) {
-              setSchema({
-                elements: schemaObj.elements as EditorSchema["elements"],
-                background: schemaObj.bgColor || schemaObj.background || "#FFFFFF",
-                duration: schemaObj.duration || 5,
-                qtdDestinos: schemaObj.qtdDestinos,
-              });
-            }
-            if (data.format) setFormat(data.format);
-            if (data.form_type) setFormType(data.form_type);
-            if (schemaObj.qtdDestinos) setQtdDestinos(schemaObj.qtdDestinos);
-            if (data.name) setLoadedNome(data.name);
-            if (data.licensee_id) setLoadedLicenseeId(data.licensee_id);
-            setLoadedThumbnail(data.thumbnail_url ?? null);
-          }
-        } else {
-          const { data } = await supabase.from("system_config").select("value").eq("key", `tmpl_${templateId}`).single();
-          if (data?.value) {
-            const parsed = JSON.parse(data.value);
-            if (parsed.elements) {
-              setSchema({ elements: parsed.elements, background: parsed.bgColor || parsed.background || "#FFFFFF", duration: parsed.duration || 5, qtdDestinos: parsed.qtdDestinos });
-              if (parsed.format) setFormat(parsed.format);
-              if (parsed.formType) setFormType(parsed.formType);
-              if (parsed.qtdDestinos) setQtdDestinos(parsed.qtdDestinos);
-              if (parsed.nome) setLoadedNome(parsed.nome);
-              if (parsed.licenseeId) setLoadedLicenseeId(parsed.licenseeId);
-              if (parsed.lojaId) setLoadedLojaId(parsed.lojaId);
-              setLoadedThumbnail(parsed.thumbnail ?? parsed.thumb ?? parsed.schema?.thumbnail ?? null);
-            }
+        const { data } = await supabase.from("system_config").select("value").eq("key", `tmpl_${templateId}`).single();
+        if (data?.value) {
+          const parsed = JSON.parse(data.value);
+          if (parsed.elements) {
+            setSchema({ elements: parsed.elements, background: parsed.bgColor || parsed.background || "#FFFFFF", duration: parsed.duration || 5, qtdDestinos: parsed.qtdDestinos });
+            if (parsed.format) setFormat(parsed.format);
+            if (parsed.formType) setFormType(parsed.formType);
+            if (parsed.qtdDestinos) setQtdDestinos(parsed.qtdDestinos);
+            if (parsed.nome) setLoadedNome(parsed.nome);
+            if (parsed.licenseeId) setLoadedLicenseeId(parsed.licenseeId);
+            if (parsed.lojaId) setLoadedLojaId(parsed.lojaId);
+            setLoadedThumbnail(parsed.thumbnail ?? parsed.thumb ?? parsed.schema?.thumbnail ?? null);
           }
         }
       } catch (err) { console.error("[Editor] load:", err); }
@@ -248,38 +222,6 @@ function EditorInner() {
                   return;
                 }
                 setEditingStarterId(null);
-              }
-
-              // ft_<uuid> → salva em form_templates (template base)
-              if (templateId && templateId.startsWith("ft_")) {
-                const ftId = templateId.slice(3);
-                const schemaPayload = {
-                  elements: schema.elements,
-                  background: schema.background,
-                  duration: schema.duration,
-                  qtdDestinos,
-                };
-                console.log("[Editor][save] form_templates update:", { ftId, hasThumbnail: !!thumbnail });
-                const { error: ftErr } = await supabase.from("form_templates").update({
-                  name: meta.nome,
-                  form_type: meta.formType,
-                  format: meta.format,
-                  width: cW,
-                  height: cH,
-                  schema: schemaPayload,
-                  thumbnail_url: thumbnail || null,
-                }).eq("id", ftId);
-                if (ftErr) throw ftErr;
-                setLoadedNome(meta.nome);
-                setFormat(meta.format);
-                setFormType(meta.formType);
-                setLoadedLicenseeId(meta.licenseeId);
-                setLoadedLojaId(meta.lojaId);
-                setLoadedThumbnail(thumbnail);
-                setSaved(true);
-                setTimeout(() => setSaved(false), 2000);
-                setPendingSave(null);
-                return;
               }
 
               // Key: existente mantém; novo vira tmpl_{slug}_{ts}

@@ -170,6 +170,17 @@ const ADM_SECTIONS: NavSection[] = [
           </svg>
         ),
       },
+      {
+        label: "Datas Comemorativas",
+        href: "/adm/datas-comemorativas",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M3 8h14M7 2v4M13 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="7" cy="12" r="1" fill="currentColor" />
+          </svg>
+        ),
+      },
     ],
   },
   {
@@ -288,7 +299,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
     title: "Operação",
     items: [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
-      { label: "Publicar", href: "/gerente/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Templates", href: "/gerente/templates", icon: I.templates, feature: "templates" },
       { label: "Card WhatsApp", href: "/gerente/publicar/cards", icon: I.whatsapp, feature: "lamina_4destinos" },
       { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
@@ -303,7 +314,7 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     title: "Minhas atividades",
     items: [
       { label: "Início", href: "/consultor/inicio", icon: I.home },
-      { label: "Publicar", href: "/consultor/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Templates", href: "/consultor/templates", icon: I.templates, feature: "templates" },
       { label: "Card WhatsApp", href: "/consultor/publicar/cards", icon: I.whatsapp, feature: "lamina_4destinos" },
       { label: "Agendamentos", href: "/consultor/agendamentos", icon: I.calendar },
       { label: "Suporte", href: "/consultor/suporte", icon: I.support },

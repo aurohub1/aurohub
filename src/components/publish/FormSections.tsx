@@ -21,86 +21,15 @@ import { supabase as _sb_for_lamina } from "@/lib/supabase";
 
 /* ── Constantes ──────────────────────────────────────── */
 
-// V1 DESCONTO_VALS = [5,10,15,20,25,30,35,40,45,50]; UI expõe subconjuntos por tipo.
 export const DESCONTO_OPTS_FORM = ["10%", "15%", "20%", "25%", "30%", "40%", "50%"];
-export const DESCONTO_OPTS_CAMPANHA = ["5%", "10%", "15%", "20%", "25%", "30%"];
-export const DESCONTO_OPTS_ANOITECEU = ["5%", "10%", "15%", "20%", "25%", "30%", "40%", "50%"];
 export const PARCELAS_OPTS_FORM = Array.from({ length: 20 }, (_, i) => `${i + 1}x`);
-// V1 _fParcelasPassagem: 2x..36x
-export const PARCELAS_PASSAGEM_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`);
 export const NAVIOS_DEFAULT = [
   "MSC Seashore", "MSC Grandiosa", "MSC Musica", "MSC Armonia",
   "MSC Magnifica", "Costa Fascinosa", "Costa Diadema",
   "Norwegian Jade", "Carnival Jubilee",
 ];
 
-// V1 CIA_LOGOS exatos (client.js:1708-1717).
-const CIA_LOGOS: Record<string, string> = {
-  ROYAL:     "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106662/royal_madqky.png",
-  CELEBRITY: "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106665/xcruise_blcv45.png",
-  PRINCESS:  "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106664/princess_xteony.png",
-  OCEANIA:   "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106671/ocean_mccpbc.png",
-  NORWEGIAN: "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106667/norwegian_ugg7j9.png",
-  MSC:       "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106669/msc_uqiqji.png",
-  COSTA:     "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106668/costa_rzno1p.png",
-  DISNEY:    "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106663/disney_ttcdgq.png",
-};
-
-function resolveLogoCia(navio: string): string {
-  const n = (navio || "").toUpperCase();
-  for (const [cia, url] of Object.entries(CIA_LOGOS)) if (n.includes(cia)) return url;
-  return "";
-}
-
-// V1 costuma vir com "PRINCESS CRUISE - ", "X CELEBRITY CRUISE - ", etc. no começo.
-function cleanShipName(navio: string): string {
-  return (navio || "")
-    .replace(/^(X\s+)?(PRINCESS|CELEBRITY|ROYAL|OCEANIA|NORWEGIAN|MSC|COSTA|DISNEY)\s+CRUISES?\s*-\s*/i, "")
-    .trim();
-}
-
 /* ── Helpers ─────────────────────────────────────────── */
-
-// Port V1 utils.js:548-592 (Dict.servicos + Dict.ortho + applyServico + isAllInclusive).
-const DICT_SERVICOS: [RegExp, string][] = [
-  [/^traslado(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
-  [/^translado(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
-  [/^transfer(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
-  [/^caf[eé]\s+da\s+manh[aã]\s+e\s+(almo[cç]o|jan(tar)?)$/i, "Meia Pensão"],
-  [/^meia\s+pens[aã]o$/i, "Meia Pensão"],
-  [/^(caf[eé]\s+da\s+manh[aã],?\s+almo[cç]o\s+e\s+jantar|pens[aã]o\s+completa)$/i, "Pensão Completa"],
-  [/^caf[eé]\s+da\s+manh[aã]$/i, "Café da Manhã"],
-  [/^all\s+inclusive$/i, "All Inclusive"],
-  [/^tudo\s+inclu[ií]do$/i, "All Inclusive"],
-];
-const DICT_ORTHO: [RegExp, string][] = [
-  [/\bcafe\b/gi, "Café"], [/\bCAFE\b/g, "CAFÉ"],
-  [/\bmanha\b/gi, "Manhã"], [/\bMANHA\b/g, "MANHÃ"],
-  [/\balmoco\b/gi, "Almoço"], [/\bALMOCO\b/g, "ALMOÇO"],
-  [/\bjantar\b/gi, "Jantar"],
-  [/\bpensao\b/gi, "Pensão"], [/\bPENSAO\b/g, "PENSÃO"],
-  [/\binclusao\b/gi, "Inclusão"],
-  [/\bexcursao\b/gi, "Excursão"],
-  [/\bnavegacao\b/gi, "Navegação"],
-  [/\bcabine\b/gi, "Cabine"],
-  [/\baeroporo\b/gi, "Aeroporto"],
-  [/\bpassagen\b/gi, "Passagem"],
-  [/\bbagagen\b/gi, "Bagagem"],
-  [/\bconexao\b/gi, "Conexão"],
-  [/\bSao\b/g, "São"], [/\bSAO\b/g, "SÃO"],
-];
-
-export function dictApplyServico(val: string): string {
-  if (!val) return val;
-  const v = val.trim();
-  for (const [re, rep] of DICT_SERVICOS) if (re.test(v)) return rep;
-  let r = v;
-  for (const [re, rep] of DICT_ORTHO) r = r.replace(re, rep);
-  return r;
-}
-export function dictIsAllInclusive(val: string): boolean {
-  return /all\s*inclusive|tudo\s*inclu[ií]do/i.test(val || "");
-}
 
 function capitalizarDestino(v: string): string {
   return v.toUpperCase();
@@ -111,51 +40,6 @@ function fmtDate(iso: string): string {
   const [y, m, d] = iso.split("-");
   if (!y || !m || !d) return iso;
   return `${d}/${m}/${y}`;
-}
-
-// Período curto: "07 a 13/06/2026" / "07/06 a 13/07/2026" / "07/06/2025 a 13/07/2026"
-function fmtPeriodoCurto(ida: string, volta: string): string {
-  if (!ida || !volta) return "";
-  const [iy, im, id] = ida.split("-");
-  const [vy, vm, vd] = volta.split("-");
-  if (!iy || !vy) return "";
-  if (iy === vy && im === vm) return `${id} a ${vd}/${vm}/${vy}`;
-  if (iy === vy) return `${id}/${im} a ${vd}/${vm}/${vy}`;
-  return `${id}/${im}/${iy} a ${vd}/${vm}/${vy}`;
-}
-
-// Período completo: "DD/MM/YYYY a DD/MM/YYYY" (cruzeiro)
-function fmtPeriodoCompleto(ida: string, volta: string): string {
-  if (!ida || !volta) return "";
-  const [iy, im, id] = ida.split("-");
-  const [vy, vm, vd] = volta.split("-");
-  if (!iy || !vy) return "";
-  return `${id}/${im}/${iy} a ${vd}/${vm}/${vy}`;
-}
-
-// Formata valor bruto em reais: "123456" → "1.234,56"
-function formatReal(raw: string): string {
-  const nums = (raw || "").replace(/\D/g, "");
-  if (!nums) return "";
-  const n = parseInt(nums, 10);
-  return Math.floor(n / 100).toLocaleString("pt-BR") + "," + String(n % 100).padStart(2, "0");
-}
-
-// Forma pagamento final (V1 texto_pagamento / forma_pgto)
-function composeTextoPagamento(forma: string, entradaRaw: string): string {
-  if (forma === "Cartão de Crédito") return "No Cartão de Crédito Sem Juros";
-  if (forma === "Boleto") {
-    const fmt = formatReal(entradaRaw);
-    return fmt ? `Entrada de R$ ${fmt} +` : "Boleto";
-  }
-  return forma || "";
-}
-
-// Total formatado final: "ou R$ 8.900,00 por pessoa apto. duplo"
-function composeValorTotal(raw: string, sufixo: string): string {
-  const fmt = formatReal(raw);
-  if (!fmt) return "";
-  return `ou R$ ${fmt} ${sufixo}`;
 }
 
 function calcularNoites(ida: string, volta: string): number {
@@ -290,14 +174,13 @@ type Fields = Record<string, string | boolean | number | undefined | null>;
 type Setter = (k: string, v: string | boolean | number | null) => void;
 
 export function BadgesSection({
-  fields, set, formType, feriadoOpts, binds, descontoOpts,
+  fields, set, formType, feriadoOpts, binds,
 }: {
   fields: Fields;
   set: Setter;
   formType: "pacote" | "campanha";
   feriadoOpts?: string[];
   binds?: Set<string>;
-  descontoOpts?: string[];
 }) {
   const toggle = (key: string) => set(key, !fields[key]);
   const Toggle = ({ label, k }: { label: string; k: string }) => (
@@ -318,12 +201,12 @@ export function BadgesSection({
   );
 
   const opts = feriadoOpts ?? [""];
-  const showAll = hasBind(binds, "allinclusive", "allinclusivo", "all_inclusive_badge");
-  const showUltCh = hasBind(binds, "ultimachamada", "ultima_chamada_badge");
-  const showUltLug = hasBind(binds, "ultimoslugares", "ultimos_lugares_badge");
-  const showOfertas = formType === "pacote" && hasBind(binds, "ofertas", "ofertas_azul_badge");
-  const showDesc = hasBind(binds, "desconto_valor", "desconto_badge", "numerodesconto", "desconto");
-  const showFeriado = hasBind(binds, "feriado", "feriado_badge");
+  const showAll = hasBind(binds, "allinclusive", "allinclusivo");
+  const showUltCh = hasBind(binds, "ultimachamada");
+  const showUltLug = hasBind(binds, "ultimoslugares");
+  const showOfertas = formType === "pacote" && hasBind(binds, "ofertas");
+  const showDesc = hasBind(binds, "numerodesconto", "desconto");
+  const showFeriado = hasBind(binds, "feriado");
   const anyContent = showAll || showUltCh || showUltLug || showOfertas || showDesc || showFeriado;
   if (!anyContent) return null;
 
@@ -337,30 +220,25 @@ export function BadgesSection({
       {showDesc && (
         <Field label="Desconto">
           <div className="flex flex-wrap gap-1">
-            {(descontoOpts ?? DESCONTO_OPTS_CAMPANHA).map((d) => {
-              // V1 desconto_valor: guarda apenas número (sem "%").
-              const num = d.replace("%", "");
-              const selected = fields.desconto_valor === num;
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => set("desconto_valor", selected ? "" : num)}
-                  className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
-                  style={
-                    selected
-                      ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                      : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                  }
-                >
-                  {d}
-                </button>
-              );
-            })}
+            {DESCONTO_OPTS_FORM.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => set("numerodesconto", fields.numerodesconto === d ? "" : d)}
+                className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
+                style={
+                  fields.numerodesconto === d
+                    ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                    : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                }
+              >
+                {d}
+              </button>
+            ))}
           </div>
-          {fields.desconto_valor ? (
+          {fields.numerodesconto ? (
             <p className="mt-1 text-[10px] text-[var(--txt3)]">
-              Badge mostrará: <strong>{String(fields.desconto_valor)}%</strong>
+              Badge mostrará: <strong>{String(fields.numerodesconto)}</strong>
             </p>
           ) : null}
         </Field>
@@ -380,53 +258,26 @@ export function BadgesSection({
   );
 }
 
-export interface PagamentoKeys {
-  formaPgto: string;   // "texto_pagamento" (pacote/campanha) | "forma_pgto" (cruzeiro)
-  valorPreco: string;  // "valor_preco"
-  parcelas: string;    // "parcelas"
-  valorTotal: string;  // "valor_total_fmt" (pacote/campanha) | "valor_total_texto" (cruzeiro)
-}
-
 export function PagamentoSection({
-  fields, set, totalLabel, binds, keys,
+  fields, set, totalLabel, binds,
 }: {
   fields: Fields;
   set: Setter;
   totalLabel: string;
   binds?: Set<string>;
-  keys: PagamentoKeys;
 }) {
-  // V1 client.js:1377 — só Cartão de Crédito / Boleto.
   const formas: { value: string; label: string }[] = [
-    { value: "Cartão de Crédito", label: "Cartão s/ Juros" },
-    { value: "Boleto",            label: "Boleto c/ Entrada" },
+    { value: "cartao",  label: "Cartão s/ Juros" },
+    { value: "entrada", label: "Boleto c/ Entrada" },
+    { value: "debito",  label: "Débito" },
   ];
 
-  // Entrada/formaRaw são UI internos (não V1). Mantemos em `formapagamento_raw` e `entrada`.
-  const formaRaw = (fields.formapagamento_raw as string) || "";
-  const entradaRaw = (fields.entrada as string) || "";
-  const valorPrecoRaw = (fields.valor_preco as string) || "";
-  const valorTotalRaw = (fields.valor_total_raw as string) || "";
-
-  const showForma = hasBind(binds, keys.formaPgto, "formapagamento");
-  const showEntrada = formaRaw === "Boleto" && hasBind(binds, "entrada");
-  const showParcelas = hasBind(binds, keys.parcelas);
-  const showValorParc = hasBind(binds, keys.valorPreco, "valorparcela");
-  const showTotal = hasBind(binds, keys.valorTotal, "valortotal", "totalduplo");
+  const showForma = hasBind(binds, "formapagamento");
+  const showEntrada = fields.formapagamento === "entrada" && hasBind(binds, "entrada");
+  const showParcelas = hasBind(binds, "parcelas");
+  const showValorParc = hasBind(binds, "valorparcela");
+  const showTotal = hasBind(binds, "valortotal", "totalduplo");
   if (!showForma && !showEntrada && !showParcelas && !showValorParc && !showTotal) return null;
-
-  const applyForma = (forma: string) => {
-    set("formapagamento_raw", forma);
-    set(keys.formaPgto, composeTextoPagamento(forma, entradaRaw));
-  };
-  const applyEntrada = (raw: string) => {
-    set("entrada", raw);
-    set(keys.formaPgto, composeTextoPagamento(formaRaw, raw));
-  };
-  const applyValorTotal = (raw: string) => {
-    set("valor_total_raw", raw);
-    set(keys.valorTotal, composeValorTotal(raw, totalLabel));
-  };
 
   return (
     <Section title="Pagamento" icon="💳">
@@ -437,10 +288,10 @@ export function PagamentoSection({
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => applyForma(opt.value)}
+                onClick={() => set("formapagamento", opt.value)}
                 className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
                 style={
-                  formaRaw === opt.value
+                  fields.formapagamento === opt.value
                     ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
                     : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
                 }
@@ -449,9 +300,16 @@ export function PagamentoSection({
               </button>
             ))}
           </div>
-          {formaRaw ? (
+          {fields.formapagamento ? (
             <p className="mt-1 text-[10px] text-[var(--txt3)]">
-              Arte mostrará: <strong>{composeTextoPagamento(formaRaw, entradaRaw) || "—"}</strong>
+              Arte mostrará:{" "}
+              <strong>
+                {fields.formapagamento === "cartao"
+                  ? "No Cartão de Crédito Sem Juros"
+                  : fields.formapagamento === "entrada"
+                    ? `Entrada de R$ ${fields.entrada || "___"} +`
+                    : "No Débito"}
+              </strong>
             </p>
           ) : null}
         </Field>
@@ -461,8 +319,8 @@ export function PagamentoSection({
         <Field label="Valor Entrada (R$) *">
           <input
             type="text"
-            value={entradaRaw}
-            onChange={(e) => applyEntrada(e.target.value)}
+            value={(fields.entrada as string) || ""}
+            onChange={(e) => set("entrada", e.target.value)}
             placeholder="ex. 1.200,00"
             className={INPUT_CLASS}
           />
@@ -474,8 +332,8 @@ export function PagamentoSection({
           {showParcelas && (
             <Field label="Parcelas *">
               <SearchableSelect
-                value={(fields[keys.parcelas] as string) || ""}
-                onChange={(v) => set(keys.parcelas, v)}
+                value={(fields.parcelas as string) || ""}
+                onChange={(v) => set("parcelas", v)}
                 options={PARCELAS_OPTS_FORM}
                 placeholder="Selecionar..."
               />
@@ -485,8 +343,8 @@ export function PagamentoSection({
             <Field label="Valor da Parcela (R$) *">
               <input
                 type="text"
-                value={valorPrecoRaw}
-                onChange={(e) => set(keys.valorPreco, e.target.value)}
+                value={(fields.valorparcela as string) || ""}
+                onChange={(e) => set("valorparcela", e.target.value)}
                 placeholder="ex. 890,00"
                 className={INPUT_CLASS}
               />
@@ -499,14 +357,14 @@ export function PagamentoSection({
         <Field label={`Valor Total (R$) — ${totalLabel}`}>
           <input
             type="text"
-            value={valorTotalRaw}
-            onChange={(e) => applyValorTotal(e.target.value)}
+            value={(fields.valortotal as string) || ""}
+            onChange={(e) => set("valortotal", e.target.value)}
             placeholder="ex. 8.900,00"
             className={INPUT_CLASS}
           />
-          {valorTotalRaw ? (
+          {fields.valortotal ? (
             <p className="mt-1 text-[10px] text-[var(--txt3)]">
-              Arte mostrará: <strong>{composeValorTotal(valorTotalRaw, totalLabel) || "—"}</strong>
+              Arte mostrará: <strong>ou R$ {String(fields.valortotal)} {totalLabel}</strong>
             </p>
           ) : null}
         </Field>
@@ -535,20 +393,16 @@ export function CampanhaForm({
 
   const showDestino = hasBind(binds, "destino");
   const showSaida = hasBind(binds, "saida");
-  const showVoo = hasBind(binds, "voo", "tipovoo");
-  const showIda = hasBind(binds, "data_periodo", "dataida");
-  const showVolta = hasBind(binds, "data_periodo", "datavolta");
+  const showTipovoo = hasBind(binds, "tipovoo");
+  const showIda = hasBind(binds, "dataida");
+  const showVolta = hasBind(binds, "datavolta");
   const showHotel = hasBind(binds, "hotel", "imghotel");
-  // V1 servico_1..6 (snake_case). Sem binds = todos 6.
-  const showServicos = !binds || Array.from({ length: 6 }, (_, i) => `servico_${i + 1}`).some((k) => binds.has(k));
-
-  const pushPeriodo = (ida: string, volta: string) => {
-    set("data_periodo", fmtPeriodoCurto(ida, volta));
-  };
+  // Serviços — mostra se qualquer servico1..N estiver presente (sem binds = todos).
+  const showServicos = !binds || Array.from({ length: 8 }, (_, i) => `servico${i + 1}`).some((k) => binds.has(k));
 
   return (
     <>
-      {(showDestino || showSaida || showVoo) && (
+      {(showDestino || showSaida || showTipovoo) && (
         <Section title="Destino" icon="✈️">
           {showDestino && (
             <Field label="Destino *">
@@ -561,7 +415,7 @@ export function CampanhaForm({
               />
             </Field>
           )}
-          {(showSaida || showVoo) && (
+          {(showSaida || showTipovoo) && (
             <div className="grid grid-cols-2 gap-2">
               {showSaida && (
                 <Field label="Saída">
@@ -574,11 +428,11 @@ export function CampanhaForm({
                   />
                 </Field>
               )}
-              {showVoo && (
+              {showTipovoo && (
                 <Field label="Tipo de Voo">
                   <SearchableSelect
-                    value={(fields.voo as string) || ""}
-                    onChange={(v) => set("voo", v)}
+                    value={(fields.tipovoo as string) || ""}
+                    onChange={(v) => set("tipovoo", v)}
                     options={["Voo Direto", "Voo com Conexão"]}
                     placeholder="Selecionar..."
                   />
@@ -600,7 +454,7 @@ export function CampanhaForm({
                   value={(fields.dataida as string) || ""}
                   onChange={(e) => {
                     set("dataida", e.target.value);
-                    pushPeriodo(e.target.value, (fields.datavolta as string) || "");
+                    set("dataida_fmt", fmtDate(e.target.value));
                   }}
                   className={INPUT_CLASS}
                 />
@@ -614,7 +468,7 @@ export function CampanhaForm({
                   value={(fields.datavolta as string) || ""}
                   onChange={(e) => {
                     set("datavolta", e.target.value);
-                    pushPeriodo((fields.dataida as string) || "", e.target.value);
+                    set("datavolta_fmt", fmtDate(e.target.value));
                   }}
                   className={INPUT_CLASS}
                 />
@@ -642,27 +496,21 @@ export function CampanhaForm({
 
       {showServicos && (
         <Section title="Serviços Inclusos" icon="🎒">
-          {Array.from({ length: 6 }, (_, i) => i).map((i) => {
-            if (binds && !binds.has(`servico_${i + 1}`)) return null;
-            const val = servicos[i] ?? "";
+          {servicos.map((s, i) => {
+            if (binds && !binds.has(`servico${i + 1}`)) return null;
             return (
               <input
                 key={i}
-                value={val}
+                value={s}
                 onChange={(e) => {
                   const n = [...servicos];
                   n[i] = e.target.value;
                   setServicos(n);
                 }}
-                onBlur={(e) => {
-                  // V1: aplica dicionário (traslado→Transfer, café da manhã→Café da Manhã, etc.) e detecta All Inclusive.
-                  const raw = e.target.value;
-                  const v = dictApplyServico(raw);
-                  const n = [...servicos];
-                  n[i] = v;
-                  setServicos(n);
-                  set(`servico_${i + 1}`, v);
-                  if (dictIsAllInclusive(v)) set("allinclusive", true);
+                onBlur={() => {
+                  if (servicos.some((sv) => sv.toLowerCase().includes("all inclusive"))) {
+                    set("allinclusive", true);
+                  }
                 }}
                 placeholder={`Serviço ${i + 1}`}
                 className={INPUT_CLASS}
@@ -672,14 +520,8 @@ export function CampanhaForm({
         </Section>
       )}
 
-      <BadgesSection fields={fields} set={set} formType="campanha" feriadoOpts={feriadoOpts} binds={binds} descontoOpts={DESCONTO_OPTS_CAMPANHA} />
-      <PagamentoSection
-        fields={fields}
-        set={set}
-        totalLabel="por pessoa apto. duplo"
-        binds={binds}
-        keys={{ formaPgto: "texto_pagamento", valorPreco: "valor_preco", parcelas: "parcelas", valorTotal: "valor_total_fmt" }}
-      />
+      <BadgesSection fields={fields} set={set} formType="campanha" feriadoOpts={feriadoOpts} binds={binds} />
+      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa apto. duplo" binds={binds} />
     </>
   );
 }
@@ -687,64 +529,22 @@ export function CampanhaForm({
 /* ── CruzeiroForm ───────────────────────────────────── */
 
 export function CruzeiroForm({
-  fields, set, today, binds, nomeLoja,
+  fields, set, today, binds,
 }: {
   fields: Fields;
   set: Setter;
   today: string;
   binds?: Set<string>;
-  nomeLoja?: string;
 }) {
   const noites = calcularNoites(
     (fields.dataida as string) || "",
     (fields.datavolta as string) || "",
   );
 
-  // Sincroniza nome_loja readonly (vem do profile via prop)
-  useEffect(() => {
-    set("nome_loja", nomeLoja || "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nomeLoja]);
-
-  const pushPeriodo = (ida: string, volta: string) => {
-    set("data_periodo", fmtPeriodoCompleto(ida, volta));
-  };
-
-  // V1 client.js:1727-1756 — lista de navios vem do backend (S.navios); no V2 carrega da tabela navios.
-  const [navioOpts, setNavioOpts] = useState<string[]>(NAVIOS_DEFAULT);
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await _sb_for_lamina.from("navios").select("nome").order("nome");
-        const rows = (data ?? []) as { nome: string | null }[];
-        const nomes = rows.map((r) => (r.nome || "").trim()).filter(Boolean);
-        if (nomes.length) setNavioOpts(nomes);
-      } catch { /* tabela ausente — usa fallback hardcoded */ }
-    })();
-  }, []);
-
-  // V1 _fNavioField: ao selecionar navio, resolve logo_cia local + busca img_fundo em imgcruise.
-  async function onNavioSelect(raw: string) {
-    const clean = cleanShipName(raw);
-    set("navio", clean);
-    const logo = resolveLogoCia(clean);
-    set("logo_cia", logo || "");
-    try {
-      const { data } = await _sb_for_lamina
-        .from("imgcruise")
-        .select("url")
-        .ilike("cia", `%${clean.split(/\s+/)[0] || ""}%`)
-        .limit(1)
-        .single();
-      const url = (data as { url?: string } | null)?.url;
-      if (url) set("img_fundo", url);
-    } catch { /* silent — mantém img_fundo atual */ }
-  }
-
   const showNavio = hasBind(binds, "navio");
   const showItin = hasBind(binds, "itinerario");
-  const showIda = hasBind(binds, "data_periodo", "dataida");
-  const showVolta = hasBind(binds, "data_periodo", "datavolta");
+  const showIda = hasBind(binds, "dataida");
+  const showVolta = hasBind(binds, "datavolta");
   const showIncluso = hasBind(binds, "incluso");
   const showCruz = showNavio || showItin || showIda || showVolta;
 
@@ -756,8 +556,8 @@ export function CruzeiroForm({
             <Field label="Navio *">
               <SearchableSelect
                 value={(fields.navio as string) || ""}
-                onChange={onNavioSelect}
-                options={navioOpts}
+                onChange={(v) => set("navio", v)}
+                options={NAVIOS_DEFAULT}
                 placeholder="Buscar navio..."
                 allowCustom
               />
@@ -786,7 +586,7 @@ export function CruzeiroForm({
                     value={(fields.dataida as string) || ""}
                     onChange={(e) => {
                       set("dataida", e.target.value);
-                      pushPeriodo(e.target.value, (fields.datavolta as string) || "");
+                      set("dataida_fmt", fmtDate(e.target.value));
                     }}
                     className={INPUT_CLASS}
                   />
@@ -800,7 +600,7 @@ export function CruzeiroForm({
                     value={(fields.datavolta as string) || ""}
                     onChange={(e) => {
                       set("datavolta", e.target.value);
-                      pushPeriodo((fields.dataida as string) || "", e.target.value);
+                      set("datavolta_fmt", fmtDate(e.target.value));
                     }}
                     className={INPUT_CLASS}
                   />
@@ -833,19 +633,7 @@ export function CruzeiroForm({
         </Section>
       )}
 
-      <PagamentoSection
-        fields={fields}
-        set={set}
-        totalLabel="por pessoa"
-        binds={binds}
-        keys={{ formaPgto: "forma_pgto", valorPreco: "valor_preco", parcelas: "parcelas", valorTotal: "valor_total_texto" }}
-      />
-
-      {nomeLoja && (
-        <div className="text-[10px] text-[var(--txt3)]">
-          Loja (readonly): <span className="text-[var(--txt2)]">{nomeLoja}</span>
-        </div>
-      )}
+      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" binds={binds} />
     </>
   );
 }
@@ -853,21 +641,17 @@ export function CruzeiroForm({
 /* ── AnoiteceuForm ──────────────────────────────────── */
 
 export function AnoiteceuForm({
-  fields, set, today, binds,
+  fields, set, binds,
 }: {
   fields: Fields;
   set: Setter;
-  today?: string;
   binds?: Set<string>;
 }) {
-  const showDesc = hasBind(binds, "desconto_anoit_valor", "numerodesconto", "desconto_anoit");
-  // V1 binds: data_inicio / data_fim / para_viagens_ate
-  const showInicio = hasBind(binds, "data_inicio", "datainicio", "inicio");
-  const showFim = hasBind(binds, "data_fim", "datafim", "fim");
+  const showDesc = hasBind(binds, "desconto_anoit");
+  const showInicio = hasBind(binds, "inicio");
+  const showFim = hasBind(binds, "fim");
   const showPeriodo = showInicio || showFim;
-  const showParaviagens = hasBind(binds, "para_viagens_ate", "paraviagensate", "paraviagens");
-
-  const descontoLabel = fields.desconto_anoit_valor ? `${fields.desconto_anoit_valor}%` : "—";
+  const showParaviagens = hasBind(binds, "paraviagens");
 
   return (
     <>
@@ -887,40 +671,36 @@ export function AnoiteceuForm({
             <div className="mb-2 flex items-center gap-4">
               <div
                 className="text-5xl font-black leading-none transition-all"
-                style={{ color: fields.desconto_anoit_valor ? "var(--orange)" : "var(--txt3)" }}
+                style={{ color: fields.desconto_anoit ? "var(--orange)" : "var(--txt3)" }}
               >
-                {descontoLabel}
+                {(fields.desconto_anoit as string) || "—"}
               </div>
               <div className="flex-1">
                 <div className="flex flex-wrap gap-1">
-                  {DESCONTO_OPTS_ANOITECEU.map((d) => {
-                    const num = d.replace("%", "");
-                    const selected = fields.desconto_anoit_valor === num;
-                    return (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => set("desconto_anoit_valor", selected ? "" : num)}
-                        className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
-                        style={
-                          selected
-                            ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                            : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                        }
-                      >
-                        {d}
-                      </button>
-                    );
-                  })}
+                  {DESCONTO_OPTS_FORM.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => set("desconto_anoit", fields.desconto_anoit === d ? "" : d)}
+                      className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
+                      style={
+                        fields.desconto_anoit === d
+                          ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                          : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                      }
+                    >
+                      {d}
+                    </button>
+                  ))}
                 </div>
                 <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--txt3)]">
                   <span>Ou digitar:</span>
                   <input
                     type="text"
-                    value={(fields.desconto_anoit_valor as string) || ""}
+                    value={(fields.desconto_anoit as string) || ""}
                     onChange={(e) => {
                       const v = e.target.value.replace(/[^0-9]/g, "");
-                      set("desconto_anoit_valor", v);
+                      set("desconto_anoit", v ? `${v}%` : "");
                     }}
                     placeholder="ex. 35"
                     maxLength={3}
@@ -941,11 +721,10 @@ export function AnoiteceuForm({
                 <Field label="Data Início *">
                   <input
                     type="date"
-                    min={today}
-                    value={(fields.data_inicio_iso as string) || ""}
+                    value={(fields.inicio_iso as string) || ""}
                     onChange={(e) => {
-                      set("data_inicio_iso", e.target.value);
-                      set("data_inicio", fmtDataCurta(e.target.value));
+                      set("inicio_iso", e.target.value);
+                      set("inicio", fmtDataCurta(e.target.value));
                     }}
                     className={INPUT_CLASS}
                   />
@@ -955,11 +734,11 @@ export function AnoiteceuForm({
                 <Field label="Data Fim *">
                   <input
                     type="date"
-                    min={(fields.data_inicio_iso as string) || today}
-                    value={(fields.data_fim_iso as string) || ""}
+                    min={(fields.inicio_iso as string) || ""}
+                    value={(fields.fim_iso as string) || ""}
                     onChange={(e) => {
-                      set("data_fim_iso", e.target.value);
-                      set("data_fim", fmtDataCurta(e.target.value));
+                      set("fim_iso", e.target.value);
+                      set("fim", fmtDataCurta(e.target.value));
                     }}
                     className={INPUT_CLASS}
                   />
@@ -972,11 +751,10 @@ export function AnoiteceuForm({
             <Field label="Para Viagens Até *">
               <input
                 type="date"
-                min={today}
-                value={(fields.para_viagens_ate_iso as string) || ""}
+                value={(fields.paraviagens_iso as string) || ""}
                 onChange={(e) => {
-                  set("para_viagens_ate_iso", e.target.value);
-                  set("para_viagens_ate", fmtDate(e.target.value));
+                  set("paraviagens_iso", e.target.value);
+                  set("paraviagens", fmtDate(e.target.value));
                 }}
                 className={INPUT_CLASS}
               />
@@ -989,297 +767,301 @@ export function AnoiteceuForm({
   );
 }
 
-/* ── PassagemForm ──────────────────────────────────── */
-/* V1 binds: img_fundo, destino, saida, voo, data_periodo, incluso,
- *           valor_preco, valor_total_texto, parcelas, nome_loja.
- * UI: destino, saida, voo (select), dataida/datavolta → data_periodo,
- *     incluso, valor_preco, parcelas, valor_total_texto, nome_loja (readonly).
+/* ── QuatroDestinosForm (Card WhatsApp / Lâmina V1) ─────
+ * Port fiel do V1 app.aurovista.com.br/lamina (AUROHUB FIRE/lamina.html):
+ *   - Globais: lam_titulo1, lam_titulo2, img_fundo, lam_palette
+ *   - 4 sub-abas destino → binds lam_d{n}_{campo}
+ *   - Paletas (4 cores), fundo aleatório (imgfundo table), upload, IA título
+ * Layout no template seedado usa as coords hardcoded do V1 (stories 1080×1920).
  */
-export function PassagemForm({
-  fields, set, today, binds, nomeLoja,
+
+const LAM_INCLUSO_OPTS = ["Aéreo + Hotel + Transfer", "Aéreo + Hotel", "Hotel + Transfer", "Só Hotel", "Cruzeiro"];
+const LAM_VOO_OPTS = ["Voo Direto", "Voo Conexão"];
+const LAM_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`);
+
+// 4 paletas do V1 (lamina.html:286-292). Default = índice 0 (Verde).
+const LAM_PALETTES = [
+  { name: "Verde",       emoji: "🟡", accent: "#D4E600" },
+  { name: "Azul",        emoji: "🔵", accent: "#1A56C4", bg: "#E8F0FE", text: "#0B1D3A" },
+  { name: "Azul Claro",  emoji: "🩵", accent: "#16b5eb" },
+  { name: "Azul Escuro", emoji: "🌑", accent: "#003366", bg: "#D6E4F0", text: "#0B1D3A" },
+];
+
+// 20 templates de título (V1 lamina.html:520-543). "{destino}" substituído pelo primeiro destino.
+const LAM_TITULO_TEMPLATES = [
+  { l1: "Férias dos Sonhos!",     l2: "Voe com a Azul Viagens" },
+  { l1: "Seu Paraíso te Espera",  l2: "Pacotes imperdíveis!" },
+  { l1: "Hora de Viajar!",        l2: "As melhores ofertas pra você" },
+  { l1: "Destinos Incríveis",     l2: "Reserve já sua viagem" },
+  { l1: "Viaje com a Azul!",      l2: "Preços que cabem no bolso" },
+  { l1: "Embarque Nessa!",        l2: "Ofertas exclusivas Azul" },
+  { l1: "Realize Seu Sonho",      l2: "Viaje com a Azul Viagens" },
+  { l1: "Promoção Relâmpago!",    l2: "Garanta já seu pacote" },
+  { l1: "Vem Pra Azul!",          l2: "Os melhores destinos te esperam" },
+  { l1: "Aventura te Chama!",     l2: "Pacotes a partir de 10x" },
+  { l1: "Escapada Perfeita",      l2: "Conheça destinos únicos" },
+  { l1: "Férias Inesquecíveis",   l2: "Faça suas malas!" },
+  { l1: "Oferta Especial!",       l2: "Só na Azul Viagens" },
+  { l1: "Próxima Parada:",        l2: "{destino}" },
+  { l1: "Bora pra {destino}?",    l2: "Pacotes com a Azul Viagens" },
+  { l1: "{destino} te Espera!",   l2: "Reserve com a Azul" },
+  { l1: "Partiu {destino}!",      l2: "As melhores condições" },
+  { l1: "Sonhe. Planeje. Viaje.", l2: "Azul Viagens te leva!" },
+  { l1: "Seu Destino é Aqui!",    l2: "Confira as ofertas" },
+  { l1: "Viaje Mais, Pague Menos", l2: "Ofertas Azul Viagens" },
+];
+
+interface LamDest {
+  destino: string; saida: string; voo: string;
+  ida: string; volta: string;
+  hotel: string; incluso: string;
+  pgto: "cartao" | "boleto" | "";
+  entrada: string; parc: string;
+  valor: string; total: string;
+}
+
+function emptyLamDest(): LamDest {
+  return {
+    destino: "", saida: "", voo: "Voo Direto",
+    ida: "", volta: "",
+    hotel: "", incluso: "Aéreo + Hotel + Transfer",
+    pgto: "cartao", entrada: "", parc: "",
+    valor: "", total: "",
+  };
+}
+
+/** V1 lamina.html:623-631 — formato do período por período ida/volta. */
+function lamFormatPeriodo(ida: string, volta: string): string {
+  if (!ida || !volta) return "";
+  const [yi, mi, di] = ida.split("-");
+  const [yv, mv, dv] = volta.split("-");
+  const p = (n: string) => n.padStart(2, "0");
+  if (yi === yv && mi === mv) return `${p(di)} a ${p(dv)}/${p(mi)}/${yi}`;
+  if (yi === yv) return `${p(di)}/${p(mi)} a ${p(dv)}/${p(mv)}/${yi}`;
+  return `${p(di)}/${p(mi)}/${yi} a ${p(dv)}/${p(mv)}/${yv}`;
+}
+
+export function QuatroDestinosForm({
+  fields, set, today,
+  loadDestinos, loadHoteis,
 }: {
   fields: Fields;
   set: Setter;
   today: string;
-  binds?: Set<string>;
-  nomeLoja?: string;
+  loadDestinos?: () => Promise<string[]>;
+  loadHoteis?: () => Promise<string[]>;
 }) {
-  const showSaida = hasBind(binds, "saida");
-  const showDestino = hasBind(binds, "destino");
-  const showVoo = hasBind(binds, "voo", "tipovoo");
-  const showIda = hasBind(binds, "data_periodo", "dataida");
-  const showVolta = hasBind(binds, "data_periodo", "datavolta");
-  const showIncluso = hasBind(binds, "incluso");
-  const showParcelas = hasBind(binds, "parcelas");
-  const showValorPreco = hasBind(binds, "valor_preco", "valorparcela");
-  const showValorTotal = hasBind(binds, "valor_total_texto", "totalduplo", "valortotal");
+  const [cab, setCab] = useState({
+    titulo1: String(fields.lam_titulo1 ?? ""),
+    titulo2: String(fields.lam_titulo2 ?? ""),
+  });
+  const [dests, setDests] = useState<LamDest[]>(() => [
+    emptyLamDest(), emptyLamDest(), emptyLamDest(), emptyLamDest(),
+  ]);
+  const [curDest, setCurDest] = useState(0);
+  const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
+  const [hotelOpts, setHotelOpts] = useState<string[]>([]);
+  const [palette, setPalette] = useState(0);
+  const [bgLoading, setBgLoading] = useState(false);
+  const [legenda, setLegenda] = useState(String(fields.lam_legenda ?? ""));
+  const [legLoading, setLegLoading] = useState(false);
+  const [legCopied, setLegCopied] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const showRotulos = showSaida || showDestino || showVoo;
-  const showDatas = showIda || showVolta;
-  const showPagamento = showParcelas || showValorPreco || showValorTotal;
-
-  const minVolta = (fields.dataida as string) || today;
-  const valorPrecoRaw = (fields.valor_preco as string) || "";
-  const valorTotalRaw = (fields.valor_total_raw as string) || "";
-
-  // Sincroniza nome_loja (readonly, via prop)
   useEffect(() => {
-    set("nome_loja", nomeLoja || "");
+    if (loadDestinos) loadDestinos().then(setDestinoOpts).catch(() => {});
+    if (loadHoteis) loadHoteis().then(setHotelOpts).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nomeLoja]);
+  }, []);
 
-  const pushPeriodo = (ida: string, volta: string) => {
-    set("data_periodo", fmtPeriodoCurto(ida, volta));
-  };
+  // Sync para binds lam_* e img_fundo/logo_loja/lam_palette
+  useEffect(() => {
+    set("lam_titulo1", cab.titulo1);
+    set("lam_titulo2", cab.titulo2);
+    set("lam_palette", String(palette));
+    dests.forEach((d, i) => {
+      const n = i + 1;
+      set(`lam_d${n}_destino`, d.destino ? d.destino.toUpperCase() : "");
+      set(`lam_d${n}_saida`, d.saida);
+      set(`lam_d${n}_voo`, d.voo);
+      set(`lam_d${n}_periodo`, lamFormatPeriodo(d.ida, d.volta));
+      set(`lam_d${n}_hotel`, d.hotel);
+      set(`lam_d${n}_incluso`, d.incluso);
+      // pgto: V1 resolution rules
+      set(
+        `lam_d${n}_pgto`,
+        d.pgto === "cartao"
+          ? "No Cartão de Crédito S/ Juros"
+          : d.pgto === "boleto"
+            ? (d.entrada ? `Entrada de R$ ${d.entrada} +` : "Boleto")
+            : "",
+      );
+      // parcelas: adiciona "x" se não tiver
+      set(`lam_d${n}_parcelas`, d.parc ? (/x$/i.test(d.parc) ? d.parc : `${d.parc}x`) : "");
+      set(`lam_d${n}_valor`, d.valor);
+      // total: "ou R$ X à vista por pessoa"
+      set(`lam_d${n}_total`, d.total ? `ou R$ ${d.total} à vista por pessoa` : "");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cab, dests, palette]);
 
-  const applyValorTotal = (raw: string) => {
-    set("valor_total_raw", raw);
-    set("valor_total_texto", composeValorTotal(raw, "por pessoa"));
-  };
+  const updateDest = (idx: number, patch: Partial<LamDest>) =>
+    setDests((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
+
+  const d = dests[curDest];
+  const nts = d.ida && d.volta ? calcularNoites(d.ida, d.volta) : 0;
+
+  /* ── Ações de personalização ──────────────────── */
+
+  async function handleShuffleBg() {
+    setBgLoading(true);
+    try {
+      // Biblioteca de fundos do V2 = tabela `imgfundo` (confirmado via information_schema).
+      const { data, error } = await _sb_for_lamina
+        .from("imgfundo")
+        .select("url")
+        .not("url", "is", null)
+        .limit(1000);
+      if (error) { console.error("[Lâmina] imgfundo query:", error); alert("Erro ao buscar fundos."); return; }
+      const rows = (data ?? []) as { url: string }[];
+      if (!rows.length) { alert("Biblioteca de fundos vazia."); return; }
+      const pick = rows[Math.floor(Math.random() * rows.length)];
+      if (pick?.url) set("img_fundo", pick.url);
+    } catch (err) {
+      console.error("[Lâmina] shuffle bg:", err);
+      alert("Erro ao sortear fundo.");
+    } finally {
+      setBgLoading(false);
+    }
+  }
+
+  function handleUploadBg(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) set("img_fundo", String(reader.result));
+    };
+    reader.readAsDataURL(f);
+    e.target.value = "";
+  }
+
+  function handleClearBg() {
+    set("img_fundo", "");
+  }
+
+  function handleIATitulo() {
+    const firstDst = dests.map((x) => x.destino).filter(Boolean)[0] || "seu destino";
+    const tmpl = LAM_TITULO_TEMPLATES[Math.floor(Math.random() * LAM_TITULO_TEMPLATES.length)];
+    let l1 = tmpl.l1.replace("{destino}", firstDst);
+    let l2 = tmpl.l2.replace("{destino}", firstDst);
+    if (l1.length > 25) l1 = l1.slice(0, 24) + "…";
+    if (l2.length > 30) l2 = l2.slice(0, 29) + "…";
+    setCab({ titulo1: l1, titulo2: l2 });
+  }
+
+  async function handleIALegenda() {
+    setLegLoading(true);
+    setLegCopied(false);
+    try {
+      // Agrega dados dos 4 destinos preenchidos pra montar um contexto rico
+      const destFilled = dests.filter((x) => x.destino.trim());
+      const destNames = destFilled.map((d) => d.destino.toUpperCase()).join(", ") || "vários destinos";
+      const precos = destFilled.map((d) => d.valor).filter(Boolean);
+      const menorPreco = precos.length
+        ? precos.reduce((a, b) => {
+            const na = parseFloat(a.replace(/\./g, "").replace(",", ".")) || Infinity;
+            const nb = parseFloat(b.replace(/\./g, "").replace(",", ".")) || Infinity;
+            return na <= nb ? a : b;
+          })
+        : "";
+      const payload = {
+        destino: destNames,
+        hotel: destFilled.map((d) => d.hotel).filter(Boolean).slice(0, 2).join(" / "),
+        servicos: destFilled.map((d) => d.incluso).filter(Boolean)[0] ?? "",
+        preco: menorPreco ? `a partir de R$ ${menorPreco}` : "",
+        parcelas: destFilled.map((d) => d.parc).filter(Boolean)[0] ?? "",
+        datas: destFilled.map((d) => lamFormatPeriodo(d.ida, d.volta)).filter(Boolean).slice(0, 2).join(" / "),
+        tipo: "Card WhatsApp — 4 destinos (promocional, tom informal para WhatsApp)",
+      };
+      const res = await fetch("/api/ai/legenda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      const txt = (json?.legenda ?? "").toString();
+      if (txt) {
+        setLegenda(txt);
+        set("lam_legenda", txt);
+      } else {
+        alert("Não consegui gerar a legenda. Tente novamente.");
+      }
+    } catch (err) {
+      console.error("[Lâmina] IA legenda:", err);
+      alert("Erro ao gerar legenda.");
+    } finally {
+      setLegLoading(false);
+    }
+  }
+
+  async function handleCopyLegenda() {
+    if (!legenda) return;
+    try {
+      await navigator.clipboard.writeText(legenda);
+      setLegCopied(true);
+      setTimeout(() => setLegCopied(false), 2000);
+    } catch {
+      /* ignorado */
+    }
+  }
 
   return (
     <>
-      {showRotulos && (
-        <Section title="Rota" icon="✈️">
-          {showSaida && (
-            <Field label="Saída *">
-              <input
-                value={(fields.saida as string) || ""}
-                onChange={(e) => set("saida", e.target.value)}
-                onBlur={(e) => set("saida", e.target.value.toUpperCase())}
-                placeholder="ex. GRU"
-                className={`${INPUT_CLASS} uppercase`}
-              />
-            </Field>
-          )}
-          {showDestino && (
-            <Field label="Destino *">
-              <input
-                value={(fields.destino as string) || ""}
-                onChange={(e) => set("destino", capitalizarDestino(e.target.value))}
-                onBlur={(e) => set("destino", e.target.value.toUpperCase())}
-                placeholder="ex. LISBOA"
-                className={`${INPUT_CLASS} uppercase`}
-              />
-            </Field>
-          )}
-          {showVoo && (
-            <Field label="Tipo de Voo">
-              <div className="flex gap-1">
-                {["Voo Direto", "Voo Conexão"].map((opt) => {
-                  const selected = fields.voo === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => set("voo", opt)}
-                      className="flex-1 rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
-                      style={
-                        selected
-                          ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                          : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                      }
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-            </Field>
-          )}
-        </Section>
-      )}
-
-      {showDatas && (
-        <Section title="Datas" icon="📅">
-          <div className="grid grid-cols-2 gap-2">
-            {showIda && (
-              <Field label="Ida *">
-                <input
-                  type="date"
-                  min={today}
-                  value={(fields.dataida as string) || ""}
-                  onChange={(e) => {
-                    set("dataida", e.target.value);
-                    pushPeriodo(e.target.value, (fields.datavolta as string) || "");
-                  }}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-            )}
-            {showVolta && (
-              <Field label="Volta *">
-                <input
-                  type="date"
-                  min={minVolta}
-                  value={(fields.datavolta as string) || ""}
-                  onChange={(e) => {
-                    set("datavolta", e.target.value);
-                    pushPeriodo((fields.dataida as string) || "", e.target.value);
-                  }}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-            )}
-          </div>
-        </Section>
-      )}
-
-      {showIncluso && (
-        <Section title="Incluso" icon="🎒">
-          <Field label="O que está incluso">
-            <textarea
-              value={(fields.incluso as string) || ""}
-              onChange={(e) => set("incluso", e.target.value)}
-              placeholder="ex. Passagem + bagagem"
-              className={`${INPUT_CLASS} h-auto resize-none py-2`}
-              rows={2}
+      <Section title="Título da Arte" icon="✦">
+        <Field label="Linha 1">
+          <div className="flex gap-1.5">
+            <input
+              value={cab.titulo1}
+              onChange={(e) => setCab((p) => ({ ...p, titulo1: e.target.value }))}
+              placeholder="Férias dos Sonhos Já!"
+              className={`${INPUT_CLASS} flex-1`}
+              maxLength={25}
             />
-          </Field>
-        </Section>
-      )}
+            <button
+              type="button"
+              onClick={handleIATitulo}
+              title="Sugerir com IA (offline)"
+              className="shrink-0 rounded-lg border px-2.5 text-[10px] font-bold"
+              style={{ borderColor: "var(--orange)", color: "var(--orange)", background: "rgba(255,122,26,0.08)" }}
+            >
+              ✦ IA
+            </button>
+          </div>
+        </Field>
+        <Field label="Linha 2">
+          <input
+            value={cab.titulo2}
+            onChange={(e) => setCab((p) => ({ ...p, titulo2: e.target.value }))}
+            placeholder="Voe com a Azul Viagens"
+            className={INPUT_CLASS}
+            maxLength={30}
+          />
+        </Field>
+      </Section>
 
-      {showPagamento && (
-        <Section title="Pagamento" icon="💳">
-          {(showParcelas || showValorPreco) && (
-            <div className="grid grid-cols-2 gap-2">
-              {showParcelas && (
-                <Field label="Parcelas *">
-                  <SearchableSelect
-                    value={(fields.parcelas as string) || ""}
-                    onChange={(v) => set("parcelas", v)}
-                    options={PARCELAS_PASSAGEM_OPTS}
-                    placeholder="Selecionar..."
-                  />
-                </Field>
-              )}
-              {showValorPreco && (
-                <Field label="Valor da Parcela (R$) *">
-                  <input
-                    type="text"
-                    value={valorPrecoRaw}
-                    onChange={(e) => set("valor_preco", e.target.value)}
-                    placeholder="ex. 890,00"
-                    className={INPUT_CLASS}
-                  />
-                </Field>
-              )}
-            </div>
-          )}
-          {showValorTotal && (
-            <Field label="Valor Total (R$) — por pessoa">
-              <input
-                type="text"
-                value={valorTotalRaw}
-                onChange={(e) => applyValorTotal(e.target.value)}
-                placeholder="ex. 8.900,00"
-                className={INPUT_CLASS}
-              />
-              {valorTotalRaw ? (
-                <p className="mt-1 text-[10px] text-[var(--txt3)]">
-                  Arte mostrará: <strong>{composeValorTotal(valorTotalRaw, "por pessoa") || "—"}</strong>
-                </p>
-              ) : null}
-            </Field>
-          )}
-        </Section>
-      )}
-
-      {nomeLoja && (
-        <div className="text-[10px] text-[var(--txt3)]">
-          Loja (readonly): <span className="text-[var(--txt2)]">{nomeLoja}</span>
-        </div>
-      )}
-    </>
-  );
-}
-
-/* ── QuatroDestinosForm ──────────────────────────────
- * Card WhatsApp com 4 sub-abas (destinos 1-4).
- *   - Globais: titulo, subtitulo
- *   - Por destino: d{n}_{destino, saida, voo, ida, volta, hotel, incluso,
- *                        formapagamento, parcelas, valorparcela, avista}
- * Binds antigos `lam_*` foram renomeados via database/rename_lam_to_d_binds.sql.
- */
-
-const D_VOO_OPTS = ["Voo Direto", "Voo Conexão"];
-const D_INCLUSO_OPTS = ["Aéreo + Hotel + Transfer", "Aéreo + Hotel", "Hotel + Transfer", "Só Hotel", "Cruzeiro"];
-const D_FORMA_PGTO_OPTS = ["Cartão de Crédito", "Boleto"];
-
-type QuatroDestinosFormProps = {
-  fields: Fields;
-  set: Setter;
-  today?: string;
-  binds?: Set<string>;
-};
-
-export function QuatroDestinosForm({ fields, set, today, binds }: QuatroDestinosFormProps) {
-  const [destIdx, setDestIdx] = useState<1 | 2 | 3 | 4>(1);
-
-  const k = (n: number, suffix: string) => `d${n}_${suffix}`;
-  const numeric = (v: string) => v.replace(/[^0-9,.]/g, "");
-  const upperOnBlur = (key: string) => (e: React.FocusEvent<HTMLInputElement>) =>
-    set(key, e.target.value.toUpperCase());
-
-  const showTitulo = hasBind(binds, "titulo");
-  const showSubtitulo = hasBind(binds, "subtitulo");
-
-  const n = destIdx;
-  const showDestino = hasBind(binds, k(n, "destino"));
-  const showSaida = hasBind(binds, k(n, "saida"));
-  const showVoo = hasBind(binds, k(n, "voo"));
-  const showIda = hasBind(binds, k(n, "ida"));
-  const showVolta = hasBind(binds, k(n, "volta"));
-  const showHotel = hasBind(binds, k(n, "hotel"));
-  const showIncluso = hasBind(binds, k(n, "incluso"));
-  const showFormaPgto = hasBind(binds, k(n, "formapagamento"));
-  const showParcelas = hasBind(binds, k(n, "parcelas"));
-  const showValorParc = hasBind(binds, k(n, "valorparcela"));
-  const showAvista = hasBind(binds, k(n, "avista"));
-
-  const anyRotulos = showDestino || showSaida || showVoo;
-  const anyDatas = showIda || showVolta;
-  const anyHotel = showHotel || showIncluso;
-  const anyPgto = showFormaPgto || showParcelas || showValorParc || showAvista;
-
-  return (
-    <>
-      {(showTitulo || showSubtitulo) && (
-        <Section title="Título do Card" icon="✦">
-          {showTitulo && (
-            <Field label="Linha 1">
-              <input
-                value={(fields.titulo as string) || ""}
-                onChange={(e) => set("titulo", e.target.value)}
-                placeholder="ex. FÉRIAS DOS SONHOS"
-                className={INPUT_CLASS}
-                maxLength={30}
-              />
-            </Field>
-          )}
-          {showSubtitulo && (
-            <Field label="Linha 2">
-              <input
-                value={(fields.subtitulo as string) || ""}
-                onChange={(e) => set("subtitulo", e.target.value)}
-                placeholder="ex. Pacotes com a Azul Viagens"
-                className={INPUT_CLASS}
-                maxLength={40}
-              />
-            </Field>
-          )}
-        </Section>
-      )}
-
+      {/* Sub-abas destino */}
       <div className="grid grid-cols-4 gap-1.5">
-        {[1, 2, 3, 4].map((i) => {
-          const active = destIdx === i;
-          const label = (fields[k(i, "destino")] as string)?.toUpperCase().slice(0, 8) || `Dest ${i}`;
+        {[0, 1, 2, 3].map((i) => {
+          const active = curDest === i;
+          const label = dests[i].destino
+            ? dests[i].destino.toUpperCase().slice(0, 8)
+            : `Dest ${i + 1}`;
           return (
             <button
               key={i}
               type="button"
-              onClick={() => setDestIdx(i as 1 | 2 | 3 | 4)}
+              onClick={() => setCurDest(i)}
               className="rounded-lg border px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all"
               style={
                 active
@@ -1293,161 +1075,246 @@ export function QuatroDestinosForm({ fields, set, today, binds }: QuatroDestinos
         })}
       </div>
 
-      {anyRotulos && (
-        <Section title={`Destino ${n} — Voo`} icon="📍">
-          {showDestino && (
-            <Field label="Destino *">
-              <input
-                value={(fields[k(n, "destino")] as string) || ""}
-                onChange={(e) => set(k(n, "destino"), e.target.value)}
-                onBlur={upperOnBlur(k(n, "destino"))}
-                placeholder="ex. CANCÚN"
-                className={`${INPUT_CLASS} uppercase`}
-              />
-            </Field>
-          )}
-          {(showSaida || showVoo) && (
-            <div className="grid grid-cols-2 gap-2">
-              {showSaida && (
-                <Field label="Saída">
-                  <input
-                    value={(fields[k(n, "saida")] as string) || ""}
-                    onChange={(e) => set(k(n, "saida"), e.target.value)}
-                    onBlur={upperOnBlur(k(n, "saida"))}
-                    placeholder="ex. GRU"
-                    className={`${INPUT_CLASS} uppercase`}
-                  />
-                </Field>
-              )}
-              {showVoo && (
-                <Field label="Tipo de Voo">
-                  <select
-                    value={(fields[k(n, "voo")] as string) || "Voo Direto"}
-                    onChange={(e) => set(k(n, "voo"), e.target.value)}
-                    className={INPUT_CLASS}
-                  >
-                    {D_VOO_OPTS.map((v) => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </Field>
-              )}
-            </div>
-          )}
-        </Section>
-      )}
+      <Section title="Destino & Voo" icon="📍">
+        <Field label="Destino">
+          <SearchableSelect
+            value={d.destino}
+            onChange={(v) => updateDest(curDest, { destino: capitalizarDestino(v) })}
+            options={destinoOpts}
+            placeholder="Buscar destino..."
+            allowCustom
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Saída">
+            <input
+              value={d.saida}
+              onChange={(e) => updateDest(curDest, { saida: e.target.value })}
+              placeholder="GRU"
+              className={INPUT_CLASS}
+            />
+          </Field>
+          <Field label="Tipo Voo">
+            <select
+              value={d.voo}
+              onChange={(e) => updateDest(curDest, { voo: e.target.value })}
+              className={INPUT_CLASS}
+            >
+              {LAM_VOO_OPTS.map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </Section>
 
-      {anyDatas && (
-        <Section title="Datas" icon="📅">
-          <div className="grid grid-cols-2 gap-2">
-            {showIda && (
-              <Field label="Ida">
-                <input
-                  type="date"
-                  min={today}
-                  value={(fields[k(n, "ida")] as string) || ""}
-                  onChange={(e) => set(k(n, "ida"), e.target.value)}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-            )}
-            {showVolta && (
-              <Field label="Volta">
-                <input
-                  type="date"
-                  min={(fields[k(n, "ida")] as string) || today}
-                  value={(fields[k(n, "volta")] as string) || ""}
-                  onChange={(e) => set(k(n, "volta"), e.target.value)}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-            )}
+      <Section title="Datas" icon="📅">
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Ida">
+            <input
+              type="date"
+              min={today}
+              value={d.ida}
+              onChange={(e) => updateDest(curDest, { ida: e.target.value })}
+              className={INPUT_CLASS}
+            />
+          </Field>
+          <Field label="Volta">
+            <input
+              type="date"
+              min={d.ida || today}
+              value={d.volta}
+              onChange={(e) => updateDest(curDest, { volta: e.target.value })}
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </div>
+        {nts > 0 && (
+          <p className="text-[10px] text-[var(--txt3)]">
+            ✈ {nts} noite{nts === 1 ? "" : "s"} · {lamFormatPeriodo(d.ida, d.volta)}
+          </p>
+        )}
+      </Section>
+
+      <Section title="Hotel & Incluso" icon="🏨">
+        <Field label="Hotel">
+          <SearchableSelect
+            value={d.hotel}
+            onChange={(v) => updateDest(curDest, { hotel: v })}
+            options={hotelOpts}
+            placeholder="Buscar hotel..."
+            allowCustom
+          />
+        </Field>
+        <Field label="Incluso">
+          <select
+            value={d.incluso}
+            onChange={(e) => updateDest(curDest, { incluso: e.target.value })}
+            className={INPUT_CLASS}
+          >
+            {LAM_INCLUSO_OPTS.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+        </Field>
+      </Section>
+
+      <Section title="Pagamento" icon="💰">
+        <Field label="Forma de Pagamento">
+          <select
+            value={d.pgto}
+            onChange={(e) => {
+              const v = e.target.value as LamDest["pgto"];
+              updateDest(curDest, { pgto: v, ...(v === "cartao" ? { entrada: "" } : {}) });
+            }}
+            className={INPUT_CLASS}
+          >
+            <option value="">– selecione –</option>
+            <option value="cartao">Cartão de Crédito</option>
+            <option value="boleto">Boleto</option>
+          </select>
+        </Field>
+        {d.pgto === "boleto" && (
+          <Field label="Valor da Entrada (R$)">
+            <input
+              value={d.entrada}
+              onChange={(e) => updateDest(curDest, { entrada: e.target.value })}
+              placeholder="1.500,00"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Parcelas">
+            <SearchableSelect
+              value={d.parc}
+              onChange={(v) => updateDest(curDest, { parc: v })}
+              options={LAM_PARCELAS_OPTS}
+              placeholder="12x"
+            />
+          </Field>
+          <Field label="Valor Parcela">
+            <input
+              value={d.valor}
+              onChange={(e) => updateDest(curDest, { valor: e.target.value })}
+              placeholder="890,00"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </div>
+        <Field label="À Vista (por pessoa)">
+          <input
+            value={d.total}
+            onChange={(e) => updateDest(curDest, { total: e.target.value })}
+            placeholder="8.900,00"
+            className={INPUT_CLASS}
+          />
+        </Field>
+      </Section>
+
+      <Section title="Legenda WhatsApp (IA)" icon="✨">
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={handleIALegenda}
+            disabled={legLoading}
+            className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all disabled:opacity-50"
+            style={{ borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }}
+          >
+            {legLoading ? "Gerando…" : "✦ Gerar legenda"}
+          </button>
+          {legenda && (
+            <button
+              type="button"
+              onClick={handleCopyLegenda}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+              style={{ borderColor: "var(--bdr)", color: legCopied ? "var(--green, #10B981)" : "var(--txt2)" }}
+            >
+              {legCopied ? "✓ Copiado" : "📋 Copiar"}
+            </button>
+          )}
+        </div>
+        {legenda && (
+          <textarea
+            value={legenda}
+            onChange={(e) => { setLegenda(e.target.value); set("lam_legenda", e.target.value); }}
+            rows={4}
+            className={`${INPUT_CLASS} !h-auto py-2 resize-y min-h-[80px] leading-snug`}
+            placeholder="Legenda gerada aparecerá aqui…"
+          />
+        )}
+        {!legenda && (
+          <p className="text-[10px] text-[var(--txt3)]">Preencha pelo menos 1 destino e clique em &quot;Gerar legenda&quot; — Claude Haiku cria uma legenda promocional pra WhatsApp.</p>
+        )}
+      </Section>
+
+      <Section title="Personalização Visual" icon="✦">
+        <Field label="Cor tema">
+          <div className="grid grid-cols-4 gap-1.5">
+            {LAM_PALETTES.map((p, i) => {
+              const active = palette === i;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setPalette(i)}
+                  title={p.name}
+                  className="flex flex-col items-center gap-1 rounded-lg border px-1 py-1.5 transition-all"
+                  style={
+                    active
+                      ? { borderColor: "var(--orange)", background: "var(--bg1)" }
+                      : { borderColor: "var(--bdr)", background: "transparent" }
+                  }
+                >
+                  <span
+                    className="block rounded-md"
+                    style={{
+                      width: 24, height: 24,
+                      background: p.accent,
+                      boxShadow: active ? "0 0 0 2px var(--txt) inset" : "none",
+                    }}
+                  />
+                  <span className="text-[9px] font-semibold text-[var(--txt2)] leading-none">
+                    {p.emoji} {p.name}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        </Section>
-      )}
-
-      {anyHotel && (
-        <Section title="Hotel & Incluso" icon="🏨">
-          {showHotel && (
-            <Field label="Hotel">
-              <input
-                value={(fields[k(n, "hotel")] as string) || ""}
-                onChange={(e) => set(k(n, "hotel"), e.target.value)}
-                placeholder="Nome do hotel"
-                className={INPUT_CLASS}
-              />
-            </Field>
-          )}
-          {showIncluso && (
-            <Field label="Incluso">
-              <select
-                value={(fields[k(n, "incluso")] as string) || ""}
-                onChange={(e) => set(k(n, "incluso"), e.target.value)}
-                className={INPUT_CLASS}
+        </Field>
+        <Field label="Fundo">
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={handleShuffleBg}
+              disabled={bgLoading}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+              style={{ borderColor: "var(--bdr)", color: "var(--txt2)" }}
+            >
+              {bgLoading ? "Buscando…" : "⟳ Aleatório"}
+            </button>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+              style={{ borderColor: "var(--bdr)", color: "var(--txt2)" }}
+            >
+              ↑ Upload
+            </button>
+            {fields.img_fundo ? (
+              <button
+                type="button"
+                onClick={handleClearBg}
+                className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+                style={{ borderColor: "var(--bdr)", color: "var(--txt3)" }}
               >
-                <option value="">—</option>
-                {D_INCLUSO_OPTS.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </Field>
-          )}
-        </Section>
-      )}
-
-      {anyPgto && (
-        <Section title="Pagamento" icon="💰">
-          {showFormaPgto && (
-            <Field label="Forma de Pagamento">
-              <select
-                value={(fields[k(n, "formapagamento")] as string) || ""}
-                onChange={(e) => set(k(n, "formapagamento"), e.target.value)}
-                className={INPUT_CLASS}
-              >
-                <option value="">—</option>
-                {D_FORMA_PGTO_OPTS.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </Field>
-          )}
-          {(showParcelas || showValorParc) && (
-            <div className="grid grid-cols-2 gap-2">
-              {showParcelas && (
-                <Field label="Parcelas">
-                  <select
-                    value={(fields[k(n, "parcelas")] as string) || ""}
-                    onChange={(e) => set(k(n, "parcelas"), e.target.value)}
-                    className={INPUT_CLASS}
-                  >
-                    <option value="">—</option>
-                    {PARCELAS_OPTS_FORM.map((v) => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </Field>
-              )}
-              {showValorParc && (
-                <Field label="Valor da Parcela (R$)">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={(fields[k(n, "valorparcela")] as string) || ""}
-                    onChange={(e) => set(k(n, "valorparcela"), numeric(e.target.value))}
-                    placeholder="ex. 890,00"
-                    className={INPUT_CLASS}
-                  />
-                </Field>
-              )}
-            </div>
-          )}
-          {showAvista && (
-            <Field label="À Vista (R$)">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={(fields[k(n, "avista")] as string) || ""}
-                onChange={(e) => set(k(n, "avista"), numeric(e.target.value))}
-                placeholder="ex. 8.900,00"
-                className={INPUT_CLASS}
-              />
-            </Field>
-          )}
-        </Section>
-      )}
+                ✕ Limpar
+              </button>
+            ) : null}
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUploadBg} />
+          </div>
+        </Field>
+      </Section>
     </>
   );
 }
-

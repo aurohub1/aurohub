@@ -74,16 +74,13 @@ export default function UnidadeTemplatesPage() {
         .from("system_config")
         .select("key, value, updated_at")
         .like("key", "tmpl_%")
+        .like("value", `%"licenseeId":"${p.licensee_id}"%`)
         .order("updated_at", { ascending: false });
 
       const rows: TemplateRow[] = [];
       for (const r of (data ?? []) as { key: string; value: string; updated_at: string }[]) {
         try {
           const parsed = JSON.parse(r.value);
-          // Base templates (licenseeId null) + do próprio licensee. Filtro em memória
-          // pra incluir formType = "lamina" (tmpl_cards_stories), que é base.
-          const lid = parsed.licenseeId ?? parsed.licensee_id ?? null;
-          if (lid && lid.trim() !== p.licensee_id.trim()) continue;
           const nome = parsed.nome || r.key.replace(/^tmpl_/, "");
           const formType = parsed.formType || parsed.schema?.formType || "pacote";
           const format = parsed.format || parsed.schema?.format || "stories";

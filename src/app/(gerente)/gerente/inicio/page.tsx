@@ -275,24 +275,41 @@ export default function GerenteInicioPage() {
         .limit(5);
       setUltimasPub((posts ?? []) as ScheduledPost[]);
 
-      // Datas comemorativas — mês atual, do dia atual em diante.
-      // Data em TZ São Paulo — não depende do fuso da máquina do usuário.
+      // Datas comemorativas próximos 14 dias (tabela datas_comemorativas)
       try {
-        const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
-        const [, mesStr, diaStr] = hoje.split("-");
-        const mes = parseInt(mesStr, 10);
-        const dia = parseInt(diaStr, 10);
-        console.log("[GerenteInicio][feriados] query", { hoje, mes, dia });
-        const { data: dc, error } = await supabase
-          .from("datas_comemorativas")
-          .select("id, nome, data_mes, data_dia")
-          .eq("data_mes", mes)
-          .gte("data_dia", dia)
-          .order("data_dia")
-          .limit(5);
-        console.log("[GerenteInicio][feriados] result", { count: dc?.length ?? 0, error, data: dc });
-        setDbFeriados((dc ?? []) as DataComemorativa[]);
-      } catch (err) { console.error("[GerenteInicio][feriados] error", err); }
+        const hojeDt = new Date();
+        const mesAtual = hojeDt.getMonth() + 1;
+        const diaAtual = hojeDt.getDate();
+        const diaFim = diaAtual + 14;
+        if (diaFim <= 31) {
+          const { data: dc } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", mesAtual)
+            .gte("data_dia", diaAtual)
+            .lte("data_dia", diaFim)
+            .order("data_dia")
+            .limit(5);
+          setDbFeriados((dc ?? []) as DataComemorativa[]);
+        } else {
+          const { data: dc1 } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", mesAtual)
+            .gte("data_dia", diaAtual)
+            .order("data_dia")
+            .limit(5);
+          const proxMes = mesAtual === 12 ? 1 : mesAtual + 1;
+          const { data: dc2 } = await supabase
+            .from("datas_comemorativas")
+            .select("id, nome, data_mes, data_dia, tipo")
+            .eq("data_mes", proxMes)
+            .lte("data_dia", diaFim - 31)
+            .order("data_dia")
+            .limit(5);
+          setDbFeriados([...((dc1 ?? []) as DataComemorativa[]), ...((dc2 ?? []) as DataComemorativa[])].slice(0, 5));
+        }
+      } catch { /* tabela ausente — silent */ }
 
       // Notícias do setor
       try {

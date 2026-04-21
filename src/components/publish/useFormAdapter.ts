@@ -83,10 +83,24 @@ function dateToDt(date: string, currentDt?: string): string {
 export function useFormAdapter({ tab, values, badges, setField, setBadge }: AdapterArgs) {
   const fields: Fields = useMemo(() => {
     const f: Fields = { ...values };
-    // Badges legadas → nomes "curtos" usados pelas toggles (allinclusive, ultimachamada, ...)
+    // Badges legadas → nomes novos
     for (const [newKey, badgeKey] of Object.entries(BADGE_MAP)) {
       f[newKey] = !!badges[badgeKey];
     }
+    // Desconto % — spec usa "numerodesconto" (pacote/campanha) e "desconto_anoit" (anoiteceu)
+    f.numerodesconto = values.desconto || "";
+    f.desconto_anoit = values.desconto || "";
+    // Valor total (spec) ← legacy totalduplo/totalcruzeiro
+    f.valortotal = values.totalduplo || values.totalcruzeiro || "";
+    // Datas formatadas (read-only derivado de dataida/datavolta)
+    f.dataida_fmt   = values.dataida   ? fmtDate(values.dataida)   : "";
+    f.datavolta_fmt = values.datavolta ? fmtDate(values.datavolta) : "";
+    // Anoiteceu — converte datetime-local ↔ date-only
+    f.inicio_iso      = dtToDate(values.inicio || "");
+    f.fim_iso         = dtToDate(values.fim || "");
+    f.paraviagens_iso = values.paraviagens || "";
+    // Forma pagamento legacy → spec
+    f.formapagamento = formaPgtoLegacyToSpec(values.formapagamento || "");
     return f;
   }, [values, badges]);
 
@@ -99,24 +113,59 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
       return;
     }
     const s = v == null ? "" : String(v);
-    setField(k, s);
-  }, [setField, setBadge]);
 
-  // Serviços como array — V1 usa servico_1..servico_6 (snake_case)
+    switch (k) {
+      case "numerodesconto":
+        setField("desconto", s);
+        return;
+      case "desconto_anoit":
+        setField("desconto", s);
+        return;
+      case "valortotal":
+        // cruzeiro escreve em totalcruzeiro; demais em totalduplo
+        if (tab === "cruzeiro") setField("totalcruzeiro", s);
+        else setField("totalduplo", s);
+        return;
+      case "dataida_fmt":
+      case "datavolta_fmt":
+        // derivados de dataida/datavolta — ignora set (CampanhaForm pede para setar junto
+        // de dataida/datavolta, mas nosso adapter produz os _fmt no read automaticamente)
+        return;
+      case "inicio_iso":
+        setField("inicio", dateToDt(s, values.inicio));
+        return;
+      case "fim_iso":
+        setField("fim", dateToDt(s, values.fim));
+        return;
+      case "paraviagens_iso":
+        setField("paraviagens", s);
+        return;
+      case "inicio":
+      case "fim":
+      case "paraviagens":
+        // O CampanhaForm/AnoiteceuForm também setam representações curtas ("dd/mm")
+        // mas só pra exibição — ignora; as iso são o source of truth.
+        return;
+      case "formapagamento":
+        setField("formapagamento", formaPgtoSpecToLegacy(s));
+        return;
+      default:
+        setField(k, s);
+    }
+  }, [tab, values, setField, setBadge]);
+
+  // Serviços como array (CampanhaForm espera servicos/setServicos)
   const servicos = useMemo(() => {
-    return [1, 2, 3, 4, 5, 6].map((i) => values[`servico_${i}`] || "");
+    return [1, 2, 3, 4, 5, 6].map((i) => values[`servico${i}`] || "");
   }, [values]);
 
   const setServicos = useCallback((next: string[]) => {
     for (let i = 0; i < 6; i++) {
-      const key = `servico_${i + 1}`;
+      const key = `servico${i + 1}`;
       const val = next[i] || "";
       if ((values[key] || "") !== val) setField(key, val);
     }
   }, [values, setField]);
-
-  // silence unused helpers (kept for reference / possible re-use)
-  void tab; void fmtDate; void dtToDate; void dateToDt; void formaPgtoLegacyToSpec; void formaPgtoSpecToLegacy;
 
   return { fields, set, servicos, setServicos };
 }
