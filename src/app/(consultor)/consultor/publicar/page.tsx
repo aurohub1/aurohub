@@ -12,7 +12,8 @@ import { usePublishQueue } from "@/hooks/usePublishQueue";
 import type { EditorSchema } from "@/components/editor/types";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
 import { CampanhaForm, CruzeiroForm, AnoiteceuForm, QuatroDestinosForm } from "@/components/publish/FormSections";
-import PublicarFlow, { type PublicarFlowType } from "@/components/publish/PublicarFlow";
+import { type PublicarFlowType } from "@/components/publish/PublicarFlow";
+import TypeTabs from "@/components/publish/TypeTabs";
 
 import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
@@ -265,14 +266,8 @@ export default function PublicarPage() {
   const [tab, setTab] = useState<FormType>("pacote");
   const [format, setFormat] = useState<Format>("stories");
 
-  // Seletor de tipo (tela inicial). Ativo até escolher; "← Trocar tipo" volta.
-  const [showTypePicker, setShowTypePicker] = useState(true);
-
   // Tipos com template em system_config (complementa form_templates). "lamina" → "quatro_destinos".
   const [canvasFormTypes, setCanvasFormTypes] = useState<Set<string>>(new Set());
-
-  // Thumb urls pra cards do PublicarFlow — system_config key publicar_thumb_{tipo}
-  const [publicarThumbs, setPublicarThumbs] = useState<Record<string, string>>({});
 
   // Cache de dados por aba (preserva ao trocar)
   const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>(() => {
@@ -510,30 +505,13 @@ export default function PublicarPage() {
         setCanvasFormTypes(types);
       } catch { /* silent */ }
 
-      // Thumb urls pros cards do PublicarFlow
-      try {
-        const { data: th } = await supabase
-          .from("system_config")
-          .select("key, value")
-          .like("key", "publicar_thumb_%");
-        const thumbs: Record<string, string> = {};
-        for (const r of (th ?? []) as { key: string; value: string }[]) {
-          const tipo = r.key.replace(/^publicar_thumb_/, "");
-          let url = "";
-          try { const parsed = JSON.parse(r.value); url = parsed?.url ?? parsed ?? ""; } catch { url = r.value; }
-          if (url && typeof url === "string") thumbs[tipo] = url;
-        }
-        setPublicarThumbs(thumbs);
-      } catch { /* silent */ }
-
-      // Auto-select via URL param (deep link). Sem param → mostra picker.
+      // Auto-select via URL param (deep link). Sem param → mantém tipo atual (tabs no topo).
       if (templateParam) {
         const match = rows.find(t => t.key.includes(templateParam) || t.id === templateParam);
         if (match) {
           const derived = deriveTabFromBinds(getSchemaBinds(match.schema), (match.formType as FormType) || "pacote");
           setTab(derived);
           setFormat(match.format);
-          setShowTypePicker(false);
         }
       }
 
@@ -1160,27 +1138,16 @@ export default function PublicarPage() {
 
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
-  if (showTypePicker) {
-    return (
-      <PublicarFlow
-        agencyName={profile?.store?.name || profile?.licensee?.name || undefined}
-        availableTypes={availableTypes}
-        thumbUrls={publicarThumbs as Partial<Record<PublicarFlowType, string>>}
-        onSelectType={(type) => {
-          setTab(type as FormType);
-          // Prefere Stories; fallback pro primeiro formato com template pro tipo
-          const withTpl = templates.filter((t) => {
-            const ft = t.formType === "lamina" ? "quatro_destinos" : t.formType;
-            return ft === type && visibleFormats.includes(t.format);
-          });
-          const storiesTpl = withTpl.find((t) => t.format === "stories");
-          const chosen = storiesTpl ?? withTpl[0];
-          if (chosen) setFormat(chosen.format);
-          setShowTypePicker(false);
-        }}
-      />
-    );
-  }
+  const handleSelectType = (type: PublicarFlowType) => {
+    setTab(type as FormType);
+    const withTpl = templates.filter((t) => {
+      const ft = t.formType === "lamina" ? "quatro_destinos" : t.formType;
+      return ft === type && visibleFormats.includes(t.format);
+    });
+    const storiesTpl = withTpl.find((t) => t.format === "stories");
+    const chosen = storiesTpl ?? withTpl[0];
+    if (chosen) setFormat(chosen.format);
+  };
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr] page-fade publicar-mobile">
@@ -1228,19 +1195,12 @@ export default function PublicarPage() {
           </div>
         </div>
 
-        {/* Barra "Trocar tipo" — tipo é escolhido no seletor inicial */}
-        <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowTypePicker(true)}
-            className="rounded-full border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt2)] hover:text-[var(--txt)]"
-          >
-            ← Trocar tipo
-          </button>
-          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
-            {FORM_LABELS[tab]}
-          </span>
-        </div>
+        {/* Tabs de tipo — escolhido inline (sem tela de picker) */}
+        <TypeTabs
+          current={tab}
+          availableTypes={availableTypes}
+          onSelect={handleSelectType}
+        />
 
         {/* Scroll dos campos */}
         <div className="flex-1 overflow-y-auto p-4">

@@ -166,6 +166,20 @@ export default function EditorTemplatesPage() {
   // Novo template (abre editor com licensee pré-selecionado)
   const [newTmplLicensee, setNewTmplLicensee] = useState<string | null>(null);
 
+  // Grupos colapsados em Templates Base — chaves:
+  //   seg:<segmento>           ex.: "seg:Turismo"
+  //   lic:<segmento>/<licKey>  ex.: "lic:Turismo/__base__"
+  //   sub:<segmento>/<licKey>/<subName>  ex.: "sub:Turismo/__base__/Pacote"
+  const [collapsedBaseGroups, setCollapsedBaseGroups] = useState<Set<string>>(new Set());
+  const toggleBaseGroup = (key: string) => {
+    setCollapsedBaseGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   useEffect(() => {
     (async () => {
       const p = await getProfile(supabase);
@@ -986,51 +1000,90 @@ export default function EditorTemplatesPage() {
                   (a, l) => a + Object.values(l.subgroups).reduce((b, arr) => b + arr.length, 0),
                   0,
                 );
+                const segKey = `seg:${seg}`;
+                const segCollapsed = collapsedBaseGroups.has(segKey);
                 return (
                   <div
                     key={seg}
                     className="overflow-hidden rounded-xl border border-[var(--bdr)]"
                     style={{ background: "var(--card-bg)" }}
                   >
-                    <div className="flex items-center gap-2 border-b border-[var(--bdr)] px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleBaseGroup(segKey)}
+                      aria-expanded={!segCollapsed}
+                      className="flex w-full items-center gap-2 border-b border-[var(--bdr)] px-4 py-3 text-left hover:bg-[var(--hover-bg)]"
+                    >
+                      <span className="inline-flex h-4 w-4 items-center justify-center text-[10px] text-[var(--txt3)]" aria-hidden>
+                        {segCollapsed ? "▶" : "▼"}
+                      </span>
                       <span className="text-[16px]" aria-hidden>{icon}</span>
                       <span className="text-[14px] font-bold text-[var(--txt)]">{seg}</span>
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
                         · {segCount} template{segCount !== 1 ? "s" : ""}
                       </span>
-                    </div>
-                    <div className="flex flex-col gap-4 px-4 py-4">
-                      {Object.entries(licensees).map(([licKey, lic]) => {
-                        const licCount = Object.values(lic.subgroups).reduce((a, arr) => a + arr.length, 0);
-                        return (
-                          <div key={licKey}>
-                            <div className="mb-2 flex items-center gap-2">
-                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--orange)]" />
-                              <span className="text-[12px] font-semibold text-[var(--txt2)]">{lic.name}</span>
-                              <span className="text-[10px] text-[var(--txt3)]">({licCount})</span>
-                            </div>
-                            {lic.groupBy === "none" ? (
-                              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-                                {lic.subgroups["__all__"]?.map((t) => renderCanvasCard(t))}
-                              </div>
-                            ) : (
-                              <div className="flex flex-col gap-3 pl-4">
-                                {Object.entries(lic.subgroups).map(([subName, items]) => (
-                                  <div key={subName}>
-                                    <div className="mb-1.5 text-[11px] text-[var(--txt3)]">
-                                      → {subName} <span className="text-[10px]">({items.length})</span>
-                                    </div>
-                                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-                                      {items.map((t) => renderCanvasCard(t))}
-                                    </div>
+                    </button>
+                    {!segCollapsed && (
+                      <div className="flex flex-col gap-4 px-4 py-4">
+                        {Object.entries(licensees).map(([licKey, lic]) => {
+                          const licCount = Object.values(lic.subgroups).reduce((a, arr) => a + arr.length, 0);
+                          const licFullKey = `lic:${seg}/${licKey}`;
+                          const licCollapsed = collapsedBaseGroups.has(licFullKey);
+                          return (
+                            <div key={licKey}>
+                              <button
+                                type="button"
+                                onClick={() => toggleBaseGroup(licFullKey)}
+                                aria-expanded={!licCollapsed}
+                                className="mb-2 flex w-full items-center gap-2 rounded-md py-0.5 text-left hover:bg-[var(--hover-bg)]"
+                              >
+                                <span className="inline-flex h-4 w-4 items-center justify-center text-[9px] text-[var(--txt3)]" aria-hidden>
+                                  {licCollapsed ? "▶" : "▼"}
+                                </span>
+                                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--orange)]" />
+                                <span className="text-[12px] font-semibold text-[var(--txt2)]">{lic.name}</span>
+                                <span className="text-[10px] text-[var(--txt3)]">({licCount})</span>
+                              </button>
+                              {!licCollapsed && (
+                                lic.groupBy === "none" ? (
+                                  <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                                    {lic.subgroups["__all__"]?.map((t) => renderCanvasCard(t))}
                                   </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                                ) : (
+                                  <div className="flex flex-col gap-3 pl-4">
+                                    {Object.entries(lic.subgroups).map(([subName, items]) => {
+                                      const subFullKey = `sub:${seg}/${licKey}/${subName}`;
+                                      const subCollapsed = collapsedBaseGroups.has(subFullKey);
+                                      return (
+                                        <div key={subName}>
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleBaseGroup(subFullKey)}
+                                            aria-expanded={!subCollapsed}
+                                            className="mb-1.5 flex w-full items-center gap-1.5 rounded-md py-0.5 text-left text-[11px] text-[var(--txt3)] hover:bg-[var(--hover-bg)]"
+                                          >
+                                            <span className="inline-flex h-4 w-4 items-center justify-center text-[9px]" aria-hidden>
+                                              {subCollapsed ? "▶" : "▼"}
+                                            </span>
+                                            <span>→ {subName}</span>
+                                            <span className="text-[10px]">({items.length})</span>
+                                          </button>
+                                          {!subCollapsed && (
+                                            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                                              {items.map((t) => renderCanvasCard(t))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
