@@ -1225,8 +1225,6 @@ export default function UnidadePublicarPage() {
               fields={values}
               set={(k, v) => setField(k, v == null ? "" : typeof v === "boolean" ? (v ? "1" : "") : String(v))}
               today={hoje}
-              loadDestinos={loadDestinos}
-              loadHoteis={loadHoteis}
             />
           )}
           {tab !== "quatro_destinos" && !currentTemplate && (

@@ -113,6 +113,51 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+// Período curto: "07 a 13/06/2026" / "07/06 a 13/07/2026" / "07/06/2025 a 13/07/2026"
+function fmtPeriodoCurto(ida: string, volta: string): string {
+  if (!ida || !volta) return "";
+  const [iy, im, id] = ida.split("-");
+  const [vy, vm, vd] = volta.split("-");
+  if (!iy || !vy) return "";
+  if (iy === vy && im === vm) return `${id} a ${vd}/${vm}/${vy}`;
+  if (iy === vy) return `${id}/${im} a ${vd}/${vm}/${vy}`;
+  return `${id}/${im}/${iy} a ${vd}/${vm}/${vy}`;
+}
+
+// Período completo: "DD/MM/YYYY a DD/MM/YYYY" (cruzeiro)
+function fmtPeriodoCompleto(ida: string, volta: string): string {
+  if (!ida || !volta) return "";
+  const [iy, im, id] = ida.split("-");
+  const [vy, vm, vd] = volta.split("-");
+  if (!iy || !vy) return "";
+  return `${id}/${im}/${iy} a ${vd}/${vm}/${vy}`;
+}
+
+// Formata valor bruto em reais: "123456" → "1.234,56"
+function formatReal(raw: string): string {
+  const nums = (raw || "").replace(/\D/g, "");
+  if (!nums) return "";
+  const n = parseInt(nums, 10);
+  return Math.floor(n / 100).toLocaleString("pt-BR") + "," + String(n % 100).padStart(2, "0");
+}
+
+// Forma pagamento final (V1 texto_pagamento / forma_pgto)
+function composeTextoPagamento(forma: string, entradaRaw: string): string {
+  if (forma === "Cartão de Crédito") return "No Cartão de Crédito Sem Juros";
+  if (forma === "Boleto") {
+    const fmt = formatReal(entradaRaw);
+    return fmt ? `Entrada de R$ ${fmt} +` : "Boleto";
+  }
+  return forma || "";
+}
+
+// Total formatado final: "ou R$ 8.900,00 por pessoa apto. duplo"
+function composeValorTotal(raw: string, sufixo: string): string {
+  const fmt = formatReal(raw);
+  if (!fmt) return "";
+  return `ou R$ ${fmt} ${sufixo}`;
+}
+
 function calcularNoites(ida: string, volta: string): number {
   if (!ida || !volta) return 0;
   const d1 = new Date(ida);
@@ -273,12 +318,12 @@ export function BadgesSection({
   );
 
   const opts = feriadoOpts ?? [""];
-  const showAll = hasBind(binds, "allinclusive", "allinclusivo");
-  const showUltCh = hasBind(binds, "ultimachamada");
-  const showUltLug = hasBind(binds, "ultimoslugares");
-  const showOfertas = formType === "pacote" && hasBind(binds, "ofertas");
-  const showDesc = hasBind(binds, "numerodesconto", "desconto");
-  const showFeriado = hasBind(binds, "feriado");
+  const showAll = hasBind(binds, "allinclusive", "allinclusivo", "all_inclusive_badge");
+  const showUltCh = hasBind(binds, "ultimachamada", "ultima_chamada_badge");
+  const showUltLug = hasBind(binds, "ultimoslugares", "ultimos_lugares_badge");
+  const showOfertas = formType === "pacote" && hasBind(binds, "ofertas", "ofertas_azul_badge");
+  const showDesc = hasBind(binds, "desconto_valor", "desconto_badge", "numerodesconto", "desconto");
+  const showFeriado = hasBind(binds, "feriado", "feriado_badge");
   const anyContent = showAll || showUltCh || showUltLug || showOfertas || showDesc || showFeriado;
   if (!anyContent) return null;
 
@@ -293,14 +338,14 @@ export function BadgesSection({
         <Field label="Desconto">
           <div className="flex flex-wrap gap-1">
             {(descontoOpts ?? DESCONTO_OPTS_CAMPANHA).map((d) => {
-              // Guarda apenas número (sem "%") em `numerodesconto` — binds de template só retornam o número.
+              // V1 desconto_valor: guarda apenas número (sem "%").
               const num = d.replace("%", "");
-              const selected = fields.numerodesconto === num;
+              const selected = fields.desconto_valor === num;
               return (
                 <button
                   key={d}
                   type="button"
-                  onClick={() => set("numerodesconto", selected ? "" : num)}
+                  onClick={() => set("desconto_valor", selected ? "" : num)}
                   className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
                   style={
                     selected
@@ -313,9 +358,9 @@ export function BadgesSection({
               );
             })}
           </div>
-          {fields.numerodesconto ? (
+          {fields.desconto_valor ? (
             <p className="mt-1 text-[10px] text-[var(--txt3)]">
-              Badge mostrará: <strong>{String(fields.numerodesconto)}%</strong>
+              Badge mostrará: <strong>{String(fields.desconto_valor)}%</strong>
             </p>
           ) : null}
         </Field>
@@ -335,26 +380,53 @@ export function BadgesSection({
   );
 }
 
+export interface PagamentoKeys {
+  formaPgto: string;   // "texto_pagamento" (pacote/campanha) | "forma_pgto" (cruzeiro)
+  valorPreco: string;  // "valor_preco"
+  parcelas: string;    // "parcelas"
+  valorTotal: string;  // "valor_total_fmt" (pacote/campanha) | "valor_total_texto" (cruzeiro)
+}
+
 export function PagamentoSection({
-  fields, set, totalLabel, binds,
+  fields, set, totalLabel, binds, keys,
 }: {
   fields: Fields;
   set: Setter;
   totalLabel: string;
   binds?: Set<string>;
+  keys: PagamentoKeys;
 }) {
-  // V1 client.js:1377 — só Cartão de Crédito / Boleto. Valores batem com o que PreviewStage.resolveBindParam("formapagamento") espera.
+  // V1 client.js:1377 — só Cartão de Crédito / Boleto.
   const formas: { value: string; label: string }[] = [
     { value: "Cartão de Crédito", label: "Cartão s/ Juros" },
     { value: "Boleto",            label: "Boleto c/ Entrada" },
   ];
 
-  const showForma = hasBind(binds, "formapagamento");
-  const showEntrada = fields.formapagamento === "Boleto" && hasBind(binds, "entrada");
-  const showParcelas = hasBind(binds, "parcelas");
-  const showValorParc = hasBind(binds, "valorparcela");
-  const showTotal = hasBind(binds, "valortotal", "totalduplo");
+  // Entrada/formaRaw são UI internos (não V1). Mantemos em `formapagamento_raw` e `entrada`.
+  const formaRaw = (fields.formapagamento_raw as string) || "";
+  const entradaRaw = (fields.entrada as string) || "";
+  const valorPrecoRaw = (fields.valor_preco as string) || "";
+  const valorTotalRaw = (fields.valor_total_raw as string) || "";
+
+  const showForma = hasBind(binds, keys.formaPgto, "formapagamento");
+  const showEntrada = formaRaw === "Boleto" && hasBind(binds, "entrada");
+  const showParcelas = hasBind(binds, keys.parcelas);
+  const showValorParc = hasBind(binds, keys.valorPreco, "valorparcela");
+  const showTotal = hasBind(binds, keys.valorTotal, "valortotal", "totalduplo");
   if (!showForma && !showEntrada && !showParcelas && !showValorParc && !showTotal) return null;
+
+  const applyForma = (forma: string) => {
+    set("formapagamento_raw", forma);
+    set(keys.formaPgto, composeTextoPagamento(forma, entradaRaw));
+  };
+  const applyEntrada = (raw: string) => {
+    set("entrada", raw);
+    set(keys.formaPgto, composeTextoPagamento(formaRaw, raw));
+  };
+  const applyValorTotal = (raw: string) => {
+    set("valor_total_raw", raw);
+    set(keys.valorTotal, composeValorTotal(raw, totalLabel));
+  };
 
   return (
     <Section title="Pagamento" icon="💳">
@@ -365,10 +437,10 @@ export function PagamentoSection({
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => set("formapagamento", opt.value)}
+                onClick={() => applyForma(opt.value)}
                 className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
                 style={
-                  fields.formapagamento === opt.value
+                  formaRaw === opt.value
                     ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
                     : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
                 }
@@ -377,16 +449,9 @@ export function PagamentoSection({
               </button>
             ))}
           </div>
-          {fields.formapagamento ? (
+          {formaRaw ? (
             <p className="mt-1 text-[10px] text-[var(--txt3)]">
-              Arte mostrará:{" "}
-              <strong>
-                {fields.formapagamento === "Cartão de Crédito"
-                  ? "No Cartão de Crédito Sem Juros"
-                  : fields.formapagamento === "Boleto"
-                    ? `Entrada de R$ ${fields.entrada || "___"} +`
-                    : String(fields.formapagamento)}
-              </strong>
+              Arte mostrará: <strong>{composeTextoPagamento(formaRaw, entradaRaw) || "—"}</strong>
             </p>
           ) : null}
         </Field>
@@ -396,8 +461,8 @@ export function PagamentoSection({
         <Field label="Valor Entrada (R$) *">
           <input
             type="text"
-            value={(fields.entrada as string) || ""}
-            onChange={(e) => set("entrada", e.target.value)}
+            value={entradaRaw}
+            onChange={(e) => applyEntrada(e.target.value)}
             placeholder="ex. 1.200,00"
             className={INPUT_CLASS}
           />
@@ -409,8 +474,8 @@ export function PagamentoSection({
           {showParcelas && (
             <Field label="Parcelas *">
               <SearchableSelect
-                value={(fields.parcelas as string) || ""}
-                onChange={(v) => set("parcelas", v)}
+                value={(fields[keys.parcelas] as string) || ""}
+                onChange={(v) => set(keys.parcelas, v)}
                 options={PARCELAS_OPTS_FORM}
                 placeholder="Selecionar..."
               />
@@ -420,8 +485,8 @@ export function PagamentoSection({
             <Field label="Valor da Parcela (R$) *">
               <input
                 type="text"
-                value={(fields.valorparcela as string) || ""}
-                onChange={(e) => set("valorparcela", e.target.value)}
+                value={valorPrecoRaw}
+                onChange={(e) => set(keys.valorPreco, e.target.value)}
                 placeholder="ex. 890,00"
                 className={INPUT_CLASS}
               />
@@ -434,14 +499,14 @@ export function PagamentoSection({
         <Field label={`Valor Total (R$) — ${totalLabel}`}>
           <input
             type="text"
-            value={(fields.valortotal as string) || ""}
-            onChange={(e) => set("valortotal", e.target.value)}
+            value={valorTotalRaw}
+            onChange={(e) => applyValorTotal(e.target.value)}
             placeholder="ex. 8.900,00"
             className={INPUT_CLASS}
           />
-          {fields.valortotal ? (
+          {valorTotalRaw ? (
             <p className="mt-1 text-[10px] text-[var(--txt3)]">
-              Arte mostrará: <strong>ou R$ {String(fields.valortotal)} {totalLabel}</strong>
+              Arte mostrará: <strong>{composeValorTotal(valorTotalRaw, totalLabel) || "—"}</strong>
             </p>
           ) : null}
         </Field>
@@ -1061,9 +1126,6 @@ type QuatroDestinosFormProps = {
   set: Setter;
   today?: string;
   binds?: Set<string>;
-  // Props legado (lâmina V1) — aceitas para compat mas ignoradas.
-  loadDestinos?: () => Promise<string[]>;
-  loadHoteis?: () => Promise<string[]>;
 };
 
 export function QuatroDestinosForm({ fields, set, today, binds }: QuatroDestinosFormProps) {

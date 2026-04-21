@@ -1258,8 +1258,6 @@ export default function GerentePublicarPage() {
               fields={formAdapter.fields}
               set={formAdapter.set}
               today={hoje}
-              loadDestinos={loadDestinos}
-              loadHoteis={loadHoteis}
             />
           )}
           {tab !== "quatro_destinos" && !currentTemplate && (
