@@ -7,7 +7,7 @@ import { Upload, Sparkles, ListChecks, Save, Loader2, X, Check, Plus, Trash2 } f
 /* ── Types ────────────────────────────────────────── */
 
 type Format = "feed" | "stories" | "reels" | "tv";
-type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu" | "quatro_destinos";
+type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu" | "lamina";
 
 interface DetectedElement {
   bind: string;
@@ -55,7 +55,7 @@ const FORM_TYPES: { value: FormType; label: string }[] = [
   { value: "passagem", label: "Passagem" },
   { value: "cruzeiro", label: "Cruzeiro" },
   { value: "anoiteceu", label: "Anoiteceu" },
-  { value: "quatro_destinos", label: "4 Destinos" },
+  { value: "lamina", label: "Card WhatsApp" },
 ];
 
 function detectFormat(w: number, h: number): Format {
