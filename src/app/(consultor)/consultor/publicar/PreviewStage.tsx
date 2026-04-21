@@ -127,7 +127,7 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     default: {
       const raw = values[bindParam] ?? "";
       if (raw === "– nenhum –") return "";
-      if (["valorparcela","totalduplo","totalcruzeiro","entrada"].includes(bindParam)) {
+      if (["valorparcela","totalduplo","totalcruzeiro","entrada","valor_preco"].includes(bindParam)) {
         const nums = raw.replace(/\D/g, "");
         if (!nums) return "";
         const n = parseInt(nums, 10);

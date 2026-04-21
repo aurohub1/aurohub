@@ -11,7 +11,7 @@ import { useBadges } from "@/hooks/useBadges";
 import { usePublishQueue } from "@/hooks/usePublishQueue";
 import type { EditorSchema } from "@/components/editor/types";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
-import { CampanhaForm, CruzeiroForm, AnoiteceuForm, QuatroDestinosForm } from "@/components/publish/FormSections";
+import { CampanhaForm, CruzeiroForm, AnoiteceuForm, PassagemForm, QuatroDestinosForm } from "@/components/publish/FormSections";
 import { type PublicarFlowType } from "@/components/publish/PublicarFlow";
 import TypeTabs from "@/components/publish/TypeTabs";
 import {
@@ -738,18 +738,34 @@ export default function GerentePublicarPage() {
     setBadgeCache((c) => ({ ...c, [tab]: { ...c[tab], [name]: v } }));
   }
 
+  // V1 data_periodo concatenado
+  function composeDataPeriodo(ida: string, volta: string): string {
+    if (!ida || !volta) return "";
+    const [iy, im, id] = ida.split("-");
+    const [vy, vm, vd] = volta.split("-");
+    if (!iy || !vy) return "";
+    if (iy === vy && im === vm) return `${id} a ${vd}/${vm}/${vy}`;
+    if (iy === vy) return `${id}/${im} a ${vd}/${vm}/${vy}`;
+    return `${id}/${im}/${iy} a ${vd}/${vm}/${vy}`;
+  }
   /** V1: ao mudar ida, volta = max(volta, ida); ao mudar volta, se < ida, força = ida. */
   function setDateIda(v: string) {
     setFormCache((c) => {
       const cur: Record<string, string> = c[tab];
       const next: Record<string, string> = { ...cur, dataida: v };
       if (cur.datavolta && cur.datavolta < v) next.datavolta = v;
+      next.data_periodo = composeDataPeriodo(next.dataida, next.datavolta);
       return { ...c, [tab]: next };
     });
   }
   /** Data Volta: só salva raw — validação acontece no onBlur. */
   function setDateVolta(v: string) {
-    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], datavolta: v } }));
+    setFormCache((c) => {
+      const cur: Record<string, string> = c[tab];
+      const next: Record<string, string> = { ...cur, datavolta: v };
+      next.data_periodo = composeDataPeriodo(next.dataida, next.datavolta);
+      return { ...c, [tab]: next };
+    });
   }
   /** onBlur da Volta: se for data válida e menor que ida, força = ida. */
   function blurDateVolta() {
@@ -758,10 +774,10 @@ export default function GerentePublicarPage() {
       const volta = cur.datavolta || "";
       const ida = cur.dataida || "";
       if (!volta || !ida) return c;
-      // Aceita apenas strings YYYY-MM-DD completas (evita correção durante digitação parcial)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(volta)) return c;
       if (volta < ida) {
-        return { ...c, [tab]: { ...cur, datavolta: ida } };
+        const next = { ...cur, datavolta: ida, data_periodo: composeDataPeriodo(ida, ida) };
+        return { ...c, [tab]: next };
       }
       return c;
     });
@@ -809,9 +825,9 @@ export default function GerentePublicarPage() {
     const destino = (override ?? values.destino)?.trim();
     if (!destino) return;
     // Não sobrescreve se já tem imagem (ex.: usuário subiu manual ou hotel já resolveu)
-    if (values.imgfundo) return;
+    if (values.img_fundo) return;
     const url = await fetchImgFundo(destino);
-    if (url) setField("imgfundo", url);
+    if (url) setField("img_fundo", url);
   }
   async function onHotelBlur(override?: string) {
     const hotel = (override ?? values.hotel)?.trim();
@@ -821,20 +837,20 @@ export default function GerentePublicarPage() {
     if (hotelCap !== values.hotel) setField("hotel", hotelCap);
     // Hotel SEMPRE sobrescreve quando acha imagem própria
     const hUrl = await fetchImgHotel(hotel);
-    if (hUrl) { setField("imgfundo", hUrl); return; }
+    if (hUrl) { setField("img_fundo", hUrl); return; }
     // Fallback pro destino só se ainda não há imagem
-    if (values.imgfundo) return;
+    if (values.img_fundo) return;
     const destino = values.destino?.trim();
     if (destino) {
       const dUrl = await fetchImgFundo(destino);
-      if (dUrl) setField("imgfundo", dUrl);
+      if (dUrl) setField("img_fundo", dUrl);
     }
   }
   async function onNavioBlur(override?: string) {
     const navio = (override ?? values.navio)?.trim();
     if (!navio) return;
     const url = await fetchImgCruise(navio);
-    if (url) setField("imgfundo", url);
+    if (url) setField("img_fundo", url);
   }
 
   /* ── Legenda IA ─────────────────────────────────── */
@@ -1285,21 +1301,21 @@ export default function GerentePublicarPage() {
 
               {tab === "pacote" && (
                 <>
-                  {(templateBinds.has("destino") || templateBinds.has("saida") || templateBinds.has("tipovoo")) && (
+                  {(templateBinds.has("destino") || templateBinds.has("saida") || templateBinds.has("voo") || templateBinds.has("tipovoo")) && (
                     <Section title="Destino & Saída">
                       {templateBinds.has("destino") && (
                         <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: CANCÚN" />
                       )}
-                      {(templateBinds.has("saida") || templateBinds.has("tipovoo")) && (
+                      {(templateBinds.has("saida") || templateBinds.has("voo") || templateBinds.has("tipovoo")) && (
                         <Row2>
                           {templateBinds.has("saida") && (
                             <Field label="Saída">
                               <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" />
                             </Field>
                           )}
-                          {templateBinds.has("tipovoo") && (
+                          {(templateBinds.has("voo") || templateBinds.has("tipovoo")) && (
                             <Field label="Tipo de voo">
-                              <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
+                              <Select value={values.voo || "( Voo Direto )"} onChange={(v) => setField("voo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
                             </Field>
                           )}
                         </Row2>
@@ -1307,22 +1323,16 @@ export default function GerentePublicarPage() {
                     </Section>
                   )}
 
-                  {(templateBinds.has("dataida") || templateBinds.has("datavolta") || templateBinds.has("feriado")) && (
+                  {(templateBinds.has("data_periodo") || templateBinds.has("dataida") || templateBinds.has("datavolta") || templateBinds.has("feriado")) && (
                     <Section title="Datas">
-                      {(templateBinds.has("dataida") || templateBinds.has("datavolta")) && (
-                        <Row2>
-                          {templateBinds.has("dataida") && (
-                            <Field label="Data ida">
-                              <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
-                            </Field>
-                          )}
-                          {templateBinds.has("datavolta") && (
-                            <Field label="Data volta">
-                              <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
-                            </Field>
-                          )}
-                        </Row2>
-                      )}
+                      <Row2>
+                        <Field label="Data ida">
+                          <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
+                        </Field>
+                        <Field label="Data volta">
+                          <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
+                        </Field>
+                      </Row2>
                       {values.noites && parseInt(values.noites) > 0 && (
                         <div className="text-[10px] text-[var(--txt3)]">
                           Duração: <span className="font-bold text-[var(--txt2)]">{values.noites} noite{parseInt(values.noites) === 1 ? "" : "s"}</span>
@@ -1342,7 +1352,7 @@ export default function GerentePublicarPage() {
                     </Section>
                   )}
 
-                  {Array.from({ length: 6 }, (_, i) => `servico${i + 1}`).some((k) => templateBinds.has(k)) && (
+                  {Array.from({ length: 6 }, (_, i) => `servico_${i + 1}`).some((k) => templateBinds.has(k)) && (
                     <Section title="Serviços inclusos" defaultOpen={true}>
                       <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={6} />
                     </Section>
@@ -1364,51 +1374,74 @@ export default function GerentePublicarPage() {
                     </Section>
                   )}
 
-                  {(templateBinds.has("formapagamento") || templateBinds.has("parcelas") || templateBinds.has("valorparcela") || templateBinds.has("desconto") || templateBinds.has("totalduplo") || templateBinds.has("entrada")) && (
+                  {(templateBinds.has("texto_pagamento") || templateBinds.has("parcelas") || templateBinds.has("valor_preco") || templateBinds.has("desconto_valor") || templateBinds.has("valor_total_fmt") || templateBinds.has("entrada") || templateBinds.has("formapagamento") || templateBinds.has("valorparcela") || templateBinds.has("totalduplo") || templateBinds.has("desconto")) && (
                     <Section title="Pagamento">
-                      {templateBinds.has("formapagamento") && (
+                      {(templateBinds.has("texto_pagamento") || templateBinds.has("formapagamento")) && (
                         <Field label="Forma de pagamento">
                           <Select
-                            value={values.formapagamento || FORMA_PGTO_OPTS[0]}
-                            onChange={(v) => setField("formapagamento", v)}
+                            value={values.formapagamento_raw || FORMA_PGTO_OPTS[0]}
+                            onChange={(v) => {
+                              setField("formapagamento_raw", v);
+                              const entradaRaw = values.entrada || "";
+                              const texto = v === "Cartão de Crédito"
+                                ? "No Cartão de Crédito Sem Juros"
+                                : v === "Boleto"
+                                  ? (entradaRaw ? `Entrada de R$ ${formatMoeda(entradaRaw)} +` : "Boleto")
+                                  : v;
+                              setField("texto_pagamento", texto);
+                            }}
                             options={FORMA_PGTO_OPTS}
                           />
                         </Field>
                       )}
-                      {values.formapagamento === "Boleto" && templateBinds.has("entrada") && (
+                      {values.formapagamento_raw === "Boleto" && templateBinds.has("entrada") && (
                         <Field label="Valor de entrada">
                           <TextInput
                             value={formatMoeda(values.entrada || "")}
                             inputMode="decimal"
-                            onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
+                            onChange={(v) => {
+                              const raw = v.replace(/\D/g, "");
+                              setField("entrada", raw);
+                              setField("texto_pagamento", raw ? `Entrada de R$ ${formatMoeda(raw)} +` : "Boleto");
+                            }}
                             placeholder="R$ 0,00"
                           />
                         </Field>
                       )}
-                      {(templateBinds.has("parcelas") || templateBinds.has("valorparcela")) && (
+                      {(templateBinds.has("parcelas") || templateBinds.has("valor_preco") || templateBinds.has("valorparcela")) && (
                         <Row2>
                           {templateBinds.has("parcelas") && (
                             <Field label="Parcelas">
                               <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
                             </Field>
                           )}
-                          {templateBinds.has("valorparcela") && (
+                          {(templateBinds.has("valor_preco") || templateBinds.has("valorparcela")) && (
                             <Field label="Valor parcela">
-                              <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
+                              <TextInput value={formatMoeda(values.valor_preco || "")} inputMode="decimal" onChange={(v) => setField("valor_preco", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
                             </Field>
                           )}
                         </Row2>
                       )}
-                      {(templateBinds.has("desconto") || templateBinds.has("totalduplo")) && (
+                      {(templateBinds.has("desconto_valor") || templateBinds.has("valor_total_fmt") || templateBinds.has("desconto") || templateBinds.has("totalduplo")) && (
                         <Row2>
-                          {templateBinds.has("desconto") && (
+                          {(templateBinds.has("desconto_valor") || templateBinds.has("desconto")) && (
                             <Field label="% Desconto">
-                              <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
+                              <Select value={values.desconto_valor || ""} onChange={(v) => setField("desconto_valor", v.replace("%", ""))} options={DESCONTO_OPTS} />
                             </Field>
                           )}
-                          {templateBinds.has("totalduplo") && (
+                          {(templateBinds.has("valor_total_fmt") || templateBinds.has("totalduplo")) && (
                             <Field label="Total">
-                              <TextInput value={formatMoeda(values.totalduplo || "")} inputMode="decimal" onChange={(v) => setField("totalduplo", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
+                              <TextInput
+                                value={formatMoeda(values.valor_total_raw || "")}
+                                inputMode="decimal"
+                                onChange={(v) => {
+                                  const raw = v.replace(/\D/g, "");
+                                  setField("valor_total_raw", raw);
+                                  const fmt = formatMoeda(raw);
+                                  setField("valor_total_fmt", fmt ? `ou R$ ${fmt} por pessoa apto. duplo` : "");
+                                }}
+                                placeholder="R$ 0,00"
+                              />
                             </Field>
                           )}
                         </Row2>
@@ -1419,64 +1452,13 @@ export default function GerentePublicarPage() {
               )}
 
               {tab === "passagem" && (
-                <>
-                  {(templateBinds.has("destino") || templateBinds.has("saida") || templateBinds.has("tipovoo")) && (
-                    <Section title="Destino & Saída">
-                      {templateBinds.has("destino") && (
-                        <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: LISBOA" />
-                      )}
-                      {(templateBinds.has("saida") || templateBinds.has("tipovoo")) && (
-                        <Row2>
-                          {templateBinds.has("saida") && (
-                            <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" /></Field>
-                          )}
-                          {templateBinds.has("tipovoo") && (
-                            <Field label="Tipo de voo">
-                              <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
-                            </Field>
-                          )}
-                        </Row2>
-                      )}
-                    </Section>
-                  )}
-                  {(templateBinds.has("dataida") || templateBinds.has("datavolta")) && (
-                    <Section title="Datas">
-                      <Row2>
-                        {templateBinds.has("dataida") && (
-                          <Field label="Data ida">
-                            <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
-                          </Field>
-                        )}
-                        {templateBinds.has("datavolta") && (
-                          <Field label="Data volta">
-                            <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
-                          </Field>
-                        )}
-                      </Row2>
-                    </Section>
-                  )}
-                  {Array.from({ length: 3 }, (_, i) => `servico${i + 1}`).some((k) => templateBinds.has(k)) && (
-                    <Section title="Serviços inclusos" defaultOpen={true}>
-                      <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={3} />
-                    </Section>
-                  )}
-                  {(templateBinds.has("parcelas") || templateBinds.has("valorparcela")) && (
-                    <Section title="Pagamento">
-                      <Row2>
-                        {templateBinds.has("parcelas") && (
-                          <Field label="Parcelas">
-                            <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
-                          </Field>
-                        )}
-                        {templateBinds.has("valorparcela") && (
-                          <Field label="Valor parcela">
-                            <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                          </Field>
-                        )}
-                      </Row2>
-                    </Section>
-                  )}
-                </>
+                <PassagemForm
+                  fields={formAdapter.fields}
+                  set={formAdapter.set}
+                  today={hoje}
+                  binds={templateBinds}
+                  nomeLoja={profile?.store?.name || profile?.licensee?.name || ""}
+                />
               )}
 
               {tab === "cruzeiro" && (
@@ -1485,6 +1467,7 @@ export default function GerentePublicarPage() {
                   set={formAdapter.set}
                   today={hoje}
                   binds={templateBinds}
+                  nomeLoja={profile?.store?.name || profile?.licensee?.name || ""}
                 />
               )}
 
@@ -1983,7 +1966,7 @@ function ServicosBlock({
       </label>
       <div className="flex flex-col gap-1">
         {Array.from({ length: count }, (_, i) => i + 1).map((n) => {
-          const key = `servico${n}`;
+          const key = `servico_${n}`;
           return (
             <div key={key} className="flex items-center gap-2">
               <span className="w-4 text-[9px] font-bold tabular-nums text-[var(--txt3)]">{n}.</span>

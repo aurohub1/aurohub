@@ -14,7 +14,8 @@ import {
   Sparkles, Download, Send, Check, X, Loader2, Trash2,
   Image as ImageIcon, Search as SearchIcon, ChevronDown,
 } from "lucide-react";
-import { QuatroDestinosForm } from "@/components/publish/FormSections";
+import { PassagemForm, QuatroDestinosForm } from "@/components/publish/FormSections";
+import { useFormAdapter } from "@/components/publish/useFormAdapter";
 import { type PublicarFlowType } from "@/components/publish/PublicarFlow";
 import TypeTabs from "@/components/publish/TypeTabs";
 
@@ -708,18 +709,34 @@ export default function UnidadePublicarPage() {
     setBadgeCache((c) => ({ ...c, [tab]: { ...c[tab], [name]: v } }));
   }
 
+  // V1 data_periodo concatenado
+  function composeDataPeriodo(ida: string, volta: string): string {
+    if (!ida || !volta) return "";
+    const [iy, im, id] = ida.split("-");
+    const [vy, vm, vd] = volta.split("-");
+    if (!iy || !vy) return "";
+    if (iy === vy && im === vm) return `${id} a ${vd}/${vm}/${vy}`;
+    if (iy === vy) return `${id}/${im} a ${vd}/${vm}/${vy}`;
+    return `${id}/${im}/${iy} a ${vd}/${vm}/${vy}`;
+  }
   /** V1: ao mudar ida, volta = max(volta, ida); ao mudar volta, se < ida, força = ida. */
   function setDateIda(v: string) {
     setFormCache((c) => {
       const cur: Record<string, string> = c[tab];
       const next: Record<string, string> = { ...cur, dataida: v };
       if (cur.datavolta && cur.datavolta < v) next.datavolta = v;
+      next.data_periodo = composeDataPeriodo(next.dataida, next.datavolta);
       return { ...c, [tab]: next };
     });
   }
   /** Data Volta: só salva raw — validação acontece no onBlur. */
   function setDateVolta(v: string) {
-    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], datavolta: v } }));
+    setFormCache((c) => {
+      const cur: Record<string, string> = c[tab];
+      const next: Record<string, string> = { ...cur, datavolta: v };
+      next.data_periodo = composeDataPeriodo(next.dataida, next.datavolta);
+      return { ...c, [tab]: next };
+    });
   }
   /** onBlur da Volta: se for data válida e menor que ida, força = ida. */
   function blurDateVolta() {
@@ -728,21 +745,28 @@ export default function UnidadePublicarPage() {
       const volta = cur.datavolta || "";
       const ida = cur.dataida || "";
       if (!volta || !ida) return c;
-      // Aceita apenas strings YYYY-MM-DD completas (evita correção durante digitação parcial)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(volta)) return c;
       if (volta < ida) {
-        return { ...c, [tab]: { ...cur, datavolta: ida } };
+        const next = { ...cur, datavolta: ida, data_periodo: composeDataPeriodo(ida, ida) };
+        return { ...c, [tab]: next };
       }
       return c;
     });
   }
 
   function setDateInicio(v: string) {
-    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], inicio: v } }));
+    // V1 anoiteceu: data_inicio "dd/mm"
+    const datePart = v.split("T")[0];
+    const [, m, d] = datePart.split("-");
+    const curto = m && d ? `${d}/${m}` : "";
+    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], inicio: v, data_inicio: curto } }));
   }
   /** Data Fim (Anoiteceu): só salva raw — validação no onBlur. */
   function setDateFim(v: string) {
-    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], fim: v } }));
+    const datePart = v.split("T")[0];
+    const [, m, d] = datePart.split("-");
+    const curto = m && d ? `${d}/${m}` : "";
+    setFormCache((c) => ({ ...c, [tab]: { ...c[tab], fim: v, data_fim: curto } }));
   }
   function blurDateFim() {
     setFormCache((c) => {
@@ -779,9 +803,9 @@ export default function UnidadePublicarPage() {
     const destino = (override ?? values.destino)?.trim();
     if (!destino) return;
     // Não sobrescreve se já tem imagem (ex.: usuário subiu manual ou hotel já resolveu)
-    if (values.imgfundo) return;
+    if (values.img_fundo) return;
     const url = await fetchImgFundo(destino);
-    if (url) setField("imgfundo", url);
+    if (url) setField("img_fundo", url);
   }
   async function onHotelBlur(override?: string) {
     const hotel = (override ?? values.hotel)?.trim();
@@ -791,20 +815,20 @@ export default function UnidadePublicarPage() {
     if (hotelCap !== values.hotel) setField("hotel", hotelCap);
     // Hotel SEMPRE sobrescreve quando acha imagem própria
     const hUrl = await fetchImgHotel(hotel);
-    if (hUrl) { setField("imgfundo", hUrl); return; }
+    if (hUrl) { setField("img_fundo", hUrl); return; }
     // Fallback pro destino só se ainda não há imagem
-    if (values.imgfundo) return;
+    if (values.img_fundo) return;
     const destino = values.destino?.trim();
     if (destino) {
       const dUrl = await fetchImgFundo(destino);
-      if (dUrl) setField("imgfundo", dUrl);
+      if (dUrl) setField("img_fundo", dUrl);
     }
   }
   async function onNavioBlur(override?: string) {
     const navio = (override ?? values.navio)?.trim();
     if (!navio) return;
     const url = await fetchImgCruise(navio);
-    if (url) setField("imgfundo", url);
+    if (url) setField("img_fundo", url);
   }
 
   /* ── Legenda IA ─────────────────────────────────── */
@@ -1154,6 +1178,8 @@ export default function UnidadePublicarPage() {
     return merged;
   }, [values, badges]);
 
+  const formAdapter = useFormAdapter({ tab, values, badges, setField, setBadge });
+
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
@@ -1247,7 +1273,7 @@ export default function UnidadePublicarPage() {
                         <TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" />
                       </Field>
                       <Field label="Tipo de voo">
-                        <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
+                        <Select value={values.voo || "( Voo Direto )"} onChange={(v) => setField("voo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
                       </Field>
                     </Row2>
                   </Section>
@@ -1290,17 +1316,30 @@ export default function UnidadePublicarPage() {
                   <Section title="Pagamento">
                     <Field label="Forma de pagamento">
                       <Select
-                        value={values.formapagamento || FORMA_PGTO_OPTS[0]}
-                        onChange={(v) => setField("formapagamento", v)}
+                        value={values.formapagamento_raw || FORMA_PGTO_OPTS[0]}
+                        onChange={(v) => {
+                          setField("formapagamento_raw", v);
+                          const entradaRaw = values.entrada || "";
+                          const texto = v === "Cartão de Crédito"
+                            ? "No Cartão de Crédito Sem Juros"
+                            : v === "Boleto"
+                              ? (entradaRaw ? `Entrada de R$ ${formatMoeda(entradaRaw)} +` : "Boleto")
+                              : v;
+                          setField("texto_pagamento", texto);
+                        }}
                         options={FORMA_PGTO_OPTS}
                       />
                     </Field>
-                    {values.formapagamento === "Boleto" && (
+                    {values.formapagamento_raw === "Boleto" && (
                       <Field label="Valor de entrada">
                         <TextInput
                           value={formatMoeda(values.entrada || "")}
                           inputMode="decimal"
-                          onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
+                          onChange={(v) => {
+                            const raw = v.replace(/\D/g, "");
+                            setField("entrada", raw);
+                            setField("texto_pagamento", raw ? `Entrada de R$ ${formatMoeda(raw)} +` : "Boleto");
+                          }}
                           placeholder="R$ 0,00"
                         />
                       </Field>
@@ -1310,15 +1349,25 @@ export default function UnidadePublicarPage() {
                         <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
                       </Field>
                       <Field label="Valor parcela">
-                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
+                        <TextInput value={formatMoeda(values.valor_preco || "")} inputMode="decimal" onChange={(v) => setField("valor_preco", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
                       </Field>
                     </Row2>
                     <Row2>
                       <Field label="% Desconto">
-                        <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
+                        <Select value={values.desconto_valor || ""} onChange={(v) => setField("desconto_valor", v.replace("%", ""))} options={DESCONTO_OPTS} />
                       </Field>
                       <Field label="Total">
-                        <TextInput value={formatMoeda(values.totalduplo || "")} inputMode="decimal" onChange={(v) => setField("totalduplo", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
+                        <TextInput
+                          value={formatMoeda(values.valor_total_raw || "")}
+                          inputMode="decimal"
+                          onChange={(v) => {
+                            const raw = v.replace(/\D/g, "");
+                            setField("valor_total_raw", raw);
+                            const fmt = formatMoeda(raw);
+                            setField("valor_total_fmt", fmt ? `ou R$ ${fmt} por pessoa apto. duplo` : "");
+                          }}
+                          placeholder="R$ 0,00"
+                        />
                       </Field>
                     </Row2>
                   </Section>
@@ -1326,40 +1375,12 @@ export default function UnidadePublicarPage() {
               )}
 
               {tab === "passagem" && (
-                <>
-                  <Section title="Destino & Saída">
-                    <Combobox label="Destino *" value={values.destino || ""} onChange={(v) => setField("destino", destinoUpper(v))} onBlur={onDestinoBlur} loader={loadDestinos} placeholder="Ex.: LISBOA" />
-                    <Row2>
-                      <Field label="Saída"><TextInput value={values.saida || ""} onChange={(v) => setField("saida", v)} onBlur={() => setField("saida", capitalizeBR(values.saida || ""))} placeholder="Guarulhos" /></Field>
-                      <Field label="Tipo de voo">
-                        <Select value={values.tipovoo || "( Voo Direto )"} onChange={(v) => setField("tipovoo", v)} options={["( Voo Direto )", "( Voo Conexão )"]} />
-                      </Field>
-                    </Row2>
-                  </Section>
-                  <Section title="Datas">
-                    <Row2>
-                      <Field label="Data ida">
-                        <DateInput value={values.dataida || ""} min={hoje} onChange={setDateIda} />
-                      </Field>
-                      <Field label="Data volta">
-                        <DateInput value={values.datavolta || ""} min={values.dataida || hoje} onChange={setDateVolta} onBlur={blurDateVolta} />
-                      </Field>
-                    </Row2>
-                  </Section>
-                  <Section title="Serviços inclusos" defaultOpen={true}>
-                    <ServicosBlock values={values} setField={setField} setBadge={setBadge} count={3} />
-                  </Section>
-                  <Section title="Pagamento">
-                    <Row2>
-                      <Field label="Parcelas">
-                        <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
-                      </Field>
-                      <Field label="Valor parcela">
-                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
-                      </Field>
-                    </Row2>
-                  </Section>
-                </>
+                <PassagemForm
+                  fields={formAdapter.fields}
+                  set={formAdapter.set}
+                  today={hoje}
+                  nomeLoja={profile?.store?.name || profile?.licensee?.name || ""}
+                />
               )}
 
               {tab === "cruzeiro" && (
@@ -1393,17 +1414,30 @@ export default function UnidadePublicarPage() {
                   <Section title="Pagamento">
                     <Field label="Forma de pagamento">
                       <Select
-                        value={values.formapagamento || FORMA_PGTO_OPTS[0]}
-                        onChange={(v) => setField("formapagamento", v)}
+                        value={values.formapagamento_raw || FORMA_PGTO_OPTS[0]}
+                        onChange={(v) => {
+                          setField("formapagamento_raw", v);
+                          const entradaRaw = values.entrada || "";
+                          const texto = v === "Cartão de Crédito"
+                            ? "No Cartão de Crédito Sem Juros"
+                            : v === "Boleto"
+                              ? (entradaRaw ? `Entrada de R$ ${formatMoeda(entradaRaw)} +` : "Boleto")
+                              : v;
+                          setField("forma_pgto", texto);
+                        }}
                         options={FORMA_PGTO_OPTS}
                       />
                     </Field>
-                    {values.formapagamento === "Boleto" && (
+                    {values.formapagamento_raw === "Boleto" && (
                       <Field label="Valor de entrada">
                         <TextInput
                           value={formatMoeda(values.entrada || "")}
                           inputMode="decimal"
-                          onChange={(v) => setField("entrada", v.replace(/\D/g, ""))}
+                          onChange={(v) => {
+                            const raw = v.replace(/\D/g, "");
+                            setField("entrada", raw);
+                            setField("forma_pgto", raw ? `Entrada de R$ ${formatMoeda(raw)} +` : "Boleto");
+                          }}
                           placeholder="R$ 0,00"
                         />
                       </Field>
@@ -1413,15 +1447,25 @@ export default function UnidadePublicarPage() {
                         <Select value={values.parcelas || ""} onChange={(v) => setField("parcelas", v)} options={["", ...PARCELAS_OPTS]} />
                       </Field>
                       <Field label="Valor parcela">
-                        <TextInput value={formatMoeda(values.valorparcela || "")} inputMode="decimal" onChange={(v) => setField("valorparcela", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
+                        <TextInput value={formatMoeda(values.valor_preco || "")} inputMode="decimal" onChange={(v) => setField("valor_preco", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
                       </Field>
                     </Row2>
                     <Row2>
                       <Field label="% Desconto">
-                        <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS} />
+                        <Select value={values.desconto_valor || ""} onChange={(v) => setField("desconto_valor", v.replace("%", ""))} options={DESCONTO_OPTS} />
                       </Field>
                       <Field label="Total cruzeiro">
-                        <TextInput value={formatMoeda(values.totalcruzeiro || "")} inputMode="decimal" onChange={(v) => setField("totalcruzeiro", v.replace(/\D/g, ""))} placeholder="R$ 0,00" />
+                        <TextInput
+                          value={formatMoeda(values.valor_total_raw || "")}
+                          inputMode="decimal"
+                          onChange={(v) => {
+                            const raw = v.replace(/\D/g, "");
+                            setField("valor_total_raw", raw);
+                            const fmt = formatMoeda(raw);
+                            setField("valor_total_texto", fmt ? `ou R$ ${fmt} por pessoa` : "");
+                          }}
+                          placeholder="R$ 0,00"
+                        />
                       </Field>
                     </Row2>
                   </Section>
@@ -1432,7 +1476,7 @@ export default function UnidadePublicarPage() {
                 <>
                   <Section title="Promoção">
                     <Field label="% Desconto">
-                      <Select value={values.desconto || ""} onChange={(v) => setField("desconto", v)} options={DESCONTO_OPTS.slice(1)} />
+                      <Select value={values.desconto_anoit_valor || ""} onChange={(v) => setField("desconto_anoit_valor", v.replace("%", ""))} options={DESCONTO_OPTS.slice(1)} />
                     </Field>
                   </Section>
                   <Section title="Período da campanha">
@@ -1454,7 +1498,15 @@ export default function UnidadePublicarPage() {
                       </Field>
                     </Row2>
                     <Field label="Para viagens até">
-                      <DateInput value={values.paraviagens || ""} min={hoje} onChange={(v) => setField("paraviagens", v)} />
+                      <DateInput
+                        value={values.paraviagens || ""}
+                        min={hoje}
+                        onChange={(v) => {
+                          setField("paraviagens", v);
+                          const [y, m, d] = v.split("-");
+                          setField("para_viagens_ate", y && m && d ? `${d}/${m}/${y}` : "");
+                        }}
+                      />
                     </Field>
                   </Section>
                 </>
@@ -1951,7 +2003,7 @@ function ServicosBlock({
       </label>
       <div className="flex flex-col gap-1">
         {Array.from({ length: count }, (_, i) => i + 1).map((n) => {
-          const key = `servico${n}`;
+          const key = `servico_${n}`;
           return (
             <div key={key} className="flex items-center gap-2">
               <span className="w-4 text-[9px] font-bold tabular-nums text-[var(--txt3)]">{n}.</span>
