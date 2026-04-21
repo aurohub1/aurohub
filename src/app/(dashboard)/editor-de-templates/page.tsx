@@ -170,7 +170,7 @@ export default function EditorTemplatesPage() {
   //   seg:<segmento>           ex.: "seg:Turismo"
   //   lic:<segmento>/<licKey>  ex.: "lic:Turismo/__base__"
   //   sub:<segmento>/<licKey>/<subName>  ex.: "sub:Turismo/__base__/Pacote"
-  const [collapsedBaseGroups, setCollapsedBaseGroups] = useState<Set<string>>(new Set());
+  const [collapsedBaseGroups, setCollapsedBaseGroups] = useState<Set<string>>(() => new Set(["seg:Turismo"]));
   const toggleBaseGroup = (key: string) => {
     setCollapsedBaseGroups((prev) => {
       const next = new Set(prev);
