@@ -111,10 +111,11 @@ const INPUT_CLASS =
 /* ── SearchableSelect ─────────────────────────────────── */
 
 export function SearchableSelect({
-  value, onChange, options, placeholder, allowCustom = false,
+  value, onChange, onBlur, options, placeholder, allowCustom = false,
 }: {
   value: string;
   onChange: (v: string) => void;
+  onBlur?: (v: string) => void;
   options: string[];
   placeholder?: string;
   allowCustom?: boolean;
@@ -146,6 +147,12 @@ export function SearchableSelect({
         placeholder={placeholder}
         onFocus={() => { setOpen(true); setQ(value); }}
         onChange={(e) => { setQ(e.target.value); if (allowCustom) onChange(e.target.value); }}
+        onBlur={(e) => {
+          // Se o foco foi pra dentro do componente (clique em opção), ignora.
+          if (ref.current?.contains(e.relatedTarget as Node)) return;
+          setOpen(false);
+          onBlur?.(allowCustom ? (q || value) : value);
+        }}
       />
       {open && filtered.length > 0 && (
         <div
@@ -156,7 +163,8 @@ export function SearchableSelect({
             <button
               key={opt}
               type="button"
-              onClick={() => { onChange(opt); setOpen(false); }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { onChange(opt); setOpen(false); onBlur?.(opt); }}
               className="block w-full px-3 py-1.5 text-left text-[12px] text-[var(--txt)] hover:bg-[var(--bg2)]"
             >
               {opt}
@@ -435,6 +443,7 @@ export function PacoteForm({
   fields, set, servicos, setServicos,
   today, feriadoOpts,
   loadDestinos, loadHoteis,
+  onImgFundo,
   binds,
 }: {
   fields: Fields;
@@ -445,6 +454,8 @@ export function PacoteForm({
   feriadoOpts?: string[];
   loadDestinos?: () => Promise<string[]>;
   loadHoteis?: () => Promise<string[]>;
+  /** Callback pra atualizar imgfundo — chamado no blur de destino e hotel. */
+  onImgFundo?: (url: string) => void;
   binds?: Set<string>;
 }) {
   const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
@@ -455,16 +466,49 @@ export function PacoteForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Busca URL aleatória na tabela imgfundo: match por nome (ILIKE), fallback any.
+  async function fetchImgFundo(needle: string) {
+    if (!onImgFundo) return;
+    try {
+      let url: string | null = null;
+      if (needle.trim()) {
+        const { data } = await _sb_for_lamina
+          .from("imgfundo")
+          .select("url")
+          .ilike("nome", `%${needle.trim()}%`)
+          .limit(50);
+        const rows = (data ?? []) as { url: string }[];
+        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
+      }
+      if (!url) {
+        const { data } = await _sb_for_lamina.from("imgfundo").select("url").limit(500);
+        const rows = (data ?? []) as { url: string }[];
+        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
+      }
+      if (url) onImgFundo(url);
+    } catch { /* silent — RLS ou tabela ausente */ }
+  }
+
   // ── Handlers com cálculos derivados ─────────────────
+  function computeNoites(ida: string, volta: string): number {
+    if (!ida || !volta) return 0;
+    const d1 = new Date(ida + "T00:00:00");
+    const d2 = new Date(volta + "T00:00:00");
+    return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86_400_000));
+  }
   const onIdaChange = (v: string) => {
     set("dataida", v);
     const volta = (fields.datavolta as string) || "";
     set("dataperiodo", volta ? pacoteFormatPeriodo(v, volta) : "");
+    const n = computeNoites(v, volta);
+    set("noites", n > 0 ? String(n) : "");
   };
   const onVoltaChange = (v: string) => {
     set("datavolta", v);
     const ida = (fields.dataida as string) || "";
     set("dataperiodo", ida ? pacoteFormatPeriodo(ida, v) : "");
+    const n = computeNoites(ida, v);
+    set("noites", n > 0 ? String(n) : "");
   };
   const onValorParcelaChange = (raw: string) => {
     const clean = raw.replace(/[^\d,.]/g, "");
@@ -530,6 +574,11 @@ export function PacoteForm({
               <SearchableSelect
                 value={(fields.destino as string) || ""}
                 onChange={(v) => set("destino", v.toUpperCase())}
+                onBlur={(v) => {
+                  const up = v.toUpperCase();
+                  set("destino", up);
+                  if (up.trim()) fetchImgFundo(up);
+                }}
                 options={destinoOpts}
                 placeholder="ex. CANCÚN"
                 allowCustom
@@ -608,6 +657,7 @@ export function PacoteForm({
           {fields.dataperiodo ? (
             <p className="text-[11px] text-[var(--txt3)]">
               Período: <strong>{String(fields.dataperiodo)}</strong>
+              {fields.noites ? <> · <strong>{String(fields.noites)} noite{Number(fields.noites) === 1 ? "" : "s"}</strong></> : null}
             </p>
           ) : null}
           {showFeriado && (
@@ -630,6 +680,10 @@ export function PacoteForm({
             <SearchableSelect
               value={(fields.hotel as string) || ""}
               onChange={(v) => set("hotel", v)}
+              onBlur={(v) => {
+                set("hotel", v);
+                if (v.trim()) fetchImgFundo(v);
+              }}
               options={hotelOpts}
               placeholder="Nome do hotel"
               allowCustom
@@ -726,7 +780,7 @@ export function PacoteForm({
             </Field>
           )}
           {showEntrada && (
-            <Field label="Valor Entrada (R$) *">
+            <Field label="Valor da Entrada (R$)">
               <input
                 type="text"
                 inputMode="decimal"
@@ -765,27 +819,16 @@ export function PacoteForm({
           )}
           {showDesconto && (
             <Field label="% Desconto">
-              <div className="flex flex-wrap gap-1">
-                {PACOTE_DESCONTO_OPTS.map((d) => {
-                  const num = d.replace("%", "");
-                  const sel = fields.numerodesconto === num;
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => set("numerodesconto", sel ? "" : num)}
-                      className="rounded-lg border px-2 py-0.5 text-[11px] font-bold transition-all"
-                      style={
-                        sel
-                          ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                          : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                      }
-                    >
-                      {d}
-                    </button>
-                  );
-                })}
-              </div>
+              <select
+                value={(fields.numerodesconto as string) || ""}
+                onChange={(e) => set("numerodesconto", e.target.value)}
+                className={INPUT_CLASS}
+              >
+                <option value="">– nenhum –</option>
+                {PACOTE_DESCONTO_OPTS.map((d) => (
+                  <option key={d} value={d.replace("%", "")}>{d}</option>
+                ))}
+              </select>
             </Field>
           )}
           {showValorTotal && (

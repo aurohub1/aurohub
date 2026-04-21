@@ -1182,6 +1182,7 @@ export default function UnidadePublicarPage() {
                   feriadoOpts={feriadoOpts}
                   loadDestinos={loadDestinos}
                   loadHoteis={loadHoteis}
+                  onImgFundo={(url) => setField("imgfundo", url)}
                   binds={templateBinds}
                 />
               )}
