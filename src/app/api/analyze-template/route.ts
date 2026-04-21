@@ -90,8 +90,32 @@ export async function POST(request: Request) {
     });
 
     if (!res.ok) {
+      console.warn("[analyze-template] Claude falhou, tentando Groq...");
+      const groqKey = process.env.GROQ_API_KEY;
+      if (groqKey) {
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
+            max_tokens: 2500,
+            messages: [{ role: "user", content: [
+              { type: "image_url", image_url: { url: `data:${mediaType};base64,${base64}` } },
+              { type: "text", text: SYSTEM_PROMPT + `\nFormato: ${formatGuess}. Retorne APENAS JSON válido.` }
+            ]}]
+          }),
+        });
+        if (groqRes.ok) {
+          const groqBody = await groqRes.json();
+          const raw2 = groqBody?.choices?.[0]?.message?.content ?? "";
+          const cleaned2 = raw2.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+          try {
+            const p2 = JSON.parse(cleaned2);
+            return NextResponse.json({ formType: p2.formType || "pacote", format: p2.format || formatGuess, elements: Array.isArray(p2.elements) ? p2.elements : [], provider: "groq" });
+          } catch { /* segue pro erro */ }
+        }
+      }
       const errText = await res.text();
-      console.error("[analyze-template] Claude erro:", res.status, errText);
       return NextResponse.json({ error: "Falha na análise", detail: errText }, { status: 502 });
     }
 

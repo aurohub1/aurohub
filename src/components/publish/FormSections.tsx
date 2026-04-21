@@ -591,7 +591,7 @@ export function PacoteForm({
             </Field>
           )}
           {(showSaida || showTipovoo) && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-[1fr_2fr] gap-2">
               {showSaida && (
                 <Field label="Saída">
                   <input
@@ -907,7 +907,7 @@ export function CampanhaForm({
             </Field>
           )}
           {(showSaida || showTipovoo) && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-[1fr_2fr] gap-2">
               {showSaida && (
                 <Field label="Saída">
                   <SearchableSelect
@@ -1576,7 +1576,7 @@ export function QuatroDestinosForm({
             allowCustom
           />
         </Field>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-[1fr_2fr] gap-2">
           <Field label="Saída">
             <input
               value={d.saida}
