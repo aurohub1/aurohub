@@ -21,15 +21,86 @@ import { supabase as _sb_for_lamina } from "@/lib/supabase";
 
 /* ── Constantes ──────────────────────────────────────── */
 
+// V1 DESCONTO_VALS = [5,10,15,20,25,30,35,40,45,50]; UI expõe subconjuntos por tipo.
 export const DESCONTO_OPTS_FORM = ["10%", "15%", "20%", "25%", "30%", "40%", "50%"];
+export const DESCONTO_OPTS_CAMPANHA = ["5%", "10%", "15%", "20%", "25%", "30%"];
+export const DESCONTO_OPTS_ANOITECEU = ["5%", "10%", "15%", "20%", "25%", "30%", "40%", "50%"];
 export const PARCELAS_OPTS_FORM = Array.from({ length: 20 }, (_, i) => `${i + 1}x`);
+// V1 _fParcelasPassagem: 2x..36x
+export const PARCELAS_PASSAGEM_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`);
 export const NAVIOS_DEFAULT = [
   "MSC Seashore", "MSC Grandiosa", "MSC Musica", "MSC Armonia",
   "MSC Magnifica", "Costa Fascinosa", "Costa Diadema",
   "Norwegian Jade", "Carnival Jubilee",
 ];
 
+// V1 CIA_LOGOS exatos (client.js:1708-1717).
+const CIA_LOGOS: Record<string, string> = {
+  ROYAL:     "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106662/royal_madqky.png",
+  CELEBRITY: "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106665/xcruise_blcv45.png",
+  PRINCESS:  "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106664/princess_xteony.png",
+  OCEANIA:   "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106671/ocean_mccpbc.png",
+  NORWEGIAN: "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106667/norwegian_ugg7j9.png",
+  MSC:       "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106669/msc_uqiqji.png",
+  COSTA:     "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106668/costa_rzno1p.png",
+  DISNEY:    "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106663/disney_ttcdgq.png",
+};
+
+function resolveLogoCia(navio: string): string {
+  const n = (navio || "").toUpperCase();
+  for (const [cia, url] of Object.entries(CIA_LOGOS)) if (n.includes(cia)) return url;
+  return "";
+}
+
+// V1 costuma vir com "PRINCESS CRUISE - ", "X CELEBRITY CRUISE - ", etc. no começo.
+function cleanShipName(navio: string): string {
+  return (navio || "")
+    .replace(/^(X\s+)?(PRINCESS|CELEBRITY|ROYAL|OCEANIA|NORWEGIAN|MSC|COSTA|DISNEY)\s+CRUISES?\s*-\s*/i, "")
+    .trim();
+}
+
 /* ── Helpers ─────────────────────────────────────────── */
+
+// Port V1 utils.js:548-592 (Dict.servicos + Dict.ortho + applyServico + isAllInclusive).
+const DICT_SERVICOS: [RegExp, string][] = [
+  [/^traslado(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
+  [/^translado(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
+  [/^transfer(\s+(ida\s+e\s+volta|i\/v))?$/i, "Transfer"],
+  [/^caf[eé]\s+da\s+manh[aã]\s+e\s+(almo[cç]o|jan(tar)?)$/i, "Meia Pensão"],
+  [/^meia\s+pens[aã]o$/i, "Meia Pensão"],
+  [/^(caf[eé]\s+da\s+manh[aã],?\s+almo[cç]o\s+e\s+jantar|pens[aã]o\s+completa)$/i, "Pensão Completa"],
+  [/^caf[eé]\s+da\s+manh[aã]$/i, "Café da Manhã"],
+  [/^all\s+inclusive$/i, "All Inclusive"],
+  [/^tudo\s+inclu[ií]do$/i, "All Inclusive"],
+];
+const DICT_ORTHO: [RegExp, string][] = [
+  [/\bcafe\b/gi, "Café"], [/\bCAFE\b/g, "CAFÉ"],
+  [/\bmanha\b/gi, "Manhã"], [/\bMANHA\b/g, "MANHÃ"],
+  [/\balmoco\b/gi, "Almoço"], [/\bALMOCO\b/g, "ALMOÇO"],
+  [/\bjantar\b/gi, "Jantar"],
+  [/\bpensao\b/gi, "Pensão"], [/\bPENSAO\b/g, "PENSÃO"],
+  [/\binclusao\b/gi, "Inclusão"],
+  [/\bexcursao\b/gi, "Excursão"],
+  [/\bnavegacao\b/gi, "Navegação"],
+  [/\bcabine\b/gi, "Cabine"],
+  [/\baeroporo\b/gi, "Aeroporto"],
+  [/\bpassagen\b/gi, "Passagem"],
+  [/\bbagagen\b/gi, "Bagagem"],
+  [/\bconexao\b/gi, "Conexão"],
+  [/\bSao\b/g, "São"], [/\bSAO\b/g, "SÃO"],
+];
+
+export function dictApplyServico(val: string): string {
+  if (!val) return val;
+  const v = val.trim();
+  for (const [re, rep] of DICT_SERVICOS) if (re.test(v)) return rep;
+  let r = v;
+  for (const [re, rep] of DICT_ORTHO) r = r.replace(re, rep);
+  return r;
+}
+export function dictIsAllInclusive(val: string): boolean {
+  return /all\s*inclusive|tudo\s*inclu[ií]do/i.test(val || "");
+}
 
 function capitalizarDestino(v: string): string {
   return v.toUpperCase();
@@ -174,13 +245,14 @@ type Fields = Record<string, string | boolean | number | undefined | null>;
 type Setter = (k: string, v: string | boolean | number | null) => void;
 
 export function BadgesSection({
-  fields, set, formType, feriadoOpts, binds,
+  fields, set, formType, feriadoOpts, binds, descontoOpts,
 }: {
   fields: Fields;
   set: Setter;
   formType: "pacote" | "campanha";
   feriadoOpts?: string[];
   binds?: Set<string>;
+  descontoOpts?: string[];
 }) {
   const toggle = (key: string) => set(key, !fields[key]);
   const Toggle = ({ label, k }: { label: string; k: string }) => (
@@ -220,25 +292,30 @@ export function BadgesSection({
       {showDesc && (
         <Field label="Desconto">
           <div className="flex flex-wrap gap-1">
-            {DESCONTO_OPTS_FORM.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => set("numerodesconto", fields.numerodesconto === d ? "" : d)}
-                className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
-                style={
-                  fields.numerodesconto === d
-                    ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                    : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                }
-              >
-                {d}
-              </button>
-            ))}
+            {(descontoOpts ?? DESCONTO_OPTS_CAMPANHA).map((d) => {
+              // Guarda apenas número (sem "%") em `numerodesconto` — binds de template só retornam o número.
+              const num = d.replace("%", "");
+              const selected = fields.numerodesconto === num;
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => set("numerodesconto", selected ? "" : num)}
+                  className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
+                  style={
+                    selected
+                      ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                      : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                  }
+                >
+                  {d}
+                </button>
+              );
+            })}
           </div>
           {fields.numerodesconto ? (
             <p className="mt-1 text-[10px] text-[var(--txt3)]">
-              Badge mostrará: <strong>{String(fields.numerodesconto)}</strong>
+              Badge mostrará: <strong>{String(fields.numerodesconto)}%</strong>
             </p>
           ) : null}
         </Field>
@@ -266,14 +343,14 @@ export function PagamentoSection({
   totalLabel: string;
   binds?: Set<string>;
 }) {
+  // V1 client.js:1377 — só Cartão de Crédito / Boleto. Valores batem com o que PreviewStage.resolveBindParam("formapagamento") espera.
   const formas: { value: string; label: string }[] = [
-    { value: "cartao",  label: "Cartão s/ Juros" },
-    { value: "entrada", label: "Boleto c/ Entrada" },
-    { value: "debito",  label: "Débito" },
+    { value: "Cartão de Crédito", label: "Cartão s/ Juros" },
+    { value: "Boleto",            label: "Boleto c/ Entrada" },
   ];
 
   const showForma = hasBind(binds, "formapagamento");
-  const showEntrada = fields.formapagamento === "entrada" && hasBind(binds, "entrada");
+  const showEntrada = fields.formapagamento === "Boleto" && hasBind(binds, "entrada");
   const showParcelas = hasBind(binds, "parcelas");
   const showValorParc = hasBind(binds, "valorparcela");
   const showTotal = hasBind(binds, "valortotal", "totalduplo");
@@ -304,11 +381,11 @@ export function PagamentoSection({
             <p className="mt-1 text-[10px] text-[var(--txt3)]">
               Arte mostrará:{" "}
               <strong>
-                {fields.formapagamento === "cartao"
+                {fields.formapagamento === "Cartão de Crédito"
                   ? "No Cartão de Crédito Sem Juros"
-                  : fields.formapagamento === "entrada"
+                  : fields.formapagamento === "Boleto"
                     ? `Entrada de R$ ${fields.entrada || "___"} +`
-                    : "No Débito"}
+                    : String(fields.formapagamento)}
               </strong>
             </p>
           ) : null}
@@ -397,8 +474,8 @@ export function CampanhaForm({
   const showIda = hasBind(binds, "dataida");
   const showVolta = hasBind(binds, "datavolta");
   const showHotel = hasBind(binds, "hotel", "imghotel");
-  // Serviços — mostra se qualquer servico1..N estiver presente (sem binds = todos).
-  const showServicos = !binds || Array.from({ length: 8 }, (_, i) => `servico${i + 1}`).some((k) => binds.has(k));
+  // V1 _fGrpServicos: 6 slots. Sem binds = todos 6.
+  const showServicos = !binds || Array.from({ length: 6 }, (_, i) => `servico${i + 1}`).some((k) => binds.has(k));
 
   return (
     <>
@@ -496,21 +573,27 @@ export function CampanhaForm({
 
       {showServicos && (
         <Section title="Serviços Inclusos" icon="🎒">
-          {servicos.map((s, i) => {
+          {Array.from({ length: 6 }, (_, i) => i).map((i) => {
             if (binds && !binds.has(`servico${i + 1}`)) return null;
+            const val = servicos[i] ?? "";
             return (
               <input
                 key={i}
-                value={s}
+                value={val}
                 onChange={(e) => {
                   const n = [...servicos];
                   n[i] = e.target.value;
                   setServicos(n);
                 }}
-                onBlur={() => {
-                  if (servicos.some((sv) => sv.toLowerCase().includes("all inclusive"))) {
-                    set("allinclusive", true);
-                  }
+                onBlur={(e) => {
+                  // V1: aplica dicionário (traslado→Transfer, café da manhã→Café da Manhã, etc.) e detecta All Inclusive.
+                  const raw = e.target.value;
+                  const v = dictApplyServico(raw);
+                  const n = [...servicos];
+                  n[i] = v;
+                  setServicos(n);
+                  set(`servico${i + 1}`, v);
+                  if (dictIsAllInclusive(v)) set("allinclusive", true);
                 }}
                 placeholder={`Serviço ${i + 1}`}
                 className={INPUT_CLASS}
@@ -520,7 +603,7 @@ export function CampanhaForm({
         </Section>
       )}
 
-      <BadgesSection fields={fields} set={set} formType="campanha" feriadoOpts={feriadoOpts} binds={binds} />
+      <BadgesSection fields={fields} set={set} formType="campanha" feriadoOpts={feriadoOpts} binds={binds} descontoOpts={DESCONTO_OPTS_CAMPANHA} />
       <PagamentoSection fields={fields} set={set} totalLabel="por pessoa apto. duplo" binds={binds} />
     </>
   );
@@ -541,6 +624,37 @@ export function CruzeiroForm({
     (fields.datavolta as string) || "",
   );
 
+  // V1 client.js:1727-1756 — lista de navios vem do backend (S.navios); no V2 carrega da tabela navios.
+  const [navioOpts, setNavioOpts] = useState<string[]>(NAVIOS_DEFAULT);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await _sb_for_lamina.from("navios").select("nome").order("nome");
+        const rows = (data ?? []) as { nome: string | null }[];
+        const nomes = rows.map((r) => (r.nome || "").trim()).filter(Boolean);
+        if (nomes.length) setNavioOpts(nomes);
+      } catch { /* tabela ausente — usa fallback hardcoded */ }
+    })();
+  }, []);
+
+  // V1 _fNavioField: ao selecionar navio, resolve logo_cia local + busca img_fundo em imgcruise.
+  async function onNavioSelect(raw: string) {
+    const clean = cleanShipName(raw);
+    set("navio", clean);
+    const logo = resolveLogoCia(clean);
+    set("logo_cia", logo || "");
+    try {
+      const { data } = await _sb_for_lamina
+        .from("imgcruise")
+        .select("url")
+        .ilike("cia", `%${clean.split(/\s+/)[0] || ""}%`)
+        .limit(1)
+        .single();
+      const url = (data as { url?: string } | null)?.url;
+      if (url) set("img_fundo", url);
+    } catch { /* silent — mantém img_fundo atual */ }
+  }
+
   const showNavio = hasBind(binds, "navio");
   const showItin = hasBind(binds, "itinerario");
   const showIda = hasBind(binds, "dataida");
@@ -556,8 +670,8 @@ export function CruzeiroForm({
             <Field label="Navio *">
               <SearchableSelect
                 value={(fields.navio as string) || ""}
-                onChange={(v) => set("navio", v)}
-                options={NAVIOS_DEFAULT}
+                onChange={onNavioSelect}
+                options={navioOpts}
                 placeholder="Buscar navio..."
                 allowCustom
               />
@@ -641,17 +755,22 @@ export function CruzeiroForm({
 /* ── AnoiteceuForm ──────────────────────────────────── */
 
 export function AnoiteceuForm({
-  fields, set, binds,
+  fields, set, today, binds,
 }: {
   fields: Fields;
   set: Setter;
+  today?: string;
   binds?: Set<string>;
 }) {
-  const showDesc = hasBind(binds, "desconto_anoit");
-  const showInicio = hasBind(binds, "inicio");
-  const showFim = hasBind(binds, "fim");
+  const showDestino = hasBind(binds, "destino");
+  const showDesc = hasBind(binds, "numerodesconto", "desconto_anoit");
+  // V1 binds: datainicio / datafim / paraviagensate (fallbacks legados: inicio / fim / paraviagens).
+  const showInicio = hasBind(binds, "datainicio", "inicio");
+  const showFim = hasBind(binds, "datafim", "fim");
   const showPeriodo = showInicio || showFim;
-  const showParaviagens = hasBind(binds, "paraviagens");
+  const showParaviagens = hasBind(binds, "paraviagensate", "paraviagens");
+
+  const descontoLabel = fields.numerodesconto ? `${fields.numerodesconto}%` : "—";
 
   return (
     <>
@@ -665,42 +784,60 @@ export function AnoiteceuForm({
         </div>
       </div>
 
+      {showDestino && (
+        <Section title="Destino" icon="📍">
+          <Field label="Destino *">
+            <input
+              value={(fields.destino as string) || ""}
+              onChange={(e) => set("destino", e.target.value)}
+              onBlur={(e) => set("destino", e.target.value.toUpperCase())}
+              placeholder="ex. CANCÚN"
+              className={`${INPUT_CLASS} uppercase`}
+            />
+          </Field>
+        </Section>
+      )}
+
       {showDesc && (
         <Section title="Desconto" icon="🏷️">
           <Field label="Porcentagem do Desconto *">
             <div className="mb-2 flex items-center gap-4">
               <div
                 className="text-5xl font-black leading-none transition-all"
-                style={{ color: fields.desconto_anoit ? "var(--orange)" : "var(--txt3)" }}
+                style={{ color: fields.numerodesconto ? "var(--orange)" : "var(--txt3)" }}
               >
-                {(fields.desconto_anoit as string) || "—"}
+                {descontoLabel}
               </div>
               <div className="flex-1">
                 <div className="flex flex-wrap gap-1">
-                  {DESCONTO_OPTS_FORM.map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => set("desconto_anoit", fields.desconto_anoit === d ? "" : d)}
-                      className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
-                      style={
-                        fields.desconto_anoit === d
-                          ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                          : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                      }
-                    >
-                      {d}
-                    </button>
-                  ))}
+                  {DESCONTO_OPTS_ANOITECEU.map((d) => {
+                    const num = d.replace("%", "");
+                    const selected = fields.numerodesconto === num;
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => set("numerodesconto", selected ? "" : num)}
+                        className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
+                        style={
+                          selected
+                            ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                            : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                        }
+                      >
+                        {d}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--txt3)]">
                   <span>Ou digitar:</span>
                   <input
                     type="text"
-                    value={(fields.desconto_anoit as string) || ""}
+                    value={(fields.numerodesconto as string) || ""}
                     onChange={(e) => {
                       const v = e.target.value.replace(/[^0-9]/g, "");
-                      set("desconto_anoit", v ? `${v}%` : "");
+                      set("numerodesconto", v);
                     }}
                     placeholder="ex. 35"
                     maxLength={3}
@@ -721,10 +858,11 @@ export function AnoiteceuForm({
                 <Field label="Data Início *">
                   <input
                     type="date"
-                    value={(fields.inicio_iso as string) || ""}
+                    min={today}
+                    value={(fields.datainicio_iso as string) || ""}
                     onChange={(e) => {
-                      set("inicio_iso", e.target.value);
-                      set("inicio", fmtDataCurta(e.target.value));
+                      set("datainicio_iso", e.target.value);
+                      set("datainicio", fmtDataCurta(e.target.value));
                     }}
                     className={INPUT_CLASS}
                   />
@@ -734,11 +872,11 @@ export function AnoiteceuForm({
                 <Field label="Data Fim *">
                   <input
                     type="date"
-                    min={(fields.inicio_iso as string) || ""}
-                    value={(fields.fim_iso as string) || ""}
+                    min={(fields.datainicio_iso as string) || today}
+                    value={(fields.datafim_iso as string) || ""}
                     onChange={(e) => {
-                      set("fim_iso", e.target.value);
-                      set("fim", fmtDataCurta(e.target.value));
+                      set("datafim_iso", e.target.value);
+                      set("datafim", fmtDataCurta(e.target.value));
                     }}
                     className={INPUT_CLASS}
                   />
@@ -751,10 +889,11 @@ export function AnoiteceuForm({
             <Field label="Para Viagens Até *">
               <input
                 type="date"
-                value={(fields.paraviagens_iso as string) || ""}
+                min={today}
+                value={(fields.paraviagensate_iso as string) || ""}
                 onChange={(e) => {
-                  set("paraviagens_iso", e.target.value);
-                  set("paraviagens", fmtDate(e.target.value));
+                  set("paraviagensate_iso", e.target.value);
+                  set("paraviagensate", fmtDate(e.target.value));
                 }}
                 className={INPUT_CLASS}
               />
@@ -763,6 +902,144 @@ export function AnoiteceuForm({
           )}
         </Section>
       )}
+    </>
+  );
+}
+
+/* ── PassagemForm ──────────────────────────────────── */
+/* Port V1 client.js:1239-1274 (_fPassagem + _fParcelasPassagem).
+ * Campos: origem (Saída), destino (uppercase), tipovoo (radio),
+ * dataida/datavolta (min=hoje/ida), cia (companhia aérea).
+ * Pagamento: forma, parcelas (2x–36x), valor parcela, total "por pessoa".
+ */
+export function PassagemForm({
+  fields, set, today, binds,
+}: {
+  fields: Fields;
+  set: Setter;
+  today: string;
+  binds?: Set<string>;
+}) {
+  const showOrigem = hasBind(binds, "origem", "saida");
+  const showDestino = hasBind(binds, "destino");
+  const showTipovoo = hasBind(binds, "tipovoo");
+  const showIda = hasBind(binds, "dataida");
+  const showVolta = hasBind(binds, "datavolta");
+  const showCia = hasBind(binds, "cia");
+  const showRotulos = showOrigem || showDestino || showTipovoo;
+  const showDatas = showIda || showVolta;
+
+  // V1 valida que volta >= ida (_fDate). Aqui replicamos via min na volta.
+  const minVolta = (fields.dataida as string) || today;
+
+  return (
+    <>
+      {showRotulos && (
+        <Section title="Rota" icon="✈️">
+          {showOrigem && (
+            <Field label="Origem (Saída) *">
+              <input
+                value={(fields.origem as string) || (fields.saida as string) || ""}
+                onChange={(e) => {
+                  set("origem", e.target.value);
+                  set("saida", e.target.value);
+                }}
+                onBlur={(e) => {
+                  const v = e.target.value.toUpperCase();
+                  set("origem", v); set("saida", v);
+                }}
+                placeholder="ex. GRU"
+                className={`${INPUT_CLASS} uppercase`}
+              />
+            </Field>
+          )}
+          {showDestino && (
+            <Field label="Destino *">
+              <input
+                value={(fields.destino as string) || ""}
+                onChange={(e) => set("destino", capitalizarDestino(e.target.value))}
+                onBlur={(e) => set("destino", e.target.value.toUpperCase())}
+                placeholder="ex. LISBOA"
+                className={`${INPUT_CLASS} uppercase`}
+              />
+            </Field>
+          )}
+          {showTipovoo && (
+            <Field label="Tipo de Voo">
+              <div className="flex gap-1">
+                {["Voo Direto", "Voo Conexão"].map((opt) => {
+                  const selected = fields.tipovoo === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => set("tipovoo", opt)}
+                      className="flex-1 rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
+                      style={
+                        selected
+                          ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
+                          : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
+                      }
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
+        </Section>
+      )}
+
+      {showDatas && (
+        <Section title="Datas" icon="📅">
+          <div className="grid grid-cols-2 gap-2">
+            {showIda && (
+              <Field label="Ida *">
+                <input
+                  type="date"
+                  min={today}
+                  value={(fields.dataida as string) || ""}
+                  onChange={(e) => {
+                    set("dataida", e.target.value);
+                    set("dataida_fmt", fmtDate(e.target.value));
+                  }}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
+            {showVolta && (
+              <Field label="Volta *">
+                <input
+                  type="date"
+                  min={minVolta}
+                  value={(fields.datavolta as string) || ""}
+                  onChange={(e) => {
+                    set("datavolta", e.target.value);
+                    set("datavolta_fmt", fmtDate(e.target.value));
+                  }}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {showCia && (
+        <Section title="Companhia Aérea" icon="🛫">
+          <Field label="CIA">
+            <input
+              value={(fields.cia as string) || ""}
+              onChange={(e) => set("cia", e.target.value)}
+              placeholder="ex. LATAM, GOL, Azul"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </Section>
+      )}
+
+      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" binds={binds} />
     </>
   );
 }
