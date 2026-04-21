@@ -39,9 +39,10 @@ interface Props {
   agencyName?: string;
   availableTypes: Set<PublicarFlowType>;
   onSelectType: (type: PublicarFlowType) => void;
+  thumbUrls?: Partial<Record<PublicarFlowType, string | null>>;
 }
 
-export default function PublicarFlow({ agencyName, availableTypes, onSelectType }: Props) {
+export default function PublicarFlow({ agencyName, availableTypes, onSelectType, thumbUrls }: Props) {
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-6 page-fade">
       <div className="flex flex-col gap-1">
@@ -64,6 +65,8 @@ export default function PublicarFlow({ agencyName, availableTypes, onSelectType 
       >
         {TYPES.map(({ key, label, description, Icon, accent }) => {
           const enabled = availableTypes.has(key);
+          const thumb = thumbUrls?.[key] || null;
+          const hasThumb = Boolean(thumb);
           return (
             <button
               key={key}
@@ -71,8 +74,13 @@ export default function PublicarFlow({ agencyName, availableTypes, onSelectType 
               disabled={!enabled}
               onClick={() => enabled && onSelectType(key)}
               title={enabled ? "" : "Sem template disponível"}
-              className="card-glass group relative flex flex-col items-start gap-3 p-5 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ borderColor: "var(--bdr)" }}
+              className="card-glass group relative flex min-h-[180px] flex-col items-start justify-end gap-3 overflow-hidden p-5 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50"
+              style={{
+                borderColor: "var(--bdr)",
+                backgroundImage: hasThumb ? `url(${thumb})` : undefined,
+                backgroundSize: hasThumb ? "cover" : undefined,
+                backgroundPosition: hasThumb ? "center" : undefined,
+              }}
               onMouseEnter={(e) => {
                 if (!enabled) return;
                 (e.currentTarget as HTMLButtonElement).style.borderColor = accent;
@@ -83,15 +91,32 @@ export default function PublicarFlow({ agencyName, availableTypes, onSelectType 
                 (e.currentTarget as HTMLButtonElement).style.boxShadow = "";
               }}
             >
-              <div
-                className="flex h-11 w-11 items-center justify-center rounded-xl"
-                style={{ background: `${accent}22`, color: accent }}
-              >
-                <Icon size={22} strokeWidth={2} />
-              </div>
-              <div className="flex-1">
-                <div className="text-[15px] font-bold text-[var(--txt)]">{label}</div>
-                <div className="mt-0.5 text-[11px] leading-snug text-[var(--txt3)]">
+              {/* Gradiente pra legibilidade em cima da imagem */}
+              {hasThumb && (
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.75) 100%)" }}
+                />
+              )}
+              {!hasThumb && (
+                <div
+                  className="flex h-11 w-11 items-center justify-center rounded-xl"
+                  style={{ background: `${accent}22`, color: accent }}
+                >
+                  <Icon size={22} strokeWidth={2} />
+                </div>
+              )}
+              <div className="relative flex-1">
+                <div
+                  className="text-[15px] font-bold"
+                  style={{ color: hasThumb ? "#FFFFFF" : "var(--txt)" }}
+                >
+                  {label}
+                </div>
+                <div
+                  className="mt-0.5 text-[11px] leading-snug"
+                  style={{ color: hasThumb ? "rgba(255,255,255,0.85)" : "var(--txt3)" }}
+                >
                   {description}
                 </div>
               </div>

@@ -129,6 +129,62 @@ export default function EditorTemplatesPage() {
   // Novo template (abre editor com licensee pré-selecionado)
   const [newTmplLicensee, setNewTmplLicensee] = useState<string | null>(null);
 
+  // Imagens dos tipos de publicação — system_config key publicar_thumb_{tipo}
+  const PUBLICAR_TIPOS: { k: string; l: string }[] = [
+    { k: "pacote", l: "Pacote" },
+    { k: "campanha", l: "Campanha" },
+    { k: "passagem", l: "Passagem" },
+    { k: "cruzeiro", l: "Cruzeiro" },
+    { k: "anoiteceu", l: "Anoiteceu" },
+    { k: "quatro_destinos", l: "Cards" },
+  ];
+  const [publicarThumbs, setPublicarThumbs] = useState<Record<string, string>>({});
+  const [publicarThumbUploading, setPublicarThumbUploading] = useState<string | null>(null);
+
+  const loadPublicarThumbs = useCallback(async () => {
+    const { data } = await supabase
+      .from("system_config")
+      .select("key, value")
+      .like("key", "publicar_thumb_%");
+    const map: Record<string, string> = {};
+    for (const r of (data ?? []) as { key: string; value: string }[]) {
+      const tipo = r.key.replace(/^publicar_thumb_/, "");
+      let url = "";
+      try { const p = JSON.parse(r.value); url = p?.url ?? p ?? ""; } catch { url = r.value; }
+      if (url && typeof url === "string") map[tipo] = url;
+    }
+    setPublicarThumbs(map);
+  }, []);
+
+  useEffect(() => { loadPublicarThumbs(); }, [loadPublicarThumbs]);
+
+  async function handlePublicarThumbUpload(tipo: string, file: File) {
+    setPublicarThumbUploading(tipo);
+    try {
+      const url = await uploadToCloudinary(file, "aurohubv2/publicar-thumbs");
+      await supabase.from("system_config").upsert(
+        { key: `publicar_thumb_${tipo}`, value: JSON.stringify({ url }), updated_at: new Date().toISOString() },
+        { onConflict: "key" }
+      );
+      setPublicarThumbs((p) => ({ ...p, [tipo]: url }));
+    } catch (err) {
+      console.error("[publicar-thumb upload]", err);
+      alert("Falha no upload.");
+    } finally {
+      setPublicarThumbUploading(null);
+    }
+  }
+
+  async function handlePublicarThumbRemove(tipo: string) {
+    if (!confirm(`Remover imagem de ${tipo}?`)) return;
+    await supabase.from("system_config").delete().eq("key", `publicar_thumb_${tipo}`);
+    setPublicarThumbs((p) => {
+      const next = { ...p };
+      delete next[tipo];
+      return next;
+    });
+  }
+
   useEffect(() => {
     (async () => {
       const p = await getProfile(supabase);
@@ -801,6 +857,70 @@ export default function EditorTemplatesPage() {
           )}
         </div>
       </div>
+
+      {/* Imagens dos tipos de publicação (só ADM) — fundo dos cards do PublicarFlow */}
+      {isAdm && (
+        <section className="border-b border-[var(--bdr)] pb-6">
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <h2 className="text-[18px] font-bold tracking-tight text-[var(--txt)]">Imagens dos tipos de publicação</h2>
+              <p className="mt-0.5 text-[12px] text-[var(--txt3)]">Fundo dos cards do seletor de tipo. Sem imagem → ícone padrão.</p>
+            </div>
+          </div>
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+            {PUBLICAR_TIPOS.map((t) => {
+              const url = publicarThumbs[t.k];
+              const uploading = publicarThumbUploading === t.k;
+              return (
+                <div
+                  key={t.k}
+                  className="relative overflow-hidden rounded-xl border border-[var(--bdr)]"
+                  style={{ background: "var(--bg1)" }}
+                >
+                  <div
+                    className="relative flex h-32 items-end justify-start"
+                    style={{
+                      background: url
+                        ? `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.7) 100%), url(${url}) center/cover`
+                        : "linear-gradient(135deg, var(--bg2), var(--bg3))",
+                    }}
+                  >
+                    <div className="px-3 py-2 text-[13px] font-bold" style={{ color: url ? "#FFFFFF" : "var(--txt2)" }}>
+                      {t.l}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-t border-[var(--bdr)] px-3 py-2">
+                    <label className={`inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)] ${uploading ? "opacity-50" : ""}`}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploading}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handlePublicarThumbUpload(t.k, f);
+                          e.currentTarget.value = "";
+                        }}
+                      />
+                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M2 11l3.5-4 2.5 3 2-2 4 5M2 4h12v8H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+                      {uploading ? "Enviando…" : url ? "Trocar" : "Upload"}
+                    </label>
+                    {url && !uploading && (
+                      <button
+                        type="button"
+                        onClick={() => handlePublicarThumbRemove(t.k)}
+                        className="text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--red)]"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Templates Base (somente ADM) */}
       {isAdm && (

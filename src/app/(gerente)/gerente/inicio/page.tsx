@@ -275,11 +275,13 @@ export default function GerenteInicioPage() {
         .limit(5);
       setUltimasPub((posts ?? []) as ScheduledPost[]);
 
-      // Datas comemorativas próximos 14 dias (tabela datas_comemorativas)
+      // Datas comemorativas próximos 14 dias (tabela datas_comemorativas).
+      // Data em TZ São Paulo — não depende do fuso da máquina do usuário.
       try {
-        const hojeDt = new Date();
-        const mesAtual = hojeDt.getMonth() + 1;
-        const diaAtual = hojeDt.getDate();
+        const brISO = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+        const [, mesStr, diaStr] = brISO.split("-");
+        const mesAtual = parseInt(mesStr, 10);
+        const diaAtual = parseInt(diaStr, 10);
         const diaFim = diaAtual + 14;
         if (diaFim <= 31) {
           const { data: dc } = await supabase

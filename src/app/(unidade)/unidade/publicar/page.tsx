@@ -264,6 +264,9 @@ export default function UnidadePublicarPage() {
   // Tipos com template em system_config (complementa form_templates). "lamina" → "quatro_destinos".
   const [canvasFormTypes, setCanvasFormTypes] = useState<Set<string>>(new Set());
 
+  // Thumb urls pra cards do PublicarFlow — system_config key publicar_thumb_{tipo}
+  const [publicarThumbs, setPublicarThumbs] = useState<Record<string, string>>({});
+
   // Cache de dados por aba (preserva ao trocar)
   const [formCache, setFormCache] = useState<Record<FormType, Record<string, string>>>(() => {
     const defaults = { formapagamento: "Cartão de Crédito", tipovoo: "( Voo Direto )" };
@@ -487,6 +490,22 @@ export default function UnidadePublicarPage() {
           } catch { /* skip */ }
         }
         setCanvasFormTypes(types);
+      } catch { /* silent */ }
+
+      // Thumb urls pros cards do PublicarFlow
+      try {
+        const { data: th } = await supabase
+          .from("system_config")
+          .select("key, value")
+          .like("key", "publicar_thumb_%");
+        const thumbs: Record<string, string> = {};
+        for (const r of (th ?? []) as { key: string; value: string }[]) {
+          const tipo = r.key.replace(/^publicar_thumb_/, "");
+          let url = "";
+          try { const parsed = JSON.parse(r.value); url = parsed?.url ?? parsed ?? ""; } catch { url = r.value; }
+          if (url && typeof url === "string") thumbs[tipo] = url;
+        }
+        setPublicarThumbs(thumbs);
       } catch { /* silent */ }
 
       // Auto-select via URL param (deep link). Sem param → mostra picker.
@@ -1129,6 +1148,7 @@ export default function UnidadePublicarPage() {
       <PublicarFlow
         agencyName={profile?.store?.name || profile?.licensee?.name || undefined}
         availableTypes={availableTypes}
+        thumbUrls={publicarThumbs as Partial<Record<PublicarFlowType, string>>}
         onSelectType={(type) => {
           setTab(type as FormType);
           // Prefere Stories; fallback pro primeiro formato com template pro tipo
