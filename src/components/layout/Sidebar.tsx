@@ -89,6 +89,16 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
+        label: "Importar Template",
+        href: "/importar-template",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 15v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        ),
+      },
+      {
         label: "Biblioteca",
         href: "/biblioteca",
         icon: (
