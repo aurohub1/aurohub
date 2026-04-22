@@ -262,7 +262,7 @@ export default function ClientePublicarPage() {
     <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",transition:"opacity .26s",opacity:animOut?0:1}}>
 
       {/* TOPNAV — espaço generoso */}
-      <div style={{display:"flex",alignItems:"center",height:"56px",background:"var(--bg1)",borderBottom:"1px solid var(--bdr)",flexShrink:0,padding:"0 12px",gap:"4px",overflowX:"auto"}}>
+      <div style={{display:"flex",alignItems:"center",height:"56px",background:"var(--bg1)",borderBottom:"1px solid var(--bdr)",flexShrink:0,padding:"0 12px",marginTop:"8px",gap:"4px",overflowX:"auto"}}>
         <button onClick={goBack} style={{display:"flex",alignItems:"center",gap:"6px",background:"none",border:"none",color:"var(--txt3)",fontSize:"12px",fontWeight:600,cursor:"pointer",padding:"8px 14px",borderRadius:"8px",flexShrink:0,whiteSpace:"nowrap",transition:"color .15s"}}
           onMouseEnter={e=>e.currentTarget.style.color="var(--txt1)"}
           onMouseLeave={e=>e.currentTarget.style.color="var(--txt3)"}
@@ -296,7 +296,7 @@ export default function ClientePublicarPage() {
           </div>
 
           {/* Campos — SCROLL APENAS AQUI */}
-          <div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
+          <div style={{flex:1,overflowY:"scroll",overflowX:"hidden",padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
             {!currentTemplate?(
               <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Nenhum template disponível para {tab}.</div>
             ):tab==="pacote"?(
@@ -344,7 +344,7 @@ export default function ClientePublicarPage() {
             <span style={{fontSize:"10px",color:"var(--txt3)",background:"var(--bg2)",padding:"3px 8px",borderRadius:"6px",border:"1px solid var(--bdr)"}}>{pw} × {ph}</span>
           </div>
           {/* Área do preview — centralizada, sem scroll */}
-          <div ref={previewAreaRef} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+          <div ref={previewAreaRef} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:"0"}}>
             <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={maxDisp}/>
           </div>
         </div>
