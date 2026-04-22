@@ -65,7 +65,6 @@ export default function ClientePublicarPage() {
   const destinoDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const hotelDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const previewAreaRef = useRef<HTMLDivElement>(null);
-  const [maxDisp, setMaxDisp] = useState(400);
 
   useEffect(()=>{
     getProfile(supabase).then(p=>{
@@ -76,28 +75,6 @@ export default function ClientePublicarPage() {
       if(data) setFeriados(data.map((r:any)=>r.nome));
     });
   },[]);
-
-  // Preview responsivo — mede a área disponível
-  useEffect(()=>{
-    if(phase!=="form") return;
-    const measure=()=>{
-      if(!previewAreaRef.current) return;
-      const {width,height}=previewAreaRef.current.getBoundingClientRect();
-      if(!width||!height) return;
-      const [pw,ph]=FORMAT_DIMS[format];
-      const ratio=pw/ph;
-      const availW=width-32;
-      const availH=height-32;
-      const byW=availW;
-      const byH=availH*ratio;
-      setMaxDisp(Math.floor(Math.min(byW,byH)));
-    };
-    measure();
-    setTimeout(measure, 50);
-    const obs=new ResizeObserver(measure);
-    if(previewAreaRef.current) obs.observe(previewAreaRef.current);
-    return()=>obs.disconnect();
-  },[format,phase]);
 
   async function loadTemplates(lid:string){
     const{data}=await supabase.from("form_templates").select("*")
@@ -347,7 +324,7 @@ export default function ClientePublicarPage() {
           </div>
           {/* Área do preview — centralizada, sem scroll */}
           <div ref={previewAreaRef} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:"0"}}>
-            <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={maxDisp}/>
+            <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={900}/>
           </div>
         </div>
 
