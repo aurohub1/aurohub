@@ -714,7 +714,7 @@ export default function GerentePublicarPage({ defaultTab, onVoltar }: GerentePub
       setFormCache((c) => ({ ...c, [tab]: { ...c[tab], noites: key } }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.dataida, values.datavolta, tab]);
+  }, [values?.dataida, values?.datavolta, tab]);
 
   const hoje = todayISO();
 
