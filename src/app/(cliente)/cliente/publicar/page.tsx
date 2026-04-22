@@ -143,7 +143,7 @@ export default function ClientePublicarPage() {
 
   // ===== TELA DE SELEÇÃO =====
   if (phase === "selector") return (
-    <div style={{ padding:"24px", maxWidth:"960px", margin:"0 auto", transition:"opacity .26s, transform .26s", opacity:animOut?0:1, transform:animOut?"translateX(-24px)":"translateX(0)" }}>
+    <div style={{ padding:"24px", width:"100%", transition:"opacity .26s, transform .26s", opacity:animOut?0:1, transform:animOut?"translateX(-24px)":"translateX(0)" }}>
       <h1 style={{ fontSize:"20px", fontWeight:800, color:"var(--txt1)", marginBottom:"4px" }}>Publicar</h1>
       <p style={{ fontSize:"12px", color:"var(--txt3)", marginBottom:"20px" }}>Escolha o tipo de arte para criar</p>
 
