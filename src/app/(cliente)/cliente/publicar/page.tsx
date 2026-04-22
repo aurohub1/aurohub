@@ -83,6 +83,7 @@ export default function ClientePublicarPage() {
     const measure=()=>{
       if(!previewAreaRef.current) return;
       const {width,height}=previewAreaRef.current.getBoundingClientRect();
+      if(!width||!height) return;
       const [pw,ph]=FORMAT_DIMS[format];
       const ratio=pw/ph;
       const availW=width-32;
@@ -92,6 +93,7 @@ export default function ClientePublicarPage() {
       setMaxDisp(Math.floor(Math.min(byW,byH)));
     };
     measure();
+    setTimeout(measure, 50);
     const obs=new ResizeObserver(measure);
     if(previewAreaRef.current) obs.observe(previewAreaRef.current);
     return()=>obs.disconnect();
