@@ -135,13 +135,13 @@ export default function ClientePublicarPage() {
     if(!m.length) return null;
     return proximaImagem("hotel_"+slugify(hotel),m.map(r=>r.url));
   }
-  async function loadDestinos(q:string){
+  async function loadDestinos(q:string=""){
     const rows=await loadDestinoData();
     const seen=new Set<string>();
     return rows.map(r=>r.nome).filter(n=>{const k=normalizar(n);if(seen.has(k))return false;seen.add(k);return true;})
       .filter(n=>normalizar(n).includes(normalizar(q))).slice(0,20);
   }
-  async function loadHoteis(q:string){
+  async function loadHoteis(q:string=""){
     const rows=await loadHotelData();
     const seen=new Set<string>();
     return rows.map(r=>r.nome).filter(n=>{const k=normalizar(n);if(seen.has(k))return false;seen.add(k);return true;})
