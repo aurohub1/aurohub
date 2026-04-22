@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { PublishQueueProvider } from "@/hooks/usePublishQueue";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
@@ -46,7 +46,6 @@ interface TemplateRow {
 const DEFAULTS = { formapagamento:"Cartão de Crédito", tipovoo:"( Voo Direto )" };
 
 export default function ClientePublicarPage() {
-  const supabase = createClient();
   const [profile, setProfile] = useState<FullProfile|null>(null);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [tab, setTab] = useState<FormType>("pacote");
