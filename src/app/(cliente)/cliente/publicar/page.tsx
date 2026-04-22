@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { PublishQueueProvider } from "@/hooks/usePublishQueue";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
