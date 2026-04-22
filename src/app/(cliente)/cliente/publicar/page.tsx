@@ -344,18 +344,15 @@ export default function ClientePublicarPage() {
             <span style={{fontSize:"10px",color:"var(--txt3)",background:"var(--bg2)",padding:"3px 8px",borderRadius:"6px",border:"1px solid var(--bdr)"}}>{pw} × {ph}</span>
           </div>
           {/* Área do preview — centralizada, sem scroll */}
-          <div style={{flex:1,position:"relative"}}>
-            <div ref={previewAreaRef} style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-              <div style={{
-                position:"relative",
-                width: Math.round(maxDisp*(pw/ph)) + "px",
-                height: maxDisp + "px",
-                overflow:"hidden",
-                flexShrink:0
-              }}>
-                <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={maxDisp}/>
-              </div>
-            </div>
+          <div ref={previewAreaRef} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+            <div style={{
+              position:"relative",
+              width: Math.round(maxDisp*(pw/ph)) + "px",
+              height: maxDisp + "px",
+              overflow:"hidden",
+              flexShrink:0
+            }}>
+              <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={maxDisp}/>
           </div>
         </div>
 
