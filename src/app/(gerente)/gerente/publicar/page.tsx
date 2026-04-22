@@ -1095,7 +1095,7 @@ export default function GerentePublicarPage({ defaultTab, onVoltar }: GerentePub
 
   const previewValues = useMemo(() => {
     const merged: Record<string, string> = { ...(values ?? {}) };
-    for (const [k, v] of Object.entries(badges)) {
+    for (const [k, v] of Object.entries(badges ?? {})) {
       merged[k] = v ? "true" : "";
     }
     return merged;
