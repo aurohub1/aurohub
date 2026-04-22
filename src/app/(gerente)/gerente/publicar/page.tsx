@@ -1220,6 +1220,7 @@ export default function GerentePublicarPage() {
                   loadDestinos={loadDestinos}
                   loadHoteis={loadHoteis}
                   onImgFundo={(url) => setField("imgfundo", url)}
+                  onHotelBlur={onHotelBlur}
                   binds={templateBinds}
                 />
               )}

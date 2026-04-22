@@ -444,6 +444,7 @@ export function PacoteForm({
   today, feriadoOpts,
   loadDestinos, loadHoteis,
   onImgFundo,
+  onHotelBlur,
   binds,
 }: {
   fields: Fields;
@@ -456,6 +457,8 @@ export function PacoteForm({
   loadHoteis?: () => Promise<string[]>;
   /** Callback pra atualizar imgfundo — chamado no blur de destino e hotel. */
   onImgFundo?: (url: string) => void;
+  /** Callback opcional no blur do hotel — a page pode rodar fetchImgHotel + fallback. */
+  onHotelBlur?: (hotel: string) => void;
   binds?: Set<string>;
 }) {
   const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
@@ -690,6 +693,7 @@ export function PacoteForm({
             <SearchableSelect
               value={(fields.hotel as string) || ""}
               onChange={(v) => set("hotel", v)}
+              onBlur={(v) => { if (v.trim()) onHotelBlur?.(v); }}
               options={hotelOpts}
               placeholder="Nome do hotel"
               allowCustom
