@@ -243,7 +243,7 @@ export default function ImportarTemplatePage() {
     y: Math.round((el.y / 100) * canvasH),
     width: Math.round((el.w / 100) * canvasW),
     height: Math.round((el.h / 100) * canvasH),
-    fontSize: el.fontSize || 32,
+    fontSize: Math.round((el.fontSize || 32) * (canvasW / 1080)),
     fontFamily: "Helvetica Neue",
     fontStyle: "bold",
     fill: el.color || "#FFFFFF",
