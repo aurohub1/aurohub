@@ -82,7 +82,8 @@ function dateToDt(date: string, currentDt?: string): string {
 /** Hook. Retorna { fields, set, servicos, setServicos } pronto pra passar pros forms. */
 export function useFormAdapter({ tab, values, badges, setField, setBadge }: AdapterArgs) {
   const fields: Fields = useMemo(() => {
-    const f: Fields = { ...values };
+    const f: Fields = { ...(values ?? {}) };
+      if (!badges) return f as Fields;
     // Badges legadas → nomes novos
     for (const [newKey, badgeKey] of Object.entries(BADGE_MAP)) {
       f[newKey] = !!badges[badgeKey];
