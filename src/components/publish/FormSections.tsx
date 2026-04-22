@@ -281,7 +281,7 @@ export function PagamentoSection({
   ];
 
   const showForma = hasBind(binds, "formapagamento");
-  const showEntrada = fields.formapagamento === "entrada" && hasBind(binds, "entrada");
+  const showEntrada = fields.formapagamento === "entrada";
   const showParcelas = hasBind(binds, "parcelas");
   const showValorParc = hasBind(binds, "valorparcela");
   const showTotal = hasBind(binds, "valortotal", "totalduplo");
@@ -563,7 +563,7 @@ export function PacoteForm({
   const showOfertas = hasBind(binds, "ofertas", "ofertas_azul_badge");
   const showBadges = showAllInc || showUltCh || showUltLug || showOfertas;
   const showForma = hasBind(binds, "formapagamento");
-  const showEntrada = fields.formapagamento === "entrada" && hasBind(binds, "entrada");
+  const showEntrada = fields.formapagamento === "entrada";
   const showParcelas = hasBind(binds, "parcelas");
   const showValorParc = hasBind(binds, "valorparcela", "valorint", "valdec");
   const showDesconto = hasBind(binds, "numerodesconto", "desconto");
