@@ -157,14 +157,14 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
 
   // Serviços como array (CampanhaForm espera servicos/setServicos)
   const servicos = useMemo(() => {
-    return [1, 2, 3, 4, 5, 6].map((i) => values[`servico${i}`] || "");
+    return [1, 2, 3, 4, 5, 6].map((i) => values?.[`servico${i}`] || "");
   }, [values]);
 
   const setServicos = useCallback((next: string[]) => {
     for (let i = 0; i < 6; i++) {
       const key = `servico${i + 1}`;
       const val = next[i] || "";
-      if ((values[key] || "") !== val) setField(key, val);
+      if ((values?.[key] || "") !== val) setField(key, val);
     }
   }, [values, setField]);
 
