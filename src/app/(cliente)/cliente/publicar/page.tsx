@@ -86,12 +86,10 @@ export default function ClientePublicarPage() {
       const h=el.offsetHeight;
       if(!w||!h) return;
       const [pw,ph]=FORMAT_DIMS[format];
-      // PreviewStage: scale = min(maxDisplay/ph, maxDisplay*0.75/pw)
-      // Para stories (9:16): ratio=0.5625, maxDisplay limitado por altura
-      // Calcular maxDisplay que faz o preview caber em w x h
-      const ratio = pw/ph;  // ex: 9/16=0.5625 para stories
-      const maxByH = h - 16;
-      const maxByW = (w - 16) / ratio;
+      // PreviewStage: altura=maxDisplay, largura=maxDisplay*(pw/ph)
+      // Para caber em área w x h:
+      const maxByH = h - 32;              // limitado pela altura
+      const maxByW = (w - 32) * (ph/pw);  // limitado pela largura: maxDisp = w*(ph/pw)
       setMaxDisp(Math.floor(Math.min(maxByH, maxByW)));
     };
     calc();
