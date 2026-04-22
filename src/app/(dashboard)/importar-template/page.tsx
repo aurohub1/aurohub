@@ -283,19 +283,21 @@ export default function ImportarTemplatePage() {
     setSaving(true);
     setSaveError("");
     try {
-      const key = `tmpl_${Date.now()}`;
-      const { error } = await supabase.from("system_config").upsert(
-        {
-          key,
-          value: JSON.stringify(templateJson),
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "key" },
-      );
+      const { data, error } = await supabase.from("form_templates").insert({
+        name: templateName,
+        form_type: formType,
+        format: detectedFormat,
+        width: canvasW,
+        height: canvasH,
+        schema: { elements: konvaElements, background: "#0B1D3A" },
+        is_base: licenseeId === "base",
+        licensee_id: licenseeId === "base" ? null : licenseeId,
+        active: true,
+      }).select("id").single();
       if (error) {
         setSaveError(error.message);
       } else {
-        setSavedKey(key);
+        setSavedKey(data?.id || "saved");
       }
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Erro ao salvar");
