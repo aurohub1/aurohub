@@ -65,6 +65,7 @@ export default function ClientePublicarPage() {
   const destinoDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const hotelDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const previewAreaRef = useRef<HTMLDivElement>(null);
+  const [maxDisp, setMaxDisp] = useState(600);
 
   useEffect(()=>{
     getProfile(supabase).then(p=>{
@@ -75,6 +76,24 @@ export default function ClientePublicarPage() {
       if(data) setFeriados(data.map((r:any)=>r.nome));
     });
   },[]);
+
+  useEffect(()=>{
+    if(phase!=="form") return;
+    const el = previewAreaRef.current;
+    if(!el) return;
+    const calc=()=>{
+      const w=el.offsetWidth;
+      const h=el.offsetHeight;
+      if(!w||!h) return;
+      const [pw,ph]=FORMAT_DIMS[format];
+      const byW=w-16;
+      const byH=(h-16)*(pw/ph);
+      setMaxDisp(Math.floor(Math.min(byW,byH)));
+    };
+    calc();
+    window.addEventListener("resize",calc);
+    return()=>window.removeEventListener("resize",calc);
+  },[format,phase]);
 
   async function loadTemplates(lid:string){
     const{data}=await supabase.from("form_templates").select("*")
@@ -324,7 +343,7 @@ export default function ClientePublicarPage() {
           </div>
           {/* Área do preview — centralizada, sem scroll */}
           <div ref={previewAreaRef} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",padding:"0"}}>
-            <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={900}/>
+            <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={maxDisp}/>
           </div>
         </div>
 
