@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { PublishQueueProvider } from "@/hooks/usePublishQueue";
 import GerentePublicar from "@/app/(gerente)/gerente/publicar/page";
-import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
+import { getProfile, type FullProfile } from "@/lib/auth";
 import {
   Plane, Target, Ticket, Ship, Moon, MessageSquare,
   Tv, ArrowRight, Infinity as InfinityIcon
@@ -24,13 +24,15 @@ const TIPOS = [
 interface PostCount { stories:number; feed:number; reels:number; tv:number; }
 
 export default function ClientePublicarPage() {
-  const supabase = createClient();
-  const { profile } = useAuth();
-
+  const [profile, setProfile] = useState<FullProfile | null>(null);
   const [selectedTipo, setSelectedTipo] = useState<FormType|null>(null);
   const [phase, setPhase] = useState<"in"|"out">("in");
   const [posts, setPosts] = useState<PostCount>({ stories:0, feed:0, reels:0, tv:0 });
   const [limits, setLimits] = useState({ stories:null as number|null, feed:5, reels:10, tv:0 });
+
+  useEffect(() => {
+    getProfile(supabase).then(setProfile);
+  }, []);
 
   useEffect(() => {
     if (!profile?.licensee_id) return;
