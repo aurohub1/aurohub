@@ -1094,7 +1094,7 @@ export default function GerentePublicarPage({ defaultTab, onVoltar }: GerentePub
   const schema: EditorSchema = currentTemplate?.schema ?? { elements: [], background: "#0E1520", duration: 5 };
 
   const previewValues = useMemo(() => {
-    const merged: Record<string, string> = { ...values };
+    const merged: Record<string, string> = { ...(values ?? {}) };
     for (const [k, v] of Object.entries(badges)) {
       merged[k] = v ? "true" : "";
     }
