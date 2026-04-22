@@ -585,7 +585,7 @@ export function PacoteForm({
                 onBlur={(v) => {
                   const up = v.toUpperCase();
                   set("destino", up);
-                  if (up.trim()) fetchImgFundo(up);
+                  if (up.trim() && !fields.imgfundo) fetchImgFundo(up);
                 }}
                 options={destinoOpts}
                 placeholder="ex. CANCÚN"
