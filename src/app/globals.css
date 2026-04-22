@@ -110,9 +110,14 @@
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   background: var(--bg);
   color: var(--txt);
+  height: 100%;
 }
 
 ::-webkit-scrollbar {
