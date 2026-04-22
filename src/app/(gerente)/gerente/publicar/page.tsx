@@ -1612,7 +1612,7 @@ export default function GerentePublicarPage() {
           )}
         </div>
         {/* Format pills flutuantes — só aparece se o plano libera >1 formato */}
-        {visibleFormats.length > 1 && (
+        {visibleFormats.length > 0 && (
           <div className="pointer-events-none absolute top-5 left-0 right-0 flex justify-center">
             <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--bdr)] bg-[var(--bg1)] p-1 shadow-xl">
               {visibleFormats.map((f) => {
