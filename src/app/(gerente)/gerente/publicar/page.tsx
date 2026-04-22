@@ -256,7 +256,12 @@ function filterAZVGroup(stores: StoreOption[]): StoreOption[] {
 
 /* ── Component principal ─────────────────────────── */
 
-export default function GerentePublicarPage() {
+interface GerentePublicarPageProps {
+  defaultTab?: FormType;
+  onVoltar?: () => void;
+}
+
+export default function GerentePublicarPage({ defaultTab, onVoltar }: GerentePublicarPageProps = {}) {
   const searchParams = useSearchParams();
   const templateParam = searchParams.get("template");
 
@@ -273,7 +278,7 @@ export default function GerentePublicarPage() {
   }, [feriadosData, feriadosError]);
 
   // Estado por aba
-  const [tab, setTab] = useState<FormType>("pacote");
+  const [tab, setTab] = useState<FormType>(defaultTab ?? "pacote");
   const [format, setFormat] = useState<Format>("stories");
 
   // Cache de dados por aba (preserva ao trocar)
@@ -702,6 +707,7 @@ export default function GerentePublicarPage() {
 
   // Noites calculado (readonly) — sincroniza no cache sempre que ida/volta mudam
   useEffect(() => {
+    if (!values) return;
     const n = calcNoites(values.dataida || "", values.datavolta || "");
     const key = String(n || "");
     if (values.noites !== key) {
@@ -1120,6 +1126,15 @@ export default function GerentePublicarPage() {
       >
         {/* Header */}
         <div className="shrink-0 border-b border-[var(--bdr)] px-5 pt-5 pb-4">
+          {onVoltar && (
+            <button
+              type="button"
+              onClick={onVoltar}
+              className="mb-3 flex items-center gap-1.5 text-[12px] font-medium text-[var(--txt3)] transition-colors hover:text-[var(--txt1)]"
+            >
+              <span>←</span> Voltar
+            </button>
+          )}
           <h1 className="truncate font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-tight text-[var(--txt)]">
             {profile?.store?.name || profile?.licensee?.name || "Minha agência"}
           </h1>
