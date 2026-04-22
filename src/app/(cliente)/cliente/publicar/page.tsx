@@ -102,7 +102,7 @@ export default function ClientePublicarPage() {
     });
     obs.observe(previewRef.current);
     return () => obs.disconnect();
-  }, [format]);
+  }, [format, phase]);
 
   async function loadTemplates(licenseeId: string) {
     const { data } = await supabase.from("form_templates").select("*")
