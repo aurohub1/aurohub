@@ -346,7 +346,15 @@ export default function ClientePublicarPage() {
           {/* Área do preview — centralizada, sem scroll */}
           <div style={{flex:1,position:"relative"}}>
             <div ref={previewAreaRef} style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-              <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={maxDisp}/>
+              <div style={{
+                position:"relative",
+                width: Math.round(maxDisp*(pw/ph)) + "px",
+                height: maxDisp + "px",
+                overflow:"hidden",
+                flexShrink:0
+              }}>
+                <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={maxDisp}/>
+              </div>
             </div>
           </div>
         </div>
