@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Upload, Sparkles, ListChecks, Save, Loader2, X, Check, Plus, Trash2 } from "lucide-react";
 
@@ -68,6 +69,7 @@ function detectFormat(w: number, h: number): Format {
 /* ── Page ─────────────────────────────────────────── */
 
 export default function ImportarTemplatePage() {
+  const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Step 1 — upload
@@ -230,8 +232,6 @@ export default function ImportarTemplatePage() {
   }
 
   /* ── Step 4: Save ────────────────────────────── */
-  console.log("elements ao salvar:", elements);
-
   const canvasW = detectedFormat === "tv" ? 1920 : 1080;
   const canvasH = detectedFormat === "stories" ? 1920 : detectedFormat === "feed" ? 1350 : 1080;
 
@@ -297,7 +297,8 @@ export default function ImportarTemplatePage() {
       if (error) {
         setSaveError(error.message);
       } else {
-        setSavedKey(data?.id || "saved");
+        setSavedKey(data.id);
+        setTimeout(() => router.push("/editor-de-templates"), 1500);
       }
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Erro ao salvar");
