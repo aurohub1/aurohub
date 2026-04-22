@@ -1148,7 +1148,7 @@ export default function GerentePublicarPage() {
 
         {/* Tabs — linha única, sem quebra */}
         <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-2">
-          <div className="flex flex-nowrap items-center gap-0.5" style={{ whiteSpace: "nowrap" }}>
+          <div className="flex flex-wrap items-center gap-0.5" style={{ whiteSpace: "nowrap" }}>
             {FORM_ORDER.map((f) => {
               const active = tab === f;
               return (

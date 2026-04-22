@@ -231,36 +231,6 @@ export default function ImportarTemplatePage() {
 
   /* ── Step 4: Save ────────────────────────────── */
   console.log("elements ao salvar:", elements);
-  const templateJson = {
-    nome: templateName,
-    format: detectedFormat,
-    formType,
-    segmento: "Geral",
-    licenseeId: licenseeId === "base" ? null : licenseeId,
-    licenseeNome: licenseeId === "base" ? "Base do sistema" : (licensees.find((l) => l.id === licenseeId)?.name || ""),
-    is_base: licenseeId === "base",
-    thumbnail: null,
-    imagemOrigem: imageData,
-    schema: {
-      elements: elements.map((el) => ({
-        bind: el.bind,
-        type: el.type,
-        x: el.x,
-        y: el.y,
-        w: el.w,
-        h: el.h,
-        fontSize: el.fontSize,
-        color: el.color,
-      })),
-      rules: rules.map((r) => ({
-        field: r.field,
-        type: r.type,
-        params: r.params,
-        description: r.description,
-        summary: r.summary,
-      })),
-    },
-  };
 
   async function saveTemplate() {
     if (!templateName.trim()) {
@@ -294,19 +264,30 @@ export default function ImportarTemplatePage() {
         imageFit: el.type === "image" ? "cover" : undefined,
       }));
 
-      const finalJson = {
-        ...templateJson,
-        schema: {
-          ...templateJson.schema,
-          elements: konvaElements,
-        },
+      const templateJson = {
+        nome: templateName,
+        format: detectedFormat,
+        formType,
+        width: canvasW,
+        height: canvasH,
+        segmento: "Geral",
+        licenseeId: licenseeId === "base" ? null : licenseeId,
+        is_base: licenseeId === "base",
+        elements: konvaElements,
+        rules: rules.map((r) => ({
+          field: r.field,
+          type: r.type,
+          params: r.params,
+          description: r.description,
+          summary: r.summary,
+        })),
       };
 
       const key = `tmpl_${Date.now()}`;
       const { error } = await supabase.from("system_config").upsert(
         {
           key,
-          value: JSON.stringify(finalJson),
+          value: JSON.stringify(templateJson),
           updated_at: new Date().toISOString(),
         },
         { onConflict: "key" },
