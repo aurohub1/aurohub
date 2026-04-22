@@ -336,12 +336,12 @@ export default function ClientePublicarPage() {
         </div>
 
         {/* PREVIEW */}
-        <div ref={previewRef} style={{flex:1,background:"var(--bg0)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{flex:1,background:"var(--bg0)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid var(--bdr)",flexShrink:0}}>
             <span style={{fontSize:"10px",fontWeight:700,color:"var(--txt3)",textTransform:"uppercase",letterSpacing:".1em"}}>Preview ao vivo</span>
             <span style={{fontSize:"10px",color:"var(--txt3)",background:"var(--bg2)",padding:"3px 8px",borderRadius:"6px",border:"1px solid var(--bdr)"}}>{pw} × {ph}</span>
           </div>
-          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px",overflow:"hidden"}}>
+          <div ref={previewRef} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px",overflow:"hidden"}}>
             <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={previewSize.w}/>
           </div>
         </div>
