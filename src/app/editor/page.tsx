@@ -187,7 +187,7 @@ function EditorInner() {
                     const { data: scRow } = await supabase.from("system_config").select("value").eq("key", key).single();
                     if (scRow) {
                       const p = JSON.parse(scRow.value);
-                      await supabase.from("form_templates").upsert({
+                      const ftData = {
                         name: p.nome || key,
                         form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
                         format: p.format || "stories",
@@ -197,9 +197,13 @@ function EditorInner() {
                         schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
                         width: p.width || 1080,
                         height: p.height || 1920,
-                      }, { onConflict: "name,form_type,format" });
+                      };
+                      console.log("[Editor][sync-variant] form_templates upsert:", ftData);
+                      const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "name,form_type,format" });
+                      if (ftErr) console.error("[Editor][sync-variant] erro:", ftErr);
+                      else console.log("[Editor][sync-variant] ✅ Variant sincronizado");
                     }
-                  } catch { /* silent */ }
+                  } catch (syncErr) { console.error("[Editor][sync-variant] catch:", syncErr); }
                 }
                 alert(`${pendingVariants.length} variantes salvas!`);
                 setPendingVariants(null);
@@ -233,7 +237,7 @@ function EditorInner() {
                     const { data: scRow } = await supabase.from("system_config").select("value").eq("key", editingStarterId).single();
                     if (scRow) {
                       const p = JSON.parse(scRow.value);
-                      await supabase.from("form_templates").upsert({
+                      const ftData = {
                         name: p.nome || editingStarterId,
                         form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
                         format: p.format || "stories",
@@ -243,9 +247,13 @@ function EditorInner() {
                         schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
                         width: p.width || 1080,
                         height: p.height || 1920,
-                      }, { onConflict: "name,form_type,format" });
+                      };
+                      console.log("[Editor][sync-starter] form_templates upsert:", ftData);
+                      const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "name,form_type,format" });
+                      if (ftErr) console.error("[Editor][sync-starter] erro:", ftErr);
+                      else console.log("[Editor][sync-starter] ✅ Starter sincronizado");
                     }
-                  } catch { /* silent */ }
+                  } catch (syncErr) { console.error("[Editor][sync-starter] catch:", syncErr); }
                   setEditingStarterId(null);
                   setLoadedNome(meta.nome);
                   setFormat(meta.format);
@@ -282,7 +290,7 @@ function EditorInner() {
                 const { data: scRow } = await supabase.from("system_config").select("value").eq("key", `tmpl_${key}`).single();
                 if (scRow) {
                   const p = JSON.parse(scRow.value);
-                  await supabase.from("form_templates").upsert({
+                  const ftData = {
                     name: p.nome || key,
                     form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
                     format: p.format || "stories",
@@ -292,9 +300,13 @@ function EditorInner() {
                     schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
                     width: p.width || 1080,
                     height: p.height || 1920,
-                  }, { onConflict: "name,form_type,format" });
+                  };
+                  console.log("[Editor][sync] form_templates upsert:", ftData);
+                  const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "name,form_type,format" });
+                  if (ftErr) console.error("[Editor][sync] form_templates erro:", ftErr);
+                  else console.log("[Editor][sync] ✅ Template sincronizado com form_templates");
                 }
-              } catch { /* silent */ }
+              } catch (syncErr) { console.error("[Editor][sync] catch:", syncErr); }
               try {
                 const { error: hErr } = await supabase.from("template_history").insert({
                   template_id: key,
