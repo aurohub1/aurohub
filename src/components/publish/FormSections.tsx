@@ -74,8 +74,8 @@ export function Section({
   void color;
   return (
     <div
-      className="rounded-xl border px-3 py-2"
-      style={{ background: "var(--bg1)", borderColor: "var(--bdr)" }}
+      className="px-3 py-2 border-b last:border-b-0"
+      style={{ borderColor: "var(--bdr)" }}
     >
       <div className="mb-1.5 flex items-center gap-1.5">
         {icon && <span className="text-[13px]">{icon}</span>}
