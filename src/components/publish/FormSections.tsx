@@ -1142,6 +1142,9 @@ export function AnoiteceuForm({
   set: Setter;
   binds?: Set<string>;
 }) {
+  const descontoOpts = ["5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
+  const horaOpts = Array.from({ length: 24 }, (_, i) => `${i}h`);
+
   return (
     <>
       <div className="mb-3 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 px-4 py-3 backdrop-blur-sm">
@@ -1155,42 +1158,51 @@ export function AnoiteceuForm({
       </div>
 
       <Section title="Desconto" icon="🏷️">
-        <Field label="Desconto (ex: ATÉ 40%)">
-          <input
-            type="text"
+        <Field label="Desconto">
+          <select
             value={(fields.desconto as string) || ""}
             onChange={(e) => set("desconto", e.target.value)}
-            placeholder="ATÉ 40%"
             className={INPUT_CLASS}
-          />
+          >
+            <option value="">Selecione...</option>
+            {descontoOpts.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         </Field>
       </Section>
 
       <Section title="Horário da Promoção" icon="⏰">
         <div className="grid grid-cols-2 gap-2">
-          <Field label="Hora Início">
-            <input
-              type="text"
+          <Field label="INÍCIO">
+            <select
               value={(fields.inicio as string) || ""}
               onChange={(e) => set("inicio", e.target.value)}
-              placeholder="18h"
               className={INPUT_CLASS}
-            />
+            >
+              <option value="">--</option>
+              {horaOpts.map((h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
           </Field>
-          <Field label="Hora Fim">
-            <input
-              type="text"
+          <Field label="FIM">
+            <select
               value={(fields.fim as string) || ""}
               onChange={(e) => set("fim", e.target.value)}
-              placeholder="6h"
               className={INPUT_CLASS}
-            />
+            >
+              <option value="">--</option>
+              {horaOpts.map((h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
           </Field>
         </div>
       </Section>
 
       <Section title="Validade" icon="📅">
-        <Field label="Viagens até">
+        <Field label="PARA VIAGENS ATÉ">
           <input
             type="date"
             value={(fields.viagens_ate as string) || ""}
