@@ -1171,21 +1171,25 @@ export function AnoiteceuForm({
         </Field>
       </Section>
 
-      <Section title="Horário da Promoção" icon="⏰">
+      <Section title="Válidade da Promoção" icon="📅">
         <div className="grid grid-cols-2 gap-2">
           <Field label="INÍCIO">
             <input
-              type="date"
+              type="text"
               value={(fields.inicio as string) || ""}
               onChange={(e) => set("inicio", e.target.value)}
+              placeholder="DD/MM"
+              maxLength={5}
               className={INPUT_CLASS}
             />
           </Field>
           <Field label="FIM">
             <input
-              type="date"
+              type="text"
               value={(fields.fim as string) || ""}
               onChange={(e) => set("fim", e.target.value)}
+              placeholder="DD/MM"
+              maxLength={5}
               className={INPUT_CLASS}
             />
           </Field>
