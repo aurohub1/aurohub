@@ -275,6 +275,7 @@ export const CLIENTE_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/cliente/inicio", icon: I.home },
       { label: "Publicar", href: "/cliente/publicar", icon: I.publish },
+      { label: "Calendário", href: "/cliente/calendario", icon: I.calendar },
       { label: "Templates", href: "/cliente/templates", icon: I.templates, feature: "templates" },
       { label: "Unidades", href: "/cliente/unidades", icon: I.stores, feature: "unidades" },
       { label: "Usuários", href: "/cliente/usuarios", icon: I.users, feature: "usuarios" },
