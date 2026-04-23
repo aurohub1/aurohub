@@ -1,138 +1,41 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import { getProfile, type FullProfile } from "@/lib/auth";
+import { TemplateCard, type CanvasTemplate } from "@/components/editor/TemplateCard";
+import { TemplateFilters } from "@/components/editor/TemplateFilters";
 
-interface CanvasTemplate {
-  key: string;
-  displayName: string;
-  nome: string;
-  format: string;
-  formType: string;
-  segmento: string;
-  updatedAt: string | null;
-  licenseeId: string | null;
-  licenseeNome: string;
-  lojaNome: string;
-  thumbnail: string | null;
-  isBase: boolean;
-  baseTipo: string | null;
-}
-
-const SEGMENTOS = ["Turismo", "Eventos", "Gastronomia", "Imobiliário", "Saúde", "Educação", "Geral"];
-
-/* ── Types ───────────────────────────────────────── */
-
-interface Template {
-  id: string;
-  group_id: string | null;
-  format: string;
-  width: number;
-  height: number;
-  image_url: string;
-  active: boolean;
-  created_at: string;
-}
-
-interface Field {
-  id: string;
-  template_id: string;
-  label: string;
-  field_key: string;
-  field_type: string;
-}
-
-interface TemplateGroup {
-  id: string;
-  licensee_id: string | null;
-  segment_id: string | null;
-  name: string;
-  description: string | null;
-  active: boolean;
-}
-
-interface Segment { id: string; name: string; icon: string | null; }
 interface Licensee { id: string; name: string; }
-
-type ModalTab = "dados" | "campos" | "acesso";
-
-/* ── Constants ───────────────────────────────────── */
-
-const FORMAT_OPTIONS: { value: string; label: string; w: number; h: number }[] = [
-  { value: "feed",    label: "Feed (1:1)",     w: 1080, h: 1080 },
-  { value: "reels",   label: "Reels (9:16)",   w: 1080, h: 1920 },
-  { value: "stories", label: "Stories (9:16)",  w: 1080, h: 1920 },
-  { value: "tv",      label: "TV (16:9)",      w: 1920, h: 1080 },
-];
-
-const BIND_GROUPS: { group: string; fields: string[] }[] = [
-  { group: "Imagens",   fields: ["imgfundo", "imgdestino", "imghotel", "imgloja", "imgperfil"] },
-  { group: "Destino",   fields: ["destino", "subdestino"] },
-  { group: "Datas",     fields: ["dataida", "datavolta", "noites"] },
-  { group: "Hotel",     fields: ["hotel", "categoria"] },
-  { group: "Serviços",  fields: ["servicos", "allinclusivo"] },
-  { group: "Preço",     fields: ["preco", "parcelas", "entrada", "moeda"] },
-  { group: "Loja",      fields: ["loja", "agente", "fone"] },
-  { group: "Genérico",  fields: ["titulo", "subtitulo", "texto1", "texto2"] },
-];
 
 /* ── Component ───────────────────────────────────── */
 
 export default function EditorTemplatesPage() {
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [fields, setFields] = useState<Field[]>([]);
-  const [groups, setGroups] = useState<TemplateGroup[]>([]);
-  const [segments, setSegments] = useState<Segment[]>([]);
-  const [licensees, setLicensees] = useState<Licensee[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Filters
-  const [search, setSearch] = useState("");
-  const [fFormat, setFFormat] = useState("");
-  const [fSegment, setFSegment] = useState("");
-  const [fStatus, setFStatus] = useState("");
-
-  // Modal
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState<ModalTab>("dados");
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: "", format: "feed", segment_id: "", description: "", image_url: "", active: true,
-  });
-  const [selectedBinds, setSelectedBinds] = useState<string[]>([]);
-  const [accessLicensees, setAccessLicensees] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [modalError, setModalError] = useState("");
-  const imgRef = useRef<HTMLInputElement>(null);
-
-  // Delete
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const router = useRouter();
 
   // Canvas templates (system_config tmpl_*)
-  const router = useRouter();
   const [canvasTemplates, setCanvasTemplates] = useState<CanvasTemplate[]>([]);
   const [canvasLoading, setCanvasLoading] = useState(true);
   const [thumbUploadingKey, setThumbUploadingKey] = useState<string | null>(null);
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [globalFilterType, setGlobalFilterType] = useState("");
   const [globalFilterFormat, setGlobalFilterFormat] = useState("");
+  const [licensees, setLicensees] = useState<Licensee[]>([]);
 
   // Clone modal (base → licensee)
   const [cloneKey, setCloneKey] = useState<string | null>(null);
   const [cloneLicensee, setCloneLicensee] = useState<string>("");
   const [cloning, setCloning] = useState(false);
 
-  // Novo template (abre editor com licensee pré-selecionado)
-  const [newTmplLicensee, setNewTmplLicensee] = useState<string | null>(null);
-
   useEffect(() => {
     (async () => {
       const p = await getProfile(supabase);
       setProfile(p);
+      // Load licensees for clone modal
+      const { data: lR } = await supabase.from("licensees").select("id, name").order("name");
+      setLicensees((lR as Licensee[]) ?? []);
     })();
   }, []);
 
@@ -149,14 +52,9 @@ export default function EditorTemplatesPage() {
       .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
   }
 
-  async function saveNome(key: string, nome: string) {
+  async function handleNameChange(key: string, nome: string) {
     await persistField(key, "nome", nome);
     setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, nome } : t)));
-  }
-
-  async function saveSegmento(key: string, segmento: string) {
-    await persistField(key, "segmento", segmento);
-    setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, segmento } : t)));
   }
 
   async function persistThumb(key: string, url: string) {
@@ -373,334 +271,6 @@ export default function EditorTemplatesPage() {
     } catch (err) { console.error("[CanvasTemplates] delete:", err); alert("Erro ao excluir."); }
   };
 
-  /* ── Load ──────────────────────────────────────── */
-
-  const loadData = useCallback(async () => {
-    try {
-      const [tR, fR, gR, sR, lR] = await Promise.all([
-        supabase.from("templates").select("*").order("created_at", { ascending: false }),
-        supabase.from("fields").select("id, template_id, label, field_key, field_type"),
-        supabase.from("template_groups").select("id, licensee_id, segment_id, name, description, active"),
-        supabase.from("segments").select("id, name, icon"),
-        supabase.from("licensees").select("id, name").order("name"),
-      ]);
-      // DEBUG: logs para auditar se RLS está excluindo templates do ADM
-      console.log("[Templates][loadData] templates:", {
-        count: tR.data?.length ?? 0,
-        error: tR.error,
-        sample: tR.data?.slice(0, 3),
-      });
-      console.log("[Templates][loadData] template_groups:", {
-        count: gR.data?.length ?? 0,
-        error: gR.error,
-      });
-      if (tR.error) console.error("[Templates][loadData] RLS/query error em templates:", tR.error);
-      setTemplates((tR.data as Template[]) ?? []);
-      setFields((fR.data as Field[]) ?? []);
-      setGroups((gR.data as TemplateGroup[]) ?? []);
-      setSegments((sR.data as Segment[]) ?? []);
-      setLicensees((lR.data as Licensee[]) ?? []);
-    } catch (err) { console.error("[Templates] load:", err); }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { loadData(); }, [loadData]);
-
-  /* ── Derived ───────────────────────────────────── */
-
-  const segMap = useMemo(() => {
-    const m: Record<string, Segment> = {};
-    segments.forEach((s) => { m[s.id] = s; });
-    return m;
-  }, [segments]);
-
-  const groupMap = useMemo(() => {
-    const m: Record<string, TemplateGroup> = {};
-    groups.forEach((g) => { m[g.id] = g; });
-    return m;
-  }, [groups]);
-
-  const fieldsPerTemplate = useMemo(() => {
-    const m: Record<string, Field[]> = {};
-    fields.forEach((f) => {
-      if (!m[f.template_id]) m[f.template_id] = [];
-      m[f.template_id].push(f);
-    });
-    return m;
-  }, [fields]);
-
-  function getGroupName(t: Template): string {
-    return t.group_id ? (groupMap[t.group_id]?.name ?? "—") : "—";
-  }
-
-  function getSegment(t: Template): Segment | null {
-    const g = t.group_id ? groupMap[t.group_id] : null;
-    return g?.segment_id ? (segMap[g.segment_id] ?? null) : null;
-  }
-
-  // Count licensees that have access (through group's licensee_id)
-  function getLicenseeCount(t: Template): number {
-    if (!t.group_id) return 0;
-    const g = groupMap[t.group_id];
-    return g?.licensee_id ? 1 : 0;
-  }
-
-  const filtered = useMemo(() => {
-    return templates.filter((t) => {
-      const name = getGroupName(t);
-      const seg = getSegment(t);
-      const q = search.toLowerCase();
-      const ms = !q || name.toLowerCase().includes(q) || t.format.toLowerCase().includes(q);
-      const mf = !fFormat || t.format === fFormat;
-      const msg = !fSegment || seg?.id === fSegment;
-      const mst = !fStatus || (fStatus === "active" ? t.active : !t.active);
-      return ms && mf && msg && mst;
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templates, search, fFormat, fSegment, fStatus, groupMap, segMap]);
-
-  const kpis = useMemo(() => ({
-    total: templates.length,
-    active: templates.filter((t) => t.active).length,
-    feed: templates.filter((t) => t.format === "feed").length,
-    stories: templates.filter((t) => t.format === "stories").length,
-    reels: templates.filter((t) => t.format === "reels").length,
-    tv: templates.filter((t) => t.format === "tv").length,
-  }), [templates]);
-
-  /* ── Modal ─────────────────────────────────────── */
-
-  function openNew() {
-    setEditId(null);
-    setForm({ name: "", format: "feed", segment_id: "", description: "", image_url: "", active: true });
-    setSelectedBinds([]);
-    setAccessLicensees([]);
-    setModalTab("dados"); setModalError(""); setModalOpen(true);
-  }
-
-  function openEdit(t: Template) {
-    setEditId(t.id);
-    const g = t.group_id ? groupMap[t.group_id] : null;
-    setForm({
-      name: g?.name ?? "", format: t.format, segment_id: g?.segment_id ?? "",
-      description: g?.description ?? "", image_url: t.image_url, active: t.active,
-    });
-    const tFields = fieldsPerTemplate[t.id] ?? [];
-    setSelectedBinds(tFields.map((f) => f.field_key));
-    setAccessLicensees(g?.licensee_id ? [g.licensee_id] : []);
-    setModalTab("dados"); setModalError(""); setModalOpen(true);
-  }
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadToCloudinary(file, "aurohubv2/templates");
-      setForm((prev) => ({ ...prev, image_url: url }));
-    } catch (err) {
-      console.error("[Template upload]", err);
-      setModalError("Falha no upload — cole a URL manualmente.");
-    } finally { setUploading(false); }
-  }
-
-  async function handleSave() {
-    if (!form.name.trim()) { setModalError("Nome obrigatório."); return; }
-    if (!form.image_url.trim()) { setModalError("Imagem obrigatória."); return; }
-    setSaving(true); setModalError("");
-
-    const fmt = FORMAT_OPTIONS.find((f) => f.value === form.format) ?? FORMAT_OPTIONS[0];
-
-    try {
-      if (editId) {
-        // Update template
-        await supabase.from("templates").update({
-          format: form.format, width: fmt.w, height: fmt.h,
-          image_url: form.image_url, active: form.active,
-        }).eq("id", editId);
-
-        // Update group
-        const t = templates.find((x) => x.id === editId);
-        if (t?.group_id) {
-          await supabase.from("template_groups").update({
-            name: form.name.trim(), description: form.description.trim() || null,
-            segment_id: form.segment_id || null, active: form.active,
-            licensee_id: accessLicensees[0] || null,
-          }).eq("id", t.group_id);
-        }
-
-        // Sync fields: delete old, insert new
-        await supabase.from("fields").delete().eq("template_id", editId);
-        if (selectedBinds.length > 0) {
-          const fieldRows = selectedBinds.map((key, i) => ({
-            template_id: editId, label: key, field_key: key, field_type: key.startsWith("img") ? "image" : "text",
-            x: 100, y: 100 + i * 50, sort_order: i,
-          }));
-          await supabase.from("fields").insert(fieldRows);
-        }
-      } else {
-        // Create group first
-        const { data: gData, error: gErr } = await supabase.from("template_groups").insert({
-          name: form.name.trim(), description: form.description.trim() || null,
-          segment_id: form.segment_id || null, active: form.active,
-          licensee_id: accessLicensees[0] || null,
-        }).select("id").single();
-        console.log("[Templates][handleSave] insert template_groups:", { data: gData, error: gErr });
-        if (gErr) { console.error("[Templates][handleSave] erro em template_groups.insert:", gErr); setModalError(gErr.message); return; }
-
-        // Create template
-        const { data: tData, error: tErr } = await supabase.from("templates").insert({
-          group_id: gData.id, format: form.format, width: fmt.w, height: fmt.h,
-          image_url: form.image_url, active: form.active,
-        }).select("id").single();
-        console.log("[Templates][handleSave] insert templates:", { data: tData, error: tErr });
-        if (tErr) { console.error("[Templates][handleSave] erro em templates.insert:", tErr); setModalError(tErr.message); return; }
-
-        // Create fields
-        if (selectedBinds.length > 0) {
-          const fieldRows = selectedBinds.map((key, i) => ({
-            template_id: tData.id, label: key, field_key: key, field_type: key.startsWith("img") ? "image" : "text",
-            x: 100, y: 100 + i * 50, sort_order: i,
-          }));
-          await supabase.from("fields").insert(fieldRows);
-        }
-      }
-      setModalOpen(false); await loadData();
-    } catch { setModalError("Erro ao salvar."); }
-    finally { setSaving(false); }
-  }
-
-  async function toggleActive(id: string, current: boolean) {
-    await supabase.from("templates").update({ active: !current }).eq("id", id);
-    await loadData();
-  }
-
-  async function duplicateTemplate(t: Template) {
-    const g = t.group_id ? groupMap[t.group_id] : null;
-    const { data: gData } = await supabase.from("template_groups").insert({
-      name: (g?.name ?? "Template") + " (cópia)", description: g?.description ?? null,
-      segment_id: g?.segment_id ?? null, active: false, licensee_id: g?.licensee_id ?? null,
-    }).select("id").single();
-    if (!gData) return;
-
-    const { data: tData } = await supabase.from("templates").insert({
-      group_id: gData.id, format: t.format, width: t.width, height: t.height,
-      image_url: t.image_url, active: false,
-    }).select("id").single();
-    if (!tData) return;
-
-    const tFields = fieldsPerTemplate[t.id] ?? [];
-    if (tFields.length > 0) {
-      await supabase.from("fields").insert(
-        tFields.map((f, i) => ({ template_id: tData.id, label: f.label, field_key: f.field_key, field_type: f.field_type, x: 100, y: 100 + i * 50, sort_order: i }))
-      );
-    }
-    await loadData();
-  }
-
-  async function deleteTemplate(id: string) {
-    const t = templates.find((x) => x.id === id);
-    await supabase.from("templates").delete().eq("id", id);
-    if (t?.group_id) await supabase.from("template_groups").delete().eq("id", t.group_id);
-    setDeleteId(null); await loadData();
-  }
-
-  function toggleBind(key: string) {
-    setSelectedBinds((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
-  }
-
-  function toggleAccess(licId: string) {
-    setAccessLicensees((prev) => prev.includes(licId) ? prev.filter((x) => x !== licId) : [...prev, licId]);
-  }
-
-  const hasFilters = search || fFormat || fSegment || fStatus;
-
-  /* ── Card do canvas (reused em Templates Base e Por cliente) ─ */
-  function renderCanvasCard(t: CanvasTemplate) {
-    const isAdm = profile?.role === "adm";
-    const licColor = t.isBase ? null : getLicColor(t.licenseeNome);
-    return (
-      <div key={t.key} data-tmpl-key={t.key} className="relative overflow-hidden rounded-xl border border-[var(--bdr)] transition-colors hover:border-[var(--bdr2)]" style={{ background: "var(--bg1)" }}>
-        {t.isBase && (
-          <span className="absolute top-2 left-2 z-10 rounded-full bg-[#D4A843] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#1E3A6E] shadow">BASE</span>
-        )}
-        {!t.isBase && licColor && (
-          <span
-            className="absolute top-2 left-2 z-10 inline-flex h-6 min-w-[24px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold uppercase tracking-wider text-white shadow"
-            style={{ background: licColor }}
-            title={t.licenseeNome}
-          >
-            {getInitials(t.licenseeNome) || "·"}
-          </span>
-        )}
-        {t.thumbnail ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={t.thumbnail} alt="" className="h-24 w-full object-cover" />
-        ) : (
-          <div className="flex h-24 items-center justify-center" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #2A4A8A 50%, #1E3A6E 100%)" }}>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">{t.format}</span>
-          </div>
-        )}
-        <div className="px-4 py-3">
-          <input
-            type="text"
-            defaultValue={t.nome || t.displayName}
-            onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.nome) saveNome(t.key, v); }}
-            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-            className="w-full truncate border-b border-transparent bg-transparent text-[13px] font-bold text-[var(--txt)] outline-none hover:border-[var(--bdr)] focus:border-[var(--orange)]"
-            title={t.nome || t.displayName}
-          />
-          <select
-            value={t.segmento}
-            onChange={(e) => saveSegmento(t.key, e.target.value)}
-            className="mt-1 w-full rounded bg-[var(--bg2)] px-1.5 py-0.5 text-[10px] text-[var(--txt2)] outline-none focus:ring-1 focus:ring-[var(--orange)]"
-          >
-            {SEGMENTOS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <div className="mt-1.5 flex items-center gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)]">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={thumbUploadingKey === t.key}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleThumbUpload(t.key, f); e.currentTarget.value = ""; }}
-              />
-              <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M2 11l3.5-4 2.5 3 2-2 4 5M2 4h12v8H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
-              {thumbUploadingKey === t.key ? "Enviando…" : "Thumb"}
-            </label>
-            <button
-              type="button"
-              onClick={() => handleCaptureCard(t.key)}
-              disabled={thumbUploadingKey === t.key}
-              className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--orange)] disabled:opacity-50"
-            >
-              <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none"><path d="M3 5h2l1-2h4l1 2h2v8H3V5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><circle cx="8" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.5" /></svg>
-              Capturar
-            </button>
-          </div>
-          <div className="mt-2 flex gap-1.5 text-[10px]">
-            <span className="rounded bg-[var(--bg3)] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--txt2)]">{t.format}</span>
-          </div>
-          <div className="mt-2 text-[10px] text-[var(--txt3)]">
-            {t.updatedAt ? new Date(t.updatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
-          </div>
-        </div>
-        <div className="flex border-t border-[var(--bdr)] divide-x divide-[var(--bdr)]">
-          <button onClick={() => editCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">Editar</button>
-          {t.isBase && isAdm && (
-            <button onClick={() => setCloneKey(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--orange)] hover:bg-[var(--hover-bg)]" title="Clonar para um licensee">
-              Clonar p/ cliente
-            </button>
-          )}
-          {!t.isBase && (
-            <button onClick={() => duplicateCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] hover:bg-[var(--hover-bg)]">Duplicar</button>
-          )}
-          <button onClick={() => deleteCanvasTmpl(t.key)} className="flex-1 py-2 text-[12px] font-medium text-[var(--txt3)] hover:text-[var(--red)] hover:bg-[var(--hover-bg)]">Excluir</button>
-        </div>
-      </div>
-    );
-  }
 
   // Duplica um template de cliente (mesmo licensee)
   async function duplicateCanvasTmpl(key: string) {
@@ -748,22 +318,6 @@ export default function EditorTemplatesPage() {
   /* ── Render ────────────────────────────────────── */
 
   const isAdm = profile?.role === "adm";
-  const typeOptions = [
-    { k: "", l: "Todos" },
-    { k: "pacote", l: "Pacote" },
-    { k: "campanha", l: "Campanha" },
-    { k: "cruzeiro", l: "Cruzeiro" },
-    { k: "anoiteceu", l: "Anoiteceu" },
-    { k: "card_whatsapp", l: "Cards" },
-  ];
-  const formatOptions = [
-    { k: "", l: "Todos" },
-    { k: "stories", l: "Stories" },
-    { k: "feed", l: "Feed" },
-    { k: "reels", l: "Reels" },
-    { k: "tv", l: "TV" },
-  ];
-  const hasGlobalFilter = Boolean(globalFilterType || globalFilterFormat);
 
   const openNewTemplate = (licenseeId: string | null) => {
     const qs = licenseeId ? `?licensee=${licenseeId}` : "";
@@ -771,12 +325,12 @@ export default function EditorTemplatesPage() {
   };
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       {/* Page header */}
       <div className="flex items-end justify-between border-b border-[var(--bdr)] pb-4">
         <div>
-          <h1 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Editor de Templates</h1>
-          <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Templates base (sistema) e templates por cliente</p>
+          <h1 className="text-[20px] font-bold tracking-tight text-[var(--txt)]">Biblioteca de Templates</h1>
+          <p className="mt-0.5 text-[13px] text-[var(--txt3)]">Gerencie templates base e personalizados por cliente</p>
         </div>
         <button
           type="button"
@@ -788,50 +342,22 @@ export default function EditorTemplatesPage() {
         </button>
       </div>
 
-      {/* Filtros globais (afetam Base + Por cliente) */}
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Tipo</span>
-          {typeOptions.map((f) => (
-            <button
-              key={f.k || "all-type"}
-              onClick={() => setGlobalFilterType(f.k)}
-              className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${globalFilterType === f.k ? "border-[var(--orange)] bg-[var(--orange3)] text-[var(--orange)]" : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt)]"}`}
-            >
-              {f.l}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Formato</span>
-          {formatOptions.map((f) => (
-            <button
-              key={f.k || "all-fmt"}
-              onClick={() => setGlobalFilterFormat(f.k)}
-              className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${globalFilterFormat === f.k ? "border-[var(--orange)] bg-[var(--orange3)] text-[var(--orange)]" : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt)]"}`}
-            >
-              {f.l}
-            </button>
-          ))}
-          {hasGlobalFilter && (
-            <button
-              onClick={() => { setGlobalFilterType(""); setGlobalFilterFormat(""); }}
-              className="ml-2 text-[11px] text-[var(--txt3)] hover:text-[var(--red)]"
-            >
-              Limpar
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Filtros globais */}
+      <TemplateFilters
+        filterType={globalFilterType}
+        filterFormat={globalFilterFormat}
+        onTypeChange={setGlobalFilterType}
+        onFormatChange={setGlobalFilterFormat}
+      />
 
-      {/* Templates Base (somente ADM) */}
+      {/* Biblioteca Base (somente ADM) */}
       {isAdm && (
         <section className="border-b border-[var(--bdr)] pb-6">
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <h2 className="text-[18px] font-bold tracking-tight text-[var(--txt)]">Templates Base</h2>
-              <p className="mt-0.5 text-[12px] text-[var(--txt3)]">Modelos do sistema — clone para um cliente pra liberar uso</p>
-            </div>
+          <div className="mb-4">
+            <h2 className="text-[18px] font-bold tracking-tight text-[var(--txt)]">Biblioteca Base</h2>
+            <p className="mt-0.5 text-[12px] text-[var(--txt3)]">
+              Templates do sistema — clone para um cliente para liberar uso
+            </p>
           </div>
 
           {canvasLoading ? (
@@ -846,29 +372,40 @@ export default function EditorTemplatesPage() {
             </div>
           ) : (
             <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-              {baseTemplatesFiltered.map((t) => renderCanvasCard(t))}
+              {baseTemplatesFiltered.map((t) => (
+                <TemplateCard
+                  key={t.key}
+                  template={t}
+                  onEdit={(key) => router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`)}
+                  onDuplicate={duplicateCanvasTmpl}
+                  onDelete={deleteCanvasTmpl}
+                  onClone={isAdm && t.isBase ? setCloneKey : undefined}
+                  onNameChange={handleNameChange}
+                  onThumbUpload={handleThumbUpload}
+                  onThumbCapture={handleCaptureCard}
+                  thumbUploading={thumbUploadingKey === t.key}
+                />
+              ))}
             </div>
           )}
         </section>
       )}
 
-      {/* Por cliente (agrupado por licensee) */}
+      {/* Por Cliente */}
       <section>
-        <div className="mb-4 flex items-end justify-between">
-          <div>
-            <h2 className="text-[18px] font-bold tracking-tight text-[var(--txt)]">Por cliente</h2>
-            <p className="mt-0.5 text-[12px] text-[var(--txt3)]">
-              {isAdm ? "Templates de cada marca — ADM vê tudo" : "Templates da sua marca"}
-            </p>
-          </div>
+        <div className="mb-4">
+          <h2 className="text-[18px] font-bold tracking-tight text-[var(--txt)]">Por Cliente</h2>
+          <p className="mt-0.5 text-[12px] text-[var(--txt3)]">
+            {isAdm ? "Templates personalizados — ADM vê todos os clientes" : "Templates da sua marca"}
+          </p>
         </div>
         {canvasLoading ? (
           <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
         ) : userTemplatesCount === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
-            {hasGlobalFilter
+            {globalFilterType || globalFilterFormat
               ? "Nenhum template encontrado com esses filtros."
-              : "Nenhum template por cliente ainda. Clone um template base ou crie um novo pelo editor."}
+              : "Nenhum template personalizado ainda. Clone um template base ou crie um novo."}
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -903,7 +440,19 @@ export default function EditorTemplatesPage() {
                   </summary>
                   <div className="border-t border-[var(--bdr)] px-4 py-4">
                     <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-                      {group.items.map((t) => renderCanvasCard(t))}
+                      {group.items.map((t) => (
+                        <TemplateCard
+                          key={t.key}
+                          template={t}
+                          onEdit={(key) => router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`)}
+                          onDuplicate={duplicateCanvasTmpl}
+                          onDelete={deleteCanvasTmpl}
+                          onNameChange={handleNameChange}
+                          onThumbUpload={handleThumbUpload}
+                          onThumbCapture={handleCaptureCard}
+                          thumbUploading={thumbUploadingKey === t.key}
+                        />
+                      ))}
                     </div>
                   </div>
                 </details>
@@ -911,6 +460,7 @@ export default function EditorTemplatesPage() {
             })}
           </div>
         )}
+      </section>
       </section>
 
       {/* Clone modal (base → licensee) */}
@@ -975,7 +525,7 @@ export default function EditorTemplatesPage() {
           </div>
         </Ov>
       )}
-    </>
+    </div>
   );
 }
 
@@ -983,12 +533,4 @@ export default function EditorTemplatesPage() {
 
 function Ov({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return <div className="fixed inset-0 z-[200] flex items-center justify-center" style={{ background: "var(--overlay-bg)", backdropFilter: "blur(8px)" }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>{children}</div>;
-}
-
-function KI({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return <div className="flex items-baseline gap-2"><span className="text-[12px] text-[var(--txt3)]">{label}</span><span className={`text-[16px] font-bold ${accent ? "text-[var(--green)]" : "text-[var(--txt)]"}`}>{value}</span></div>;
-}
-
-function F({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
-  return <div><label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">{label}</label><input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" /></div>;
 }
