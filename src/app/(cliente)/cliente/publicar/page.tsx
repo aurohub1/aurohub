@@ -90,7 +90,7 @@ export default function ClientePublicarPage() {
     setTimeout(() => {
       const activeBtn = wrap.querySelector(`button[data-active="true"]`) as HTMLButtonElement;
       if (activeBtn) movePill(activeBtn);
-    }, 150);
+    }, 300);
   }, [tab, phase]);
 
   useEffect(()=>{
