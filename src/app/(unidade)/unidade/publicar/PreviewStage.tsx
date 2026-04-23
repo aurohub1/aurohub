@@ -325,9 +325,10 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
   }
 
   if (el.type === "text") {
-    const txt = resolveText(el, values);
+    let txt = resolveText(el, values);
     // Reforço da regra: texto com bindParam mas sem valor resolvido não renderiza nada
-    if (el.bindParam && !txt) return null;
+    if (el.bindParam && !txt) txt = el.text || "";
+    if (!txt) return null;
     const baseFont = el.fontSize ?? 24;
     const fSize = el.linhas
       ? fitFontSize(
