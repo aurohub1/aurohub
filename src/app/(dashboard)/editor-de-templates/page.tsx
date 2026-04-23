@@ -461,7 +461,6 @@ export default function EditorTemplatesPage() {
           </div>
         )}
       </section>
-      </section>
 
       {/* Clone modal (base → licensee) */}
       {cloneKey && (
