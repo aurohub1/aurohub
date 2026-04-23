@@ -509,7 +509,14 @@ export interface SaveTemplateData {
   thumbnail: string | null;
 }
 
-const FORM_TYPES = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu", "lamina"];
+const FORM_TYPES = [
+  { value: "pacote", label: "Pacote" },
+  { value: "campanha", label: "Campanha" },
+  { value: "passagem", label: "Passagem" },
+  { value: "cruzeiro", label: "Cruzeiro" },
+  { value: "anoiteceu", label: "Anoiteceu" },
+  { value: "card_whatsapp", label: "Card WhatsApp" },
+];
 const FORMATS = [
   { value: "stories", label: "Stories 9:16" },
   { value: "reels", label: "Reels 9:16" },
@@ -768,7 +775,7 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <L label="Tipo">
             <select value={formType} onChange={e => setFormType(e.target.value)} style={fieldS}>
-              {FORM_TYPES.map(t => <option key={t} value={t} style={{ textTransform: "capitalize" }}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+              {FORM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </L>
           <L label="Formato">
