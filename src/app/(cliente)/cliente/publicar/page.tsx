@@ -282,7 +282,7 @@ export default function ClientePublicarPage() {
           </div>
 
           {/* Campos — SCROLL APENAS AQUI */}
-          <div style={{flex:1,overflowY:"scroll",overflowX:"hidden",padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
+          <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
             {!currentTemplate?(
               <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Nenhum template disponível para {tab}.</div>
             ):tab==="pacote"?(
