@@ -1175,21 +1175,17 @@ export function AnoiteceuForm({
         <div className="grid grid-cols-2 gap-2">
           <Field label="INÍCIO">
             <input
-              type="text"
+              type="date"
               value={(fields.inicio as string) || ""}
               onChange={(e) => set("inicio", e.target.value)}
-              placeholder="DD/MM"
-              maxLength={5}
               className={INPUT_CLASS}
             />
           </Field>
           <Field label="FIM">
             <input
-              type="text"
+              type="date"
               value={(fields.fim as string) || ""}
               onChange={(e) => set("fim", e.target.value)}
-              placeholder="DD/MM"
-              maxLength={5}
               className={INPUT_CLASS}
             />
           </Field>
