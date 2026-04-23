@@ -267,10 +267,10 @@ export default function ClientePublicarPage() {
       </div>
 
       {/* BODY */}
-      <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+      <div style={{display:"flex",flex:1,overflow:"hidden",minHeight:0}}>
 
         {/* FORMULÁRIO — scroll só aqui */}
-        <div style={{width:"360px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{width:"360px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
 
           {/* Pills formato */}
           <div style={{display:"flex",alignItems:"center",gap:"6px",padding:"8px 14px",borderBottom:"1px solid var(--bdr)",flexShrink:0}}>
