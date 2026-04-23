@@ -182,6 +182,24 @@ function EditorInner() {
                     value: JSON.stringify(payload),
                     updated_at: new Date().toISOString(),
                   }, { onConflict: "key" });
+                  // Sync automático com form_templates
+                  try {
+                    const { data: scRow } = await supabase.from("system_config").select("value").eq("key", key).single();
+                    if (scRow) {
+                      const p = JSON.parse(scRow.value);
+                      await supabase.from("form_templates").upsert({
+                        name: p.nome || key,
+                        form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
+                        format: p.format || "stories",
+                        is_base: false,
+                        active: true,
+                        licensee_id: p.licenseeId || null,
+                        schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
+                        width: p.width || 1080,
+                        height: p.height || 1920,
+                      }, { onConflict: "name,form_type,format" });
+                    }
+                  } catch { /* silent */ }
                 }
                 alert(`${pendingVariants.length} variantes salvas!`);
                 setPendingVariants(null);
@@ -210,6 +228,24 @@ function EditorInner() {
                     value: JSON.stringify(payload),
                     updated_at: new Date().toISOString(),
                   }, { onConflict: "key" });
+                  // Sync automático com form_templates
+                  try {
+                    const { data: scRow } = await supabase.from("system_config").select("value").eq("key", editingStarterId).single();
+                    if (scRow) {
+                      const p = JSON.parse(scRow.value);
+                      await supabase.from("form_templates").upsert({
+                        name: p.nome || editingStarterId,
+                        form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
+                        format: p.format || "stories",
+                        is_base: false,
+                        active: true,
+                        licensee_id: p.licenseeId || null,
+                        schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
+                        width: p.width || 1080,
+                        height: p.height || 1920,
+                      }, { onConflict: "name,form_type,format" });
+                    }
+                  } catch { /* silent */ }
                   setEditingStarterId(null);
                   setLoadedNome(meta.nome);
                   setFormat(meta.format);
@@ -241,6 +277,24 @@ function EditorInner() {
                 value: JSON.stringify(payload),
                 updated_at: new Date().toISOString(),
               }, { onConflict: "key" });
+              // Sync automático com form_templates
+              try {
+                const { data: scRow } = await supabase.from("system_config").select("value").eq("key", `tmpl_${key}`).single();
+                if (scRow) {
+                  const p = JSON.parse(scRow.value);
+                  await supabase.from("form_templates").upsert({
+                    name: p.nome || key,
+                    form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
+                    format: p.format || "stories",
+                    is_base: false,
+                    active: true,
+                    licensee_id: p.licenseeId || null,
+                    schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
+                    width: p.width || 1080,
+                    height: p.height || 1920,
+                  }, { onConflict: "name,form_type,format" });
+                }
+              } catch { /* silent */ }
               try {
                 const { error: hErr } = await supabase.from("template_history").insert({
                   template_id: key,
