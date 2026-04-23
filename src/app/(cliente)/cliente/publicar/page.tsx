@@ -145,13 +145,13 @@ export default function ClientePublicarPage() {
   async function loadDestinos(q:string=""){
     const rows=await loadDestinoData();
     const nomes=[...new Set(rows.map(r=>r.nome))];
-    return nomes.filter(n=>normalizar(n).includes(normalizar(q))).slice(0,20);
+    return nomes.filter(n=>normalizar(n).includes(normalizar(q)));
   }
   async function loadHoteis(q:string=""){
     const rows=await loadHotelData();
     const seen=new Set<string>();
     return rows.map(r=>r.nome).filter(n=>{const k=normalizar(n);if(seen.has(k))return false;seen.add(k);return true;})
-      .filter(n=>normalizar(n).includes(normalizar(q))).slice(0,20);
+      .filter(n=>normalizar(n).includes(normalizar(q)));
   }
 
   const setField=useCallback((k:string,v:string)=>{
