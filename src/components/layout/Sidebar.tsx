@@ -311,6 +311,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
       { label: "Templates", href: "/gerente/templates", icon: I.templates, feature: "templates" },
+      { label: "Publicar", href: "/gerente/publicar", icon: I.publish, feature: "publicar" },
       { label: "Card WhatsApp", href: "/gerente/publicar/cards", icon: I.whatsapp, feature: "lamina_4destinos" },
       { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
@@ -326,6 +327,7 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/consultor/inicio", icon: I.home },
       { label: "Templates", href: "/consultor/templates", icon: I.templates, feature: "templates" },
+      { label: "Publicar", href: "/consultor/publicar", icon: I.publish, feature: "publicar" },
       { label: "Card WhatsApp", href: "/consultor/publicar/cards", icon: I.whatsapp, feature: "lamina_4destinos" },
       { label: "Agendamentos", href: "/consultor/agendamentos", icon: I.calendar },
       { label: "Suporte", href: "/consultor/suporte", icon: I.support },
