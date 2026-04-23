@@ -173,7 +173,6 @@ export default function ClientePublicarPage() {
     if(hCap!==values.hotel) setField("hotel",hCap);
     const hUrl=await fetchImgHotel(h);
     if(hUrl){setField("imgfundo",hUrl);return;}
-    if(values.imgfundo) return;
     const dUrl=await fetchImgFundo(values.destino?.trim()||"");
     if(dUrl) setField("imgfundo",dUrl);
   }

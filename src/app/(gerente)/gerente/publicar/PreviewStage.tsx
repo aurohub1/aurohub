@@ -471,11 +471,11 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
     if (DYNAMIC_BADGES.has(bp)) {
       // Badges dinâmicos: condição vem de shouldRenderBadge (servicos, desconto, feriado).
       if (!shouldRenderBadge(bp, values)) return null;
-    } else if (!values[bp]) {
-      // Fallback: bind depende de values[bp] estar preenchido (toggles on/off, imagens do form).
+    } else if (!values[bp] && !el.src) {
+      // Fallback: bind depende de values[bp] estar preenchido ou el.src padrão existir.
       return null;
     }
-    return <RenderImage el={{ ...el, type: "image", src: values[bp] }} values={values} />;
+    return <RenderImage el={{ ...el, type: "image", src: values[bp] || el.src }} values={values} />;
   }
 
   return null;
