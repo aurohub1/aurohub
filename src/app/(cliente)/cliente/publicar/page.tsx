@@ -118,7 +118,7 @@ export default function ClientePublicarPage() {
 
   async function loadDestinoData(){
     if(destinoDataRef.current) return destinoDataRef.current;
-    const{data}=await supabase.from("imgfundo").select("nome,url").limit(1000);
+    const{data}=await supabase.from("imgfundo").select("nome,url").order("nome").limit(1000);
     destinoDataRef.current=(data??[]) as{nome:string;url:string}[];
     return destinoDataRef.current;
   }
@@ -144,9 +144,8 @@ export default function ClientePublicarPage() {
   }
   async function loadDestinos(q:string=""){
     const rows=await loadDestinoData();
-    const seen=new Set<string>();
-    return rows.map(r=>r.nome).filter(n=>{const k=normalizar(n);if(seen.has(k))return false;seen.add(k);return true;})
-      .filter(n=>normalizar(n).includes(normalizar(q))).slice(0,20);
+    const nomes=[...new Set(rows.map(r=>r.nome))];
+    return nomes.filter(n=>normalizar(n).includes(normalizar(q))).slice(0,20);
   }
   async function loadHoteis(q:string=""){
     const rows=await loadHotelData();
