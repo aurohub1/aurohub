@@ -344,7 +344,7 @@ export default function ClientePublicarPage() {
             <span style={{fontSize:"10px",color:"var(--txt3)",background:"var(--bg2)",padding:"3px 8px",borderRadius:"6px",border:"1px solid var(--bdr)"}}>{pw} × {ph}</span>
           </div>
           {/* Área do preview — centralizada, sem scroll */}
-          <div ref={previewAreaRef} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+          <div ref={previewAreaRef} style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center",overflow:"hidden",paddingTop:"16px"}}>
             <div style={{
               position:"relative",
               width: Math.round(maxDisp*(pw/ph)) + "px",
