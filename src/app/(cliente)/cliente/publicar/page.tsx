@@ -353,6 +353,7 @@ export default function ClientePublicarPage() {
               flexShrink:0
             }}>
               <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={maxDisp}/>
+            </div>
           </div>
         </div>
 
@@ -360,3 +361,5 @@ export default function ClientePublicarPage() {
     </div>
   );
 }
+
+
