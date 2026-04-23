@@ -11,6 +11,7 @@ import { useBadges } from "@/hooks/useBadges";
 import { usePublishQueue } from "@/hooks/usePublishQueue";
 import type { EditorSchema } from "@/components/editor/types";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
+import SlidingTabs from "@/components/publish/SlidingTabs";
 import { PacoteForm, CampanhaForm, CruzeiroForm, AnoiteceuForm, QuatroDestinosForm } from "@/components/publish/FormSections";
 
 import {
@@ -1136,34 +1137,13 @@ export default function PublicarPage() {
           </div>
         </div>
 
-        {/* Tabs — linha única, sem quebra */}
-        <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-2">
-          <div className="flex flex-nowrap items-center gap-0.5" style={{ whiteSpace: "nowrap" }}>
-            {FORM_ORDER.map((f) => {
-              const active = tab === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setTab(f)}
-                  className="flex h-7 flex-1 items-center justify-center whitespace-nowrap px-2 text-[10px] font-bold uppercase tracking-[0.07em] transition-all"
-                  style={
-                    active
-                      ? { color: "var(--brand-primary)", background: "color-mix(in srgb, var(--brand-primary) 8%, transparent)", boxShadow: "inset 0 -2px 0 var(--brand-primary)" }
-                      : { color: "var(--txt3)", background: "transparent" }
-                  }
-                  onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt2)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--txt3)";
-                  }}
-                >
-                  {FORM_LABELS[f]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-1.5" style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                <SlidingTabs
+                  tabs={FORM_ORDER.map(f=>({id:f,label:FORM_LABELS[f],color:({pacote:'var(--brand-primary)',campanha:'#e05c1a',passagem:'#7c3aed',cruzeiro:'#0891b2',anoiteceu:'#4f46e5',quatro_destinos:'#16a34a'})[f]||'var(--brand-primary)'}))}
+                  active={tab}
+                  onChange={(id)=>setTab(id as any)}
+                />
+              </div>
 
         {/* Scroll dos campos */}
         <div className="flex-1 overflow-y-auto p-4">
