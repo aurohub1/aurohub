@@ -65,12 +65,31 @@ export default function ClientePublicarPage() {
   const destinoDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const hotelDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const previewAreaRef = useRef<HTMLDivElement>(null);
+  const tabsWrapRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
+
+  function movePill(btn: HTMLButtonElement) {
+    const wrap = tabsWrapRef.current;
+    const pill = pillRef.current;
+    if (!wrap || !pill) return;
+    const wr = wrap.getBoundingClientRect();
+    const br = btn.getBoundingClientRect();
+    pill.style.left = (br.left - wr.left + wrap.scrollLeft) + 'px';
+    pill.style.width = br.width + 'px';
+  }
   const [winH, setWinH] = useState(typeof window !== 'undefined' ? window.innerHeight : 900);
   useEffect(() => {
     const onResize = () => setWinH(window.innerHeight);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    const wrap = tabsWrapRef.current;
+    if (!wrap) return;
+    const activeBtn = wrap.querySelector(`button[data-active="true"]`) as HTMLButtonElement;
+    if (activeBtn) movePill(activeBtn);
+  }, [tab]);
 
   useEffect(()=>{
     getProfile(supabase).then(p=>{
@@ -256,14 +275,20 @@ export default function ClientePublicarPage() {
           <ArrowLeft size={14}/> Voltar
         </button>
         <div style={{width:"1px",height:"22px",background:"var(--bdr)",margin:"0 6px",flexShrink:0}}/>
-        {TIPOS.map(t=>(
-          <button key={t.id} onClick={()=>switchTab(t.id)}
-            style={{display:"flex",alignItems:"center",gap:"5px",padding:"0 14px",height:"56px",border:"none",background:"none",fontSize:"11px",fontWeight:700,letterSpacing:".05em",textTransform:"uppercase",color:tab===t.id?"var(--brand-primary)":"var(--txt3)",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap",borderBottom:tab===t.id?"2px solid var(--brand-primary)":"2px solid transparent",transition:"color .15s"}}
-          >
-            <div style={{width:"5px",height:"5px",borderRadius:"50%",background:t.color,flexShrink:0}}/>
-            {t.nome}
-          </button>
-        ))}
+        <div ref={tabsWrapRef} style={{position:"relative",background:"var(--bg2)",borderRadius:"12px",padding:"3px",display:"flex",gap:"0",overflowX:"auto",scrollbarWidth:"none",flex:1}}>
+          <div ref={pillRef} style={{position:"absolute",top:"3px",height:"calc(100% - 6px)",background:"var(--bg1)",borderRadius:"9px",boxShadow:"0 0 0 0.5px var(--bdr),0 1px 3px rgba(0,0,0,0.1)",transition:"left .28s cubic-bezier(.4,0,.2,1), width .28s cubic-bezier(.4,0,.2,1)",pointerEvents:"none",zIndex:0,overflow:"hidden"}}>
+            <div id="pill-bar" style={{position:"absolute",top:0,left:0,right:0,height:"2.5px",borderRadius:"2px 2px 0 0",background:TIPOS.find(t=>t.id===tab)?.color||"var(--brand-primary)",transition:"background .28s"}}/>
+          </div>
+          {TIPOS.map(t=>(
+            <button key={t.id}
+              data-active={tab===t.id?"true":"false"}
+              onClick={(e)=>{switchTab(t.id);movePill(e.currentTarget);const bar=pillRef.current?.querySelector('#pill-bar') as HTMLElement|null;if(bar)bar.style.background=t.color;}}
+              style={{position:"relative",zIndex:1,padding:"5px 13px",borderRadius:"9px",border:"none",background:"transparent",fontSize:"11px",fontWeight:tab===t.id?600:500,letterSpacing:".05em",textTransform:"uppercase",color:tab===t.id?"var(--txt1)":"var(--txt3)",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap",transition:"color .2s, font-weight .2s"}}
+            >
+              {t.nome}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* BODY */}
