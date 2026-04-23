@@ -327,8 +327,8 @@ export default function ClientePublicarPage() {
           <div ref={previewAreaRef} style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center",overflow:"hidden",paddingTop:"16px"}}>
             <div style={{
               position:"relative",
-              width: Math.round(maxDisp*(pw/ph)) + "px",
-              height: maxDisp + "px",
+              width: Math.round((Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.82))*(pw/ph)) + "px",
+              height: Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.82) + "px",
               overflow:"hidden",
               flexShrink:0
             }}>
