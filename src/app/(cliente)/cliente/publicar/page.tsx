@@ -65,6 +65,12 @@ export default function ClientePublicarPage() {
   const destinoDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const hotelDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const previewAreaRef = useRef<HTMLDivElement>(null);
+  const [winH, setWinH] = useState(typeof window !== 'undefined' ? window.innerHeight : 900);
+  useEffect(() => {
+    const onResize = () => setWinH(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(()=>{
     getProfile(supabase).then(p=>{
@@ -327,12 +333,12 @@ export default function ClientePublicarPage() {
           <div ref={previewAreaRef} style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center",overflow:"hidden",paddingTop:"16px"}}>
             <div style={{
               position:"relative",
-              width: Math.round((Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.82))*(pw/ph)) + "px",
-              height: Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.82) + "px",
+              width: Math.round((Math.round(winH * 0.82))*(pw/ph)) + "px",
+              height: Math.round(winH * 0.82) + "px",
               overflow:"hidden",
               flexShrink:0
             }}>
-              <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.82)}/>
+              <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={Math.round(winH * 0.82)}/>
             </div>
           </div>
         </div>
