@@ -87,8 +87,10 @@ export default function ClientePublicarPage() {
   useEffect(() => {
     const wrap = tabsWrapRef.current;
     if (!wrap) return;
-    const activeBtn = wrap.querySelector(`button[data-active="true"]`) as HTMLButtonElement;
-    if (activeBtn) movePill(activeBtn);
+    setTimeout(() => {
+      const activeBtn = wrap.querySelector(`button[data-active="true"]`) as HTMLButtonElement;
+      if (activeBtn) movePill(activeBtn);
+    }, 50);
   }, [tab]);
 
   useEffect(()=>{
