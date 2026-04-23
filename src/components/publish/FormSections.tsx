@@ -1338,14 +1338,16 @@ function lamFormatPeriodo(ida: string, volta: string): string {
 
 export function QuatroDestinosForm({
   fields, set, today,
-  loadDestinos, loadHoteis,
+  loadDestinos, loadHoteis, binds,
 }: {
   fields: Fields;
   set: Setter;
   today: string;
   loadDestinos?: () => Promise<string[]>;
   loadHoteis?: () => Promise<string[]>;
+  binds?: Set<string>;
 }) {
+  void binds;
   const [cab, setCab] = useState({
     titulo1: String(fields.lam_titulo1 ?? ""),
     titulo2: String(fields.lam_titulo2 ?? ""),

@@ -283,6 +283,15 @@ export default function UnidadePublicarPage() {
     return templates.find((t) => t.formType === tab && t.format === format) ?? null;
   }, [templates, tab, format]);
 
+  const templateBinds = useMemo(() => {
+    const b = new Set<string>();
+    if (!currentTemplate?.schema?.elements) return b;
+    for (const el of currentTemplate.schema.elements) {
+      if (el.bindParam) b.add(el.bindParam);
+    }
+    return b;
+  }, [currentTemplate]);
+
   // Legenda
   const [caption, setCaption] = useState<string>("");
 
