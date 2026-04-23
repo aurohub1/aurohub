@@ -91,7 +91,7 @@ export default function ClientePublicarPage() {
       const activeBtn = wrap.querySelector(`button[data-active="true"]`) as HTMLButtonElement;
       if (activeBtn) movePill(activeBtn);
     }, 150);
-  }, [tab]);
+  }, [tab, phase]);
 
   useEffect(()=>{
     getProfile(supabase).then(p=>{
