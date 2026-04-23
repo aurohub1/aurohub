@@ -65,7 +65,6 @@ export default function ClientePublicarPage() {
   const destinoDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const hotelDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const previewAreaRef = useRef<HTMLDivElement>(null);
-  const [maxDisp, setMaxDisp] = useState(600);
 
   useEffect(()=>{
     getProfile(supabase).then(p=>{
@@ -77,25 +76,6 @@ export default function ClientePublicarPage() {
     });
   },[]);
 
-  useEffect(()=>{
-    if(phase!=="form") return;
-    const el = previewAreaRef.current;
-    if(!el) return;
-    const calc=()=>{
-      const w=el.offsetWidth;
-      const h=el.offsetHeight;
-      if(!w||!h) return;
-      const [pw,ph]=FORMAT_DIMS[format];
-      // PreviewStage: altura=maxDisplay, largura=maxDisplay*(pw/ph)
-      // Para caber em área w x h:
-      const maxByH = h - 32;              // limitado pela altura
-      const maxByW = (w - 32) * (ph/pw);  // limitado pela largura: maxDisp = w*(ph/pw)
-      setMaxDisp(Math.floor(Math.min(maxByH, maxByW)));
-    };
-    calc();
-    window.addEventListener("resize",calc);
-    return()=>window.removeEventListener("resize",calc);
-  },[format,phase]);
 
   async function loadTemplates(lid:string){
     const{data}=await supabase.from("form_templates").select("*")
@@ -352,7 +332,7 @@ export default function ClientePublicarPage() {
               overflow:"hidden",
               flexShrink:0
             }}>
-              <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={maxDisp}/>
+              <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.82)}/>
             </div>
           </div>
         </div>
