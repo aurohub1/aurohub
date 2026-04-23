@@ -732,7 +732,7 @@ export default function EditorTemplatesPage() {
     { k: "campanha", l: "Campanha" },
     { k: "cruzeiro", l: "Cruzeiro" },
     { k: "anoiteceu", l: "Anoiteceu" },
-    { k: "quatro_destinos", l: "Cards" },
+    { k: "card_whatsapp", l: "Cards" },
   ];
   const formatOptions = [
     { k: "", l: "Todos" },

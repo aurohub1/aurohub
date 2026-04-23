@@ -1142,12 +1142,6 @@ export function AnoiteceuForm({
   set: Setter;
   binds?: Set<string>;
 }) {
-  const showDesc = hasBind(binds, "desconto_anoit");
-  const showInicio = hasBind(binds, "inicio");
-  const showFim = hasBind(binds, "fim");
-  const showPeriodo = showInicio || showFim;
-  const showParaviagens = hasBind(binds, "paraviagens");
-
   return (
     <>
       <div className="mb-3 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 px-4 py-3 backdrop-blur-sm">
@@ -1160,109 +1154,56 @@ export function AnoiteceuForm({
         </div>
       </div>
 
-      {showDesc && (
-        <Section title="Desconto" icon="🏷️">
-          <Field label="Porcentagem do Desconto *">
-            <div className="mb-2 flex items-center gap-4">
-              <div
-                className="text-5xl font-black leading-none transition-all"
-                style={{ color: fields.desconto_anoit ? "var(--orange)" : "var(--txt3)" }}
-              >
-                {(fields.desconto_anoit as string) || "—"}
-              </div>
-              <div className="flex-1">
-                <div className="flex flex-wrap gap-1">
-                  {DESCONTO_OPTS_FORM.map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => set("desconto_anoit", fields.desconto_anoit === d ? "" : d)}
-                      className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
-                      style={
-                        fields.desconto_anoit === d
-                          ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                          : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                      }
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--txt3)]">
-                  <span>Ou digitar:</span>
-                  <input
-                    type="text"
-                    value={(fields.desconto_anoit as string) || ""}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/[^0-9]/g, "");
-                      set("desconto_anoit", v ? `${v}%` : "");
-                    }}
-                    placeholder="ex. 35"
-                    maxLength={3}
-                    className={`${INPUT_CLASS} inline-block h-6 w-14 px-2 text-[11px]`}
-                  />
-                </div>
-              </div>
-            </div>
+      <Section title="Desconto" icon="🏷️">
+        <Field label="Desconto (ex: ATÉ 40%)">
+          <input
+            type="text"
+            value={(fields.desconto as string) || ""}
+            onChange={(e) => set("desconto", e.target.value)}
+            placeholder="ATÉ 40%"
+            className={INPUT_CLASS}
+          />
+        </Field>
+      </Section>
+
+      <Section title="Horário da Promoção" icon="⏰">
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Hora Início">
+            <input
+              type="text"
+              value={(fields.inicio as string) || ""}
+              onChange={(e) => set("inicio", e.target.value)}
+              placeholder="18h"
+              className={INPUT_CLASS}
+            />
           </Field>
-        </Section>
-      )}
+          <Field label="Hora Fim">
+            <input
+              type="text"
+              value={(fields.fim as string) || ""}
+              onChange={(e) => set("fim", e.target.value)}
+              placeholder="6h"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </div>
+      </Section>
 
-      {(showPeriodo || showParaviagens) && (
-        <Section title="Período da Promoção" icon="📅">
-          {showPeriodo && (
-            <div className="grid grid-cols-2 gap-2">
-              {showInicio && (
-                <Field label="Data Início *">
-                  <input
-                    type="date"
-                    value={(fields.inicio_iso as string) || ""}
-                    onChange={(e) => {
-                      set("inicio_iso", e.target.value);
-                      set("inicio", fmtDataCurta(e.target.value));
-                    }}
-                    className={INPUT_CLASS}
-                  />
-                </Field>
-              )}
-              {showFim && (
-                <Field label="Data Fim *">
-                  <input
-                    type="date"
-                    min={(fields.inicio_iso as string) || ""}
-                    value={(fields.fim_iso as string) || ""}
-                    onChange={(e) => {
-                      set("fim_iso", e.target.value);
-                      set("fim", fmtDataCurta(e.target.value));
-                    }}
-                    className={INPUT_CLASS}
-                  />
-                </Field>
-              )}
-            </div>
-          )}
-
-          {showParaviagens && (
-            <Field label="Para Viagens Até *">
-              <input
-                type="date"
-                value={(fields.paraviagens_iso as string) || ""}
-                onChange={(e) => {
-                  set("paraviagens_iso", e.target.value);
-                  set("paraviagens", fmtDate(e.target.value));
-                }}
-                className={INPUT_CLASS}
-              />
-              <p className="mt-1 text-[10px] text-[var(--txt3)]">Data limite de validade das passagens/pacotes</p>
-            </Field>
-          )}
-        </Section>
-      )}
+      <Section title="Validade" icon="📅">
+        <Field label="Viagens até">
+          <input
+            type="date"
+            value={(fields.viagens_ate as string) || ""}
+            onChange={(e) => set("viagens_ate", e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </Field>
+      </Section>
     </>
   );
 }
 
-/* ── QuatroDestinosForm (Card WhatsApp / Lâmina V1) ─────
+/* ── CardWhatsAppForm (Card WhatsApp / Lâmina V1) ─────
  * Port fiel do V1 app.aurovista.com.br/lamina (AUROHUB FIRE/lamina.html):
  *   - Globais: lam_titulo1, lam_titulo2, img_fundo, lam_palette
  *   - 4 sub-abas destino → binds lam_d{n}_{campo}
@@ -1336,7 +1277,7 @@ function lamFormatPeriodo(ida: string, volta: string): string {
   return `${p(di)}/${p(mi)}/${yi} a ${p(dv)}/${p(mv)}/${yv}`;
 }
 
-export function QuatroDestinosForm({
+export function CardWhatsAppForm({
   fields, set, today,
   loadDestinos, loadHoteis, binds,
 }: {

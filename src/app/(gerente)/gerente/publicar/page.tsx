@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
-import { PacoteForm, QuatroDestinosForm } from "@/components/publish/FormSections";
+import { PacoteForm, CardWhatsAppForm, AnoiteceuForm } from "@/components/publish/FormSections";
 import { Plane, Target, Ticket, Ship, Moon, MessageSquare, ArrowLeft } from "lucide-react";
 
 const PreviewStage = dynamic(
@@ -13,7 +13,7 @@ const PreviewStage = dynamic(
   { ssr: false }
 );
 
-type FormType = "pacote"|"campanha"|"passagem"|"cruzeiro"|"anoiteceu"|"quatro_destinos";
+type FormType = "pacote"|"campanha"|"passagem"|"cruzeiro"|"anoiteceu"|"card_whatsapp";
 type Format = "stories"|"feed"|"reels"|"tv";
 
 const TIPOS = [
@@ -22,7 +22,7 @@ const TIPOS = [
   { id:"passagem" as FormType,        Icon:Ticket,        nome:"Passagem",      desc:"Só a passagem aérea",           color:"#7c3aed" },
   { id:"cruzeiro" as FormType,        Icon:Ship,          nome:"Cruzeiro",      desc:"Roteiro marítimo completo",     color:"#0891b2" },
   { id:"anoiteceu" as FormType,       Icon:Moon,          nome:"Anoiteceu",     desc:"Última chamada do dia",         color:"#4f46e5" },
-  { id:"quatro_destinos" as FormType, Icon:MessageSquare, nome:"Card WhatsApp", desc:"Arte para grupos e listas",     color:"#16a34a" },
+  { id:"card_whatsapp" as FormType, Icon:MessageSquare, nome:"Card WhatsApp", desc:"Arte para grupos e listas",     color:"#16a34a" },
 ];
 
 const FORMAT_DIMS: Record<Format,[number,number]> = {
@@ -57,10 +57,10 @@ export default function GerentePublicarV2Page() {
   const [animOut, setAnimOut] = useState(false);
   const [formCache, setFormCache] = useState<Record<FormType,Record<string,string>>>({
     pacote:{...DEFAULTS},campanha:{...DEFAULTS},passagem:{...DEFAULTS},
-    cruzeiro:{...DEFAULTS},anoiteceu:{...DEFAULTS},quatro_destinos:{...DEFAULTS},
+    cruzeiro:{...DEFAULTS},anoiteceu:{...DEFAULTS},card_whatsapp:{...DEFAULTS},
   });
   const [badgeCache, setBadgeCache] = useState<Record<FormType,Record<string,boolean>>>({
-    pacote:{},campanha:{},passagem:{},cruzeiro:{},anoiteceu:{},quatro_destinos:{},
+    pacote:{},campanha:{},passagem:{},cruzeiro:{},anoiteceu:{},card_whatsapp:{},
   });
   const destinoDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const hotelDataRef = useRef<{nome:string;url:string}[]|null>(null);
@@ -321,10 +321,14 @@ export default function GerentePublicarV2Page() {
                 onImgFundo={onImgFundo} onHotelBlur={onHotelBlur}
                 binds={templateBinds}
               />
-            ):tab==="quatro_destinos"?(
-              <QuatroDestinosForm fields={fields} set={set} today={new Date().toISOString().slice(0,10)} binds={templateBinds}/>
+            ):tab==="card_whatsapp"?(
+              <CardWhatsAppForm fields={fields} set={set} today={new Date().toISOString().slice(0,10)} binds={templateBinds}/>
+            ):(
+              tab==="anoiteceu"?(
+              <AnoiteceuForm fields={fields} set={set} binds={templateBinds}/>
             ):(
               <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Formulário de {tab} em breve.</div>
+            )
             )}
           </div>
 

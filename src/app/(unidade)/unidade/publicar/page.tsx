@@ -15,14 +15,14 @@ import {
   Image as ImageIcon, Search as SearchIcon, ChevronDown,
 } from "lucide-react";
 import SlidingTabs from "@/components/publish/SlidingTabs";
-import { PacoteForm, QuatroDestinosForm } from "@/components/publish/FormSections";
+import { PacoteForm, CardWhatsAppForm, AnoiteceuForm } from "@/components/publish/FormSections";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
 
 const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
 
 /* ── Tipos ───────────────────────────────────────── */
 
-type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu" | "quatro_destinos";
+type FormType = "pacote" | "campanha" | "passagem" | "cruzeiro" | "anoiteceu" | "card_whatsapp";
 type Format = "stories" | "feed" | "reels" | "tv";
 type PublishStatus = "idle" | "generating" | "uploading" | "publishing" | "success" | "error";
 
@@ -73,10 +73,10 @@ const FORMAT_LABELS: Record<Format, string> = {
 
 const FORM_LABELS: Record<FormType, string> = {
   pacote: "Pacote", campanha: "Campanha", passagem: "Passagem",
-  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu", quatro_destinos: "Card WhatsApp",
+  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu", card_whatsapp: "Card WhatsApp",
 };
 
-const FORM_ORDER: FormType[] = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu", "quatro_destinos"];
+const FORM_ORDER: FormType[] = ["pacote", "campanha", "passagem", "cruzeiro", "anoiteceu", "card_whatsapp"];
 
 const FORMA_PGTO_OPTS = ["Cartão de Crédito", "Boleto"];
 const PARCELAS_OPTS = Array.from({ length: 25 }, (_, i) => `${i + 2}x`);
@@ -268,11 +268,11 @@ export default function UnidadePublicarPage() {
       passagem: { ...defaults },
       cruzeiro: { ...defaults },
       anoiteceu: { ...defaults },
-      quatro_destinos: { ...defaults },
+      card_whatsapp: { ...defaults },
     };
   });
   const [badgeCache, setBadgeCache] = useState<Record<FormType, Record<string, boolean>>>({
-    pacote: {}, campanha: {}, passagem: {}, cruzeiro: {}, anoiteceu: {}, quatro_destinos: {},
+    pacote: {}, campanha: {}, passagem: {}, cruzeiro: {}, anoiteceu: {}, card_whatsapp: {},
   });
 
   const values = formCache[tab];
@@ -1133,7 +1133,7 @@ export default function UnidadePublicarPage() {
 
         <div className="shrink-0 border-b border-[var(--bdr)] px-2 py-1.5" style={{display:"flex",alignItems:"center",gap:"8px"}}>
                 <SlidingTabs
-                  tabs={FORM_ORDER.map(f=>({id:f,label:FORM_LABELS[f],color:({pacote:'var(--brand-primary)',campanha:'#e05c1a',passagem:'#7c3aed',cruzeiro:'#0891b2',anoiteceu:'#4f46e5',quatro_destinos:'#16a34a'})[f]||'var(--brand-primary)'}))}
+                  tabs={FORM_ORDER.map(f=>({id:f,label:FORM_LABELS[f],color:({pacote:'var(--brand-primary)',campanha:'#e05c1a',passagem:'#7c3aed',cruzeiro:'#0891b2',anoiteceu:'#4f46e5',card_whatsapp:'#16a34a'})[f]||'var(--brand-primary)'}))}
                   active={tab}
                   onChange={(id)=>setTab(id as any)}
                 />
@@ -1141,8 +1141,8 @@ export default function UnidadePublicarPage() {
 
         {/* Scroll dos campos */}
         <div className="flex-1 overflow-y-auto p-4">
-          {tab === "quatro_destinos" && (
-            <QuatroDestinosForm
+          {tab === "card_whatsapp" && (
+            <CardWhatsAppForm
               fields={values}
               set={(k, v) => setField(k, v == null ? "" : typeof v === "boolean" ? (v ? "1" : "") : String(v))}
               today={hoje}
@@ -1150,7 +1150,7 @@ export default function UnidadePublicarPage() {
               loadHoteis={loadHoteis}
             />
           )}
-          {tab !== "quatro_destinos" && !currentTemplate && (
+          {tab !== "card_whatsapp" && !currentTemplate && (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <ImageIcon size={24} className="text-[var(--txt3)]" />
               <div className="text-[12px] text-[var(--txt3)]">

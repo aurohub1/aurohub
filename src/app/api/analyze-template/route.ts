@@ -19,7 +19,7 @@ Sua tarefa é inspecionar a imagem e listar TODOS os elementos do template:
    datavolta, noites, servicos, imgdestino, imghotel, imgloja, loja, agente, fone, titulo,
    subtitulo, texto1, etc.) a partir da posição, proporção e contexto visual.
 2) Para textos estáticos visíveis: incluí-los também com bind descritivo e label.
-3) Sugerir o formType mais provável: pacote, campanha, passagem, cruzeiro, anoiteceu, quatro_destinos.
+3) Sugerir o formType mais provável: pacote, campanha, passagem, cruzeiro, anoiteceu, card_whatsapp.
 
 IMPORTANTE: O campo "bind" NUNCA pode ficar vazio.
 Sempre infere o bind pelo conteúdo visual e posição:
