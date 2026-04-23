@@ -1143,6 +1143,7 @@ export function AnoiteceuForm({
   binds?: Set<string>;
 }) {
   const descontoOpts = ["5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <>
@@ -1178,6 +1179,7 @@ export function AnoiteceuForm({
               type="date"
               value={(fields.inicio as string) || ""}
               onChange={(e) => set("inicio", e.target.value)}
+              min={today}
               className={INPUT_CLASS}
             />
           </Field>
@@ -1186,6 +1188,7 @@ export function AnoiteceuForm({
               type="date"
               value={(fields.fim as string) || ""}
               onChange={(e) => set("fim", e.target.value)}
+              min={(fields.inicio as string) || today}
               className={INPUT_CLASS}
             />
           </Field>
@@ -1198,6 +1201,7 @@ export function AnoiteceuForm({
             type="date"
             value={(fields.viagens_ate as string) || ""}
             onChange={(e) => set("viagens_ate", e.target.value)}
+            min={today}
             className={INPUT_CLASS}
           />
         </Field>
