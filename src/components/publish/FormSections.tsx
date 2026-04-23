@@ -1143,7 +1143,6 @@ export function AnoiteceuForm({
   binds?: Set<string>;
 }) {
   const descontoOpts = ["5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
-  const horaOpts = Array.from({ length: 24 }, (_, i) => `${i}h`);
 
   return (
     <>
@@ -1175,28 +1174,20 @@ export function AnoiteceuForm({
       <Section title="Horário da Promoção" icon="⏰">
         <div className="grid grid-cols-2 gap-2">
           <Field label="INÍCIO">
-            <select
+            <input
+              type="date"
               value={(fields.inicio as string) || ""}
               onChange={(e) => set("inicio", e.target.value)}
               className={INPUT_CLASS}
-            >
-              <option value="">--</option>
-              {horaOpts.map((h) => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
+            />
           </Field>
           <Field label="FIM">
-            <select
+            <input
+              type="date"
               value={(fields.fim as string) || ""}
               onChange={(e) => set("fim", e.target.value)}
               className={INPUT_CLASS}
-            >
-              <option value="">--</option>
-              {horaOpts.map((h) => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
+            />
           </Field>
         </div>
       </Section>
