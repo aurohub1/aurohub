@@ -716,6 +716,28 @@ export default function EditorTemplatesPage() {
         value: JSON.stringify(cloneData),
         updated_at: new Date().toISOString(),
       });
+      // Sync com form_templates para o publicar encontrar
+      const sc = await supabase.from("system_config").select("value").eq("key", newKey).single();
+      if (sc.data) {
+        const parsed = JSON.parse(sc.data.value);
+        await supabase.from("form_templates").upsert({
+          name: parsed.nome || newKey,
+          form_type: parsed.formType || "pacote",
+          format: parsed.format || "stories",
+          is_base: false,
+          active: true,
+          licensee_id: parsed.licenseeId || null,
+          schema: {
+            elements: parsed.elements,
+            background: parsed.background || "#0E1520",
+            formType: parsed.formType,
+            width: parsed.width || 1080,
+            height: parsed.height || 1920,
+          },
+          width: parsed.width || 1080,
+          height: parsed.height || 1920,
+        }, { onConflict: "name,form_type,format" });
+      }
       await loadCanvasTemplates();
     } catch (err) {
       console.error("[Duplicate]", err);
