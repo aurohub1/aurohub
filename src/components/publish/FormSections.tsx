@@ -74,16 +74,16 @@ export function Section({
   void color;
   return (
     <div
-      className="rounded-xl border px-4 py-3"
+      className="rounded-xl border px-3 py-2"
       style={{ background: "var(--bg1)", borderColor: "var(--bdr)" }}
     >
-      <div className="mb-2.5 flex items-center gap-2">
+      <div className="mb-1.5 flex items-center gap-1.5">
         {icon && <span className="text-[13px]">{icon}</span>}
         <h4 className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
           {title}
         </h4>
       </div>
-      <div className="flex flex-col gap-2">{children}</div>
+      <div className="flex flex-col gap-1.5">{children}</div>
     </div>
   );
 }
