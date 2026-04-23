@@ -72,7 +72,7 @@ function sameISO(a: string, b: string): boolean {
 
 /* ── Component ───────────────────────────────────── */
 
-export default ClienteCalendarioPageioPage() {
+export default function ClienteCalendarioPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [view, setView] = useState<ViewMode>("mes");
 
