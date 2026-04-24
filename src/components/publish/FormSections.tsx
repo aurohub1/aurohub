@@ -198,22 +198,28 @@ export function BadgesSection({
   binds?: Set<string>;
 }) {
   const toggle = (key: string) => set(key, !fields[key]);
-  const Toggle = ({ label, k }: { label: string; k: string }) => (
-    <Field label={label}>
-      <button
-        type="button"
-        onClick={() => toggle(k)}
-        className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
-        style={
-          fields[k]
-            ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-            : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-        }
-      >
-        {fields[k] ? "✓ Ativado" : "Desativado"}
-      </button>
-    </Field>
-  );
+  const Toggle = ({ label, k }: { label: string; k: string }) => {
+    const active = !!fields[k];
+    return (
+      <Field label={label}>
+        <button
+          type="button"
+          onClick={() => toggle(k)}
+          className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
+          style={{
+            background: active ? "var(--brand-primary)" : "var(--bg2)",
+            color: active ? "#fff" : "var(--txt2)",
+            border: active ? "1px solid rgba(212,168,67,0.6)" : "1px solid rgba(212,168,67,0.4)",
+            position: "relative",
+            overflow: "hidden"
+          }}
+        >
+          {active && <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%)",pointerEvents:"none"}}/>}
+          <span style={{position:"relative",zIndex:1}}>{active ? "✓ Ativado" : "Desativado"}</span>
+        </button>
+      </Field>
+    );
+  };
 
   const opts = feriadoOpts ?? [""];
   const showAll = hasBind(binds, "allinclusive", "allinclusivo");
@@ -235,21 +241,27 @@ export function BadgesSection({
       {showDesc && (
         <Field label="Desconto">
           <div className="flex flex-wrap gap-1">
-            {DESCONTO_OPTS_FORM.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => set("numerodesconto", fields.numerodesconto === d ? "" : d)}
-                className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
-                style={
-                  fields.numerodesconto === d
-                    ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                    : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                }
-              >
-                {d}
-              </button>
-            ))}
+            {DESCONTO_OPTS_FORM.map((d) => {
+              const active = fields.numerodesconto === d;
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => set("numerodesconto", active ? "" : d)}
+                  className="rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all"
+                  style={{
+                    background: active ? "var(--brand-primary)" : "var(--bg2)",
+                    color: active ? "#fff" : "var(--txt2)",
+                    border: active ? "1px solid rgba(212,168,67,0.6)" : "1px solid rgba(212,168,67,0.4)",
+                    position: "relative",
+                    overflow: "hidden"
+                  }}
+                >
+                  {active && <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%)",pointerEvents:"none"}}/>}
+                  <span style={{position:"relative",zIndex:1}}>{d}</span>
+                </button>
+              );
+            })}
           </div>
           {fields.numerodesconto ? (
             <p className="mt-1 text-[10px] text-[var(--txt3)]">
@@ -756,13 +768,16 @@ export function PacoteForm({
                   type="button"
                   onClick={() => set(b.key, !on)}
                   className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all"
-                  style={
-                    on
-                      ? { background: "var(--orange)", color: "#fff", borderColor: "var(--orange)" }
-                      : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
-                  }
+                  style={{
+                    background: on ? "var(--brand-primary)" : "var(--bg2)",
+                    color: on ? "#fff" : "var(--txt2)",
+                    border: on ? "1px solid rgba(212,168,67,0.6)" : "1px solid rgba(212,168,67,0.4)",
+                    position: "relative",
+                    overflow: "hidden"
+                  }}
                 >
-                  {on ? "✓ " : ""}{b.label}
+                  {on && <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%)",pointerEvents:"none"}}/>}
+                  <span style={{position:"relative",zIndex:1}}>{on ? "✓ " : ""}{b.label}</span>
                 </button>
               );
             })}
