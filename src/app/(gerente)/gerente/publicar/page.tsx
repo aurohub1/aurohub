@@ -46,6 +46,12 @@ function capitalizeBR(s:string){
 }
 
 interface TemplateRow{id:string;name:string;formType:FormType;format:Format;schema:any;width:number;height:number;}
+interface StoreOption{id:string;name:string;}
+
+const RIO_PRETO_STORE_ID="efab2a24-3c34-4d2b-82ee-5fef8018c589";
+const AZV_GROUP_MATCHERS=["rio preto","barretos","damha"];
+function canPublishToAllAZV(storeId:string|null|undefined):boolean{return storeId===RIO_PRETO_STORE_ID;}
+function filterAZVGroup(stores:StoreOption[]):StoreOption[]{return stores.filter(s=>AZV_GROUP_MATCHERS.some(m=>s.name.toLowerCase().includes(m)));}
 
 export default function GerentePublicarV2Page() {
   const [profile, setProfile] = useState<FullProfile|null>(null);
@@ -56,6 +62,8 @@ export default function GerentePublicarV2Page() {
   const [phase, setPhase] = useState<"selector"|"form">("selector");
   const [animOut, setAnimOut] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string|null>(null);
+  const [publishTargets, setPublishTargets] = useState<StoreOption[]>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState<string>("");
   const [formCache, setFormCache] = useState<Record<FormType,Record<string,string>>>({
     pacote:{...DEFAULTS},campanha:{...DEFAULTS},passagem:{...DEFAULTS},
     cruzeiro:{...DEFAULTS},anoiteceu:{...DEFAULTS},card_whatsapp:{...DEFAULTS},
@@ -95,9 +103,33 @@ export default function GerentePublicarV2Page() {
   }, [tab, phase]);
 
   useEffect(()=>{
-    getProfile(supabase).then(p=>{
+    getProfile(supabase).then(async p=>{
       setProfile(p);
-      if(p?.licensee_id) loadTemplates(p.licensee_id);
+      if(p?.licensee_id){
+        loadTemplates(p.licensee_id);
+        let allStores:StoreOption[]=[];
+        if(p.role==="gerente"&&p.id){
+          const{data:userStores}=await supabase.from("user_stores").select("store_id").eq("user_id",p.id);
+          if(userStores&&userStores.length>0){
+            const storeIds=userStores.map(us=>us.store_id);
+            const{data:storesData}=await supabase.from("stores").select("id,name").in("id",storeIds).order("name");
+            allStores=(storesData??[]) as StoreOption[];
+          }
+        }else{
+          const{data:storesData}=await supabase.from("stores").select("id,name").eq("licensee_id",p.licensee_id).order("name");
+          allStores=(storesData??[]) as StoreOption[];
+        }
+        let targets:StoreOption[]=[];
+        if(canPublishToAllAZV(p.store_id)){
+          targets=filterAZVGroup(allStores);
+          if(targets.length===0) targets=allStores;
+        }else if(p.store_id){
+          const own=allStores.find(s=>s.id===p.store_id);
+          targets=own?[own]:[];
+        }
+        setPublishTargets(targets);
+        setSelectedStoreId(targets.length>0?targets[0].id:"");
+      }
     });
     supabase.from("feriados").select("nome").order("nome").then(({data})=>{
       if(data) setFeriados(data.map((r:any)=>r.nome));
@@ -420,6 +452,23 @@ export default function GerentePublicarV2Page() {
 
           {/* Footer */}
           <div style={{padding:"12px 14px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",flexShrink:0}}>
+            {publishTargets.length>1&&(
+              <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                <label style={{fontSize:"10px",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--txt3)"}}>Publicar em</label>
+                <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+                  {publishTargets.map(t=>(
+                    <button key={t.id} type="button" onClick={()=>setSelectedStoreId(t.id)}
+                      style={{flex:1,minWidth:"90px",display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",padding:"8px 10px",borderRadius:"8px",border:`1.5px solid ${selectedStoreId===t.id?"var(--brand-primary)":"var(--bdr)"}`,background:selectedStoreId===t.id?"rgba(59,130,246,0.1)":"transparent",color:selectedStoreId===t.id?"var(--brand-primary)":"var(--txt2)",fontSize:"11px",fontWeight:600,cursor:"pointer",transition:"all .15s"}}
+                    >
+                      <span style={{width:"14px",height:"14px",borderRadius:"50%",border:`2px solid ${selectedStoreId===t.id?"var(--brand-primary)":"var(--bdr)"}`,background:selectedStoreId===t.id?"var(--brand-primary)":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {selectedStoreId===t.id&&<span style={{width:"6px",height:"6px",borderRadius:"50%",background:"#fff"}}/>}
+                      </span>
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {format !== "tv" && (
               <button style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer"}}>
                 ✈ Publicar no Instagram
