@@ -169,30 +169,30 @@ export function TemplateCard({
       </div>
 
       {/* Actions */}
-      <div className="flex border-t border-[var(--bdr)] text-[9px]">
+      <div className="flex border-t border-[var(--bdr)] text-[11px]">
         <button
           onClick={() => onEdit(t.key)}
-          className="flex-1 py-1 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+          className="flex-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
         >
           ✏️ Editar
         </button>
         {t.isBase && onClone && (
           <button
             onClick={() => onClone(t.key)}
-            className="flex-1 py-1 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+            className="flex-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
           >
             📋 Clonar
           </button>
         )}
         <button
           onClick={() => onDuplicate(t.key)}
-          className="flex-1 py-1 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+          className="flex-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
         >
           📑 Duplicar
         </button>
         <button
           onClick={() => onDelete(t.key)}
-          className="flex-1 py-1 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-red-500"
+          className="flex-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-red-500"
         >
           🗑️ Excluir
         </button>
