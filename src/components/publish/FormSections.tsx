@@ -930,7 +930,7 @@ export function PacoteForm({
 /* ── CampanhaForm ───────────────────────────────────── */
 
 export function CampanhaForm({
-  fields, set, servicos, setServicos, today, feriadoOpts, binds,
+  fields, set, servicos, setServicos, today, feriadoOpts, binds, formato, nomeLoja,
 }: {
   fields: Fields;
   set: Setter;
@@ -939,6 +939,8 @@ export function CampanhaForm({
   today: string;
   feriadoOpts?: string[];
   binds?: Set<string>;
+  formato?: string;
+  nomeLoja?: string;
 }) {
   const noites = calcularNoites(
     (fields.dataida as string) || "",
@@ -1084,6 +1086,30 @@ export function CampanhaForm({
 
       <BadgesSection fields={fields} set={set} formType="campanha" feriadoOpts={feriadoOpts} binds={binds} />
       <PagamentoSection fields={fields} set={set} totalLabel="por pessoa apto. duplo" binds={binds} />
+
+      {/* Legenda do Post */}
+      <Section title="Legenda do Post" icon="✍️">
+        <Field label="Legenda (opcional)" asSection>
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={(fields.legenda_post as string) || ""}
+              onChange={(e) => set("legenda_post", e.target.value)}
+              placeholder="Escreva a legenda do post aqui..."
+              className={`${INPUT_CLASS} h-auto resize-none py-2`}
+              rows={4}
+            />
+            {(fields.destino as string)?.trim() && formato && (
+              <SugerirLegenda
+                destino={(fields.destino as string) || "Campanha"}
+                tipoArte="campanha"
+                formato={formato}
+                nomeLoja={nomeLoja}
+                onSelect={(legenda) => set("legenda_post", legenda)}
+              />
+            )}
+          </div>
+        </Field>
+      </Section>
     </>
   );
 }
@@ -1091,12 +1117,14 @@ export function CampanhaForm({
 /* ── CruzeiroForm ───────────────────────────────────── */
 
 export function CruzeiroForm({
-  fields, set, today, binds,
+  fields, set, today, binds, formato, nomeLoja,
 }: {
   fields: Fields;
   set: Setter;
   today: string;
   binds?: Set<string>;
+  formato?: string;
+  nomeLoja?: string;
 }) {
   const noites = calcularNoites(
     (fields.dataida as string) || "",
@@ -1196,6 +1224,30 @@ export function CruzeiroForm({
       )}
 
       <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" binds={binds} />
+
+      {/* Legenda do Post */}
+      <Section title="Legenda do Post" icon="✍️">
+        <Field label="Legenda (opcional)" asSection>
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={(fields.legenda_post as string) || ""}
+              onChange={(e) => set("legenda_post", e.target.value)}
+              placeholder="Escreva a legenda do post aqui..."
+              className={`${INPUT_CLASS} h-auto resize-none py-2`}
+              rows={4}
+            />
+            {((fields.destino as string)?.trim() || (fields.navio as string)?.trim()) && formato && (
+              <SugerirLegenda
+                destino={(fields.destino as string) || (fields.navio as string) || (fields.itinerario as string) || "Cruzeiro"}
+                tipoArte="cruzeiro"
+                formato={formato}
+                nomeLoja={nomeLoja}
+                onSelect={(legenda) => set("legenda_post", legenda)}
+              />
+            )}
+          </div>
+        </Field>
+      </Section>
     </>
   );
 }
