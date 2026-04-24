@@ -235,7 +235,8 @@ export default function GerentePublicarV2Page() {
     setSelectedTemplateId(id);
   }
   function backToTemplateSelector(){
-    setSelectedTemplateId(null);
+    setAnimOut(true);
+    setTimeout(()=>{setPhase("selector");setSelectedTemplateId(null);setAnimOut(false);},260);
   }
 
   // ===== SELEÇÃO DE TIPO =====

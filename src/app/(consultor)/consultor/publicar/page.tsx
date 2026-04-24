@@ -235,7 +235,8 @@ export default function ConsultorPublicarPage() {
     setSelectedTemplateId(id);
   }
   function backToTemplateSelector(){
-    setSelectedTemplateId(null);
+    setAnimOut(true);
+    setTimeout(()=>{setPhase("selector");setSelectedTemplateId(null);setAnimOut(false);},260);
   }
 
   // ===== SELEÇÃO DE TIPO =====
