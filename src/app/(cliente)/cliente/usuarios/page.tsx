@@ -87,7 +87,6 @@ export default function ClienteUsuariosPage() {
           .select("id, name, email, role, status, licensee_id, store_id, created_at")
           .eq("licensee_id", p.licensee_id)
           .neq("id", p.id)
-          .in("role", ["unidade", "vendedor"])
           .order("created_at", { ascending: false }),
         supabase
           .from("stores")
