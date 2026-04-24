@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
 import { PacoteForm, CardWhatsAppForm, AnoiteceuForm } from "@/components/publish/FormSections";
-import { Plane, Target, Ticket, Ship, Moon, MessageSquare, ArrowLeft, Smartphone, Play, Square, Tv, Check, Loader2, Trash2 } from "lucide-react";
+import { Plane, Target, Ticket, Ship, Moon, MessageSquare, ArrowLeft, Smartphone, Play, Square, Tv, Check, Loader2, Trash2, HardDrive } from "lucide-react";
 import { usePublishQueue } from "@/hooks/usePublishQueue";
 
 const PreviewStage = dynamic(
@@ -353,6 +353,12 @@ export default function ClientePublicarPage() {
     setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
   }
 
+  function handlePublishDrive() {
+    setStatus("success");
+    setStatusMsg("Em breve");
+    setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
+  }
+
   async function handlePublish() {
     if (!profile?.licensee_id) { setStatus("error"); setStatusMsg("Sem licensee"); return; }
     if (selectedTargetIds.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
@@ -641,10 +647,10 @@ export default function ClientePublicarPage() {
                     const single=publishTargets.length===1;
                     return(
                     <button key={t.id} type="button" onClick={()=>!single&&toggleTarget(t.id)} disabled={single}
-                      style={{flex:1,minWidth:"90px",display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",padding:"8px 10px",borderRadius:"8px",border:`1.5px solid ${active?"var(--brand-primary)":"var(--bdr)"}`,background:active?"rgba(59,130,246,0.1)":"transparent",color:active?"var(--brand-primary)":"var(--txt2)",fontSize:"11px",fontWeight:600,cursor:single?"default":"pointer",transition:"all .15s"}}
+                      style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:"4px",padding:"4px 8px",borderRadius:"8px",border:`1.5px solid ${active?"var(--brand-primary)":"var(--bdr)"}`,background:active?"rgba(59,130,246,0.1)":"transparent",color:active?"var(--brand-primary)":"var(--txt2)",fontSize:"10px",fontWeight:600,cursor:single?"default":"pointer",transition:"all .15s"}}
                     >
-                      <span style={{width:"12px",height:"12px",borderRadius:"3px",border:`1.5px solid ${active?"var(--brand-primary)":"var(--bdr)"}`,background:active?"var(--brand-primary)":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                        {active&&<Check size={8} strokeWidth={3} color="#fff"/>}
+                      <span style={{width:"10px",height:"10px",borderRadius:"3px",border:`1.5px solid ${active?"var(--brand-primary)":"var(--bdr)"}`,background:active?"var(--brand-primary)":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {active&&<Check size={7} strokeWidth={3} color="#fff"/>}
                       </span>
                       {t.name}
                     </button>
@@ -654,9 +660,14 @@ export default function ClientePublicarPage() {
               </div>
             )}
             {format !== "tv" && (
-              <button onClick={handlePublish} disabled={busy||!currentTemplate} style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:busy?"#999":"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy?"wait":"pointer",opacity:busy?0.7:1}}>
-                {busy?<><Loader2 size={14} style={{display:"inline",marginRight:"6px",animation:"spin 1s linear infinite"}}/>Publicando...</>:"✈ Publicar no Instagram"}
-              </button>
+              <>
+                <button onClick={handlePublish} disabled={busy||!currentTemplate} style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:busy?"#999":"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy?"wait":"pointer",opacity:busy?0.7:1}}>
+                  {busy?<><Loader2 size={14} style={{display:"inline",marginRight:"6px",animation:"spin 1s linear infinite"}}/>Publicando...</>:"✈ Publicar no Instagram"}
+                </button>
+                <button onClick={handlePublishDrive} disabled={busy||!currentTemplate} style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy||!currentTemplate?"not-allowed":"pointer",opacity:busy||!currentTemplate?0.5:1}}>
+                  <HardDrive size={14} style={{display:"inline",marginRight:"6px"}}/>Publicar + Drive
+                </button>
+              </>
             )}
             <div style={{display:"flex",gap:"6px"}}>
               <button onClick={handleClear} style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>
