@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
+import type Konva from "konva";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
@@ -79,6 +80,7 @@ export default function ClientePublicarPage() {
   const destinoDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const hotelDataRef = useRef<{nome:string;url:string}[]|null>(null);
   const previewAreaRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
   const tabsWrapRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
 
@@ -266,21 +268,89 @@ export default function ClientePublicarPage() {
     });
   }
 
+  /* ── Captura de imagem/vídeo ──────────────────── */
+
+  function getPNGDataURL(): string | null {
+    const stage = stageRef.current;
+    if (!stage) return null;
+    const scale = stage.scaleX() || 1;
+    return stage.toDataURL({ pixelRatio: 1 / scale, mimeType: "image/jpeg", quality: 0.92 });
+  }
+
+  async function recordCanvasWithAudio(durationSec: number): Promise<Blob | null> {
+    const stage = stageRef.current;
+    if (!stage) return null;
+
+    const [W, H] = FORMAT_DIMS[format];
+    const recCanvas = document.createElement("canvas");
+    recCanvas.width = W;
+    recCanvas.height = H;
+    const recCtx = recCanvas.getContext("2d");
+    if (!recCtx) return null;
+
+    // Render loop: copia frame do Konva no canvas de gravação
+    const scale = stage.scaleX() || 1;
+    let rafId = 0;
+    const drawFrame = () => {
+      const srcCanvas = stage.toCanvas({ pixelRatio: 1 / scale });
+      recCtx.drawImage(srcCanvas, 0, 0, W, H);
+      rafId = requestAnimationFrame(drawFrame);
+    };
+    drawFrame();
+
+    // Stream de vídeo
+    const fps = 30;
+    const videoStream = (recCanvas as HTMLCanvasElement).captureStream(fps);
+
+    // MediaRecorder
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+      ? "video/webm;codecs=vp9,opus"
+      : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+      ? "video/webm;codecs=vp8,opus"
+      : "video/webm";
+    const recorder = new MediaRecorder(videoStream, { mimeType, videoBitsPerSecond: 4_000_000 });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    const done = new Promise<Blob>((resolve) => {
+      recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
+    });
+
+    recorder.start(100);
+
+    await new Promise(r => setTimeout(r, durationSec * 1000));
+
+    recorder.stop();
+    cancelAnimationFrame(rafId);
+
+    return done;
+  }
+
   function handleClear() {
     setFormCache((c) => ({ ...c, [tab]: {...DEFAULTS} }));
     setBadgeCache((c) => ({ ...c, [tab]: {} }));
   }
 
   async function handleDownload() {
-    // Implementação simplificada - apenas baixa a imagem
     setStatus("generating");
     setStatusMsg("Gerando imagem...");
-    // TODO: implementar getPNGDataURL do canvas
-    setTimeout(() => {
-      setStatus("success");
-      setStatusMsg("Download iniciado");
+
+    const dataUrl = getPNGDataURL();
+    if (!dataUrl) {
+      setStatus("error");
+      setStatusMsg("Falha ao gerar imagem");
       setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
-    }, 1000);
+      return;
+    }
+
+    // Download local
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `${currentTemplate?.name || "arte"}_${Date.now()}.jpg`;
+    a.click();
+
+    setStatus("success");
+    setStatusMsg("Download iniciado");
+    setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
   }
 
   async function handlePublish() {
@@ -292,26 +362,39 @@ export default function ClientePublicarPage() {
 
     try {
       setBusy(true);
-      setStatus("generating");
-      setStatusMsg("Gerando imagem...");
+      const isVideo = format === "stories" || format === "reels";
+      let mediaBlob: Blob | undefined;
+      let mediaDataUrl: string | undefined;
 
-      // TODO: Implementar geração de imagem/vídeo real
-      // Por enquanto, simula publicação
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (isVideo) {
+        setStatus("generating");
+        setStatusMsg("Gravando vídeo...");
+        const els = (currentTemplate?.schema?.elements ?? []) as Array<{ animDelay?: number; animDuration?: number }>;
+        const maxAnim = els.reduce((m, el) => Math.max(m, (el.animDelay || 0) + (el.animDuration || 0.6)), 0);
+        const durationSec = Math.min(15, Math.max(5, Math.ceil(maxAnim + 2)));
+        const blob = await recordCanvasWithAudio(durationSec);
+        if (!blob) throw new Error("Falha ao gravar vídeo");
+        mediaBlob = blob;
+      } else {
+        setStatus("generating");
+        setStatusMsg("Gerando imagem...");
+        const dataUrl = getPNGDataURL();
+        if (!dataUrl) throw new Error("Falha ao gerar imagem");
+        mediaDataUrl = dataUrl;
+      }
 
       setStatus("publishing");
       setStatusMsg(`Publicando em ${targets.length} loja(s)...`);
 
       for (const target of targets) {
-        // Enfileira publicação para cada loja
         publishQueue.enqueue({
           storeId: target.id,
           storeName: target.name,
           destino: values.destino || null,
           format,
-          isVideo: false,
-          mediaBlob: undefined,
-          mediaDataUrl: undefined,
+          isVideo,
+          mediaBlob,
+          mediaDataUrl,
           caption: "",
           licenseeId: profile.licensee_id,
           userId: profile.id,
@@ -603,7 +686,7 @@ export default function ClientePublicarPage() {
               overflow:"hidden",
               flexShrink:0
             }}>
-              <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={Math.round(winH * 0.82)}/>
+              <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={Math.round(winH * 0.82)} onReady={(s) => { stageRef.current = s; }}/>
             </div>
           </div>
         </div>
