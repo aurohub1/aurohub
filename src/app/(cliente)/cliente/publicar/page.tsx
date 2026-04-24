@@ -355,7 +355,7 @@ export default function ClientePublicarPage() {
           </div>
           {/* Format pills flutuantes — rodapé do preview */}
           {visibleFormats.length > 1 && (
-            <div style={{pointerEvents:"none",position:"absolute",bottom:"-14px",left:0,right:0,display:"flex",justifyContent:"center"}}>
+            <div style={{pointerEvents:"none",position:"absolute",bottom:"12px",left:0,right:0,display:"flex",justifyContent:"center"}}>
               <div style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:"4px",borderRadius:"20px",backdropFilter:"blur(12px)",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",padding:"4px"}}>
                 {(["stories","reels","feed","tv"] as Format[]).map(f=>{
                   const active=format===f;
