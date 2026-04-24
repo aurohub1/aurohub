@@ -18,6 +18,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { ReactNode } from "react";
 import { supabase as _sb_for_lamina } from "@/lib/supabase";
+import { Tag, CreditCard, FileText } from "lucide-react";
 import SugerirLegenda from "./SugerirLegenda";
 
 export { SugerirLegenda };
@@ -70,7 +71,7 @@ export function Section({
   title, icon, color, children,
 }: {
   title: string;
-  icon?: string;
+  icon?: ReactNode;
   color?: string;
   children: ReactNode;
 }) {
@@ -81,7 +82,7 @@ export function Section({
       style={{ borderColor: "var(--bdr)" }}
     >
       <div className="mb-1.5 flex items-center gap-1.5">
-        {icon && <span className="text-[13px]">{icon}</span>}
+        {icon && (typeof icon === "string" ? <span className="text-[13px]">{icon}</span> : icon)}
         <h4 className="text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
           {title}
         </h4>
@@ -237,7 +238,7 @@ export function BadgesSection({
   if (!anyContent) return null;
 
   return (
-    <Section title="Selos" icon="🏷️">
+    <Section title="Selos" icon={<Tag size={13} />}>
       {showAll && <Toggle label="All Inclusive"   k="allinclusive" />}
       {showUltCh && <Toggle label="Última Chamada"  k="ultimachamada" />}
       {showUltLug && <Toggle label="Últimos Lugares" k="ultimoslugares" />}
@@ -312,7 +313,7 @@ export function PagamentoSection({
   if (!showForma && !showEntrada && !showParcelas && !showValorParc && !showTotal) return null;
 
   return (
-    <Section title="Pagamento" icon="💳">
+    <Section title="Pagamento" icon={<CreditCard size={13} />}>
       {showForma && (
         <Field label="Forma de Pagamento *">
           <div className="flex flex-wrap gap-1">
@@ -764,7 +765,7 @@ export function PacoteForm({
       )}
 
       {showBadges && (
-        <Section title="Selos & Destaques" icon="🏷️">
+        <Section title="Selos & Destaques" icon={<Tag size={13} />}>
           <div className="flex flex-wrap gap-1.5">
             {[
               { key: "allinclusive",    label: "All Inclusive",    show: showAllInc  },
@@ -797,7 +798,7 @@ export function PacoteForm({
       )}
 
       {showPgtoBlock && (
-        <Section title="Pagamento" icon="💳">
+        <Section title="Pagamento" icon={<CreditCard size={13} />}>
           {showForma && (
             <Field label="Forma de Pagamento *">
               <div className="flex gap-1">
@@ -902,7 +903,7 @@ export function PacoteForm({
 
       {/* Legenda do Post */}
       {(formato === "feed" || formato === "reels") && (
-        <Section title="Legenda do Post" icon="✍️">
+        <Section title="Legenda do Post" icon={<FileText size={13} />}>
           <Field label="Legenda (opcional)" asSection>
             <div className="flex flex-col gap-2">
               <textarea
@@ -1091,7 +1092,7 @@ export function CampanhaForm({
 
       {/* Legenda do Post */}
       {(formato === "feed" || formato === "reels") && (
-        <Section title="Legenda do Post" icon="✍️">
+        <Section title="Legenda do Post" icon={<FileText size={13} />}>
           <Field label="Legenda (opcional)" asSection>
             <div className="flex flex-col gap-2">
               <textarea
@@ -1231,7 +1232,7 @@ export function CruzeiroForm({
 
       {/* Legenda do Post */}
       {(formato === "feed" || formato === "reels") && (
-        <Section title="Legenda do Post" icon="✍️">
+        <Section title="Legenda do Post" icon={<FileText size={13} />}>
           <Field label="Legenda (opcional)" asSection>
             <div className="flex flex-col gap-2">
               <textarea
@@ -1282,7 +1283,7 @@ export function AnoiteceuForm({
         </div>
       </div>
 
-      <Section title="Desconto" icon="🏷️">
+      <Section title="Desconto" icon={<Tag size={13} />}>
         <Field label="Desconto">
           <select
             value={(fields.desconto as string) || ""}
