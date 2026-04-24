@@ -33,7 +33,6 @@ export default function UserMetricsPage() {
     setLoading(true);
     try {
       const p = await getProfile(supabase);
-      console.log('UserMetricsPage - profile:', p);
       setProfile(p);
       if (!p) { setLoading(false); return; }
       const feats = await getFeatures(supabase, p);
@@ -42,6 +41,7 @@ export default function UserMetricsPage() {
       const since = new Date();
       since.setDate(since.getDate() - 90);
 
+      console.log('gerente metrics - profile:', { role: p.role, licensee_id: p.licensee_id });
       const useLicensee = (p.role === "cliente" || p.role === "gerente") && !!p.licensee_id;
 
       const histQuery = supabase
