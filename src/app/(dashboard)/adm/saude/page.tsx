@@ -8,7 +8,7 @@ import { checkInstagramToken } from "@/lib/instagram-status";
 interface Licensee {
   id: string;
   name: string | null;
-  active: boolean;
+  status: string;
 }
 
 interface Store {
@@ -47,8 +47,8 @@ export default function AdmSaudePage() {
       // Franqueados ativos
       const { data: lics } = await supabase
         .from("licensees")
-        .select("id, name, active")
-        .eq("active", true)
+        .select("id, name, status")
+        .eq("status", "active")
         .order("name");
       setLicensees((lics as Licensee[]) || []);
 
