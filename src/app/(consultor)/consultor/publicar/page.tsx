@@ -267,7 +267,7 @@ export default function ConsultorPublicarPage() {
     <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",transition:"opacity .26s",opacity:animOut?0:1}}>
 
       {/* TOPNAV — espaço generoso */}
-      <div style={{display:"flex",alignItems:"center",height:"56px",background:"var(--bg1)",borderBottom:"1px solid var(--bdr)",flexShrink:0,padding:"0 12px",marginTop:"8px",gap:"4px",overflowX:"auto"}}>
+      <div style={{display:"flex",alignItems:"center",height:"56px",background:"var(--bg1)",borderBottom:"1px solid var(--bdr)",flexShrink:0,padding:"0 12px",gap:"4px",overflowX:"auto"}}>
         <button onClick={goBack} style={{display:"flex",alignItems:"center",gap:"6px",background:"none",border:"none",color:"var(--txt3)",fontSize:"12px",fontWeight:600,cursor:"pointer",padding:"8px 14px",borderRadius:"8px",flexShrink:0,whiteSpace:"nowrap",transition:"color .15s"}}
           onMouseEnter={e=>e.currentTarget.style.color="var(--txt1)"}
           onMouseLeave={e=>e.currentTarget.style.color="var(--txt3)"}
