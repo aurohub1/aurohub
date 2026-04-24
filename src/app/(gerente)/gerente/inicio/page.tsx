@@ -362,7 +362,7 @@ export default function GerenteInicioPage() {
               {greeting()}
             </p>
             <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
-              {profile?.store?.name || "Sua unidade"}
+              Olá, {profile?.name?.split(" ")[0] || "Gerente"}
             </h1>
             <p className="mt-1.5 max-w-[560px] text-[13px] italic text-[var(--txt2)]">
               &ldquo;{quote}&rdquo;
