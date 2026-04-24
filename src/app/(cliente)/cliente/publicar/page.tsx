@@ -297,6 +297,48 @@ export default function ClientePublicarPage() {
         {/* FORMULÁRIO — scroll só aqui */}
         <div style={{width:"360px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
 
+          {/* Pills de formato */}
+          {visibleFormats.length > 1 && (
+            <div style={{padding:"14px 14px 0",borderBottom:"1px solid var(--bdr)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"4px",borderRadius:"12px",background:"var(--bg2)",padding:"4px"}}>
+                {(["stories","reels","feed","tv"] as Format[]).map(f=>{
+                  const active=format===f;
+                  const available=visibleFormats.includes(f);
+                  const Icon=f==="stories"?Smartphone:f==="reels"?Play:f==="feed"?Square:Tv;
+                  return(
+                    <button
+                      key={f}
+                      onClick={()=>available&&setFormat(f)}
+                      disabled={!available}
+                      style={{
+                        flex:1,
+                        display:"flex",
+                        alignItems:"center",
+                        justifyContent:"center",
+                        gap:"4px",
+                        borderRadius:"8px",
+                        padding:"8px",
+                        fontSize:"10px",
+                        fontWeight:700,
+                        textTransform:"uppercase",
+                        letterSpacing:".06em",
+                        border:"none",
+                        cursor:available?"pointer":"not-allowed",
+                        opacity:available?1:0.3,
+                        transition:"all .15s",
+                        background:active?"var(--brand-primary)":"transparent",
+                        color:active?"#fff":"var(--txt3)"
+                      }}
+                    >
+                      <Icon size={13} strokeWidth={2.5}/>
+                      <span>{FORMAT_LABELS[f]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Campos — SCROLL APENAS AQUI */}
           <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
             {!currentTemplate?(
@@ -336,7 +378,7 @@ export default function ClientePublicarPage() {
         </div>
 
         {/* PREVIEW — sem scroll, centralizado */}
-        <div style={{flex:1,background:"var(--bg0)",display:"flex",flexDirection:"column",overflow:"visible",position:"relative"}}>
+        <div style={{flex:1,background:"var(--bg0)",display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid var(--bdr)",flexShrink:0}}>
             <span style={{fontSize:"10px",fontWeight:700,color:"var(--txt3)",textTransform:"uppercase",letterSpacing:".1em"}}>Preview ao vivo</span>
             <span style={{fontSize:"10px",color:"var(--txt3)",background:"var(--bg2)",padding:"3px 8px",borderRadius:"6px",border:"1px solid var(--bdr)"}}>{pw} × {ph}</span>
@@ -353,48 +395,6 @@ export default function ClientePublicarPage() {
               <PreviewStage schema={schema} width={pw} height={ph} values={previewValues} maxDisplay={Math.round(winH * 0.82)}/>
             </div>
           </div>
-          {/* Format pills flutuantes — rodapé do preview */}
-          {visibleFormats.length > 1 && (
-            <div style={{pointerEvents:"none",position:"absolute",bottom:"12px",left:0,right:0,display:"flex",justifyContent:"center",zIndex:50}}>
-              <div style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:"4px",borderRadius:"20px",backdropFilter:"blur(12px)",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",padding:"4px"}}>
-                {(["stories","reels","feed","tv"] as Format[]).map(f=>{
-                  const active=format===f;
-                  const available=visibleFormats.includes(f);
-                  const Icon=f==="stories"?Smartphone:f==="reels"?Play:f==="feed"?Square:Tv;
-                  return(
-                    <button
-                      key={f}
-                      onClick={()=>available&&setFormat(f)}
-                      disabled={!available}
-                      style={{
-                        display:"flex",
-                        alignItems:"center",
-                        gap:"4px",
-                        borderRadius:"20px",
-                        padding:"6px 12px",
-                        fontSize:"9px",
-                        fontWeight:700,
-                        textTransform:"uppercase",
-                        letterSpacing:".06em",
-                        border:"none",
-                        cursor:available?"pointer":"not-allowed",
-                        opacity:available?1:0.3,
-                        transition:"all .15s",
-                        position:"relative",
-                        overflow:"hidden",
-                        background:active?"var(--brand-primary)":"transparent",
-                        color:active?"#fff":"rgba(255,255,255,0.5)"
-                      }}
-                    >
-                      {active&&<div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 100%)",pointerEvents:"none"}}/>}
-                      <Icon size={11} style={{position:"relative",zIndex:1}}/>
-                      <span style={{position:"relative",zIndex:1}}>{FORMAT_LABELS[f]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
       </div>
