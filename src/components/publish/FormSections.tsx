@@ -901,28 +901,30 @@ export function PacoteForm({
       )}
 
       {/* Legenda do Post */}
-      <Section title="Legenda do Post" icon="✍️">
-        <Field label="Legenda (opcional)" asSection>
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={(fields.legenda_post as string) || ""}
-              onChange={(e) => set("legenda_post", e.target.value)}
-              placeholder="Escreva a legenda do post aqui..."
-              className={`${INPUT_CLASS} h-auto resize-none py-2`}
-              rows={4}
-            />
-            {(fields.destino as string)?.trim() && formato && (formato === "feed" || formato === "reels") && (
-              <SugerirLegenda
-                destino={(fields.destino as string) || ""}
-                tipoArte="pacote"
-                formato={formato}
-                nomeLoja={nomeLoja}
-                onSelect={(legenda) => set("legenda_post", legenda)}
+      {(formato === "feed" || formato === "reels") && (
+        <Section title="Legenda do Post" icon="✍️">
+          <Field label="Legenda (opcional)" asSection>
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={(fields.legenda_post as string) || ""}
+                onChange={(e) => set("legenda_post", e.target.value)}
+                placeholder="Escreva a legenda do post aqui..."
+                className={`${INPUT_CLASS} h-auto resize-none py-2`}
+                rows={4}
               />
-            )}
-          </div>
-        </Field>
-      </Section>
+              {(fields.destino as string)?.trim() && formato && (
+                <SugerirLegenda
+                  destino={(fields.destino as string) || ""}
+                  tipoArte="pacote"
+                  formato={formato}
+                  nomeLoja={nomeLoja}
+                  onSelect={(legenda) => set("legenda_post", legenda)}
+                />
+              )}
+            </div>
+          </Field>
+        </Section>
+      )}
     </div>
   );
 }
@@ -1088,28 +1090,30 @@ export function CampanhaForm({
       <PagamentoSection fields={fields} set={set} totalLabel="por pessoa apto. duplo" binds={binds} />
 
       {/* Legenda do Post */}
-      <Section title="Legenda do Post" icon="✍️">
-        <Field label="Legenda (opcional)" asSection>
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={(fields.legenda_post as string) || ""}
-              onChange={(e) => set("legenda_post", e.target.value)}
-              placeholder="Escreva a legenda do post aqui..."
-              className={`${INPUT_CLASS} h-auto resize-none py-2`}
-              rows={4}
-            />
-            {(fields.destino as string)?.trim() && formato && (formato === "feed" || formato === "reels") && (
-              <SugerirLegenda
-                destino={(fields.destino as string) || "Campanha"}
-                tipoArte="campanha"
-                formato={formato}
-                nomeLoja={nomeLoja}
-                onSelect={(legenda) => set("legenda_post", legenda)}
+      {(formato === "feed" || formato === "reels") && (
+        <Section title="Legenda do Post" icon="✍️">
+          <Field label="Legenda (opcional)" asSection>
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={(fields.legenda_post as string) || ""}
+                onChange={(e) => set("legenda_post", e.target.value)}
+                placeholder="Escreva a legenda do post aqui..."
+                className={`${INPUT_CLASS} h-auto resize-none py-2`}
+                rows={4}
               />
-            )}
-          </div>
-        </Field>
-      </Section>
+              {(fields.destino as string)?.trim() && formato && (
+                <SugerirLegenda
+                  destino={(fields.destino as string) || "Campanha"}
+                  tipoArte="campanha"
+                  formato={formato}
+                  nomeLoja={nomeLoja}
+                  onSelect={(legenda) => set("legenda_post", legenda)}
+                />
+              )}
+            </div>
+          </Field>
+        </Section>
+      )}
     </>
   );
 }
@@ -1226,28 +1230,30 @@ export function CruzeiroForm({
       <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" binds={binds} />
 
       {/* Legenda do Post */}
-      <Section title="Legenda do Post" icon="✍️">
-        <Field label="Legenda (opcional)" asSection>
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={(fields.legenda_post as string) || ""}
-              onChange={(e) => set("legenda_post", e.target.value)}
-              placeholder="Escreva a legenda do post aqui..."
-              className={`${INPUT_CLASS} h-auto resize-none py-2`}
-              rows={4}
-            />
-            {((fields.destino as string)?.trim() || (fields.navio as string)?.trim()) && formato && (formato === "feed" || formato === "reels") && (
-              <SugerirLegenda
-                destino={(fields.destino as string) || (fields.navio as string) || (fields.itinerario as string) || "Cruzeiro"}
-                tipoArte="cruzeiro"
-                formato={formato}
-                nomeLoja={nomeLoja}
-                onSelect={(legenda) => set("legenda_post", legenda)}
+      {(formato === "feed" || formato === "reels") && (
+        <Section title="Legenda do Post" icon="✍️">
+          <Field label="Legenda (opcional)" asSection>
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={(fields.legenda_post as string) || ""}
+                onChange={(e) => set("legenda_post", e.target.value)}
+                placeholder="Escreva a legenda do post aqui..."
+                className={`${INPUT_CLASS} h-auto resize-none py-2`}
+                rows={4}
               />
-            )}
-          </div>
-        </Field>
-      </Section>
+              {((fields.destino as string)?.trim() || (fields.navio as string)?.trim()) && formato && (
+                <SugerirLegenda
+                  destino={(fields.destino as string) || (fields.navio as string) || (fields.itinerario as string) || "Cruzeiro"}
+                  tipoArte="cruzeiro"
+                  formato={formato}
+                  nomeLoja={nomeLoja}
+                  onSelect={(legenda) => set("legenda_post", legenda)}
+                />
+              )}
+            </div>
+          </Field>
+        </Section>
+      )}
     </>
   );
 }
