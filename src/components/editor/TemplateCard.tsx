@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Play, Music, Download } from "lucide-react";
 
 export interface CanvasTemplate {
   key: string;
@@ -135,32 +134,29 @@ export function TemplateCard({
         )}
 
         {/* Badges */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex items-center gap-1">
           <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
+            className="text-[9px] font-semibold uppercase"
             style={{
               background: getTypeColor(t.formType),
               color: "#fff",
+              padding: "2px 6px",
+              borderRadius: "4px",
             }}
           >
             {formatTypeLabel(t.formType)}
           </span>
-          {t.format === "reels" ? (
-            <span className="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
-              <Play size={10} fill="currentColor" />
-              <Music size={10} />
-              Reels 9:16
-            </span>
-          ) : t.format === "tv" ? (
-            <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-              <Download size={10} />
-              TV · Download
-            </span>
-          ) : (
-            <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-              {formatFormatLabel(t.format)}
-            </span>
-          )}
+          <span
+            className="text-[9px] font-medium"
+            style={{
+              background: t.format === "reels" ? "#f3e8ff" : t.format === "tv" ? "#fef3c7" : "#e2e8f0",
+              color: t.format === "reels" ? "#7c3aed" : t.format === "tv" ? "#d97706" : "#475569",
+              padding: "2px 6px",
+              borderRadius: "4px",
+            }}
+          >
+            {formatFormatLabel(t.format)}
+          </span>
         </div>
 
         {/* Meta info */}
