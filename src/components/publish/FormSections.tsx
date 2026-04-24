@@ -617,14 +617,16 @@ export function PacoteForm({
           {(showSaida || showTipovoo) && (
             <div className="flex flex-col gap-2">
               {showSaida && (
-                <Field label="Saída *" asSection>
-                  <input
-                    value={(fields.saida as string) || ""}
-                    onChange={(e) => set("saida", e.target.value)}
-                    placeholder="ex. GRU"
-                    className={INPUT_CLASS}
-                  />
-                </Field>
+                <div style={{ marginTop: "12px" }}>
+                  <Field label="Saída *" asSection>
+                    <input
+                      value={(fields.saida as string) || ""}
+                      onChange={(e) => set("saida", e.target.value)}
+                      placeholder="ex. GRU"
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                </div>
               )}
               {showTipovoo && (
                 <Field label="Tipo de Voo *" asSection>
@@ -942,15 +944,17 @@ export function CampanhaForm({
           {(showSaida || showTipovoo) && (
             <div className="flex flex-col gap-2">
               {showSaida && (
-                <Field label="Saída *" asSection>
-                  <SearchableSelect
-                    value={(fields.saida as string) || ""}
-                    onChange={(v) => set("saida", v)}
-                    options={["GRU", "CGH", "VCP", "BSB", "GIG", "SDU", "SSA", "FOR", "REC", "CWB", "POA", "FLN"]}
-                    placeholder="Aeroporto..."
-                    allowCustom
-                  />
-                </Field>
+                <div style={{ marginTop: "12px" }}>
+                  <Field label="Saída *" asSection>
+                    <SearchableSelect
+                      value={(fields.saida as string) || ""}
+                      onChange={(v) => set("saida", v)}
+                      options={["GRU", "CGH", "VCP", "BSB", "GIG", "SDU", "SSA", "FOR", "REC", "CWB", "POA", "FLN"]}
+                      placeholder="Aeroporto..."
+                      allowCustom
+                    />
+                  </Field>
+                </div>
               )}
               {showTipovoo && (
                 <Field label="Tipo de Voo *" asSection>
