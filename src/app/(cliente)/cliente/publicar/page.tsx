@@ -553,7 +553,7 @@ export default function ClientePublicarPage() {
             <button key={t.id}
               data-active={tab===t.id?"true":"false"}
               onClick={(e)=>{switchTab(t.id);movePill(e.currentTarget);const bar=pillRef.current?.querySelector('#pill-bar') as HTMLElement|null;if(bar)bar.style.background=t.color;}}
-              style={{position:"relative",zIndex:1,padding:"5px 13px",borderRadius:"9px",border:"none",background:"transparent",fontSize:"11px",fontWeight:tab===t.id?600:500,letterSpacing:".05em",textTransform:"uppercase",color:tab===t.id?"var(--txt1)":"var(--txt3)",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap",transition:"color .2s, font-weight .2s"}}
+              style={{position:"relative",zIndex:1,padding:"5px 13px",borderRadius:"9px",border:"none",background:"transparent",fontSize:"11px",fontWeight:tab===t.id?600:500,letterSpacing:".05em",textTransform:"uppercase",color:tab===t.id?"var(--brand-primary)":"var(--txt3)",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap",transition:"color .2s, font-weight .2s",borderBottom:tab===t.id?"2px solid var(--brand-primary)":"none"}}
             >
               {t.nome}
             </button>
@@ -664,7 +664,7 @@ export default function ClientePublicarPage() {
                 <button onClick={handlePublish} disabled={busy||!currentTemplate} style={{width:"100%",padding:"7px",borderRadius:"10px",border:"none",background:busy?"#999":"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy?"wait":"pointer",opacity:busy?0.7:1}}>
                   {busy?<><Loader2 size={14} style={{display:"inline",marginRight:"6px",animation:"spin 1s linear infinite"}}/>Publicando...</>:"✈ Publicar no Instagram"}
                 </button>
-                <button onClick={handlePublishDrive} disabled={busy||!currentTemplate} style={{width:"100%",padding:"7px",borderRadius:"10px",border:"none",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy||!currentTemplate?"not-allowed":"pointer",opacity:busy||!currentTemplate?0.5:1}}>
+                <button onClick={handlePublishDrive} disabled={busy||!currentTemplate} style={{width:"100%",padding:"7px",borderRadius:"10px",border:"none",background:"#334155",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy||!currentTemplate?"not-allowed":"pointer",opacity:busy||!currentTemplate?0.5:1}}>
                   <HardDrive size={14} style={{display:"inline",marginRight:"6px"}}/>Publicar + Drive
                 </button>
               </>
