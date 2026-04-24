@@ -284,7 +284,7 @@ function applyLamColorMap(el: EditorElement, map: Record<string, string>): Edito
 
 function RenderEl({ el, values }: { el: EditorElement; values: Record<string, string> }) {
   if (el.visible === false) return null;
-  if (el.hideIfEmpty && el.bindParam && !values[el.bindParam]) return null;
+  if (el.hideIfEmpty && el.bindParam && !values[el.bindParam] && !DYNAMIC_BADGES.has(el.bindParam)) return null;
 
   if (el.type === "rect") {
     return (
