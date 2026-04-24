@@ -64,7 +64,7 @@ export function TemplateCard({
       className="group relative flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)] bg-[var(--surface)] transition-all hover:border-[var(--txt3)] hover:shadow-md"
     >
       {/* Thumbnail */}
-      <div className="relative aspect-[9/16] w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+      <div className="relative w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900" style={{ height: '180px' }}>
         {t.thumbnail ? (
           <img
             src={t.thumbnail}
