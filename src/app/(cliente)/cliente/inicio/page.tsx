@@ -391,7 +391,7 @@ export default function ClienteInicioPage() {
           style={{ background: "linear-gradient(135deg, var(--brand-primary) 0%, var(--orange) 50%, var(--gold) 100%)" }}
         />
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1" style={{ minWidth: 0 }}>
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Painel do Cliente · {greeting()}
             </p>
