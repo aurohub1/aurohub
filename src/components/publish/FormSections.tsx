@@ -911,7 +911,7 @@ export function PacoteForm({
               className={`${INPUT_CLASS} h-auto resize-none py-2`}
               rows={4}
             />
-            {(fields.destino as string)?.trim() && formato && (
+            {(fields.destino as string)?.trim() && formato && (formato === "feed" || formato === "reels") && (
               <SugerirLegenda
                 destino={(fields.destino as string) || ""}
                 tipoArte="pacote"
@@ -1098,7 +1098,7 @@ export function CampanhaForm({
               className={`${INPUT_CLASS} h-auto resize-none py-2`}
               rows={4}
             />
-            {(fields.destino as string)?.trim() && formato && (
+            {(fields.destino as string)?.trim() && formato && (formato === "feed" || formato === "reels") && (
               <SugerirLegenda
                 destino={(fields.destino as string) || "Campanha"}
                 tipoArte="campanha"
@@ -1236,7 +1236,7 @@ export function CruzeiroForm({
               className={`${INPUT_CLASS} h-auto resize-none py-2`}
               rows={4}
             />
-            {((fields.destino as string)?.trim() || (fields.navio as string)?.trim()) && formato && (
+            {((fields.destino as string)?.trim() || (fields.navio as string)?.trim()) && formato && (formato === "feed" || formato === "reels") && (
               <SugerirLegenda
                 destino={(fields.destino as string) || (fields.navio as string) || (fields.itinerario as string) || "Cruzeiro"}
                 tipoArte="cruzeiro"

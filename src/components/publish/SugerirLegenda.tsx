@@ -156,20 +156,24 @@ export default function SugerirLegenda({
                   Tom da legenda:
                 </label>
                 <div className="flex gap-2">
-                  {(["animado", "profissional", "casual"] as const).map((t) => (
+                  {([
+                    { value: "animado", label: "Animado 🎉" },
+                    { value: "profissional", label: "Profissional 💼" },
+                    { value: "casual", label: "Casual 😊" },
+                  ] as const).map((t) => (
                     <button
-                      key={t}
+                      key={t.value}
                       type="button"
-                      onClick={() => setTom(t)}
+                      onClick={() => setTom(t.value)}
                       className="px-4 py-2 rounded-lg text-xs font-medium transition-all"
                       style={{
-                        background: tom === t ? "var(--brand-primary)" : "var(--bg2)",
-                        color: tom === t ? "#fff" : "var(--txt2)",
+                        background: tom === t.value ? "var(--brand-primary)" : "var(--bg2)",
+                        color: tom === t.value ? "#fff" : "var(--txt2)",
                         border: "1px solid",
-                        borderColor: tom === t ? "var(--brand-primary)" : "var(--bdr)",
+                        borderColor: tom === t.value ? "var(--brand-primary)" : "var(--bdr)",
                       }}
                     >
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                      {t.label}
                     </button>
                   ))}
                 </div>
