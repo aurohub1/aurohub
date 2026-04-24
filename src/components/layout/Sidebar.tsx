@@ -587,14 +587,28 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
 
         {/* Frase do dia */}
         {quote && (
-          <div className="rounded-lg border border-[rgba(255,122,26,0.18)] bg-[rgba(255,122,26,0.05)] px-2.5 py-2">
-            <div className="mb-0.5 text-[8px] font-bold uppercase tracking-wider text-[#FF7A1A]">
-              Motivação
+          <>
+            <style>{`@keyframes motivacao-pulse{from{box-shadow:0 0 8px rgba(245,166,35,0.3),inset 0 0 8px rgba(245,166,35,0.05)}to{box-shadow:0 0 8px rgba(245,166,35,0.5),inset 0 0 8px rgba(245,166,35,0.08)}}`}</style>
+            <div
+              className="rounded-lg px-2.5 py-2"
+              style={{
+                border: '1px solid rgba(245,166,35,0.4)',
+                background: 'rgba(255,122,26,0.05)',
+                boxShadow: '0 0 8px rgba(245,166,35,0.3), inset 0 0 8px rgba(245,166,35,0.05)',
+                animation: 'motivacao-pulse 2s ease-in-out infinite alternate'
+              }}
+            >
+              <div className="mb-0.5 text-[8px] font-bold uppercase tracking-wider text-[#FF7A1A]">
+                Motivação
+              </div>
+              <p
+                className="text-[10px] italic leading-snug text-[var(--txt2)]"
+                style={{ textShadow: '0 0 8px rgba(245,166,35,0.4)' }}
+              >
+                &ldquo;{quote}&rdquo;
+              </p>
             </div>
-            <p className="text-[10px] italic leading-snug text-[var(--txt2)]">
-              &ldquo;{quote}&rdquo;
-            </p>
-          </div>
+          </>
         )}
       </div>
 
