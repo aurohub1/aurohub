@@ -52,6 +52,7 @@ const I = {
   bell: (<svg viewBox="0 0 20 20" fill="none"><path d="M5 9a5 5 0 0110 0v4l1.5 2h-13L5 13V9zM8 17a2 2 0 004 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
   support: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" /><path d="M8 8a2 2 0 012-2 2 2 0 012 2c0 1-1 1.5-2 2M10 14h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
   whatsapp: (<svg viewBox="0 0 20 20" fill="none"><path d="M3 17l1-3.5A7 7 0 113 17z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M7 9c0 2 1.5 3.5 3.5 3.5L12 11l2 1c-.5 1-2 1.5-3 1.5-2.5 0-5-2.5-5-5 0-1 .5-2.5 1.5-3l1 2-1 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" /></svg>),
+  resumo: (<svg viewBox="0 0 20 20" fill="none"><path d="M3 16v-6M8 16V8M13 16v-4M18 16V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
 };
 
 /* ── ADM Sections (default) ───────────────────── */
@@ -288,6 +289,7 @@ export const CLIENTE_SECTIONS: NavSection[] = [
       { label: "Início", href: "/cliente/inicio", icon: I.home },
       { label: "Template", href: "/cliente/publicar", icon: I.publish },
       { label: "Calendário", href: "/cliente/calendario", icon: I.calendar },
+      { label: "Resumo", href: "/cliente/resumo", icon: I.resumo },
       { label: "Unidades", href: "/cliente/unidades", icon: I.stores, feature: "unidades" },
       { label: "Usuários", href: "/cliente/usuarios", icon: I.users, feature: "usuarios" },
       { label: "Métricas", href: "/cliente/metricas", icon: I.metrics, feature: "metricas" },
@@ -324,6 +326,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
       { label: "Template", href: "/gerente/publicar", icon: I.publish, feature: "publicar" },
       { label: "Calendário", href: "/gerente/calendario", icon: I.calendar },
+      { label: "Resumo", href: "/gerente/resumo", icon: I.resumo },
       { label: "Card WhatsApp", href: "/gerente/publicar/cards", icon: I.whatsapp, feature: "card_whatsapp" },
       { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
