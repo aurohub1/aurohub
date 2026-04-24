@@ -395,16 +395,13 @@ export default function ClienteInicioPage() {
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               Painel do Cliente · {greeting()}
             </p>
-            <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
+            <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               Olá, {profile?.name?.split(" ")[0] || profile?.licensee?.name || "cliente"}
             </h1>
-            <p className="mt-1.5 max-w-[560px] text-[13px] italic text-[var(--txt2)]">
-              &ldquo;{quote}&rdquo;
-            </p>
             <p className="mt-1 text-[11px] text-[var(--txt3)]">{profile?.licensee?.name || "—"}</p>
           </div>
 
-          <div className="ml-auto flex shrink-0 items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-3" style={{ flexShrink: 0 }}>
             <div
               className="flex shrink-0 items-center gap-3 rounded-2xl border border-[var(--bdr)] px-4 py-2.5"
               style={{
