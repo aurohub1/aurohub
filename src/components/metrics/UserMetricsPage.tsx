@@ -33,6 +33,7 @@ export default function UserMetricsPage() {
     setLoading(true);
     try {
       const p = await getProfile(supabase);
+      console.log('UserMetricsPage - profile:', p);
       setProfile(p);
       if (!p) { setLoading(false); return; }
       const feats = await getFeatures(supabase, p);
