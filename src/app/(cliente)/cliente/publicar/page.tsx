@@ -333,16 +333,6 @@ export default function ClientePublicarPage() {
               <button style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>⬇ Download</button>
             </div>
           </div>
-
-          {/* Contadores */}
-          <div style={{display:"flex",gap:"16px",padding:"7px 14px",borderTop:"1px solid var(--bdr)",flexShrink:0}}>
-            {[{l:"Stories",c:"var(--brand-primary)"},{l:"Feed",c:"#f59e0b"},{l:"Reels",c:"#22c55e"}].map(x=>(
-              <div key={x.l} style={{display:"flex",alignItems:"center",gap:"4px",fontSize:"10px",color:"var(--txt3)"}}>
-                <div style={{width:"5px",height:"5px",borderRadius:"50%",background:x.c}}/>
-                {x.l} <b style={{color:"var(--txt2)"}}>0∞</b>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* PREVIEW — sem scroll, centralizado */}
