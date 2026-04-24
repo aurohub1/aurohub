@@ -1593,8 +1593,8 @@ export default function UnidadePublicarPage() {
         </div>
       </div>
 
-      {/* ═══ COLUNA DIREITA — PREVIEW (sticky) ═══ */}
-      <div className={`card-glass relative flex-col overflow-hidden lg:flex lg:sticky lg:top-0 lg:h-screen ${showPreviewMobile ? "flex" : "hidden"}`}>
+      {/* ═══ COLUNA DIREITA — PREVIEW ═══ */}
+      <div className={`card-glass relative flex-col overflow-hidden lg:flex ${showPreviewMobile ? "flex" : "hidden"}`}>
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
           <h3 className="text-[14px] font-bold text-[var(--txt)]">Preview ao vivo</h3>
           <div className="text-[10px] text-[var(--txt3)] tabular-nums">

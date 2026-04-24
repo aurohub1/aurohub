@@ -292,13 +292,13 @@ export default function ConsultorPublicarPage() {
       </div>
 
       {/* BODY */}
-      <div style={{display:"flex",flex:1,minHeight:0,overflowY:"auto"}}>
+      <div style={{display:"flex",flex:1,overflow:"hidden",minHeight:0}}>
 
-        {/* FORMULÁRIO — scroll independente */}
-        <div style={{width:"360px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",minHeight:"100%"}}>
+        {/* FORMULÁRIO — scroll só aqui */}
+        <div style={{width:"360px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
 
           {/* Pills formato */}
-          <div style={{display:"flex",alignItems:"center",gap:"6px",padding:"8px 14px",borderBottom:"1px solid var(--bdr)",flexShrink:0,position:"sticky",top:0,background:"var(--bg1)",zIndex:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:"6px",padding:"8px 14px",borderBottom:"1px solid var(--bdr)",flexShrink:0}}>
             {visibleFormats.map(f=>(
               <button key={f} onClick={()=>setFormat(f)}
                 style={{padding:"5px 14px",borderRadius:"20px",border:"1px solid",borderColor:format===f?"var(--brand-primary)":"var(--bdr)",background:format===f?"var(--brand-primary)":"transparent",color:format===f?"#fff":"var(--txt3)",fontSize:"10px",fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer",transition:"all .15s"}}
@@ -306,8 +306,8 @@ export default function ConsultorPublicarPage() {
             ))}
           </div>
 
-          {/* Campos — com scroll */}
-          <div style={{padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
+          {/* Campos — SCROLL APENAS AQUI */}
+          <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
             {!currentTemplate?(
               <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Nenhum template disponível para {tab}.</div>
             ):tab==="pacote"?(
@@ -331,7 +331,7 @@ export default function ConsultorPublicarPage() {
           </div>
 
           {/* Footer */}
-          <div style={{padding:"12px 14px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",marginTop:"auto",position:"sticky",bottom:0,background:"var(--bg1)",zIndex:10}}>
+          <div style={{padding:"12px 14px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",flexShrink:0}}>
             <button style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer"}}>
               ✈ Publicar no Instagram
             </button>
@@ -342,7 +342,7 @@ export default function ConsultorPublicarPage() {
           </div>
 
           {/* Contadores */}
-          <div style={{display:"flex",gap:"16px",padding:"7px 14px",borderTop:"1px solid var(--bdr)",position:"sticky",bottom:0,background:"var(--bg1)",zIndex:9}}>
+          <div style={{display:"flex",gap:"16px",padding:"7px 14px",borderTop:"1px solid var(--bdr)",flexShrink:0}}>
             {[{l:"Stories",c:"var(--brand-primary)"},{l:"Feed",c:"#f59e0b"},{l:"Reels",c:"#22c55e"}].map(x=>(
               <div key={x.l} style={{display:"flex",alignItems:"center",gap:"4px",fontSize:"10px",color:"var(--txt3)"}}>
                 <div style={{width:"5px",height:"5px",borderRadius:"50%",background:x.c}}/>
@@ -352,8 +352,8 @@ export default function ConsultorPublicarPage() {
           </div>
         </div>
 
-        {/* PREVIEW — sticky/fixo na tela */}
-        <div style={{flex:1,background:"var(--bg0)",display:"flex",flexDirection:"column",position:"sticky",top:0,height:"100vh",overflow:"hidden"}}>
+        {/* PREVIEW — sem scroll, centralizado */}
+        <div style={{flex:1,background:"var(--bg0)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid var(--bdr)",flexShrink:0}}>
             <span style={{fontSize:"10px",fontWeight:700,color:"var(--txt3)",textTransform:"uppercase",letterSpacing:".1em"}}>Preview ao vivo</span>
             <span style={{fontSize:"10px",color:"var(--txt3)",background:"var(--bg2)",padding:"3px 8px",borderRadius:"6px",border:"1px solid var(--bdr)"}}>{pw} × {ph}</span>
