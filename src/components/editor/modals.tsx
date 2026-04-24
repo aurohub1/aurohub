@@ -492,15 +492,6 @@ export interface SaveTemplateData {
   nome: string;
   formType: string;
   format: string;
-  licenseeId: string;
-  licenseeNome: string;
-  /** @deprecated Use lojaIds instead. Mantido para compat. */
-  lojaId: string;
-  /** @deprecated Use lojaIds instead. Mantido para compat. */
-  lojaNome: string;
-  /** Lista de lojas selecionadas — array vazio = Todas as lojas do licensee */
-  lojaIds: string[];
-  lojaNomes: string[];
   /**
    * Thumbnail escolhido pelo usuário no modal. dataURL (capture do canvas OU upload manual).
    * null se o canvas não gerou captura E o usuário não subiu arquivo.
@@ -546,13 +537,10 @@ function sortLojasPriority<T extends { name: string }>(rows: T[]): T[] {
   });
 }
 
-export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, initialLojaIds, captureThumb, existingThumb, onClose, onConfirm }: {
+export function SaveTemplateModal({ initialName, initialFormType, initialFormat, captureThumb, existingThumb, onClose, onConfirm }: {
   initialName?: string;
   initialFormType: string;
   initialFormat: string;
-  initialLicenseeId?: string;
-  initialLojaId?: string;
-  initialLojaIds?: string[];
   /** dataURL capturado do canvas — usado no modo "capture" */
   captureThumb?: string | null;
   /** URL da thumb já salva do template (vinda do banco) — usado no modo "existing" (default em edição) */
@@ -563,12 +551,6 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
   const [nome, setNome] = useState(initialName || "");
   const [formType, setFormType] = useState(initialFormType);
   const [format, setFormat] = useState(initialFormat);
-  const [marcas, setMarcas] = useState<MarcaRow[]>([]);
-  const [lojas, setLojas] = useState<LojaRow[]>([]);
-  const [licenseeId, setLicenseeId] = useState(initialLicenseeId || "");
-  const [selectedLojaIds, setSelectedLojaIds] = useState<Set<string>>(
-    new Set(initialLojaIds ?? (initialLojaId ? [initialLojaId] : []))
-  );
   const [saving, setSaving] = useState(false);
 
   // Thumbnail — 3 modos:
@@ -603,140 +585,16 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
     reader.readAsDataURL(file);
   }
 
-  // Carrega marcas (licensees) + profile do usuário logado → pré-seleção
-  const profileRef = useRef<FullProfile | null>(null);
-  useEffect(() => {
-    (async () => {
-      // Profile do usuário para pré-selecionar licensee/store
-      let profileLicenseeId: string | null = null;
-      let profileStoreId: string | null = null;
-      try {
-        const p = await getProfile(supabase);
-        profileRef.current = p;
-        profileLicenseeId = p?.licensee_id ?? null;
-        profileStoreId = p?.store_id ?? null;
-      } catch {}
-
-      // Carrega licensees
-      let rows: MarcaRow[] = [];
-      try {
-        const r = await supabase.from("licensees").select("id,name").order("name");
-        if (!r.error && r.data) rows = r.data as MarcaRow[];
-      } catch {}
-      setMarcas(rows);
-
-      // Pré-seleção: initialLicenseeId > profile.licensee_id > primeiro da lista
-      if (!initialLicenseeId) {
-        if (profileLicenseeId && rows.find(m => m.id === profileLicenseeId)) {
-          setLicenseeId(profileLicenseeId);
-        } else if (rows.length > 0) {
-          setLicenseeId(rows[0].id);
-        }
-      }
-
-      // Guarda store do profile pra pré-seleção no efeito de lojas
-      if (!initialLojaId && profileStoreId) {
-        pendingStoreRef.current = profileStoreId;
-      }
-    })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Referência pra pré-seleção da loja do profile após lojas carregarem
-  const pendingStoreRef = useRef<string | null>(null);
-
-  // Carrega stores da marca selecionada (ou todas se ADM sem marca)
-  useEffect(() => {
-    (async () => {
-      let rows: LojaRow[] = [];
-      try {
-        const profile = profileRef.current;
-
-        // GERENTE: busca via user_stores (lojas às quais o usuário tem acesso)
-        if (profile?.role === "gerente" && profile.id) {
-          const { data: userStores } = await supabase
-            .from("user_stores")
-            .select("store_id")
-            .eq("user_id", profile.id);
-
-          if (userStores && userStores.length > 0) {
-            const storeIds = userStores.map(us => us.store_id);
-            const r = await supabase
-              .from("stores")
-              .select("id,name,licensee_id")
-              .in("id", storeIds)
-              .order("name");
-            if (!r.error && r.data) rows = r.data as LojaRow[];
-          }
-        }
-        // ADM ou outros roles: busca por licensee_id
-        else if (licenseeId) {
-          const r = await supabase.from("stores").select("id,name,licensee_id").eq("licensee_id", licenseeId).order("name");
-          if (!r.error && r.data) rows = r.data as LojaRow[];
-        } else {
-          const r = await supabase.from("stores").select("id,name,licensee_id").order("name");
-          if (!r.error && r.data) rows = r.data as LojaRow[];
-        }
-      } catch {}
-      rows = sortLojasPriority(rows);
-      setLojas(rows);
-
-      // Default: só Rio Preto marcada (regra AZV). Se não existir na lista atual,
-      // nenhuma é pré-selecionada — usuário marca manualmente.
-      const defaultSelection = (): Set<string> => {
-        const rpRow = rows.find(l => l.name.toLowerCase().includes("rio preto"));
-        return rpRow ? new Set([rpRow.id]) : new Set();
-      };
-
-      // Pré-seleção: profile.store_id OR initialLojaIds OR default (Rio Preto)
-      const pending = pendingStoreRef.current;
-      if (pending && rows.find(l => l.id === pending)) {
-        setSelectedLojaIds(new Set([pending]));
-        pendingStoreRef.current = null;
-      } else if (selectedLojaIds.size === 0) {
-        setSelectedLojaIds(defaultSelection());
-      } else {
-        // Filtra IDs que não existem mais na lista da marca atual
-        const valid = new Set([...selectedLojaIds].filter(id => rows.find(l => l.id === id)));
-        if (valid.size === 0) setSelectedLojaIds(defaultSelection());
-        else setSelectedLojaIds(valid);
-      }
-    })();
-  }, [licenseeId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const selectedMarca = marcas.find(m => m.id === licenseeId) || marcas[0];
-  const allSelected = lojas.length > 0 && selectedLojaIds.size === lojas.length;
-  const canSave = nome.trim().length > 0 && selectedLojaIds.size > 0 && !saving;
-
-  function toggleLoja(id: string) {
-    setSelectedLojaIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleAll() {
-    if (allSelected) setSelectedLojaIds(new Set());
-    else setSelectedLojaIds(new Set(lojas.map(l => l.id)));
-  }
+  const canSave = nome.trim().length > 0 && !saving;
 
   const confirm = async () => {
     if (!canSave) return;
     setSaving(true);
     try {
-      const ids = [...selectedLojaIds];
-      const nomes = ids.map(id => lojas.find(l => l.id === id)?.name || "").filter(Boolean);
       await onConfirm({
         nome: nome.trim(),
         formType,
         format,
-        licenseeId: selectedMarca.id,
-        licenseeNome: selectedMarca.name,
-        lojaId: ids[0] || "",
-        lojaNome: nomes[0] || "",
-        lojaIds: ids,
-        lojaNomes: nomes,
         thumbnail: effectiveThumb,
       });
     } finally { setSaving(false); }
@@ -806,45 +664,6 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
             </select>
           </L>
         </div>
-        <L label="Marca">
-          <select value={licenseeId} onChange={e => setLicenseeId(e.target.value)} style={fieldS}>
-            {marcas.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
-        </L>
-        <L label={`Lojas ${selectedLojaIds.size > 0 ? `(${selectedLojaIds.size}/${lojas.length})` : ""}`}>
-          <div style={{
-            border: "1px solid var(--ed-bdr)", borderRadius: 8, padding: 8,
-            maxHeight: 180, overflowY: "auto", background: "var(--ed-input, rgba(255,255,255,0.02))",
-          }}>
-            {lojas.length === 0 ? (
-              <div style={{ fontSize: 11, color: "var(--ed-txt3)", padding: 4 }}>Nenhuma loja cadastrada.</div>
-            ) : (
-              <>
-                {/* Todas as lojas */}
-                <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 4px", cursor: "pointer", borderBottom: "1px solid var(--ed-bdr)", marginBottom: 4 }}>
-                  <input type="checkbox" checked={allSelected} onChange={toggleAll}
-                    style={{ accentColor: "#FF7A1A", width: 14, height: 14, cursor: "pointer" }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ed-txt)" }}>
-                    Todas as lojas
-                  </span>
-                </label>
-                {lojas.map(l => {
-                  const marca = !licenseeId ? marcas.find(m => m.id === l.licensee_id) : null;
-                  return (
-                    <label key={l.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 4px", cursor: "pointer" }}>
-                      <input type="checkbox" checked={selectedLojaIds.has(l.id)} onChange={() => toggleLoja(l.id)}
-                        style={{ accentColor: "#FF7A1A", width: 14, height: 14, cursor: "pointer" }} />
-                      <span style={{ fontSize: 11, color: "var(--ed-txt2)" }}>
-                        {l.name}
-                        {marca && <span style={{ color: "var(--ed-txt3)", marginLeft: 6, fontSize: 10 }}>· {marca.name}</span>}
-                      </span>
-                    </label>
-                  );
-                })}
-              </>
-            )}
-          </div>
-        </L>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 6 }}>
           <button onClick={onClose} disabled={saving} style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid var(--ed-bdr)", background: "transparent", color: "var(--ed-txt2)", cursor: saving ? "default" : "pointer", fontSize: 12, fontWeight: 600, opacity: saving ? 0.5 : 1 }}>Cancelar</button>
           <button onClick={confirm} disabled={!canSave} style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#FF7A1A", color: "#fff", cursor: canSave ? "pointer" : "default", fontSize: 12, fontWeight: 700, opacity: canSave ? 1 : 0.5, display: "flex", alignItems: "center", gap: 6 }}>

@@ -28,6 +28,8 @@ export default function EditorTemplatesPage() {
   const [cloneKey, setCloneKey] = useState<string | null>(null);
   const [cloneLicensee, setCloneLicensee] = useState<string>("");
   const [cloning, setCloning] = useState(false);
+  const [cloneLojas, setCloneLojas] = useState<{ id: string; name: string }[]>([]);
+  const [cloneSelectedLojas, setCloneSelectedLojas] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
@@ -38,6 +40,27 @@ export default function EditorTemplatesPage() {
       setLicensees((lR as Licensee[]) ?? []);
     })();
   }, []);
+
+  // Carrega lojas quando licensee do clone modal muda
+  useEffect(() => {
+    if (!cloneLicensee) {
+      setCloneLojas([]);
+      setCloneSelectedLojas(new Set());
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("stores")
+        .select("id,name")
+        .eq("licensee_id", cloneLicensee)
+        .order("name");
+      const lojas = (data as { id: string; name: string }[]) ?? [];
+      setCloneLojas(lojas);
+      // Pré-seleciona Rio Preto se existir
+      const rpLoja = lojas.find(l => l.name.toLowerCase().includes("rio preto"));
+      setCloneSelectedLojas(rpLoja ? new Set([rpLoja.id]) : new Set());
+    })();
+  }, [cloneLicensee]);
 
   async function persistField(key: string, field: string, value: string) {
     const { data: row } = await supabase
@@ -219,7 +242,7 @@ export default function EditorTemplatesPage() {
 
   // Clona template base para um licensee específico
   const runCloneToLicensee = async () => {
-    if (!cloneKey || !cloneLicensee) return;
+    if (!cloneKey || !cloneLicensee || cloneSelectedLojas.size === 0) return;
     setCloning(true);
     try {
       const lic = licensees.find((l) => l.id === cloneLicensee);
@@ -230,14 +253,19 @@ export default function EditorTemplatesPage() {
         .single();
       if (!row?.value) throw new Error("Template base não encontrado");
       const parsed = JSON.parse(row.value);
+
+      const selectedLojaIds = [...cloneSelectedLojas];
+      const lojaNames = selectedLojaIds.map(id => cloneLojas.find(l => l.id === id)?.name ?? "");
+
       const cloneData = {
         ...parsed,
         is_base: false,
         licenseeId: lic?.id ?? null,
         licenseeNome: lic?.name ?? "Sem marca",
-        lojaId: null,
-        lojaNome: "Sem loja",
+        lojaIds: selectedLojaIds,
+        lojaNomes: lojaNames,
       };
+
       // Novo key: tmpl_{tipo}_{formato}_{licensee-slug}-{timestamp}
       const slug = (lic?.name ?? "licensee")
         .toLowerCase()
@@ -247,13 +275,38 @@ export default function EditorTemplatesPage() {
         .replace(/^-+|-+$/g, "");
       const baseSuffix = cloneKey.replace(/^tmpl_(base_)?/, "");
       const newKey = `tmpl_${baseSuffix}_${slug}_${Date.now().toString(36)}`;
+
+      // 1. Inserir em system_config
       await supabase.from("system_config").upsert({
         key: newKey,
         value: JSON.stringify(cloneData),
         updated_at: new Date().toISOString(),
       });
+
+      // 2. Inserir em form_templates
+      await supabase.from("form_templates").insert({
+        name: parsed.nome ?? `Template ${parsed.formType}`,
+        form_type: parsed.formType,
+        format: parsed.format,
+        width: parsed.width,
+        height: parsed.height,
+        schema: {
+          elements: parsed.elements ?? [],
+          background: parsed.background ?? "#1E3A6E",
+          formType: parsed.formType,
+          width: parsed.width,
+          height: parsed.height,
+          duration: 5,
+        },
+        is_base: false,
+        active: true,
+        licensee_id: lic?.id ?? null,
+        thumbnail_url: parsed.thumbnail ?? null,
+      });
+
       setCloneKey(null);
       setCloneLicensee("");
+      setCloneSelectedLojas(new Set());
       await loadCanvasTemplates();
     } catch (err) {
       console.error("[Clone to licensee]", err);
@@ -468,46 +521,96 @@ export default function EditorTemplatesPage() {
           <div className="mx-4 flex w-full max-w-[420px] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
             <div className="border-b border-[var(--bdr)] px-6 py-4">
               <div className="text-[15px] font-bold text-[var(--txt)]">Clonar template para cliente</div>
-              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Escolha o licensee que receberá a cópia</div>
+              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Escolha a marca e as lojas</div>
             </div>
             <div className="max-h-[50vh] flex-1 overflow-y-auto px-6 py-4">
-              <div className="flex flex-col gap-1.5">
-                {licensees.length === 0 ? (
-                  <div className="text-[12px] text-[var(--txt3)]">Nenhum licensee cadastrado.</div>
-                ) : (
-                  licensees.map((l) => {
-                    const sel = cloneLicensee === l.id;
-                    return (
-                      <label
-                        key={l.id}
-                        className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2.5 hover:bg-[var(--hover-bg)] ${sel ? "border-[var(--orange)] bg-[var(--orange3)]" : "border-[var(--bdr)]"}`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
-                            style={{ background: getLicColor(l.name) }}
+              <div className="flex flex-col gap-4">
+                {/* Marca */}
+                <div>
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--txt3)]">Marca</div>
+                  <div className="flex flex-col gap-1.5">
+                    {licensees.length === 0 ? (
+                      <div className="text-[12px] text-[var(--txt3)]">Nenhum licensee cadastrado.</div>
+                    ) : (
+                      licensees.map((l) => {
+                        const sel = cloneLicensee === l.id;
+                        return (
+                          <label
+                            key={l.id}
+                            className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2.5 hover:bg-[var(--hover-bg)] ${sel ? "border-[var(--orange)] bg-[var(--orange3)]" : "border-[var(--bdr)]"}`}
                           >
-                            {getInitials(l.name) || "·"}
-                          </span>
-                          <span className={`text-[13px] font-medium ${sel ? "text-[var(--orange)]" : "text-[var(--txt)]"}`}>{l.name}</span>
-                        </span>
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                                style={{ background: getLicColor(l.name) }}
+                              >
+                                {getInitials(l.name) || "·"}
+                              </span>
+                              <span className={`text-[13px] font-medium ${sel ? "text-[var(--orange)]" : "text-[var(--txt)]"}`}>{l.name}</span>
+                            </span>
+                            <input
+                              type="radio"
+                              name="clone-lic"
+                              checked={sel}
+                              onChange={() => setCloneLicensee(l.id)}
+                              className="accent-[var(--orange)]"
+                            />
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Lojas */}
+                {cloneLicensee && cloneLojas.length > 0 && (
+                  <div>
+                    <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--txt3)]">
+                      Lojas ({cloneSelectedLojas.size}/{cloneLojas.length})
+                    </div>
+                    <div className="rounded-lg border border-[var(--bdr)] p-2">
+                      {/* Todas as lojas */}
+                      <label className="flex cursor-pointer items-center gap-2 border-b border-[var(--bdr)] p-2">
                         <input
-                          type="radio"
-                          name="clone-lic"
-                          checked={sel}
-                          onChange={() => setCloneLicensee(l.id)}
+                          type="checkbox"
+                          checked={cloneSelectedLojas.size === cloneLojas.length}
+                          onChange={() => {
+                            if (cloneSelectedLojas.size === cloneLojas.length) {
+                              setCloneSelectedLojas(new Set());
+                            } else {
+                              setCloneSelectedLojas(new Set(cloneLojas.map(l => l.id)));
+                            }
+                          }}
                           className="accent-[var(--orange)]"
                         />
+                        <span className="text-[12px] font-bold text-[var(--txt)]">Todas as lojas</span>
                       </label>
-                    );
-                  })
+                      {/* Lista de lojas */}
+                      {cloneLojas.map((loja) => (
+                        <label key={loja.id} className="flex cursor-pointer items-center gap-2 p-2">
+                          <input
+                            type="checkbox"
+                            checked={cloneSelectedLojas.has(loja.id)}
+                            onChange={() => {
+                              const next = new Set(cloneSelectedLojas);
+                              if (next.has(loja.id)) next.delete(loja.id);
+                              else next.add(loja.id);
+                              setCloneSelectedLojas(next);
+                            }}
+                            className="accent-[var(--orange)]"
+                          />
+                          <span className="text-[11px] text-[var(--txt2)]">{loja.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
             <div className="flex justify-end gap-3 border-t border-[var(--bdr)] px-6 py-4">
               <button
                 type="button"
-                onClick={() => { setCloneKey(null); setCloneLicensee(""); }}
+                onClick={() => { setCloneKey(null); setCloneLicensee(""); setCloneSelectedLojas(new Set()); }}
                 className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]"
               >
                 Cancelar
@@ -515,7 +618,7 @@ export default function EditorTemplatesPage() {
               <button
                 type="button"
                 onClick={runCloneToLicensee}
-                disabled={!cloneLicensee || cloning}
+                disabled={!cloneLicensee || cloneSelectedLojas.size === 0 || cloning}
                 className="rounded-lg bg-[var(--orange)] px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
               >
                 {cloning ? "Clonando..." : "Clonar"}
