@@ -359,7 +359,7 @@ export default function GerenteInicioPage() {
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
-              Painel do Gerente · {greeting()}
+              {greeting()}
             </p>
             <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
               {profile?.store?.name || "Sua unidade"}

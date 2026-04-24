@@ -41,7 +41,7 @@ export default function OperadorInicioPage() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ background: "linear-gradient(135deg, #1E3A6E 0%, #3B82F6 50%, #1E3A6E 100%)" }} />
         <div className="relative z-10">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--blue)]">
-            Painel do Operador · {greeting}
+            {greeting}
           </p>
           <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
             Olá, {profile?.name?.split(" ")[0]?.trim() || "Operador"}

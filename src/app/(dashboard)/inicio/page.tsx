@@ -209,7 +209,7 @@ export default function InicioPage() {
       {/* ═══ Header minimalista ═══ */}
       <div className="flex items-end justify-between gap-4 border-b border-[var(--bdr)] pb-5">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">ADM · {greeting()}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">{greeting()}</p>
           <h1 className="mt-1 font-[family-name:var(--font-dm-serif)] text-[26px] font-bold leading-tight text-[var(--txt)]">
             {userName ? `Olá, ${userName}` : "Painel administrativo"}
           </h1>
