@@ -661,10 +661,10 @@ export default function ClientePublicarPage() {
             )}
             {format !== "tv" && (
               <>
-                <button onClick={handlePublish} disabled={busy||!currentTemplate} style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:busy?"#999":"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy?"wait":"pointer",opacity:busy?0.7:1}}>
+                <button onClick={handlePublish} disabled={busy||!currentTemplate} style={{width:"100%",padding:"7px",borderRadius:"10px",border:"none",background:busy?"#999":"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy?"wait":"pointer",opacity:busy?0.7:1}}>
                   {busy?<><Loader2 size={14} style={{display:"inline",marginRight:"6px",animation:"spin 1s linear infinite"}}/>Publicando...</>:"✈ Publicar no Instagram"}
                 </button>
-                <button onClick={handlePublishDrive} disabled={busy||!currentTemplate} style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy||!currentTemplate?"not-allowed":"pointer",opacity:busy||!currentTemplate?0.5:1}}>
+                <button onClick={handlePublishDrive} disabled={busy||!currentTemplate} style={{width:"100%",padding:"7px",borderRadius:"10px",border:"none",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy||!currentTemplate?"not-allowed":"pointer",opacity:busy||!currentTemplate?0.5:1}}>
                   <HardDrive size={14} style={{display:"inline",marginRight:"6px"}}/>Publicar + Drive
                 </button>
               </>
