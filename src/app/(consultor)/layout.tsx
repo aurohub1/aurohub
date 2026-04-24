@@ -44,6 +44,10 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
   }, []);
 
   useEffect(() => {
+    console.log('consultor ticker:', tickerItems, 'pathname:', pathname);
+  }, [tickerItems, pathname]);
+
+  useEffect(() => {
     (async () => {
       const p = await getProfile(supabase);
       if (!p) { router.push("/login"); return; }
