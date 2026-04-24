@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
+import InstagramStatusBadge from "@/components/InstagramStatusBadge";
 import { useCountUp } from "@/hooks/useCountUp";
 import {
   Send, BarChart3, Image as ImageIcon, ImageOff, CalendarDays,
@@ -367,7 +368,10 @@ export default function GerenteInicioPage() {
             <p className="mt-1.5 max-w-[560px] text-[13px] italic text-[var(--txt2)]">
               &ldquo;{quote}&rdquo;
             </p>
-            <p className="mt-1 text-[11px] text-[var(--txt3)]">{profile?.licensee?.name || "—"}</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="text-[11px] text-[var(--txt3)]">{profile?.licensee?.name || "—"}</p>
+              {profile?.store_id && <InstagramStatusBadge storeId={profile.store_id} />}
+            </div>
           </div>
 
           <div

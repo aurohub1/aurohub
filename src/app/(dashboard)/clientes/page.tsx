@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import ImageCropModal from "@/components/ImageCropModal";
+import InstagramStatusBadge from "@/components/InstagramStatusBadge";
 import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/splash/SplashScreen";
 import {
   ALL_FEATURES,
@@ -647,9 +648,12 @@ export default function ClientesPage() {
                     const storeUsers = profiles.filter((p) => p.store_id === s.id).length;
                     return (
                       <div key={s.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-4 py-3 page-fade">
-                        <div>
-                          <div className="text-[13px] font-medium text-[var(--txt)]">{s.name}</div>
-                          <div className="text-[11px] text-[var(--txt3)]">{s.ig_user_id ? `IG: ${s.ig_user_id}` : "Sem Instagram"}</div>
+                        <div className="flex items-center gap-2.5">
+                          <InstagramStatusBadge storeId={s.id} />
+                          <div>
+                            <div className="text-[13px] font-medium text-[var(--txt)]">{s.name}</div>
+                            <div className="text-[11px] text-[var(--txt3)]">{s.ig_user_id ? `IG: ${s.ig_user_id}` : "Sem Instagram"}</div>
+                          </div>
                         </div>
                         <div className="text-right text-[11px] text-[var(--txt3)]">
                           {storeUsers} usuário{storeUsers !== 1 ? "s" : ""}
