@@ -25,6 +25,19 @@ interface DataComemorativa {
   tipo: string;
 }
 
+interface PublishedPost {
+  id: string;
+  created_at: string;
+  loja_id: string | null;
+  destino: string | null;
+  formato: string | null;
+}
+
+interface Store {
+  id: string;
+  name: string;
+}
+
 type ViewMode = "mes" | "semana";
 
 /* ── Constantes ──────────────────────────────────── */
@@ -39,6 +52,7 @@ const MESES = [
 const DIAS_SEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const TIPO_BADGE: Record<string, { bg: string; color: string }> = {
+  publicado: { bg: "var(--blue3)",   color: "var(--blue)" },
   feriado:   { bg: "var(--red3)",    color: "var(--red)" },
   vespera:   { bg: "var(--orange3)", color: "var(--orange)" },
   temporada: { bg: "var(--blue3)",   color: "var(--blue)" },
@@ -83,6 +97,9 @@ export default function GerenteCalendarioPage() {
   const [feriados, setFeriados] = useState<DataComemorativa[]>([]);
   const [datasSegmento, setDatasSegmento] = useState<DataComemorativa[]>([]);
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
+  const [posts, setPosts] = useState<PublishedPost[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [selectedStore, setSelectedStore] = useState<string>("todas");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [formCliente, setFormCliente] = useState("");
@@ -113,10 +130,33 @@ export default function GerenteCalendarioPage() {
       setDatasSegmento(
         all.filter((d) => d.tipo === "segmento" || d.tipo === "evento" || (segmentId && d.segment_id === segmentId))
       );
-      console.log("[Calendario] datas_comemorativas:", all.length, "rows — tipos:", [...new Set(all.map((d) => d.tipo))]);
       void anoB;
     } catch (err) {
       console.warn("[Calendario] erro ao carregar datas_comemorativas:", err);
+    }
+
+    // Carregar lojas e posts
+    if (p?.licensee_id) {
+      try {
+        const { data: storesData } = await supabase
+          .from("stores")
+          .select("id, name")
+          .eq("licensee_id", p.licensee_id)
+          .order("name");
+        setStores((storesData ?? []) as Store[]);
+
+        const firstDay = new Date(cursor.year, cursor.month, 1);
+        const lastDay = new Date(cursor.year, cursor.month + 1, 0);
+        const { data: postsData } = await supabase
+          .from("publication_history")
+          .select("id, created_at, loja_id, destino, formato")
+          .eq("licensee_id", p.licensee_id)
+          .gte("created_at", firstDay.toISOString())
+          .lte("created_at", lastDay.toISOString());
+        setPosts((postsData ?? []) as PublishedPost[]);
+      } catch (err) {
+        console.warn("[Calendario] erro ao carregar posts:", err);
+      }
     }
   }, [cursor.month, cursor.year]);
 
@@ -136,7 +176,7 @@ export default function GerenteCalendarioPage() {
 
   /* ── Derived — eventos por dia ─────────────────── */
 
-  interface Evento { tipo: string; label: string; source: "feriado" | "segmento" | "lembrete"; refId?: string; }
+  interface Evento { tipo: string; label: string; source: "feriado" | "segmento" | "lembrete" | "publicado"; refId?: string; destino?: string; formato?: string; }
 
   const eventosPorDia = useMemo(() => {
     const map: Record<string, Evento[]> = {};
@@ -164,8 +204,15 @@ export default function GerenteCalendarioPage() {
     for (const l of lembretes) {
       add(l.data, { tipo: "lembrete", label: `${l.cliente}${l.nota ? " — " + l.nota : ""}`, source: "lembrete", refId: l.id });
     }
+    const filteredPosts = selectedStore === "todas" ? posts : posts.filter(p => p.loja_id === selectedStore);
+    for (const post of filteredPosts) {
+      const d = new Date(post.created_at);
+      const iso = isoDay(d.getFullYear(), d.getMonth(), d.getDate());
+      const label = [post.destino, post.formato].filter(Boolean).join(" · ") || "Post";
+      add(iso, { tipo: "publicado", label, source: "publicado", refId: post.id, destino: post.destino || undefined, formato: post.formato || undefined });
+    }
     return map;
-  }, [feriados, datasSegmento, lembretes, cursor.year]);
+  }, [feriados, datasSegmento, lembretes, posts, selectedStore, cursor.year]);
 
   /* ── Month grid ───────────────────────────────── */
 
@@ -292,6 +339,18 @@ export default function GerenteCalendarioPage() {
               </button>
             ))}
           </div>
+          {stores.length > 0 && (
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="h-9 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[12px] text-[var(--txt)] outline-none"
+            >
+              <option value="todas">Todas as lojas</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={openAddLembrete}
             className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
@@ -356,7 +415,10 @@ export default function GerenteCalendarioPage() {
                       <div className="flex flex-wrap gap-0.5">
                         {evs.slice(0, 3).map((e, i) => {
                           const style = TIPO_BADGE[e.tipo] ?? TIPO_BADGE.evento;
-                          return <span key={i} className="h-2 w-2 rounded-full" style={{ background: style.color }} />;
+                          const tooltip = e.source === "publicado" && (e.destino || e.formato)
+                            ? [e.destino, e.formato].filter(Boolean).join(" · ")
+                            : undefined;
+                          return <span key={i} className="h-2 w-2 rounded-full" style={{ background: style.color }} title={tooltip} />;
                         })}
                         {evs.length > 3 && <span className="text-[8px] text-[var(--txt3)]">+{evs.length - 3}</span>}
                       </div>
@@ -411,6 +473,25 @@ export default function GerenteCalendarioPage() {
               })}
             </div>
           )}
+          {/* Legenda */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--bdr)] px-4 pt-3 text-[11px] text-[var(--txt3)]">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: TIPO_BADGE.publicado.color }} />
+              <span>Publicado</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: TIPO_BADGE.feriado.color }} />
+              <span>Feriado</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: TIPO_BADGE.segmento.color }} />
+              <span>Data especial</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: TIPO_BADGE.lembrete.color }} />
+              <span>Lembrete</span>
+            </div>
+          </div>
         </div>
 
         {/* ── Painel do dia selecionado ──────────── */}

@@ -25,6 +25,14 @@ interface DataComemorativa {
   tipo: string;
 }
 
+interface PublishedPost {
+  id: string;
+  created_at: string;
+  loja_id: string | null;
+  destino: string | null;
+  formato: string | null;
+}
+
 type ViewMode = "mes" | "semana";
 
 /* ── Constantes ──────────────────────────────────── */
@@ -39,6 +47,7 @@ const MESES = [
 const DIAS_SEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const TIPO_BADGE: Record<string, { bg: string; color: string }> = {
+  publicado: { bg: "var(--blue3)",   color: "var(--blue)" },
   feriado:   { bg: "var(--red3)",    color: "var(--red)" },
   vespera:   { bg: "var(--orange3)", color: "var(--orange)" },
   temporada: { bg: "var(--blue3)",   color: "var(--blue)" },
@@ -83,6 +92,7 @@ export default function VendedorCalendarioPage() {
   const [feriados, setFeriados] = useState<DataComemorativa[]>([]);
   const [datasSegmento, setDatasSegmento] = useState<DataComemorativa[]>([]);
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
+  const [posts, setPosts] = useState<PublishedPost[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [formCliente, setFormCliente] = useState("");
@@ -115,6 +125,23 @@ export default function VendedorCalendarioPage() {
       );
       void anoB;
     } catch { /* tabela ausente — silent */ }
+
+    // Carregar posts do consultor
+    if (p?.id) {
+      try {
+        const firstDay = new Date(cursor.year, cursor.month, 1);
+        const lastDay = new Date(cursor.year, cursor.month + 1, 0);
+        const { data: postsData } = await supabase
+          .from("publication_history")
+          .select("id, created_at, loja_id, destino, formato")
+          .eq("user_id", p.id)
+          .gte("created_at", firstDay.toISOString())
+          .lte("created_at", lastDay.toISOString());
+        setPosts((postsData ?? []) as PublishedPost[]);
+      } catch (err) {
+        console.warn("[Calendario] erro ao carregar posts:", err);
+      }
+    }
   }, [cursor.month, cursor.year]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -133,7 +160,7 @@ export default function VendedorCalendarioPage() {
 
   /* ── Derived — eventos por dia ─────────────────── */
 
-  interface Evento { tipo: string; label: string; source: "feriado" | "segmento" | "lembrete"; refId?: string; }
+  interface Evento { tipo: string; label: string; source: "feriado" | "segmento" | "lembrete" | "publicado"; refId?: string; destino?: string; formato?: string; }
 
   const eventosPorDia = useMemo(() => {
     const map: Record<string, Evento[]> = {};
@@ -156,8 +183,14 @@ export default function VendedorCalendarioPage() {
     for (const l of lembretes) {
       add(l.data, { tipo: "lembrete", label: `${l.cliente}${l.nota ? " — " + l.nota : ""}`, source: "lembrete", refId: l.id });
     }
+    for (const post of posts) {
+      const d = new Date(post.created_at);
+      const iso = isoDay(d.getFullYear(), d.getMonth(), d.getDate());
+      const label = [post.destino, post.formato].filter(Boolean).join(" · ") || "Post";
+      add(iso, { tipo: "publicado", label, source: "publicado", refId: post.id, destino: post.destino || undefined, formato: post.formato || undefined });
+    }
     return map;
-  }, [feriados, datasSegmento, lembretes, cursor.year]);
+  }, [feriados, datasSegmento, lembretes, posts, cursor.year]);
 
   /* ── Month grid ───────────────────────────────── */
 
@@ -348,7 +381,10 @@ export default function VendedorCalendarioPage() {
                       <div className="flex flex-wrap gap-0.5">
                         {evs.slice(0, 3).map((e, i) => {
                           const style = TIPO_BADGE[e.tipo] ?? TIPO_BADGE.evento;
-                          return <span key={i} className="h-2 w-2 rounded-full" style={{ background: style.color }} />;
+                          const tooltip = e.source === "publicado" && (e.destino || e.formato)
+                            ? [e.destino, e.formato].filter(Boolean).join(" · ")
+                            : undefined;
+                          return <span key={i} className="h-2 w-2 rounded-full" style={{ background: style.color }} title={tooltip} />;
                         })}
                         {evs.length > 3 && <span className="text-[8px] text-[var(--txt3)]">+{evs.length - 3}</span>}
                       </div>
@@ -403,6 +439,25 @@ export default function VendedorCalendarioPage() {
               })}
             </div>
           )}
+          {/* Legenda */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--bdr)] px-4 pt-3 text-[11px] text-[var(--txt3)]">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: TIPO_BADGE.publicado.color }} />
+              <span>Publicado</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: TIPO_BADGE.feriado.color }} />
+              <span>Feriado</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: TIPO_BADGE.segmento.color }} />
+              <span>Data especial</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: TIPO_BADGE.lembrete.color }} />
+              <span>Lembrete</span>
+            </div>
+          </div>
         </div>
 
         {/* ── Painel do dia selecionado ──────────── */}
