@@ -547,7 +547,7 @@ export default function GerentePublicarV2Page() {
             <button key={t.id}
               data-active={tab===t.id?"true":"false"}
               onClick={(e)=>{switchTab(t.id);movePill(e.currentTarget);const bar=pillRef.current?.querySelector('#pill-bar') as HTMLElement|null;if(bar)bar.style.background=t.color;}}
-              style={{position:"relative",zIndex:1,padding:"5px 13px",borderRadius:tab===t.id?"9px 9px 0 0":"9px",border:"none",background:"transparent",fontSize:"11px",fontWeight:tab===t.id?600:500,letterSpacing:".05em",textTransform:"uppercase",color:tab===t.id?"var(--brand-primary)":"var(--txt3)",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap",transition:"color .2s, font-weight .2s",borderBottom:tab===t.id?"2px solid var(--brand-primary)":"none",paddingBottom:tab===t.id?"3px":"5px"}}
+              style={{position:"relative",zIndex:1,padding:"5px 13px",borderRadius:"9px",border:"none",background:"transparent",fontSize:"11px",fontWeight:tab===t.id?600:500,letterSpacing:".05em",textTransform:"uppercase",color:tab===t.id?"var(--brand-primary)":"var(--txt3)",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap",transition:"color .2s, font-weight .2s",borderBottom:tab===t.id?"2px solid var(--brand-primary)":"none"}}
             >
               {t.nome}
             </button>
