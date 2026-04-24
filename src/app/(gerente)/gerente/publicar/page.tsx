@@ -652,6 +652,8 @@ export default function GerentePublicarV2Page() {
                 loadDestinos={loadDestinos} loadHoteis={loadHoteis}
                 onImgFundo={onImgFundo} onHotelBlur={onHotelBlur}
                 binds={templateBinds}
+                formato={format}
+                nomeLoja={profile?.store?.name}
               />
             ):tab==="card_whatsapp"?(
               <CardWhatsAppForm fields={fields} set={set} today={new Date().toISOString().slice(0,10)} binds={templateBinds}/>

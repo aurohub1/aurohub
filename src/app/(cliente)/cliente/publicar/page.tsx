@@ -658,6 +658,8 @@ export default function ClientePublicarPage() {
                 loadDestinos={loadDestinos} loadHoteis={loadHoteis}
                 onImgFundo={onImgFundo} onHotelBlur={onHotelBlur}
                 binds={templateBinds}
+                formato={format}
+                nomeLoja={profile?.licensee?.name}
               />
             ):tab==="card_whatsapp"?(
               <CardWhatsAppForm fields={fields} set={set} today={new Date().toISOString().slice(0,10)} binds={templateBinds}/>

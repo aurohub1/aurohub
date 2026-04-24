@@ -489,7 +489,6 @@ export function PacoteForm({
   formato?: string;
   nomeLoja?: string;
 }) {
-  console.log('PacoteForm format:', formato);
   const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
   const [hotelOpts, setHotelOpts] = useState<string[]>([]);
   useEffect(() => {
