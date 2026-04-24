@@ -380,7 +380,7 @@ export default function GerentePublicarV2Page() {
       <div style={{display:"flex",flex:1,overflow:"hidden",minHeight:0}}>
 
         {/* FORMULÁRIO — scroll só aqui */}
-        <div style={{width:"300px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",minHeight:0}}>
+        <div style={{width:"300px",height:"100%",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",minHeight:0}}>
 
           {/* Wrapper para Pills + Campos com scroll */}
           <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",overflow:"hidden"}}>
