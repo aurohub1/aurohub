@@ -82,6 +82,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
       <div className={`ml-[220px] flex flex-1 flex-col ${pathname === "/consultor/publicar" ? "h-dvh overflow-hidden" : "min-h-dvh overflow-x-hidden pb-10"}`}>
         <main className="flex flex-1 flex-col" style={{padding: pathname === "/consultor/publicar" ? "0" : "1.5rem", gap: pathname === "/consultor/publicar" ? "0" : "1.25rem", minHeight: 0, overflow: "hidden"}}>{children}</main>
       </div>
+      {pathname !== "/consultor/publicar" && (
       <footer className="fixed bottom-0 left-[220px] right-0 z-40 flex items-center gap-3 border-t border-[var(--bdr)] bg-[var(--bg1)] px-6 py-2.5 text-[0.68rem] text-[var(--txt3)] overflow-hidden">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--green)]" />
           <span>Aurohub online</span>
@@ -114,6 +115,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
             </>
           )}
       </footer>
+      )}
       <WelcomeTour role="vendedor" />
       <PushPermission />
       <SupportFab />
