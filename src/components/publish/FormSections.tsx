@@ -91,13 +91,15 @@ export function Section({
 export function Field({
   label,
   children,
+  asSection = false,
 }: {
   label: string;
   children: ReactNode;
+  asSection?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-700 uppercase tracking-[0.08em] text-[var(--txt3)]">
+      <span className={asSection ? "text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]" : "text-[11px] font-700 uppercase tracking-[0.08em] text-[var(--txt3)]"}>
         {label}
       </span>
       {children}
@@ -595,9 +597,9 @@ export function PacoteForm({
   return (
     <div className="flex flex-col gap-2">
       {(showDestino || showSaida || showTipovoo) && (
-        <Section title="Destino & Saída">
+        <div className="px-3 py-2 border-b" style={{ borderColor: "var(--bdr)" }}>
           {showDestino && (
-            <Field label="Destino *">
+            <Field label="Destino *" asSection>
               <SearchableSelect
                 value={(fields.destino as string) || ""}
                 onChange={(v) => set("destino", v.toUpperCase())}
@@ -615,7 +617,7 @@ export function PacoteForm({
           {(showSaida || showTipovoo) && (
             <div className="flex flex-col gap-2">
               {showSaida && (
-                <Field label="Saída">
+                <Field label="Saída *" asSection>
                   <input
                     value={(fields.saida as string) || ""}
                     onChange={(e) => set("saida", e.target.value)}
@@ -625,7 +627,7 @@ export function PacoteForm({
                 </Field>
               )}
               {showTipovoo && (
-                <Field label="Tipo de Voo">
+                <Field label="Tipo de Voo *" asSection>
                   {/* V1 .radio-group + .radio-btn.on — botões inline, altura 32px, font 12px, gap 8px. */}
                   <div
                     className="flex rounded-lg border p-0.5"
@@ -654,7 +656,7 @@ export function PacoteForm({
               )}
             </div>
           )}
-        </Section>
+        </div>
       )}
 
       {(showIda || showVolta || showFeriado) && (
@@ -706,8 +708,8 @@ export function PacoteForm({
       )}
 
       {showHotel && (
-        <Section title="Hotel">
-          <Field label="Hotel *">
+        <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>
+          <Field label="Hotel *" asSection>
             {/* Hotel só grava hotel — imghotel é bindParam separado que fica com page-level logic. */}
             <SearchableSelect
               value={(fields.hotel as string) || ""}
@@ -718,7 +720,7 @@ export function PacoteForm({
               allowCustom
             />
           </Field>
-        </Section>
+        </div>
       )}
 
       {showServicos && (
@@ -922,9 +924,12 @@ export function CampanhaForm({
   return (
     <>
       {(showDestino || showSaida || showTipovoo) && (
-        <Section title="Destino" icon="✈️">
+        <div className="px-3 py-2 border-b" style={{ borderColor: "var(--bdr)" }}>
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <span className="text-[13px]">✈️</span>
+          </div>
           {showDestino && (
-            <Field label="Destino *">
+            <Field label="Destino *" asSection>
               <input
                 value={(fields.destino as string) || ""}
                 onChange={(e) => set("destino", capitalizarDestino(e.target.value))}
@@ -937,7 +942,7 @@ export function CampanhaForm({
           {(showSaida || showTipovoo) && (
             <div className="flex flex-col gap-2">
               {showSaida && (
-                <Field label="Saída">
+                <Field label="Saída *" asSection>
                   <SearchableSelect
                     value={(fields.saida as string) || ""}
                     onChange={(v) => set("saida", v)}
@@ -948,7 +953,7 @@ export function CampanhaForm({
                 </Field>
               )}
               {showTipovoo && (
-                <Field label="Tipo de Voo">
+                <Field label="Tipo de Voo *" asSection>
                   <SearchableSelect
                     value={(fields.tipovoo as string) || ""}
                     onChange={(v) => set("tipovoo", v)}
@@ -959,7 +964,7 @@ export function CampanhaForm({
               )}
             </div>
           )}
-        </Section>
+        </div>
       )}
 
       {(showIda || showVolta) && (
@@ -1001,8 +1006,11 @@ export function CampanhaForm({
       )}
 
       {showHotel && (
-        <Section title="Hotel" icon="🏨">
-          <Field label="Hotel *">
+        <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <span className="text-[13px]">🏨</span>
+          </div>
+          <Field label="Hotel *" asSection>
             <input
               value={(fields.hotel as string) || ""}
               onChange={(e) => set("hotel", e.target.value)}
@@ -1010,7 +1018,7 @@ export function CampanhaForm({
               className={INPUT_CLASS}
             />
           </Field>
-        </Section>
+        </div>
       )}
 
       {showServicos && (
