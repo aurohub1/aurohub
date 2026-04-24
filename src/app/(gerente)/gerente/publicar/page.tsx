@@ -344,10 +344,10 @@ export default function GerentePublicarV2Page() {
           </div>
 
           {/* Contadores */}
-          <div style={{display:"flex",gap:"24px",padding:"11px 21px",borderTop:"1px solid var(--bdr)",flexShrink:0}}>
+          <div style={{display:"flex",gap:"8px",padding:"4px 7px",borderTop:"1px solid var(--bdr)",flexShrink:0}}>
             {[{l:"Stories",c:"var(--brand-primary)"},{l:"Feed",c:"#f59e0b"},{l:"Reels",c:"#22c55e"}].map(x=>(
-              <div key={x.l} style={{display:"flex",alignItems:"center",gap:"6px",fontSize:"15px",color:"var(--txt3)"}}>
-                <div style={{width:"8px",height:"8px",borderRadius:"50%",background:x.c}}/>
+              <div key={x.l} style={{display:"flex",alignItems:"center",gap:"2px",fontSize:"5px",color:"var(--txt3)"}}>
+                <div style={{width:"3px",height:"3px",borderRadius:"50%",background:x.c}}/>
                 {x.l} <b style={{color:"var(--txt2)"}}>0∞</b>
               </div>
             ))}
