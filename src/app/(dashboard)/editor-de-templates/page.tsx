@@ -406,41 +406,54 @@ export default function EditorTemplatesPage() {
       {/* Biblioteca Base (somente ADM) */}
       {isAdm && (
         <section className="border-b border-[var(--bdr)] pb-6">
-          <div className="mb-4">
-            <h2 className="text-[18px] font-bold tracking-tight text-[var(--txt)]">Biblioteca Base</h2>
-            <p className="mt-0.5 text-[12px] text-[var(--txt3)]">
-              Templates do sistema — clone para um cliente para liberar uso
-            </p>
-          </div>
+          <details
+            open
+            className="overflow-hidden rounded-xl border border-[var(--bdr)]"
+            style={{ background: "var(--card-bg)" }}
+          >
+            <summary className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-[var(--hover-bg)]">
+              <span className="flex flex-col">
+                <span className="text-[14px] font-bold text-[var(--txt)]">Biblioteca Base</span>
+                <span className="text-[11px] text-[var(--txt3)]">
+                  Templates do sistema — clone para um cliente para liberar uso
+                </span>
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+                {baseTemplatesFiltered.length} template{baseTemplatesFiltered.length !== 1 ? "s" : ""}
+              </span>
+            </summary>
 
-          {canvasLoading ? (
-            <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
-          ) : !hasAnyBaseTemplate ? (
-            <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
-              Nenhum template base cadastrado.
+            <div className="p-4">
+              {canvasLoading ? (
+                <div className="text-[12px] text-[var(--txt3)]">Carregando...</div>
+              ) : !hasAnyBaseTemplate ? (
+                <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
+                  Nenhum template base cadastrado.
+                </div>
+              ) : baseTemplatesFiltered.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
+                  Nenhum template encontrado com esses filtros.
+                </div>
+              ) : (
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                  {baseTemplatesFiltered.map((t) => (
+                    <TemplateCard
+                      key={t.key}
+                      template={t}
+                      onEdit={(key) => router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`)}
+                      onDuplicate={duplicateCanvasTmpl}
+                      onDelete={deleteCanvasTmpl}
+                      onClone={isAdm && t.isBase ? setCloneKey : undefined}
+                      onNameChange={handleNameChange}
+                      onThumbUpload={handleThumbUpload}
+                      onThumbCapture={handleCaptureCard}
+                      thumbUploading={thumbUploadingKey === t.key}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : baseTemplatesFiltered.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[var(--bdr)] p-8 text-center text-[12px] text-[var(--txt3)]">
-              Nenhum template encontrado com esses filtros.
-            </div>
-          ) : (
-            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-              {baseTemplatesFiltered.map((t) => (
-                <TemplateCard
-                  key={t.key}
-                  template={t}
-                  onEdit={(key) => router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`)}
-                  onDuplicate={duplicateCanvasTmpl}
-                  onDelete={deleteCanvasTmpl}
-                  onClone={isAdm && t.isBase ? setCloneKey : undefined}
-                  onNameChange={handleNameChange}
-                  onThumbUpload={handleThumbUpload}
-                  onThumbCapture={handleCaptureCard}
-                  thumbUploading={thumbUploadingKey === t.key}
-                />
-              ))}
-            </div>
-          )}
+          </details>
         </section>
       )}
 
