@@ -329,7 +329,6 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
       { label: "Template", href: "/consultor/publicar", icon: I.publish, feature: "publicar" },
       { label: "Calendário", href: "/consultor/calendario", icon: I.calendar },
       { label: "Card WhatsApp", href: "/consultor/publicar/cards", icon: I.whatsapp, feature: "card_whatsapp" },
-      { label: "Agendamentos", href: "/consultor/agendamentos", icon: I.calendar },
       { label: "Suporte", href: "/consultor/suporte", icon: I.support },
     ],
   },
