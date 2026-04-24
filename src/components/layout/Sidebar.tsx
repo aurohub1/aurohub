@@ -392,7 +392,7 @@ function WeatherIconLucide({ code, size = 13 }: { code: number | null; size?: nu
 
 /* ── Component ───────────────────────────────────── */
 
-export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel }: SidebarProps) {
+export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel, hasInactiveStores = false }: SidebarProps) {
   const supportDrawer = useSupportDrawer(); // null fora do provider (ex: ADM) → renderiza Link
   const rawSections = sections ?? ADM_SECTIONS;
   const navSections = activeFeatures
