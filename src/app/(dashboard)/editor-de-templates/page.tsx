@@ -205,7 +205,7 @@ export default function EditorTemplatesPage() {
 
   // Agrupa templates de cliente por licensee (sem sub-agrupamento por segmento)
   const userTemplatesByLicensee = useMemo(() => {
-    const isAdm = profile?.role === "adm";
+    const isAdm = profile?.role === "adm" || profile?.role === "operador";
     const ownLic = profile?.licensee_id ?? null;
     const map: Record<string, { id: string | null; items: CanvasTemplate[] }> = {};
     for (const t of canvasTemplates) {
@@ -373,7 +373,7 @@ export default function EditorTemplatesPage() {
 
   /* ── Render ────────────────────────────────────── */
 
-  const isAdm = profile?.role === "adm";
+  const isAdm = profile?.role === "adm" || profile?.role === "operador";
 
   const openNewTemplate = (licenseeId: string | null) => {
     const qs = licenseeId ? `?licensee=${licenseeId}` : "";

@@ -27,7 +27,7 @@ export default function DashboardLayout({
     (async () => {
       const p = await getProfile(supabase);
       if (!p) { router.push("/login"); return; }
-      if (p.role !== "adm") { router.push(homeForRole(p.role)); return; }
+      if (p.role !== "adm" && p.role !== "operador") { router.push(homeForRole(p.role)); return; }
       setProfile(p);
       setChecking(false);
     })();

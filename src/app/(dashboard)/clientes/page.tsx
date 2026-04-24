@@ -48,6 +48,7 @@ const PLAN_COLORS: Record<string, { color: string; label: string }> = {
 /* ── Component ───────────────────────────────────── */
 
 export default function ClientesPage() {
+  const [currentProfile, setCurrentProfile] = useState<{ role: string } | null>(null);
   const [licensees, setLicensees] = useState<Licensee[]>([]);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -156,6 +157,16 @@ export default function ClientesPage() {
   const [wizardResult, setWizardResult] = useState<{ licenseeName: string; email: string; password: string; storesCount: number } | null>(null);
 
   /* ── Load ──────────────────────────────────────── */
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: p } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+        if (p) setCurrentProfile(p);
+      }
+    })();
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -499,7 +510,9 @@ export default function ClientesPage() {
         <KI label="Ativos" value={String(kpis.active)} accent />
         <KI label="Com plano" value={String(kpis.withPlan)} />
         <KI label="Sem plano" value={String(kpis.noPlan)} />
-        <KI label="MRR" value={`R$${kpis.mrr.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} accent />
+        {currentProfile?.role !== "operador" && (
+          <KI label="MRR" value={`R$${kpis.mrr.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} accent />
+        )}
       </div>
 
       {/* ── Header ───────────────────────────────── */}
@@ -1087,7 +1100,7 @@ export default function ClientesPage() {
                       </optgroup>
                     </select>
                   </div>
-                  {form.plan && planMap[form.plan] && !planMap[form.plan].is_internal && (
+                  {form.plan && planMap[form.plan] && !planMap[form.plan].is_internal && currentProfile?.role !== "operador" && (
                     <div className="rounded-lg border border-[var(--bdr)] p-4 text-[12px]">
                       <div className="mb-1 font-medium text-[var(--txt)]">{PLAN_COLORS[form.plan]?.label || planMap[form.plan].name}</div>
                       <div className="text-[var(--txt3)]">R${planMap[form.plan].price_monthly.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</div>
@@ -1107,12 +1120,12 @@ export default function ClientesPage() {
                         className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
                       />
                     </div>
-                  ) : (
+                  ) : currentProfile?.role !== "operador" ? (
                     <>
                       <Field label="Implantação (R$)" value={form.price_setup} onChange={(v) => setForm({ ...form, price_setup: v })} type="number" />
                       <Field label="Fidelidade (meses)" value={form.min_months} onChange={(v) => setForm({ ...form, min_months: v })} type="number" />
                     </>
-                  )}
+                  ) : null}
                 </div>
               )}
 
