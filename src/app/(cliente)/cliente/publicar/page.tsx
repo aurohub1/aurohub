@@ -112,15 +112,25 @@ export default function ClientePublicarPage() {
       setProfile(p);
       if(p?.licensee_id){
         loadTemplates(p.licensee_id);
-        const{data:storesData}=await supabase.from("stores").select("id,name").eq("licensee_id",p.licensee_id).order("name");
-        const allStores=(storesData??[]) as StoreOption[];
+        let allStores:StoreOption[]=[];
+        if(p.role==="cliente"&&p.id){
+          const{data:userStores}=await supabase.from("user_stores").select("store_id").eq("user_id",p.id);
+          if(userStores&&userStores.length>0){
+            const storeIds=userStores.map(us=>us.store_id);
+            const{data:storesData}=await supabase.from("stores").select("id,name").in("id",storeIds).order("name");
+            allStores=(storesData??[]) as StoreOption[];
+          }
+        }else{
+          const{data:storesData}=await supabase.from("stores").select("id,name").eq("licensee_id",p.licensee_id).order("name");
+          allStores=(storesData??[]) as StoreOption[];
+        }
         let targets:StoreOption[]=[];
         if(canPublishToAllAZV(p.store_id)){
           targets=filterAZVGroup(allStores);
           if(targets.length===0) targets=allStores;
         }else if(p.store_id){
           const own=allStores.find(s=>s.id===p.store_id);
-          targets=own?[own]:[];
+          targets=own?[own]:allStores;
         }
         setPublishTargets(targets);
         // Loja padrão: a própria loja do usuário, ou a primeira disponível
