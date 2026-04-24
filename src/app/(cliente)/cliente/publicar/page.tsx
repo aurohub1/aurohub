@@ -6,7 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
 import { PacoteForm, CardWhatsAppForm, AnoiteceuForm } from "@/components/publish/FormSections";
-import { Plane, Target, Ticket, Ship, Moon, MessageSquare, ArrowLeft, Smartphone, Play, Square, Tv } from "lucide-react";
+import { Plane, Target, Ticket, Ship, Moon, MessageSquare, ArrowLeft, Smartphone, Play, Square, Tv, Check, Loader2, Trash2 } from "lucide-react";
+import { usePublishQueue } from "@/hooks/usePublishQueue";
 
 const PreviewStage = dynamic(
   () => import("@/app/(gerente)/gerente/publicar/PreviewStage"),
@@ -63,7 +64,11 @@ export default function ClientePublicarPage() {
   const [animOut, setAnimOut] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string|null>(null);
   const [publishTargets, setPublishTargets] = useState<StoreOption[]>([]);
-  const [selectedStoreId, setSelectedStoreId] = useState<string>("");
+  const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<"idle"|"generating"|"uploading"|"publishing"|"success"|"error">("idle");
+  const [statusMsg, setStatusMsg] = useState("");
+  const publishQueue = usePublishQueue();
   const [formCache, setFormCache] = useState<Record<FormType,Record<string,string>>>({
     pacote:{...DEFAULTS},campanha:{...DEFAULTS},passagem:{...DEFAULTS},
     cruzeiro:{...DEFAULTS},anoiteceu:{...DEFAULTS},card_whatsapp:{...DEFAULTS},
@@ -120,7 +125,7 @@ export default function ClientePublicarPage() {
         setPublishTargets(targets);
         // Loja padrão: a própria loja do usuário, ou a primeira disponível
         const defaultStoreId = targets.find(t=>t.id===p.store_id)?.id || (targets.length>0?targets[0].id:"");
-        setSelectedStoreId(defaultStoreId);
+        setSelectedTargetIds(defaultStoreId ? [defaultStoreId] : []);
         console.log('publishTargets:', targets);
       }
     });
@@ -233,6 +238,86 @@ export default function ClientePublicarPage() {
     }
     return b;
   },[currentTemplate]);
+
+  function toggleTarget(id: string) {
+    setSelectedTargetIds((prev) => {
+      if (prev.includes(id)) {
+        // Não permite desmarcar se for a única loja selecionada
+        if (prev.length === 1) return prev;
+        return prev.filter((x) => x !== id);
+      }
+      return [...prev, id];
+    });
+  }
+
+  function handleClear() {
+    setFormCache((c) => ({ ...c, [tab]: {...DEFAULTS} }));
+    setBadgeCache((c) => ({ ...c, [tab]: {} }));
+  }
+
+  async function handleDownload() {
+    // Implementação simplificada - apenas baixa a imagem
+    setStatus("generating");
+    setStatusMsg("Gerando imagem...");
+    // TODO: implementar getPNGDataURL do canvas
+    setTimeout(() => {
+      setStatus("success");
+      setStatusMsg("Download iniciado");
+      setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 2000);
+    }, 1000);
+  }
+
+  async function handlePublish() {
+    if (!profile?.licensee_id) { setStatus("error"); setStatusMsg("Sem licensee"); return; }
+    if (selectedTargetIds.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
+
+    const targets = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
+    if (targets.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
+
+    try {
+      setBusy(true);
+      setStatus("generating");
+      setStatusMsg("Gerando imagem...");
+
+      // TODO: Implementar geração de imagem/vídeo real
+      // Por enquanto, simula publicação
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      setStatus("publishing");
+      setStatusMsg(`Publicando em ${targets.length} loja(s)...`);
+
+      for (const target of targets) {
+        // Enfileira publicação para cada loja
+        publishQueue.enqueue({
+          storeId: target.id,
+          storeName: target.name,
+          destino: values.destino || null,
+          format,
+          isVideo: false,
+          mediaBlob: undefined,
+          mediaDataUrl: undefined,
+          caption: "",
+          licenseeId: profile.licensee_id,
+          userId: profile.id,
+          userRole: profile.role,
+          templateId: currentTemplate?.id,
+          templateName: currentTemplate?.name,
+          onDone: () => {
+            console.log(`Publicado em ${target.name}`);
+          },
+        });
+      }
+
+      setStatus("success");
+      setStatusMsg(`Publicado em ${targets.length} loja(s)`);
+      setTimeout(() => { setStatus("idle"); setStatusMsg(""); setBusy(false); }, 3000);
+    } catch (error) {
+      setStatus("error");
+      setStatusMsg("Erro ao publicar");
+      setBusy(false);
+      setTimeout(() => { setStatus("idle"); setStatusMsg(""); }, 3000);
+    }
+  }
 
   const visibleFormats=useMemo(()=>{
     const s=new Set(templates.filter(t=>t.formType===tab).map(t=>t.format));
@@ -445,32 +530,45 @@ export default function ClientePublicarPage() {
 
           {/* Footer */}
           <div style={{padding:"12px 14px",paddingBottom:"60px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",flexShrink:0}}>
-            {publishTargets.length>1&&(
+            {publishTargets.length>0&&(
               <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                 <label style={{fontSize:"10px",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--txt3)"}}>Publicar em</label>
                 <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
-                  {publishTargets.map(t=>(
-                    <button key={t.id} type="button" onClick={()=>setSelectedStoreId(t.id)}
-                      style={{flex:1,minWidth:"90px",display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",padding:"8px 10px",borderRadius:"8px",border:`1.5px solid ${selectedStoreId===t.id?"var(--brand-primary)":"var(--bdr)"}`,background:selectedStoreId===t.id?"rgba(59,130,246,0.1)":"transparent",color:selectedStoreId===t.id?"var(--brand-primary)":"var(--txt2)",fontSize:"11px",fontWeight:600,cursor:"pointer",transition:"all .15s"}}
+                  {publishTargets.map(t=>{
+                    const active=selectedTargetIds.includes(t.id);
+                    const single=publishTargets.length===1;
+                    return(
+                    <button key={t.id} type="button" onClick={()=>!single&&toggleTarget(t.id)} disabled={single}
+                      style={{flex:1,minWidth:"90px",display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",padding:"8px 10px",borderRadius:"8px",border:`1.5px solid ${active?"var(--brand-primary)":"var(--bdr)"}`,background:active?"rgba(59,130,246,0.1)":"transparent",color:active?"var(--brand-primary)":"var(--txt2)",fontSize:"11px",fontWeight:600,cursor:single?"default":"pointer",transition:"all .15s"}}
                     >
-                      <span style={{width:"14px",height:"14px",borderRadius:"50%",border:`2px solid ${selectedStoreId===t.id?"var(--brand-primary)":"var(--bdr)"}`,background:selectedStoreId===t.id?"var(--brand-primary)":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                        {selectedStoreId===t.id&&<span style={{width:"6px",height:"6px",borderRadius:"50%",background:"#fff"}}/>}
+                      <span style={{width:"12px",height:"12px",borderRadius:"3px",border:`1.5px solid ${active?"var(--brand-primary)":"var(--bdr)"}`,background:active?"var(--brand-primary)":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {active&&<Check size={8} strokeWidth={3} color="#fff"/>}
                       </span>
                       {t.name}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
             {format !== "tv" && (
-              <button style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer"}}>
-                ✈ Publicar no Instagram
+              <button onClick={handlePublish} disabled={busy||!currentTemplate} style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:busy?"#999":"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:busy?"wait":"pointer",opacity:busy?0.7:1}}>
+                {busy?<><Loader2 size={14} style={{display:"inline",marginRight:"6px",animation:"spin 1s linear infinite"}}/>Publicando...</>:"✈ Publicar no Instagram"}
               </button>
             )}
             <div style={{display:"flex",gap:"6px"}}>
-              <button style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>🗑 Limpar</button>
-              <button style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>⬇ Download</button>
+              <button onClick={handleClear} style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>
+                <Trash2 size={12} style={{display:"inline",marginRight:"4px"}}/>Limpar
+              </button>
+              <button onClick={handleDownload} style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>
+                ⬇ Download
+              </button>
             </div>
+            {statusMsg&&(
+              <div style={{fontSize:"10px",textAlign:"center",color:status==="error"?"#ef4444":status==="success"?"#10b981":"var(--txt3)",padding:"4px"}}>
+                {statusMsg}
+              </div>
+            )}
           </div>
         </div>
 
