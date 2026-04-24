@@ -356,7 +356,10 @@ export default function GerentePublicarV2Page() {
 
     try {
       setBusy(true);
-      const isVideo = format === "stories" || format === "reels";
+      const hasAnimation = (currentTemplate?.schema?.elements ?? []).some((el: any) =>
+        (el.animDelay && el.animDelay > 0) || (el.animDuration && el.animDuration > 0)
+      );
+      const isVideo = hasAnimation;
       let mediaBlob: Blob | undefined;
       let mediaDataUrl: string | undefined;
 

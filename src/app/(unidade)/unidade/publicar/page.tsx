@@ -860,7 +860,10 @@ export default function UnidadePublicarPage() {
   async function handleDownload() {
     // Downloads — sem limite por plano (coluna removida)
 
-    const isVideo = format === "stories" || format === "reels";
+    const hasAnimation = (currentTemplate?.schema?.elements ?? []).some((el: any) =>
+      (el.animDelay && el.animDelay > 0) || (el.animDuration && el.animDuration > 0)
+    );
+    const isVideo = hasAnimation;
     let fileUrl: string;
     let publicId: string | null = null;
 
@@ -980,7 +983,10 @@ export default function UnidadePublicarPage() {
     if (targets.length === 0) { setStatus("error"); setStatusMsg("Selecione pelo menos uma loja"); return; }
 
     try {
-      const isVideo = format === "stories" || format === "reels";
+      const hasAnimation = (currentTemplate?.schema?.elements ?? []).some((el: any) =>
+        (el.animDelay && el.animDelay > 0) || (el.animDuration && el.animDuration > 0)
+      );
+      const isVideo = hasAnimation;
       let mediaBlob: Blob | undefined;
       let mediaDataUrl: string | undefined;
 
