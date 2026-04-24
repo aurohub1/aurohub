@@ -244,6 +244,16 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
+        label: "Saúde",
+        href: "/adm/saude",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M10 18s-7-4-7-10V4l7-2 7 2v4c0 6-7 10-7 10z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M7 9l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ),
+      },
+      {
         label: "FAQ Suporte",
         href: "/faq-suporte",
         icon: (
