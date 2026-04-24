@@ -300,7 +300,7 @@ export default function ConsultorPublicarPage() {
           {/* Pills de formato */}
           {visibleFormats.length > 1 && (
             <div style={{padding:"14px 14px 0",borderBottom:"1px solid var(--bdr)"}}>
-              <div style={{display:"flex",alignItems:"center",gap:"4px",borderRadius:"12px",background:"var(--bg2)",padding:"4px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"4px",borderRadius:"12px",background:"var(--bg1)",border:"1px solid var(--bdr)",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:"4px"}}>
                 {(["stories","reels","feed","tv"] as Format[]).map(f=>{
                   const active=format===f;
                   const available=visibleFormats.includes(f);
@@ -327,11 +327,14 @@ export default function ConsultorPublicarPage() {
                         opacity:available?1:0.3,
                         transition:"all .15s",
                         background:active?"var(--brand-primary)":"transparent",
-                        color:active?"#fff":"var(--txt3)"
+                        color:active?"#fff":"var(--txt3)",
+                        position:"relative",
+                        overflow:"hidden"
                       }}
                     >
-                      <Icon size={13} strokeWidth={2.5}/>
-                      <span>{FORMAT_LABELS[f]}</span>
+                      {active&&<div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 60%)",pointerEvents:"none"}}/>}
+                      <Icon size={13} strokeWidth={2.5} style={{position:"relative",zIndex:1}}/>
+                      <span style={{position:"relative",zIndex:1}}>{FORMAT_LABELS[f]}</span>
                     </button>
                   );
                 })}
