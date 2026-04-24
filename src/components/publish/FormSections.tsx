@@ -106,7 +106,7 @@ export function Field({
 }
 
 const INPUT_CLASS =
-  "h-[34px] w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--brand-primary,var(--orange))]";
+  "h-[34px] w-full rounded-lg border border-[var(--bdr)] bg-[var(--input-bg)] px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--brand-primary,var(--orange))]";
 
 /* ── SearchableSelect ─────────────────────────────────── */
 
