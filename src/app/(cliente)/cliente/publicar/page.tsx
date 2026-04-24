@@ -55,6 +55,7 @@ export default function ClientePublicarPage() {
   const [format, setFormat] = useState<Format>("stories");
   const [phase, setPhase] = useState<"selector"|"form">("selector");
   const [animOut, setAnimOut] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string|null>(null);
   const [formCache, setFormCache] = useState<Record<FormType,Record<string,string>>>({
     pacote:{...DEFAULTS},campanha:{...DEFAULTS},passagem:{...DEFAULTS},
     cruzeiro:{...DEFAULTS},anoiteceu:{...DEFAULTS},card_whatsapp:{...DEFAULTS},
@@ -184,10 +185,19 @@ export default function ClientePublicarPage() {
     return m;
   },[values,badges]);
 
-  const currentTemplate=useMemo(()=>
-    templates.find(t=>t.formType===tab&&t.format===format)||
-    templates.find(t=>t.formType===tab),
+  const availableTemplates=useMemo(()=>
+    templates.filter(t=>t.formType===tab&&t.format===format),
   [templates,tab,format]);
+
+  const needsTemplateSelection=useMemo(()=>
+    !selectedTemplateId && availableTemplates.length > 1,
+  [selectedTemplateId,availableTemplates]);
+
+  const currentTemplate=useMemo(()=>{
+    if(selectedTemplateId) return templates.find(t=>t.id===selectedTemplateId);
+    if(availableTemplates.length===1) return availableTemplates[0];
+    return templates.find(t=>t.formType===tab);
+  },[templates,tab,format,selectedTemplateId,availableTemplates]);
 
   const templateBinds=useMemo(()=>{
     const b=new Set<string>();
@@ -209,19 +219,26 @@ export default function ClientePublicarPage() {
 
   function goToForm(tipo:FormType){
     setAnimOut(true);
-    setTimeout(()=>{setTab(tipo);setPhase("form");setAnimOut(false);},260);
+    setTimeout(()=>{setTab(tipo);setSelectedTemplateId(null);setPhase("form");setAnimOut(false);},260);
   }
   function goBack(){
     setAnimOut(true);
-    setTimeout(()=>{setPhase("selector");setAnimOut(false);},260);
+    setTimeout(()=>{setPhase("selector");setSelectedTemplateId(null);setAnimOut(false);},260);
   }
   function switchTab(t:FormType){
     setTab(t);
+    setSelectedTemplateId(null);
     const fmts=templates.filter(x=>x.formType===t).map(x=>x.format);
     if(fmts.length&&!fmts.includes(format)) setFormat(fmts[0]);
   }
+  function selectTemplate(id:string){
+    setSelectedTemplateId(id);
+  }
+  function backToTemplateSelector(){
+    setSelectedTemplateId(null);
+  }
 
-  // ===== SELEÇÃO =====
+  // ===== SELEÇÃO DE TIPO =====
   if(phase==="selector") return(
     <div style={{padding:"24px",width:"100%",transition:"opacity .26s,transform .26s",opacity:animOut?0:1,transform:animOut?"translateX(-24px)":"translateX(0)"}}>
       <h1 style={{fontSize:"20px",fontWeight:800,color:"var(--txt1)",marginBottom:"4px"}}>Publicar</h1>
@@ -259,6 +276,40 @@ export default function ClientePublicarPage() {
         ))}
       </div>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+
+  // ===== SELEÇÃO DE TEMPLATE =====
+  if(phase==="form" && needsTemplateSelection) return(
+    <div style={{padding:"24px",width:"100%",transition:"opacity .26s",opacity:animOut?0:1}}>
+      <button onClick={backToTemplateSelector} style={{display:"flex",alignItems:"center",gap:"6px",background:"none",border:"none",color:"var(--txt3)",fontSize:"12px",fontWeight:600,cursor:"pointer",padding:"8px 0",marginBottom:"16px"}}
+        onMouseEnter={e=>e.currentTarget.style.color="var(--txt1)"}
+        onMouseLeave={e=>e.currentTarget.style.color="var(--txt3)"}
+      >
+        <ArrowLeft size={14}/> Voltar
+      </button>
+      <h1 style={{fontSize:"20px",fontWeight:800,color:"var(--txt1)",marginBottom:"4px"}}>Escolher Template</h1>
+      <p style={{fontSize:"12px",color:"var(--txt3)",marginBottom:"20px"}}>Selecione o template para {TIPOS.find(t=>t.id===tab)?.nome} {FORMAT_LABELS[format]}</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))",gap:"16px"}}>
+        {availableTemplates.map((tmpl,i)=>(
+          <button key={tmpl.id} onClick={()=>selectTemplate(tmpl.id)}
+            style={{background:"var(--bg2)",border:"1.5px solid var(--bdr)",borderRadius:"14px",padding:"0",cursor:"pointer",textAlign:"left",display:"flex",flexDirection:"column",overflow:"hidden",transition:"all .2s",animation:`fadeUp .3s ease ${i*.05}s both`}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--brand-primary)";e.currentTarget.style.transform="translateY(-2px)";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--bdr)";e.currentTarget.style.transform="translateY(0)";}}
+          >
+            <div style={{width:"100%",height:"160px",background:"linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+              {tmpl.schema?.thumbnail || (tmpl as any).thumbnail_url ? (
+                <img src={tmpl.schema?.thumbnail || (tmpl as any).thumbnail_url} alt={tmpl.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+              ) : (
+                <span style={{fontSize:"32px",opacity:0.2}}>📄</span>
+              )}
+            </div>
+            <div style={{padding:"12px"}}>
+              <div style={{fontSize:"13px",fontWeight:700,color:"var(--txt1)",lineHeight:1.3}}>{tmpl.name}</div>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 

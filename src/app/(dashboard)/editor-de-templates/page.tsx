@@ -30,6 +30,7 @@ export default function EditorTemplatesPage() {
   const [cloning, setCloning] = useState(false);
   const [cloneLojas, setCloneLojas] = useState<{ id: string; name: string }[]>([]);
   const [cloneSelectedLojas, setCloneSelectedLojas] = useState<Set<string>>(new Set());
+  const [cloneCustomName, setCloneCustomName] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -242,7 +243,7 @@ export default function EditorTemplatesPage() {
 
   // Clona template base para um licensee específico
   const runCloneToLicensee = async () => {
-    if (!cloneKey || !cloneLicensee || cloneSelectedLojas.size === 0) return;
+    if (!cloneKey || !cloneLicensee || cloneSelectedLojas.size === 0 || !cloneCustomName.trim()) return;
     setCloning(true);
     try {
       const lic = licensees.find((l) => l.id === cloneLicensee);
@@ -259,6 +260,7 @@ export default function EditorTemplatesPage() {
 
       const cloneData = {
         ...parsed,
+        nome: cloneCustomName.trim(),
         is_base: false,
         licenseeId: lic?.id ?? null,
         licenseeNome: lic?.name ?? "Sem marca",
@@ -285,7 +287,7 @@ export default function EditorTemplatesPage() {
 
       // 2. Inserir em form_templates
       await supabase.from("form_templates").insert({
-        name: parsed.nome ?? `Template ${parsed.formType}`,
+        name: cloneCustomName.trim(),
         form_type: parsed.formType,
         format: parsed.format,
         width: parsed.width,
@@ -307,6 +309,7 @@ export default function EditorTemplatesPage() {
       setCloneKey(null);
       setCloneLicensee("");
       setCloneSelectedLojas(new Set());
+      setCloneCustomName("");
       await loadCanvasTemplates();
     } catch (err) {
       console.error("[Clone to licensee]", err);
@@ -538,6 +541,28 @@ export default function EditorTemplatesPage() {
             </div>
             <div className="max-h-[50vh] flex-1 overflow-y-auto px-6 py-4">
               <div className="flex flex-col gap-4">
+                {/* Thumbnail do template base */}
+                {(() => {
+                  const tmpl = canvasTemplates.find(t => t.key === cloneKey);
+                  return tmpl?.thumbnail ? (
+                    <div className="rounded-lg border border-[var(--bdr)] overflow-hidden" style={{ height: "120px", background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)" }}>
+                      <img src={tmpl.thumbnail} alt={tmpl.nome} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Nome personalizado */}
+                <div>
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--txt3)]">Nome do Template *</div>
+                  <input
+                    type="text"
+                    value={cloneCustomName}
+                    onChange={(e) => setCloneCustomName(e.target.value)}
+                    placeholder="Ex: Pacote Verão 2026"
+                    className="w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[13px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
+                  />
+                </div>
+
                 {/* Marca */}
                 <div>
                   <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--txt3)]">Marca</div>
@@ -623,7 +648,7 @@ export default function EditorTemplatesPage() {
             <div className="flex justify-end gap-3 border-t border-[var(--bdr)] px-6 py-4">
               <button
                 type="button"
-                onClick={() => { setCloneKey(null); setCloneLicensee(""); setCloneSelectedLojas(new Set()); }}
+                onClick={() => { setCloneKey(null); setCloneLicensee(""); setCloneSelectedLojas(new Set()); setCloneCustomName(""); }}
                 className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]"
               >
                 Cancelar
@@ -631,7 +656,7 @@ export default function EditorTemplatesPage() {
               <button
                 type="button"
                 onClick={runCloneToLicensee}
-                disabled={!cloneLicensee || cloneSelectedLojas.size === 0 || cloning}
+                disabled={!cloneLicensee || cloneSelectedLojas.size === 0 || !cloneCustomName.trim() || cloning}
                 className="rounded-lg bg-[var(--orange)] px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
               >
                 {cloning ? "Clonando..." : "Clonar"}
