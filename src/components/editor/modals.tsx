@@ -604,6 +604,7 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
   }
 
   // Carrega marcas (licensees) + profile do usuário logado → pré-seleção
+  const profileRef = useRef<FullProfile | null>(null);
   useEffect(() => {
     (async () => {
       // Profile do usuário para pré-selecionar licensee/store
@@ -611,6 +612,7 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
       let profileStoreId: string | null = null;
       try {
         const p = await getProfile(supabase);
+        profileRef.current = p;
         profileLicenseeId = p?.licensee_id ?? null;
         profileStoreId = p?.store_id ?? null;
       } catch {}
@@ -647,7 +649,27 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
     (async () => {
       let rows: LojaRow[] = [];
       try {
-        if (licenseeId) {
+        const profile = profileRef.current;
+
+        // GERENTE: busca via user_stores (lojas às quais o usuário tem acesso)
+        if (profile?.role === "gerente" && profile.id) {
+          const { data: userStores } = await supabase
+            .from("user_stores")
+            .select("store_id")
+            .eq("user_id", profile.id);
+
+          if (userStores && userStores.length > 0) {
+            const storeIds = userStores.map(us => us.store_id);
+            const r = await supabase
+              .from("stores")
+              .select("id,name,licensee_id")
+              .in("id", storeIds)
+              .order("name");
+            if (!r.error && r.data) rows = r.data as LojaRow[];
+          }
+        }
+        // ADM ou outros roles: busca por licensee_id
+        else if (licenseeId) {
           const r = await supabase.from("stores").select("id,name,licensee_id").eq("licensee_id", licenseeId).order("name");
           if (!r.error && r.data) rows = r.data as LojaRow[];
         } else {
