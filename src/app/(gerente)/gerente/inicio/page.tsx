@@ -7,6 +7,8 @@ import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
 import InstagramStatusBadge from "@/components/InstagramStatusBadge";
+import InactivityAlert from "@/components/InactivityAlert";
+import { getInactiveStores, type InactiveStore } from "@/lib/inactivity-check";
 import { useCountUp } from "@/hooks/useCountUp";
 import {
   Send, BarChart3, Image as ImageIcon, ImageOff, CalendarDays,
@@ -135,6 +137,7 @@ function getDestino(fv: Record<string, unknown>): string {
 export default function GerenteInicioPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [quote, setQuote] = useState<string>("");
+  const [inactiveStores, setInactiveStores] = useState<InactiveStore[]>([]);
 
   const [postsHoje, setPostsHoje] = useState(0);
   const [postsMes, setPostsMes] = useState(0);
@@ -165,6 +168,10 @@ export default function GerenteInicioPage() {
       setProfile(p);
       // Gerente pode não ter store_id (tier licensee) → permite licensee_id como mínimo
       if (!p?.licensee_id) { console.warn("[GerenteInicio] no licensee_id, early return"); setLoading(false); return; }
+
+      // Verificar lojas inativas
+      const inactive = await getInactiveStores(supabase, p.licensee_id);
+      setInactiveStores(inactive);
 
       // Frase do segmento
       let segmentQuotes: string[] | null = null;
@@ -401,6 +408,8 @@ export default function GerenteInicioPage() {
           </div>
         </div>
       </div>
+
+      <InactivityAlert stores={inactiveStores} />
 
       {/* ═══ Stats Row ═══════════════════════ */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

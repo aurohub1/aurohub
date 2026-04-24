@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
+import InactivityAlert from "@/components/InactivityAlert";
+import { getInactiveStores, type InactiveStore } from "@/lib/inactivity-check";
 import {
   Store, BarChart3, FileText, Sparkles, CalendarClock, ArrowRight,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
@@ -149,6 +151,7 @@ export default function ClienteInicioPage() {
   const [planFull, setPlanFull] = useState<PlanFull | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [quote, setQuote] = useState<string>("");
+  const [inactiveStores, setInactiveStores] = useState<InactiveStore[]>([]);
 
   const [stores, setStores] = useState<StoreRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -176,6 +179,10 @@ export default function ClienteInicioPage() {
       const p = await getProfile(supabase);
       setProfile(p);
       if (!p?.licensee_id) { setLoading(false); return; }
+
+      // Verificar lojas inativas
+      const inactive = await getInactiveStores(supabase, p.licensee_id);
+      setInactiveStores(inactive);
 
       // Frase do segmento (igual ADM)
       let segmentQuotes: string[] | null = null;
@@ -451,6 +458,8 @@ export default function ClienteInicioPage() {
           Ver templates <ArrowRight size={13} />
         </span>
       </Link>
+
+      <InactivityAlert stores={inactiveStores} />
 
       {/* ═══ KPI Row — Plano, Posts do mês, Templates ══ */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

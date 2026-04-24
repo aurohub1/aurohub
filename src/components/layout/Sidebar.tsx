@@ -19,6 +19,8 @@ interface SidebarProps {
   activeFeatures?: Set<string>;
   /** Slot opcional renderizado entre o menu e a barra de usuário (relógio, clima, etc). */
   extraPanel?: React.ReactNode;
+  /** Se true, exibe ponto vermelho no item Início indicando lojas inativas */
+  hasInactiveStores?: boolean;
 }
 
 export interface NavItem {
@@ -530,6 +532,9 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
                       {item.icon}
                     </span>
                     <span className="truncate">{item.label}</span>
+                    {item.label === "Início" && hasInactiveStores && (
+                      <span className="ml-auto h-2 w-2 rounded-full bg-red-500" title="Lojas inativas" />
+                    )}
                   </>
                 );
                 return isSupportButton ? (

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
+import { getInactiveStores } from "@/lib/inactivity-check";
 import Sidebar, { CLIENTE_SECTIONS } from "@/components/layout/Sidebar";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
@@ -22,6 +23,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(true);
   const [tickerItems, setTickerItems] = useState<{ title: string; url?: string }[]>([]);
+  const [hasInactiveStores, setHasInactiveStores] = useState(false);
 
   useBrandTheme(profile?.licensee_id);
   // useContentProtection();
@@ -54,6 +56,10 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       const feats = await getFeatures(supabase, p);
       setFeatures(feats);
 
+      if (p.licensee_id) {
+        const inactive = await getInactiveStores(supabase, p.licensee_id);
+        setHasInactiveStores(inactive.length > 0);
+      }
 
       setChecking(false);
     })();
@@ -78,6 +84,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         sections={CLIENTE_SECTIONS}
         activeFeatures={features}
         brandLabel={profile?.licensee?.name || "Central do Cliente"}
+        hasInactiveStores={hasInactiveStores}
       />
       <div className={`ml-[220px] flex flex-1 flex-col ${pathname === "/cliente/publicar" ? "h-dvh overflow-hidden" : "min-h-dvh pb-10"}`}>
         <main className="flex flex-1 flex-col" style={{padding: pathname === "/cliente/publicar" ? "0" : "1.5rem", gap: pathname === "/cliente/publicar" ? "0" : "1.25rem", minHeight: 0, overflow: "hidden"}}>{children}</main>
