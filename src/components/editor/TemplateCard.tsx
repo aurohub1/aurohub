@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Pencil, Copy, CopyPlus, Trash2 } from "lucide-react";
 
 export interface CanvasTemplate {
   key: string;
@@ -172,29 +173,33 @@ export function TemplateCard({
       <div className="flex border-t border-[var(--bdr)] text-[11px]">
         <button
           onClick={() => onEdit(t.key)}
-          className="flex-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+          className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
         >
-          ✏️ Editar
+          <Pencil size={12} />
+          <span>Editar</span>
         </button>
         {t.isBase && onClone && (
           <button
             onClick={() => onClone(t.key)}
-            className="flex-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+            className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
           >
-            📋 Clonar
+            <Copy size={12} />
+            <span>Clonar</span>
           </button>
         )}
         <button
           onClick={() => onDuplicate(t.key)}
-          className="flex-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+          className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
         >
-          📑 Duplicar
+          <CopyPlus size={12} />
+          <span>Duplicar</span>
         </button>
         <button
           onClick={() => onDelete(t.key)}
-          className="flex-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-red-500"
+          className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-red-500"
         >
-          🗑️ Excluir
+          <Trash2 size={12} />
+          <span>Excluir</span>
         </button>
       </div>
     </div>
