@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Play, Music, Download } from "lucide-react";
 
 export interface CanvasTemplate {
   key: string;
@@ -144,9 +145,22 @@ export function TemplateCard({
           >
             {formatTypeLabel(t.formType)}
           </span>
-          <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-            {formatFormatLabel(t.format)}
-          </span>
+          {t.format === "reels" ? (
+            <span className="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+              <Play size={10} fill="currentColor" />
+              <Music size={10} />
+              Reels 9:16
+            </span>
+          ) : t.format === "tv" ? (
+            <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+              <Download size={10} />
+              TV · Download
+            </span>
+          ) : (
+            <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+              {formatFormatLabel(t.format)}
+            </span>
+          )}
         </div>
 
         {/* Meta info */}

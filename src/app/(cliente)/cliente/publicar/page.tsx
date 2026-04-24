@@ -332,9 +332,11 @@ export default function ClientePublicarPage() {
 
           {/* Footer */}
           <div style={{padding:"12px 14px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",flexShrink:0}}>
-            <button style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer"}}>
-              ✈ Publicar no Instagram
-            </button>
+            {format !== "tv" && (
+              <button style={{width:"100%",padding:"11px",borderRadius:"10px",border:"none",background:"linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer"}}>
+                ✈ Publicar no Instagram
+              </button>
+            )}
             <div style={{display:"flex",gap:"6px"}}>
               <button style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>🗑 Limpar</button>
               <button style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>⬇ Download</button>
