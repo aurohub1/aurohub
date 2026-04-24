@@ -187,7 +187,41 @@ export default function GerentePublicarV2Page() {
   }
   async function loadDestinos(q:string=""){
     const rows=await loadDestinoData();
-    const nomes=[...new Set(rows.map(r=>r.nome))];
+    let nomes=[...new Set(rows.map(r=>r.nome))];
+
+    // Ordenar por frequência de uso em publication_history
+    if(profile?.licensee_id){
+      try{
+        const{data:stats}=await supabase
+          .from("publication_history")
+          .select("template_nome")
+          .eq("licensee_id",profile.licensee_id)
+          .not("template_nome","is",null);
+
+        if(stats&&stats.length>0){
+          // Extrair destinos dos nomes de templates (formato: "DESTINO - ...")
+          const destFreq:Record<string,number>={};
+          stats.forEach(s=>{
+            const match=s.template_nome?.match(/^([^-]+)/);
+            if(match){
+              const dest=match[1].trim().toUpperCase();
+              destFreq[dest]=(destFreq[dest]||0)+1;
+            }
+          });
+
+          // Ordenar: mais frequentes primeiro, depois alfabético
+          nomes.sort((a,b)=>{
+            const freqA=destFreq[a.toUpperCase()]||0;
+            const freqB=destFreq[b.toUpperCase()]||0;
+            if(freqA!==freqB)return freqB-freqA;
+            return a.localeCompare(b,"pt-BR");
+          });
+        }
+      }catch(err){
+        console.error("Erro ao carregar estatísticas de destinos:",err);
+      }
+    }
+
     return nomes.filter(n=>normalizar(n).includes(normalizar(q)));
   }
   async function loadHoteis(q:string=""){
