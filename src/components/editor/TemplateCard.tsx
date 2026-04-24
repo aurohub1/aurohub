@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Pencil, Copy, CopyPlus, Trash2 } from "lucide-react";
+import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin } from "lucide-react";
 
 export interface CanvasTemplate {
   key: string;
@@ -163,8 +163,16 @@ export function TemplateCard({
         {/* Meta info */}
         {!t.isBase && (
           <div className="mt-auto space-y-0.5 border-t border-[var(--bdr)] pt-2 text-[10px] text-[var(--txt3)]">
-            <p>📍 {t.licenseeNome}</p>
-            {t.lojaNome && <p>🏪 {t.lojaNome}</p>}
+            <p className="flex items-center gap-1">
+              <Building2 size={11} />
+              {t.licenseeNome}
+            </p>
+            {t.lojaNome && (
+              <p className="flex items-center gap-1">
+                <MapPin size={11} />
+                {t.lojaNome}
+              </p>
+            )}
           </div>
         )}
       </div>
