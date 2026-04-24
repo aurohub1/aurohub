@@ -642,11 +642,11 @@ export function PacoteForm({
                           key={opt}
                           type="button"
                           onClick={() => set("tipovoo", opt)}
-                          className="flex-1 whitespace-nowrap rounded-md px-3 font-semibold transition-all"
+                          className="flex-1 whitespace-nowrap font-semibold transition-all"
                           style={
                             sel
-                              ? { background: "var(--brand-primary)", color: "#FFFFFF", boxShadow: "0 1px 6px color-mix(in srgb, var(--brand-primary) 40%, transparent)", height: "32px", fontSize: "12px" }
-                              : { background: "transparent", color: "var(--txt3)", height: "32px", fontSize: "12px" }
+                              ? { background: "var(--brand-primary)", color: "#FFFFFF", boxShadow: "0 1px 6px color-mix(in srgb, var(--brand-primary) 40%, transparent)", padding: "6px 16px", fontSize: "11px", borderRadius: "8px" }
+                              : { background: "transparent", color: "var(--txt3)", padding: "6px 16px", fontSize: "11px", borderRadius: "8px" }
                           }
                         >
                           {opt}
