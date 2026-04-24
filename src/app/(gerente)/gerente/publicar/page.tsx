@@ -129,6 +129,7 @@ export default function GerentePublicarV2Page() {
         }
         setPublishTargets(targets);
         setSelectedStoreId(targets.length>0?targets[0].id:"");
+        console.log('publishTargets:', targets);
       }
     });
     supabase.from("feriados").select("nome").order("nome").then(({data})=>{
@@ -379,78 +380,81 @@ export default function GerentePublicarV2Page() {
       <div style={{display:"flex",flex:1,overflow:"hidden",minHeight:0}}>
 
         {/* FORMULÁRIO — scroll só aqui */}
-        <div style={{width:"300px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
+        <div style={{width:"300px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",minHeight:0}}>
 
-          {/* Pills de formato */}
-          {visibleFormats.length > 1 && (
-            <div style={{padding:"14px 14px 0",borderBottom:"1px solid var(--bdr)"}}>
-              <div style={{display:"flex",alignItems:"center",gap:"4px",borderRadius:"12px",background:"var(--bg1)",border:"1px solid var(--bdr)",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:"4px"}}>
-                {(["stories","reels","feed","tv"] as Format[]).map(f=>{
-                  const active=format===f;
-                  const available=visibleFormats.includes(f);
-                  const Icon=f==="stories"?Smartphone:f==="reels"?Play:f==="feed"?Square:Tv;
-                  return(
-                    <button
-                      key={f}
-                      onClick={()=>available&&setFormat(f)}
-                      disabled={!available}
-                      style={{
-                        flex:1,
-                        display:"flex",
-                        alignItems:"center",
-                        justifyContent:"center",
-                        gap:"4px",
-                        borderRadius:"8px",
-                        padding:"8px",
-                        fontSize:"10px",
-                        fontWeight:700,
-                        textTransform:"uppercase",
-                        letterSpacing:".06em",
-                        border:"none",
-                        cursor:available?"pointer":"not-allowed",
-                        opacity:available?1:0.3,
-                        transition:"all .15s",
-                        background:active?"var(--brand-primary)":"transparent",
-                        color:active?"#fff":"var(--txt3)",
-                        position:"relative",
-                        overflow:"hidden"
-                      }}
-                    >
-                      {active&&<div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 60%)",pointerEvents:"none"}}/>}
-                      <Icon size={13} strokeWidth={2.5} style={{position:"relative",zIndex:1}}/>
-                      <span style={{position:"relative",zIndex:1}}>{FORMAT_LABELS[f]}</span>
-                    </button>
-                  );
-                })}
+          {/* Wrapper para Pills + Campos com scroll */}
+          <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            {/* Pills de formato */}
+            {visibleFormats.length > 1 && (
+              <div style={{padding:"14px 14px 0",borderBottom:"1px solid var(--bdr)",flexShrink:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:"4px",borderRadius:"12px",background:"var(--bg1)",border:"1px solid var(--bdr)",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:"4px"}}>
+                  {(["stories","reels","feed","tv"] as Format[]).map(f=>{
+                    const active=format===f;
+                    const available=visibleFormats.includes(f);
+                    const Icon=f==="stories"?Smartphone:f==="reels"?Play:f==="feed"?Square:Tv;
+                    return(
+                      <button
+                        key={f}
+                        onClick={()=>available&&setFormat(f)}
+                        disabled={!available}
+                        style={{
+                          flex:1,
+                          display:"flex",
+                          alignItems:"center",
+                          justifyContent:"center",
+                          gap:"4px",
+                          borderRadius:"8px",
+                          padding:"8px",
+                          fontSize:"10px",
+                          fontWeight:700,
+                          textTransform:"uppercase",
+                          letterSpacing:".06em",
+                          border:"none",
+                          cursor:available?"pointer":"not-allowed",
+                          opacity:available?1:0.3,
+                          transition:"all .15s",
+                          background:active?"var(--brand-primary)":"transparent",
+                          color:active?"#fff":"var(--txt3)",
+                          position:"relative",
+                          overflow:"hidden"
+                        }}
+                      >
+                        {active&&<div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 60%)",pointerEvents:"none"}}/>}
+                        <Icon size={13} strokeWidth={2.5} style={{position:"relative",zIndex:1}}/>
+                        <span style={{position:"relative",zIndex:1}}>{FORMAT_LABELS[f]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Campos — SCROLL APENAS AQUI */}
-          <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
-            {!currentTemplate?(
-              <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Nenhum template disponível para {tab}.</div>
-            ):tab==="pacote"?(
-              <PacoteForm
-                fields={fields} set={set} servicos={servicos} setServicos={setServicos}
-                today={new Date().toISOString().slice(0,10)}
-                feriadoOpts={feriados}
-                loadDestinos={loadDestinos} loadHoteis={loadHoteis}
-                onImgFundo={onImgFundo} onHotelBlur={onHotelBlur}
-                binds={templateBinds}
-              />
-            ):tab==="card_whatsapp"?(
-              <CardWhatsAppForm fields={fields} set={set} today={new Date().toISOString().slice(0,10)} binds={templateBinds}/>
-            ):(
-              tab==="anoiteceu"?(
-              <AnoiteceuForm fields={fields} set={set} binds={templateBinds}/>
-            ):(
-              <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Formulário de {tab} em breve.</div>
-            )
             )}
+
+            {/* Campos — SCROLL APENAS AQUI */}
+            <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
+              {!currentTemplate?(
+                <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Nenhum template disponível para {tab}.</div>
+              ):tab==="pacote"?(
+                <PacoteForm
+                  fields={fields} set={set} servicos={servicos} setServicos={setServicos}
+                  today={new Date().toISOString().slice(0,10)}
+                  feriadoOpts={feriados}
+                  loadDestinos={loadDestinos} loadHoteis={loadHoteis}
+                  onImgFundo={onImgFundo} onHotelBlur={onHotelBlur}
+                  binds={templateBinds}
+                />
+              ):tab==="card_whatsapp"?(
+                <CardWhatsAppForm fields={fields} set={set} today={new Date().toISOString().slice(0,10)} binds={templateBinds}/>
+              ):(
+                tab==="anoiteceu"?(
+                <AnoiteceuForm fields={fields} set={set} binds={templateBinds}/>
+              ):(
+                <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Formulário de {tab} em breve.</div>
+              )
+              )}
+            </div>
           </div>
 
-          {/* Footer */}
+          {/* Footer — sempre visível */}
           <div style={{padding:"12px 14px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",flexShrink:0}}>
             {publishTargets.length>1&&(
               <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
