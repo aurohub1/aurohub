@@ -28,7 +28,7 @@ const TIPOS = [
 ];
 
 const FORMAT_DIMS: Record<Format,[number,number]> = {
-  stories:[1080,1920], feed:[1080,1080], reels:[1080,1920], tv:[1920,1080],
+  stories:[1080,1920], feed:[1080,1350], reels:[1080,1920], tv:[1920,1080],
 };
 const FORMAT_LABELS: Record<Format,string> = {
   stories:"Stories", feed:"Feed", reels:"Reels", tv:"TV",
