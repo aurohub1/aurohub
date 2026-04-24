@@ -18,6 +18,9 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { ReactNode } from "react";
 import { supabase as _sb_for_lamina } from "@/lib/supabase";
+import SugerirLegenda from "./SugerirLegenda";
+
+export { SugerirLegenda };
 
 /* ── Constantes ──────────────────────────────────────── */
 
@@ -467,6 +470,8 @@ export function PacoteForm({
   onImgFundo,
   onHotelBlur,
   binds,
+  formato,
+  nomeLoja,
 }: {
   fields: Fields;
   set: Setter;
@@ -481,6 +486,8 @@ export function PacoteForm({
   /** Callback opcional no blur do hotel — a page pode rodar fetchImgHotel + fallback. */
   onHotelBlur?: (hotel: string) => void;
   binds?: Set<string>;
+  formato?: string;
+  nomeLoja?: string;
 }) {
   const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
   const [hotelOpts, setHotelOpts] = useState<string[]>([]);
@@ -892,6 +899,30 @@ export function PacoteForm({
           )}
         </Section>
       )}
+
+      {/* Legenda do Post */}
+      <Section title="Legenda do Post" icon="✍️">
+        <Field label="Legenda (opcional)" asSection>
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={(fields.legenda_post as string) || ""}
+              onChange={(e) => set("legenda_post", e.target.value)}
+              placeholder="Escreva a legenda do post aqui..."
+              className={`${INPUT_CLASS} h-auto resize-none py-2`}
+              rows={4}
+            />
+            {(fields.destino as string)?.trim() && formato && (
+              <SugerirLegenda
+                destino={(fields.destino as string) || ""}
+                tipoArte="pacote"
+                formato={formato}
+                nomeLoja={nomeLoja}
+                onSelect={(legenda) => set("legenda_post", legenda)}
+              />
+            )}
+          </div>
+        </Field>
+      </Section>
     </div>
   );
 }
