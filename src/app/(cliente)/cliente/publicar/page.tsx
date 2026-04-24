@@ -295,7 +295,7 @@ export default function ClientePublicarPage() {
       <div style={{display:"flex",flex:1,overflow:"hidden",minHeight:0}}>
 
         {/* FORMULÁRIO — scroll só aqui */}
-        <div style={{width:"360px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
+        <div style={{width:"300px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
 
           {/* Pills de formato */}
           {visibleFormats.length > 1 && (

@@ -79,7 +79,7 @@ export function Section({
     >
       <div className="mb-1.5 flex items-center gap-1.5">
         {icon && <span className="text-[13px]">{icon}</span>}
-        <h4 className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
+        <h4 className="text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
           {title}
         </h4>
       </div>
@@ -107,6 +107,9 @@ export function Field({
 
 const INPUT_CLASS =
   "h-[34px] w-full rounded-lg border border-[var(--bdr)] bg-[var(--input-bg)] px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--brand-primary,var(--orange))]";
+
+const SELECT_CLASS =
+  "h-[34px] w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 pr-8 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--brand-primary,var(--orange)] appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjOEE5QkJGIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat";
 
 /* ── SearchableSelect ─────────────────────────────────── */
 
@@ -808,7 +811,7 @@ export function PacoteForm({
                   <select
                     value={(fields.parcelas as string) || ""}
                     onChange={(e) => set("parcelas", e.target.value)}
-                    className={INPUT_CLASS}
+                    className={SELECT_CLASS}
                   >
                     <option value="">— nenhum —</option>
                     {PACOTE_PARCELAS_OPTS.map((p) => (
@@ -836,7 +839,7 @@ export function PacoteForm({
               <select
                 value={(fields.numerodesconto as string) || ""}
                 onChange={(e) => set("numerodesconto", e.target.value)}
-                className={INPUT_CLASS}
+                className={SELECT_CLASS}
               >
                 <option value="">– nenhum –</option>
                 {PACOTE_DESCONTO_OPTS.map((d) => (
@@ -1162,7 +1165,7 @@ export function AnoiteceuForm({
           <select
             value={(fields.desconto as string) || ""}
             onChange={(e) => set("desconto", e.target.value)}
-            className={INPUT_CLASS}
+            className={SELECT_CLASS}
           >
             <option value="">Selecione...</option>
             {descontoOpts.map((opt) => (
@@ -1543,7 +1546,7 @@ export function CardWhatsAppForm({
             <select
               value={d.voo}
               onChange={(e) => updateDest(curDest, { voo: e.target.value })}
-              className={INPUT_CLASS}
+              className={SELECT_CLASS}
             >
               {LAM_VOO_OPTS.map((v) => (
                 <option key={v} value={v}>{v}</option>
@@ -1595,7 +1598,7 @@ export function CardWhatsAppForm({
           <select
             value={d.incluso}
             onChange={(e) => updateDest(curDest, { incluso: e.target.value })}
-            className={INPUT_CLASS}
+            className={SELECT_CLASS}
           >
             {LAM_INCLUSO_OPTS.map((v) => (
               <option key={v} value={v}>{v}</option>
@@ -1612,7 +1615,7 @@ export function CardWhatsAppForm({
               const v = e.target.value as LamDest["pgto"];
               updateDest(curDest, { pgto: v, ...(v === "cartao" ? { entrada: "" } : {}) });
             }}
-            className={INPUT_CLASS}
+            className={SELECT_CLASS}
           >
             <option value="">– selecione –</option>
             <option value="cartao">Cartão de Crédito</option>
