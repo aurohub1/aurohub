@@ -637,7 +637,7 @@ export default function ClientePublicarPage() {
           </div>
 
           {/* Footer */}
-          <div style={{padding:"12px 14px",paddingTop:"12px",paddingBottom:"60px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"4px",flexShrink:0,marginTop:"auto"}}>
+          <div style={{padding:"12px 14px",paddingTop:"32px",paddingBottom:"60px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"4px",flexShrink:0,marginTop:"auto"}}>
             {publishTargets.length>0&&(
               <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                 <label style={{fontSize:"10px",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--txt3)"}}>Publicar em</label>
