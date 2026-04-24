@@ -336,7 +336,7 @@ export default function ConsultorPublicarPage() {
         </div>
 
         {/* PREVIEW — sem scroll, centralizado */}
-        <div style={{flex:1,background:"var(--bg0)",display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
+        <div style={{flex:1,background:"var(--bg0)",display:"flex",flexDirection:"column",overflow:"visible",position:"relative"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid var(--bdr)",flexShrink:0}}>
             <span style={{fontSize:"10px",fontWeight:700,color:"var(--txt3)",textTransform:"uppercase",letterSpacing:".1em"}}>Preview ao vivo</span>
             <span style={{fontSize:"10px",color:"var(--txt3)",background:"var(--bg2)",padding:"3px 8px",borderRadius:"6px",border:"1px solid var(--bdr)"}}>{pw} × {ph}</span>
@@ -355,7 +355,7 @@ export default function ConsultorPublicarPage() {
           </div>
           {/* Format pills flutuantes — rodapé do preview */}
           {visibleFormats.length > 1 && (
-            <div style={{pointerEvents:"none",position:"absolute",bottom:"12px",left:0,right:0,display:"flex",justifyContent:"center"}}>
+            <div style={{pointerEvents:"none",position:"absolute",bottom:"12px",left:0,right:0,display:"flex",justifyContent:"center",zIndex:50}}>
               <div style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:"4px",borderRadius:"20px",backdropFilter:"blur(12px)",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",padding:"4px"}}>
                 {(["stories","reels","feed","tv"] as Format[]).map(f=>{
                   const active=format===f;
