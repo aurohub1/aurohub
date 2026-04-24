@@ -128,7 +128,9 @@ export default function GerentePublicarV2Page() {
           targets=own?[own]:[];
         }
         setPublishTargets(targets);
-        setSelectedStoreId(targets.length>0?targets[0].id:"");
+        // Loja padrão: a própria loja do usuário, ou a primeira disponível
+        const defaultStoreId = targets.find(t=>t.id===p.store_id)?.id || (targets.length>0?targets[0].id:"");
+        setSelectedStoreId(defaultStoreId);
         console.log('publishTargets:', targets);
       }
     });
@@ -452,7 +454,7 @@ export default function GerentePublicarV2Page() {
           </div>
 
           {/* Footer */}
-          <div style={{padding:"12px 14px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",flexShrink:0}}>
+          <div style={{padding:"12px 14px",paddingBottom:"60px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",flexShrink:0}}>
             {publishTargets.length>1&&(
               <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                 <label style={{fontSize:"10px",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--txt3)"}}>Publicar em</label>
