@@ -369,14 +369,12 @@ export default function ClientePublicarPage() {
       {/* BODY */}
       <div style={{display:"flex",flex:1,overflow:"hidden",minHeight:0}}>
 
-        {/* FORMULÁRIO — scroll só aqui */}
-        <div style={{width:"300px",height:"100%",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",minHeight:0}}>
+        {/* FORMULÁRIO — scroll aqui */}
+        <div style={{width:"300px",flexShrink:0,background:"var(--bg1)",borderRight:"1px solid var(--bdr)",display:"flex",flexDirection:"column",overflow:"auto"}}>
 
-          {/* Wrapper para Pills + Campos com scroll */}
-          <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            {/* Pills de formato */}
-            {visibleFormats.length > 1 && (
-              <div style={{padding:"14px 14px 0",borderBottom:"1px solid var(--bdr)",flexShrink:0}}>
+          {/* Pills de formato */}
+          {visibleFormats.length > 1 && (
+            <div style={{padding:"14px 14px 0",borderBottom:"1px solid var(--bdr)",flexShrink:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:"4px",borderRadius:"12px",background:"var(--bg1)",border:"1px solid var(--bdr)",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:"4px"}}>
                   {(["stories","reels","feed","tv"] as Format[]).map(f=>{
                     const active=format===f;
@@ -419,33 +417,32 @@ export default function ClientePublicarPage() {
               </div>
             )}
 
-            {/* Campos — SCROLL APENAS AQUI */}
-            <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
-              {!currentTemplate?(
-                <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Nenhum template disponível para {tab}.</div>
-              ):tab==="pacote"?(
-                <PacoteForm
-                  fields={fields} set={set} servicos={servicos} setServicos={setServicos}
-                  today={new Date().toISOString().slice(0,10)}
-                  feriadoOpts={feriados}
-                  loadDestinos={loadDestinos} loadHoteis={loadHoteis}
-                  onImgFundo={onImgFundo} onHotelBlur={onHotelBlur}
-                  binds={templateBinds}
-                />
-              ):tab==="card_whatsapp"?(
-                <CardWhatsAppForm fields={fields} set={set} today={new Date().toISOString().slice(0,10)} binds={templateBinds}/>
-              ):(
-                tab==="anoiteceu"?(
-                <AnoiteceuForm fields={fields} set={set} binds={templateBinds}/>
-              ):(
-                <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Formulário de {tab} em breve.</div>
-              )
-              )}
-            </div>
+          {/* Campos */}
+          <div style={{padding:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
+            {!currentTemplate?(
+              <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Nenhum template disponível para {tab}.</div>
+            ):tab==="pacote"?(
+              <PacoteForm
+                fields={fields} set={set} servicos={servicos} setServicos={setServicos}
+                today={new Date().toISOString().slice(0,10)}
+                feriadoOpts={feriados}
+                loadDestinos={loadDestinos} loadHoteis={loadHoteis}
+                onImgFundo={onImgFundo} onHotelBlur={onHotelBlur}
+                binds={templateBinds}
+              />
+            ):tab==="card_whatsapp"?(
+              <CardWhatsAppForm fields={fields} set={set} today={new Date().toISOString().slice(0,10)} binds={templateBinds}/>
+            ):(
+              tab==="anoiteceu"?(
+              <AnoiteceuForm fields={fields} set={set} binds={templateBinds}/>
+            ):(
+              <div style={{padding:"32px",textAlign:"center",color:"var(--txt3)",fontSize:"12px"}}>Formulário de {tab} em breve.</div>
+            )
+            )}
           </div>
 
-          {/* Footer — sempre visível */}
-          <div style={{padding:"12px 14px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",flexShrink:0}}>
+          {/* Footer — sticky */}
+          <div style={{position:"sticky",bottom:0,padding:"12px 14px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",background:"var(--bg1)"}}>
             {publishTargets.length>1&&(
               <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                 <label style={{fontSize:"10px",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--txt3)"}}>Publicar em</label>
