@@ -631,7 +631,7 @@ export default function GerentePublicarV2Page() {
           </div>
 
           {/* Footer */}
-          <div style={{padding:"12px 14px",paddingBottom:"60px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"6px",flexShrink:0}}>
+          <div style={{padding:"12px 14px",paddingBottom:"60px",borderTop:"1px solid var(--bdr)",display:"flex",flexDirection:"column",gap:"4px",flexShrink:0}}>
             {publishTargets.length>0&&(
               <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                 <label style={{fontSize:"10px",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--txt3)"}}>Publicar em</label>
@@ -664,10 +664,10 @@ export default function GerentePublicarV2Page() {
               </>
             )}
             <div style={{display:"flex",gap:"6px"}}>
-              <button onClick={handleClear} style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>
+              <button onClick={handleClear} style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr2)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer",boxShadow:"0 2px 6px rgba(0,0,0,0.15)"}}>
                 <Trash2 size={12} style={{display:"inline",marginRight:"4px"}}/>Limpar
               </button>
-              <button onClick={handleDownload} style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>
+              <button onClick={handleDownload} style={{flex:1,padding:"8px",borderRadius:"8px",border:"1px solid var(--bdr2)",background:"transparent",color:"var(--txt3)",fontSize:"11px",fontWeight:600,cursor:"pointer",boxShadow:"0 2px 6px rgba(0,0,0,0.15)"}}>
                 ⬇ Download
               </button>
             </div>
