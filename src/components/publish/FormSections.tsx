@@ -163,8 +163,8 @@ export function SearchableSelect({
       />
       {open && filtered.length > 0 && (
         <div
-          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-52 overflow-auto rounded-lg border shadow-lg"
-          style={{ background: "var(--bg1)", borderColor: "var(--bdr)" }}
+          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-52 overflow-auto"
+          style={{ background: "var(--bg1)", borderColor: "var(--bdr)", borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.15)", border: "1px solid var(--bdr)" }}
         >
           {filtered.map((opt) => (
             <button
