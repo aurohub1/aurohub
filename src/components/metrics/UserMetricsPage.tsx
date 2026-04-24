@@ -49,34 +49,14 @@ export default function UserMetricsPage() {
         .gte("created_at", since.toISOString())
         .order("created_at", { ascending: false });
 
-      let histRes, lojaRes;
-
-      if (p.role === "gerente") {
-        // Gerente: buscar lojas via user_stores
-        const { data: userStores } = await supabase
-          .from("user_stores")
-          .select("store_id")
-          .eq("user_id", p.id);
-        const storeIds = (userStores ?? []).map(us => us.store_id);
-        if (storeIds.length === 0) {
-          histRes = { data: [] };
-          lojaRes = { data: [] };
-        } else {
-          [histRes, lojaRes] = await Promise.all([
-            histQuery.in("loja_id", storeIds).limit(2000),
-            supabase.from("stores").select("id, name").in("id", storeIds).order("name"),
-          ]);
-        }
-      } else {
-        [histRes, lojaRes] = await Promise.all([
-          useLicensee
-            ? histQuery.eq("licensee_id", p.licensee_id!).limit(2000)
-            : histQuery.eq("user_id", p.id),
-          useLicensee
-            ? supabase.from("stores").select("id, name").eq("licensee_id", p.licensee_id!).order("name")
-            : Promise.resolve({ data: [] as Loja[] }),
-        ]);
-      }
+      const [histRes, lojaRes] = await Promise.all([
+        useLicensee
+          ? histQuery.eq("licensee_id", p.licensee_id!).limit(2000)
+          : histQuery.eq("user_id", p.id),
+        useLicensee
+          ? supabase.from("stores").select("id, name").eq("licensee_id", p.licensee_id!).order("name")
+          : Promise.resolve({ data: [] as Loja[] }),
+      ]);
 
       setRows((histRes.data ?? []) as PublicationRow[]);
       setLojas((lojaRes.data ?? []) as Loja[]);
