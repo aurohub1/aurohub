@@ -415,7 +415,7 @@ export default function PlanosPage() {
                   <th className="px-4 py-3 text-left text-[11px] font-medium text-[var(--txt3)]">Plano</th>
                   <th className="px-4 py-3 text-center text-[11px] font-medium text-[var(--txt3)]">Lojas</th>
                   <th className="px-4 py-3 text-center text-[11px] font-medium text-[var(--txt3)]">IA</th>
-                  <th className="px-4 py-3 text-center text-[11px] font-medium text-[var(--txt3)]">Lâmina</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-medium text-[var(--txt3)]">Card WA</th>
                   <th className="px-4 py-3 text-center text-[11px] font-medium text-[var(--txt3)]">Métricas</th>
                   <th className="px-4 py-3 text-left text-[11px] font-medium text-[var(--txt3)]">Status</th>
                   <th className="px-5 py-3 text-right text-[11px] font-medium text-[var(--txt3)]">Ações</th>

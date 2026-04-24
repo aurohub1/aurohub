@@ -502,10 +502,10 @@ export const QUICK_START_PRESETS: EditorPreset[] = [
     },
   },
 
-  /* ── 5. LÂMINA — Stories (grid 2×2, 4 destinos) ───── */
+  /* ── 5. CARD WHATSAPP — Stories (grid 2×2, 4 destinos) ───── */
   {
     id: "lamina-stories",
-    name: "Lâmina — Stories",
+    name: "Card WhatsApp — Stories",
     formType: "lamina",
     format: "stories",
     schema: {

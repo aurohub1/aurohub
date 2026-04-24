@@ -27,10 +27,10 @@ interface TemplateRow {
 const TYPE_META: Record<string, { label: string; color: string }> = {
   pacote:    { label: "Pacote",    color: "var(--orange)" },
   campanha:  { label: "Campanha",  color: "#D4A843" },
-  passagem:  { label: "Passagem",  color: "#3B82F6" },
-  cruzeiro:  { label: "Cruzeiro",  color: "#06B6D4" },
-  anoiteceu: { label: "Anoiteceu", color: "#1E3A6E" },
-  lamina:    { label: "Lâmina",    color: "#8B5CF6" },
+  passagem:  { label: "Passagem",      color: "#3B82F6" },
+  cruzeiro:  { label: "Cruzeiro",      color: "#06B6D4" },
+  anoiteceu: { label: "Anoiteceu",     color: "#1E3A6E" },
+  lamina:    { label: "Card WhatsApp", color: "#8B5CF6" },
 };
 
 const FORMAT_META: Record<string, { label: string; aspect: string }> = {

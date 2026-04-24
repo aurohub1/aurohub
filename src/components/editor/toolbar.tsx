@@ -42,7 +42,7 @@ export default function Toolbar(p: Props) {
         <select value={p.formType || "pacote"} onChange={e => p.onFormTypeChange!(e.target.value)} style={selS}>
           <option value="pacote">Pacote</option><option value="campanha">Campanha</option>
           <option value="passagem">Passagem</option><option value="cruzeiro">Cruzeiro</option>
-          <option value="anoiteceu">Anoiteceu</option><option value="lamina">Lâmina</option>
+          <option value="anoiteceu">Anoiteceu</option><option value="lamina">Card WhatsApp</option>
         </select>
       )}
       {p.onFormatChange && (
