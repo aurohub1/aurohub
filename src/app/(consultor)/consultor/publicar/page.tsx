@@ -8,10 +8,7 @@ export default function ConsultorPublicarPage() {
     <PublicarPageBase
       role="consultor"
       enablePublishing={true}
-      getNomeLoja={(profile) => {
-        // Consultor pode publicar para sua própria loja
-        return profile?.store?.name;
-      }}
+      getNomeLoja={() => undefined}
     />
   );
 }
