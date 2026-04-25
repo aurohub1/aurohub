@@ -27,7 +27,11 @@ export default function UserMetricsPage() {
   const [tipo, setTipo] = useState<Tipo | "all">("all");
   const [lojaFilter, setLojaFilter] = useState<string>("all");
 
-  const scopeByLicensee = profile?.role === "cliente" || profile?.role === "gerente";
+  // Cliente e gerente veem dados do licensee; outros roles veem dados próprios
+  const isLicenseeScope = useMemo(() => {
+    if (!profile) return false;
+    return (profile.role === "cliente" || profile.role === "gerente") && !!profile.licensee_id;
+  }, [profile]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -35,13 +39,14 @@ export default function UserMetricsPage() {
       const p = await getProfile(supabase);
       setProfile(p);
       if (!p) { setLoading(false); return; }
+
       const feats = await getFeatures(supabase, p);
       setFeatures(feats);
       if (!feats.has("metricas")) { setLoading(false); return; }
+
       const since = new Date();
       since.setDate(since.getDate() - 90);
-
-      const useLicensee = (p.role === "cliente" || p.role === "gerente") && !!p.licensee_id;
+      const isLicensee = (p.role === "cliente" || p.role === "gerente") && !!p.licensee_id;
 
       const histQuery = supabase
         .from("publication_history")
@@ -50,10 +55,10 @@ export default function UserMetricsPage() {
         .order("created_at", { ascending: false });
 
       const [histRes, lojaRes] = await Promise.all([
-        useLicensee
+        isLicensee
           ? histQuery.eq("licensee_id", p.licensee_id!).limit(2000)
           : histQuery.eq("user_id", p.id),
-        useLicensee
+        isLicensee
           ? supabase.from("stores").select("id, name").eq("licensee_id", p.licensee_id!).order("name")
           : Promise.resolve({ data: [] as Loja[] }),
       ]);
@@ -105,7 +110,7 @@ export default function UserMetricsPage() {
           <div>
             <h2 className="text-2xl font-bold" style={{ color: "var(--txt)" }}>Métricas</h2>
             <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>
-            {scopeByLicensee ? "Publicações e downloads das suas lojas" : "Publicações e downloads do seu perfil"}
+            {isLicenseeScope ? "Publicações e downloads das suas lojas" : "Publicações e downloads do seu perfil"}
           </p>
           </div>
         </div>
@@ -133,7 +138,7 @@ export default function UserMetricsPage() {
         <div>
           <h2 className="text-2xl font-bold" style={{ color: "var(--txt)" }}>Métricas</h2>
           <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>
-            {scopeByLicensee ? "Publicações e downloads das suas lojas" : "Publicações e downloads do seu perfil"}
+            {isLicenseeScope ? "Publicações e downloads das suas lojas" : "Publicações e downloads do seu perfil"}
           </p>
         </div>
       </div>
@@ -159,7 +164,7 @@ export default function UserMetricsPage() {
               periodo={periodo} onPeriodoChange={setPeriodo}
               formato={formato} onFormatoChange={setFormato}
               tipo={tipo} onTipoChange={setTipo}
-              extra={scopeByLicensee && lojas.length > 0 ? (
+              extra={isLicenseeScope && lojas.length > 0 ? (
                 <select
                   value={lojaFilter}
                   onChange={(e) => setLojaFilter(e.target.value)}
