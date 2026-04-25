@@ -89,17 +89,30 @@ export default function UserMetricsPage() {
     const weekStart = new Date(todayStart); weekStart.setDate(todayStart.getDate() - 6);
     const monthStart = new Date(todayStart); monthStart.setDate(todayStart.getDate() - 29);
     let today = 0, week = 0, month = 0, downloadsMonth = 0;
+    let totalPublicacoes = 0, totalDownloads = 0;
+    const consultoresSet = new Set<string>();
+    const templatesSet = new Set<string>();
+
     for (const r of rows) {
       const t = new Date(r.created_at).getTime();
       if (r.tipo === "publicado") {
+        totalPublicacoes++;
         if (t >= todayStart.getTime()) today++;
         if (t >= weekStart.getTime()) week++;
         if (t >= monthStart.getTime()) month++;
-      } else if (r.tipo === "download" && t >= monthStart.getTime()) {
-        downloadsMonth++;
+        if (r.user_id) consultoresSet.add(r.user_id);
+        if (r.template_id) templatesSet.add(r.template_id);
+      } else if (r.tipo === "download") {
+        totalDownloads++;
+        if (t >= monthStart.getTime()) downloadsMonth++;
       }
     }
-    return { today, week, month, downloadsMonth };
+    return {
+      today, week, month, downloadsMonth,
+      totalPublicacoes, totalDownloads,
+      consultoresAtivos: consultoresSet.size,
+      templatesUsados: templatesSet.size
+    };
   }, [rows]);
 
   // Feature off → tela de upgrade
@@ -152,10 +165,10 @@ export default function UserMetricsPage() {
         <>
           {/* KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
-            <MetricCard label="Publicações hoje" value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
-            <MetricCard label="Esta semana"       value={kpis.week}           icon={<CalendarDays size={18} />} accent="green"  />
-            <MetricCard label="Este mês"          value={kpis.month}          icon={<CalendarDays size={18} />} accent="orange" />
-            <MetricCard label="Downloads (30d)"   value={kpis.downloadsMonth} icon={<Download size={18} />}     accent="gold"   />
+            <MetricCard label="Total publicações" value={kpis.totalPublicacoes} icon={<Rocket size={18} />}       accent="blue"   />
+            <MetricCard label="Total downloads"   value={kpis.totalDownloads}   icon={<Download size={18} />}     accent="green"  />
+            <MetricCard label="Consultores ativos" value={kpis.consultoresAtivos} icon={<CalendarDays size={18} />} accent="orange" />
+            <MetricCard label="Templates usados"  value={kpis.templatesUsados}  icon={<CalendarDays size={18} />} accent="gold"   />
           </div>
 
           {/* Filtros */}
@@ -186,15 +199,32 @@ export default function UserMetricsPage() {
             />
           </div>
 
-          {/* Gráfico principal + lateral direita */}
-          <div className="flex flex-col lg:flex-row gap-4 mt-4">
-            <div className="flex-1 min-w-0">
-              <BarsByDay rows={filtered} days={periodo} />
+          {/* Linha principal - Gráfico + Distribuição */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.8fr_1fr] gap-4 mt-4">
+            <BarsByDay rows={filtered} days={periodo} />
+            <PieByFormat rows={filtered} />
+          </div>
+
+          {/* Linha detalhes - Top templates, Por consultor, Atividade */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            {/* Top templates - placeholder */}
+            <div className="rounded-xl shadow-sm bg-white border border-slate-100 p-6" style={{ background: "var(--card-bg)", borderColor: "var(--bdr)" }}>
+              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4" style={{ color: "var(--txt2)" }}>Top templates</h3>
+              <div className="flex flex-col gap-2">
+                <div className="text-sm text-slate-600" style={{ color: "var(--txt2)" }}>Em breve</div>
+              </div>
             </div>
-            <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-4">
-              <ActivityFeed rows={filtered} />
-              <PieByFormat rows={filtered} />
+
+            {/* Por consultor - placeholder */}
+            <div className="rounded-xl shadow-sm bg-white border border-slate-100 p-6" style={{ background: "var(--card-bg)", borderColor: "var(--bdr)" }}>
+              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4" style={{ color: "var(--txt2)" }}>Por consultor</h3>
+              <div className="flex flex-col gap-2">
+                <div className="text-sm text-slate-600" style={{ color: "var(--txt2)" }}>Em breve</div>
+              </div>
             </div>
+
+            {/* Atividade recente */}
+            <ActivityFeed rows={filtered} />
           </div>
 
           {/* Histórico */}
