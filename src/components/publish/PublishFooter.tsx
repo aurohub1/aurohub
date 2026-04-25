@@ -49,7 +49,7 @@ export function PublishFooter({
         flexShrink: 0,
       }}
     >
-      {publishTargets.length > 0 && (
+      {enablePublishing && publishTargets.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <label
             style={{
