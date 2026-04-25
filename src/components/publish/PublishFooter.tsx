@@ -36,19 +36,14 @@ export function PublishFooter({
   onClear,
   onDownload,
 }: PublishFooterProps) {
-  // Estrutura única para todos os roles
-  // Gap dinâmico: zero para consultor (sem seletor de lojas, remove espaço residual)
-  const containerGap = role === "consultor" ? "0" : "4px";
-
   return (
     <div
       style={{
-        padding: "8px 14px 8px",
-        paddingBottom: "80px",
+        padding: "8px 14px 16px",
         borderTop: "1px solid var(--bdr)",
         display: "flex",
         flexDirection: "column",
-        gap: containerGap,
+        gap: "6px",
         flexShrink: 0,
       }}
     >
