@@ -161,12 +161,23 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
   }, [values]);
 
   const setServicos = useCallback((next: string[]) => {
+    // Detectar "all inclusive" (case insensitive) em qualquer serviço
+    const hasAllInclusive = next.some((s) =>
+      s.toLowerCase().includes("all inclusive")
+    );
+
+    // Atualizar serviços
     for (let i = 0; i < 6; i++) {
       const key = `servico${i + 1}`;
       const val = next[i] || "";
       if ((values?.[key] || "") !== val) setField(key, val);
     }
-  }, [values, setField]);
+
+    // Ativar badge All Inclusive automaticamente
+    if (hasAllInclusive && !badges?.all_inclusive_badge) {
+      setBadge("all_inclusive_badge", true);
+    }
+  }, [values, badges, setField, setBadge]);
 
   return { fields, set, servicos, setServicos };
 }

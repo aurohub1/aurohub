@@ -18,7 +18,10 @@ const FORMAT_DIMS: Record<Format, [number, number]> = {
  *
  * Usado apenas por Cliente e Gerente (enablePublishing=true).
  */
-export function usePublishLogic(enabled: boolean) {
+export function usePublishLogic(
+  enabled: boolean,
+  onClearForm?: () => void
+) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<
     "idle" | "generating" | "uploading" | "publishing" | "success" | "error"
@@ -131,6 +134,12 @@ export function usePublishLogic(enabled: boolean) {
 
   function handlePublishDrive() {
     if (!enabled) return;
+
+    // Limpar formulário imediatamente
+    if (onClearForm) {
+      onClearForm();
+    }
+
     setStatus("success");
     setStatusMsg("Em breve");
     setTimeout(() => {
@@ -231,6 +240,11 @@ export function usePublishLogic(enabled: boolean) {
             console.log(`Publicado em ${target.name}`);
           },
         });
+      }
+
+      // Limpar formulário imediatamente após enfileirar
+      if (onClearForm) {
+        onClearForm();
       }
 
       setStatus("success");

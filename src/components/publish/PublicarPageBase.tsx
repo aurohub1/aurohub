@@ -208,6 +208,12 @@ export default function PublicarPageBase({
   const tabsWrapRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
 
+  // Função para limpar formulário
+  const handleClear = useCallback(() => {
+    setFormCache((c) => ({ ...c, [tab]: { ...DEFAULTS } }));
+    setBadgeCache((c) => ({ ...c, [tab]: {} }));
+  }, [tab]);
+
   // Hooks customizados
   const { publishTargets, selectedTargetIds, toggleTarget } =
     useStoreTargets(profile);
@@ -219,7 +225,7 @@ export default function PublicarPageBase({
     handleDownload,
     handlePublishDrive,
     handlePublish,
-  } = usePublishLogic(enablePublishing);
+  } = usePublishLogic(enablePublishing, handleClear);
 
   function movePill(btn: HTMLButtonElement) {
     const wrap = tabsWrapRef.current;
@@ -465,11 +471,6 @@ export default function PublicarPageBase({
     }
     return b;
   }, [currentTemplate]);
-
-  function handleClear() {
-    setFormCache((c) => ({ ...c, [tab]: { ...DEFAULTS } }));
-    setBadgeCache((c) => ({ ...c, [tab]: {} }));
-  }
 
   const visibleFormats = useMemo(() => {
     const s = new Set(
