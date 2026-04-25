@@ -37,14 +37,14 @@ export function PublishFooter({
   onDownload,
 }: PublishFooterProps) {
   // DEBUG: verificar valores que afetam o botão
-  console.log('PublishFooter render', {
-    role,
-    enablePublishing,
-    busy,
-    hasTemplate: !!currentTemplate,
-    disabled: !enablePublishing || busy || !currentTemplate,
-    hasOnPublish: !!onPublish,
-  });
+  console.log('=== PublishFooter render ===');
+  console.log('role:', role);
+  console.log('enablePublishing:', enablePublishing);
+  console.log('busy:', busy);
+  console.log('currentTemplate existe:', !!currentTemplate);
+  console.log('BOTÃO DESABILITADO?:', !enablePublishing || busy || !currentTemplate);
+  console.log('onPublish existe:', !!onPublish);
+  console.log('===========================');
 
   // Estrutura única para todos os roles
   return (
@@ -132,12 +132,17 @@ export function PublishFooter({
         <>
           <button
             onClick={() => {
-              console.log('Botão Publicar clicado!', { enablePublishing, busy, hasTemplate: !!currentTemplate });
+              console.log('🔴🔴🔴 BOTÃO PUBLICAR CLICADO! 🔴🔴🔴');
+              console.log('enablePublishing:', enablePublishing);
+              console.log('busy:', busy);
+              console.log('currentTemplate:', !!currentTemplate);
               if (enablePublishing && onPublish) {
-                console.log('Chamando onPublish...');
+                console.log('✅ Chamando onPublish...');
                 onPublish();
               } else {
-                console.log('onPublish NÃO chamado - enablePublishing:', enablePublishing, 'onPublish existe:', !!onPublish);
+                console.log('❌ onPublish NÃO chamado!');
+                console.log('  enablePublishing:', enablePublishing);
+                console.log('  onPublish existe:', !!onPublish);
               }
             }}
             disabled={!enablePublishing || busy || !currentTemplate}
