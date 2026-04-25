@@ -163,7 +163,6 @@ export function usePublishLogic(
     values: Record<string, string>;
     format: Format;
   }) {
-    console.log('handlePublish chamado', { enablePublishing: enabled, selectedTargetIds });
     if (!enabled) return;
     if (!profile?.licensee_id) {
       setStatus("error");

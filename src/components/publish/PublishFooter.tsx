@@ -36,19 +36,9 @@ export function PublishFooter({
   onClear,
   onDownload,
 }: PublishFooterProps) {
-  // DEBUG: verificar valores que afetam o botão
-  console.log('=== PublishFooter render ===');
-  console.log('role:', role);
-  console.log('enablePublishing:', enablePublishing);
-  console.log('busy:', busy);
-  console.log('currentTemplate existe:', !!currentTemplate);
-  console.log('BOTÃO DESABILITADO?:', !enablePublishing || busy || !currentTemplate);
-  console.log('onPublish existe:', !!onPublish);
-  console.log('===========================');
-
   // Estrutura única para todos os roles
-  // Gap dinâmico: menor para consultor (sem seletor de lojas)
-  const containerGap = role === "consultor" ? "2px" : "4px";
+  // Gap dinâmico: zero para consultor (sem seletor de lojas, remove espaço residual)
+  const containerGap = role === "consultor" ? "0" : "4px";
 
   return (
     <div
@@ -134,20 +124,7 @@ export function PublishFooter({
       {format !== "tv" && (
         <>
           <button
-            onClick={() => {
-              console.log('🔴🔴🔴 BOTÃO PUBLICAR CLICADO! 🔴🔴🔴');
-              console.log('enablePublishing:', enablePublishing);
-              console.log('busy:', busy);
-              console.log('currentTemplate:', !!currentTemplate);
-              if (enablePublishing && onPublish) {
-                console.log('✅ Chamando onPublish...');
-                onPublish();
-              } else {
-                console.log('❌ onPublish NÃO chamado!');
-                console.log('  enablePublishing:', enablePublishing);
-                console.log('  onPublish existe:', !!onPublish);
-              }
-            }}
+            onClick={onPublish}
             disabled={!enablePublishing || busy || !currentTemplate}
             style={{
               width: "100%",
