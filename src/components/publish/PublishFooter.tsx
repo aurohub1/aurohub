@@ -36,6 +36,16 @@ export function PublishFooter({
   onClear,
   onDownload,
 }: PublishFooterProps) {
+  // DEBUG: verificar valores que afetam o botão
+  console.log('PublishFooter render', {
+    role,
+    enablePublishing,
+    busy,
+    hasTemplate: !!currentTemplate,
+    disabled: !enablePublishing || busy || !currentTemplate,
+    hasOnPublish: !!onPublish,
+  });
+
   // Estrutura única para todos os roles
   return (
     <div
@@ -121,7 +131,15 @@ export function PublishFooter({
       {format !== "tv" && (
         <>
           <button
-            onClick={enablePublishing ? onPublish : undefined}
+            onClick={() => {
+              console.log('Botão Publicar clicado!', { enablePublishing, busy, hasTemplate: !!currentTemplate });
+              if (enablePublishing && onPublish) {
+                console.log('Chamando onPublish...');
+                onPublish();
+              } else {
+                console.log('onPublish NÃO chamado - enablePublishing:', enablePublishing, 'onPublish existe:', !!onPublish);
+              }
+            }}
             disabled={!enablePublishing || busy || !currentTemplate}
             style={{
               width: "100%",
