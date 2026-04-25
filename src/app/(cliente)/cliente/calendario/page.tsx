@@ -196,7 +196,8 @@ export default function ClienteCalendarioPage() {
       const iso = buildIso(s);
       if (iso) add(iso, { tipo: "segmento", label: s.nome, source: "segmento" });
     }
-    for (const l of lembretes) {
+    const filteredLembretes = selectedStore === "todas" ? lembretes : lembretes.filter(l => l.store_id === selectedStore);
+    for (const l of filteredLembretes) {
       add(l.data_iso, { tipo: "lembrete", label: l.texto, source: "lembrete", refId: l.id });
     }
     const filteredPosts = selectedStore === "todas" ? posts : posts.filter(p => p.loja_id === selectedStore);
@@ -395,6 +396,37 @@ export default function ClienteCalendarioPage() {
           </button>
         </div>
       </div>
+
+      {/* ═══ FILTRO DE LOJAS (PILLS) ═══════════ */}
+      {stores.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-6 py-3">
+          <button
+            onClick={() => setSelectedStore("todas")}
+            className="text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+            style={
+              selectedStore === "todas"
+                ? { background: "var(--blue)", color: "#fff" }
+                : { background: "rgba(59,130,246,0.1)", color: "var(--blue)", border: "1px solid rgba(59,130,246,0.2)" }
+            }
+          >
+            Todas
+          </button>
+          {stores.map((store) => (
+            <button
+              key={store.id}
+              onClick={() => setSelectedStore(store.id)}
+              className="text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+              style={
+                selectedStore === store.id
+                  ? { background: "var(--blue)", color: "#fff" }
+                  : { background: "rgba(59,130,246,0.1)", color: "var(--blue)", border: "1px solid rgba(59,130,246,0.2)" }
+              }
+            >
+              {store.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ═══ GRID: Calendário + Painel do dia ══════ */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
