@@ -236,9 +236,7 @@ export function usePublishLogic(
           userRole: profile.role,
           templateId: currentTemplate?.id,
           templateName: currentTemplate?.name,
-          onDone: () => {
-            console.log(`Publicado em ${target.name}`);
-          },
+          onDone: () => {},
         });
       }
 

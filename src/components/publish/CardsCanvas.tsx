@@ -200,10 +200,6 @@ function drawCard(
   nIdx: number,
 ) {
   // DEBUG temporário — confirma que d.valor chega até o render.
-  if (process.env.NODE_ENV !== "production") {
-    // eslint-disable-next-line no-console
-    console.log(`[CardsCanvas] drawCard d[${nIdx}]`, { valor: d.valor, parc: d.parc, total: d.total, destino: d.destino });
-  }
   const txtColor = P.text || "#ffffff";
   const subColor = P.text ? `${P.text}bb` : "rgba(255,255,255,0.7)";
   const borderColor = P.text ? `${P.text}66` : "rgba(255,255,255,0.6)";

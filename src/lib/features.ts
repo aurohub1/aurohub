@@ -125,17 +125,11 @@ export async function saveLicenseeOverrides(
     else toUpsert.push({ licensee_id: licenseeId, feature_key: f, enabled: v });
   }
 
-  console.log("[saveLicenseeOverrides] licenseeId:", licenseeId);
-  console.log("[saveLicenseeOverrides] desired:", desired);
-  console.log("[saveLicenseeOverrides] toUpsert:", toUpsert);
-  console.log("[saveLicenseeOverrides] toDelete:", toDelete);
-
   if (toUpsert.length > 0) {
     const { data, error } = await sb
       .from("licensee_feature_overrides")
       .upsert(toUpsert, { onConflict: "licensee_id,feature_key" })
       .select();
-    console.log("[saveLicenseeOverrides] upsert result:", { data, error });
     if (error) throw new Error(`upsert features: ${error.message}`);
   }
   if (toDelete.length > 0) {
@@ -145,7 +139,6 @@ export async function saveLicenseeOverrides(
       .eq("licensee_id", licenseeId)
       .in("feature_key", toDelete)
       .select();
-    console.log("[saveLicenseeOverrides] delete result:", { data, error });
     if (error) throw new Error(`delete features: ${error.message}`);
   }
 }
