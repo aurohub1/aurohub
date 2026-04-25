@@ -36,75 +36,7 @@ export function PublishFooter({
   onClear,
   onDownload,
 }: PublishFooterProps) {
-  // Consultor: botões simplificados sem funcionalidade
-  if (!enablePublishing) {
-    return (
-      <div
-        style={{
-          padding: "12px 14px 12px",
-          paddingBottom: "80px",
-          borderTop: "1px solid var(--bdr)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "6px",
-          flexShrink: 0,
-        }}
-      >
-        {format !== "tv" && (
-          <button
-            style={{
-              width: "100%",
-              padding: "11px",
-              borderRadius: "10px",
-              border: "none",
-              background:
-                "linear-gradient(135deg,var(--brand-primary),var(--brand-secondary,#2D7DD2))",
-              color: "#fff",
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            ✈ Publicar no Instagram
-          </button>
-        )}
-        <div style={{ display: "flex", gap: "6px" }}>
-          <button
-            style={{
-              flex: 1,
-              padding: "8px",
-              borderRadius: "8px",
-              border: "1px solid var(--bdr)",
-              background: "transparent",
-              color: "var(--txt3)",
-              fontSize: "11px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            🗑 Limpar
-          </button>
-          <button
-            style={{
-              flex: 1,
-              padding: "8px",
-              borderRadius: "8px",
-              border: "1px solid var(--bdr)",
-              background: "transparent",
-              color: "var(--txt3)",
-              fontSize: "11px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            ⬇ Download
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Cliente/Gerente: botões funcionais com seleção de lojas
+  // Estrutura única para todos os roles
   return (
     <div
       style={{
@@ -189,8 +121,8 @@ export function PublishFooter({
       {format !== "tv" && (
         <>
           <button
-            onClick={onPublish}
-            disabled={busy || !currentTemplate}
+            onClick={enablePublishing ? onPublish : undefined}
+            disabled={!enablePublishing || busy || !currentTemplate}
             style={{
               width: "100%",
               padding: "7px",
@@ -202,8 +134,8 @@ export function PublishFooter({
               color: "#fff",
               fontSize: "13px",
               fontWeight: 700,
-              cursor: busy ? "wait" : "pointer",
-              opacity: busy ? 0.7 : 1,
+              cursor: !enablePublishing || busy || !currentTemplate ? "not-allowed" : "pointer",
+              opacity: !enablePublishing || busy || !currentTemplate ? 0.5 : 1,
             }}
           >
             {busy ? (
@@ -223,8 +155,8 @@ export function PublishFooter({
             )}
           </button>
           <button
-            onClick={onPublishDrive}
-            disabled={busy || !currentTemplate}
+            onClick={enablePublishing ? onPublishDrive : undefined}
+            disabled={!enablePublishing || busy || !currentTemplate}
             style={{
               width: "100%",
               padding: "7px",
@@ -234,8 +166,8 @@ export function PublishFooter({
               color: "#fff",
               fontSize: "13px",
               fontWeight: 700,
-              cursor: busy || !currentTemplate ? "not-allowed" : "pointer",
-              opacity: busy || !currentTemplate ? 0.5 : 1,
+              cursor: !enablePublishing || busy || !currentTemplate ? "not-allowed" : "pointer",
+              opacity: !enablePublishing || busy || !currentTemplate ? 0.5 : 1,
             }}
           >
             <HardDrive size={14} style={{ display: "inline", marginRight: "6px" }} />
