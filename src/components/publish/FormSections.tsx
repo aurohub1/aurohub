@@ -25,7 +25,13 @@ export { SugerirLegenda };
 
 /* ── Constantes ──────────────────────────────────────── */
 
-export const DESCONTO_OPTS_FORM = ["10%", "15%", "20%", "25%", "30%", "40%", "50%"];
+// Unificadas (Fase 1 refactor)
+export const DESCONTO_OPTS = ["5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
+export const PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`); // 2x-36x
+export const VOO_OPTS = ["Voo Direto", "Voo Conexão"];
+
+// Legados (manter compat temporária)
+export const DESCONTO_OPTS_FORM = DESCONTO_OPTS;
 export const PARCELAS_OPTS_FORM = Array.from({ length: 20 }, (_, i) => `${i + 1}x`);
 export const NAVIOS_DEFAULT = [
   "MSC Seashore", "MSC Grandiosa", "MSC Musica", "MSC Armonia",
@@ -39,6 +45,7 @@ function capitalizarDestino(v: string): string {
   return v.toUpperCase();
 }
 
+// Formatação de datas unificada (Fase 3)
 function fmtDate(iso: string): string {
   if (!iso) return "";
   const [y, m, d] = iso.split("-");
@@ -51,6 +58,18 @@ function calcularNoites(ida: string, volta: string): number {
   const d1 = new Date(ida);
   const d2 = new Date(volta);
   return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86400000));
+}
+
+// Período "DD/MM a DD/MM/AAAA" — unificado de formatPeriodo e formatPeriodo
+function formatPeriodo(ida: string, volta: string): string {
+  if (!ida || !volta) return "";
+  const [yi, mi, di] = ida.split("-");
+  const [yv, mv, dv] = volta.split("-");
+  if (!yi || !yv) return "";
+  const p = (n: string) => n.padStart(2, "0");
+  if (yi === yv && mi === mv) return `${p(di)} a ${p(dv)}/${p(mi)}/${yi}`;
+  if (yi === yv) return `${p(di)}/${p(mi)} a ${p(dv)}/${p(mv)}/${yi}`;
+  return `${p(di)}/${p(mi)}/${yi} a ${p(dv)}/${p(mv)}/${yv}`;
 }
 
 const fmtDataCurta = (iso: string) => {
@@ -291,6 +310,264 @@ export function BadgesSection({
   );
 }
 
+/* ── DestinoField (Fase 3) ──────────────────────────── */
+
+export function DestinoField({
+  value, onChange, onBlur, options = [], uppercase = true, allowCustom = true,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onBlur?: (v: string) => void;
+  options?: string[];
+  uppercase?: boolean;
+  allowCustom?: boolean;
+}) {
+  return (
+    <SearchableSelect
+      value={value}
+      onChange={(v) => onChange(uppercase ? v.toUpperCase() : v)}
+      onBlur={(v) => {
+        const final = uppercase ? v.toUpperCase() : v;
+        onChange(final);
+        onBlur?.(final);
+      }}
+      options={options}
+      placeholder="ex. CANCÚN"
+      allowCustom={allowCustom}
+    />
+  );
+}
+
+/* ── TipoVooField (Fase 3) ──────────────────────────── */
+
+export function TipoVooField({
+  value, onChange, variant = "buttons",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  variant?: "buttons" | "select";
+}) {
+  const opts = VOO_OPTS;
+
+  if (variant === "select") {
+    return (
+      <SearchableSelect
+        value={value}
+        onChange={onChange}
+        options={opts}
+        placeholder="Selecionar..."
+      />
+    );
+  }
+
+  // Radio buttons variant (PacoteForm style)
+  return (
+    <div
+      className="flex rounded-lg border p-0.5"
+      style={{ background: "var(--bg2)", borderColor: "var(--bdr)", gap: "8px", flexWrap: "nowrap" }}
+    >
+      {opts.map((opt) => {
+        const fullOpt = opt === "Voo Direto" ? "( Voo Direto )" : "( Voo Conexão )";
+        const sel = value === fullOpt;
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(fullOpt)}
+            className="flex-1 whitespace-nowrap font-semibold transition-all"
+            style={
+              sel
+                ? { background: "var(--brand-primary)", color: "#FFFFFF", boxShadow: "0 1px 6px color-mix(in srgb, var(--brand-primary) 40%, transparent)", padding: "6px 16px", fontSize: "11px", borderRadius: "8px" }
+                : { background: "transparent", color: "var(--txt3)", padding: "6px 16px", fontSize: "11px", borderRadius: "8px" }
+            }
+          >
+            {fullOpt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── ServicosField (Fase 2) ─────────────────────────── */
+
+export function ServicosField({
+  servicos, setServicos, set, binds, count = 6, applyDict = false,
+}: {
+  servicos: string[];
+  setServicos: (s: string[]) => void;
+  set: Setter;
+  binds?: Set<string>;
+  count?: number;
+  applyDict?: boolean;
+}) {
+  const showServicos =
+    !binds ||
+    binds.has("servicoslista") ||
+    Array.from({ length: count }, (_, i) => `servico${i + 1}`).some((k) => binds.has(k));
+
+  if (!showServicos) return null;
+
+  // Dicionário de normalização (do PacoteForm)
+  function applyServicoDict(v: string): string {
+    if (!v) return v;
+    const s = v.trim();
+    if (/^traslado(\s+(ida\s+e\s+volta|i\/v))?$/i.test(s)) return "Transfer";
+    if (/^translado(\s+(ida\s+e\s+volta|i\/v))?$/i.test(s)) return "Transfer";
+    if (/^transfer(\s+(ida\s+e\s+volta|i\/v))?$/i.test(s)) return "Transfer";
+    if (/^caf[eé]\s+da\s+manh[aã]\s+e\s+(almo[cç]o|jan(tar)?)$/i.test(s)) return "Meia Pensão";
+    if (/^meia\s+pens[aã]o$/i.test(s)) return "Meia Pensão";
+    if (/^(caf[eé]\s+da\s+manh[aã],?\s+almo[cç]o\s+e\s+jantar|pens[aã]o\s+completa)$/i.test(s)) return "Pensão Completa";
+    if (/^caf[eé]\s+da\s+manh[aã]$/i.test(s)) return "Café da Manhã";
+    if (/^all\s+inclusive$/i.test(s)) return "All Inclusive";
+    if (/^tudo\s+inclu[ií]do$/i.test(s)) return "All Inclusive";
+    if (/^almo[cç]o$/i.test(s)) return "Almoço";
+    if (/^jantar$/i.test(s)) return "Jantar";
+    return s;
+  }
+
+  function isAllInclusive(v: string): boolean {
+    return /all\s*inclusive|tudo\s*inclu[ií]do/i.test(v || "");
+  }
+
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => {
+        if (binds && !binds.has(`servico${i + 1}`) && !binds.has("servicoslista")) return null;
+        const val = servicos[i] ?? "";
+        return (
+          <input
+            key={i}
+            value={val}
+            onChange={(e) => {
+              const n = [...servicos];
+              n[i] = e.target.value;
+              setServicos(n);
+            }}
+            onBlur={(e) => {
+              let v = e.target.value;
+              if (applyDict && v !== applyServicoDict(v)) {
+                v = applyServicoDict(v);
+                const n = [...servicos];
+                n[i] = v;
+                setServicos(n);
+              }
+              if (isAllInclusive(v)) set("allinclusive", true);
+            }}
+            placeholder={`Serviço ${i + 1}`}
+            className={INPUT_CLASS}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+/* ── DatasField (Fase 2) ────────────────────────────── */
+
+export function DatasField({
+  fields, set, today, binds,
+  labels = { ida: "Ida", volta: "Volta" },
+  showNoites = true,
+  onIdaChange, onVoltaChange,
+}: {
+  fields: Fields;
+  set: Setter;
+  today: string;
+  binds?: Set<string>;
+  labels?: { ida: string; volta: string };
+  showNoites?: boolean;
+  onIdaChange?: (v: string) => void;
+  onVoltaChange?: (v: string) => void;
+}) {
+  const showIda = hasBind(binds, "dataida", "dataperiodo");
+  const showVolta = hasBind(binds, "datavolta", "dataperiodo");
+  const noites = calcularNoites(
+    (fields.dataida as string) || "",
+    (fields.datavolta as string) || ""
+  );
+
+  if (!showIda && !showVolta) return null;
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {showIda && (
+        <Field label={`${labels.ida} *`}>
+          <input
+            type="date"
+            min={today}
+            value={(fields.dataida as string) || ""}
+            onChange={(e) => {
+              onIdaChange ? onIdaChange(e.target.value) : set("dataida", e.target.value);
+            }}
+            className={INPUT_CLASS}
+          />
+        </Field>
+      )}
+      {showVolta && (
+        <Field label={`${labels.volta} *`}>
+          <input
+            type="date"
+            min={(fields.dataida as string) || today}
+            value={(fields.datavolta as string) || ""}
+            onChange={(e) => {
+              onVoltaChange ? onVoltaChange(e.target.value) : set("datavolta", e.target.value);
+            }}
+            className={INPUT_CLASS}
+          />
+        </Field>
+      )}
+      {showNoites && noites > 0 && (
+        <div className="col-span-2">
+          <p className="text-[11px] text-[var(--txt3)]">
+            🗓️ {noites} noite{noites === 1 ? "" : "s"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── LegendaPostSection (Fase 1) ───────────────────── */
+
+export function LegendaPostSection({
+  fields, set, formato, nomeLoja, tipoArte, destino,
+}: {
+  fields: Fields;
+  set: Setter;
+  formato?: string;
+  nomeLoja?: string;
+  tipoArte: "pacote" | "campanha" | "cruzeiro";
+  destino: string;
+}) {
+  if (formato !== "feed" && formato !== "reels") return null;
+
+  return (
+    <Section title="Legenda do Post" icon={<FileText size={13} />}>
+      <Field label="Legenda (opcional)" asSection>
+        <div className="flex flex-col gap-2">
+          <textarea
+            value={(fields.legenda_post as string) || ""}
+            onChange={(e) => set("legenda_post", e.target.value)}
+            placeholder="Escreva a legenda do post aqui..."
+            className={`${INPUT_CLASS} h-auto resize-none py-2`}
+            rows={4}
+          />
+          {destino?.trim() && formato && (
+            <SugerirLegenda
+              destino={destino}
+              tipoArte={tipoArte}
+              formato={formato}
+              nomeLoja={nomeLoja}
+              onSelect={(legenda) => set("legenda_post", legenda)}
+            />
+          )}
+        </div>
+      </Field>
+    </Section>
+  );
+}
+
 export function PagamentoSection({
   fields, set, totalLabel, binds,
 }: {
@@ -414,39 +691,6 @@ export function PagamentoSection({
  * valortotal, valortotalfmt/totalduplo (derivados). Não toca PagamentoSection
  * compartilhado — mantém os valores V1 exatos ("Cartão de Crédito" / "Boleto"). */
 
-// Dicionário (subset V1 utils.js:548-592) aplicado no blur dos serviços.
-function pacoteApplyServicoDict(v: string): string {
-  if (!v) return v;
-  const s = v.trim();
-  if (/^traslado(\s+(ida\s+e\s+volta|i\/v))?$/i.test(s)) return "Transfer";
-  if (/^translado(\s+(ida\s+e\s+volta|i\/v))?$/i.test(s)) return "Transfer";
-  if (/^transfer(\s+(ida\s+e\s+volta|i\/v))?$/i.test(s)) return "Transfer";
-  if (/^caf[eé]\s+da\s+manh[aã]\s+e\s+(almo[cç]o|jan(tar)?)$/i.test(s)) return "Meia Pensão";
-  if (/^meia\s+pens[aã]o$/i.test(s)) return "Meia Pensão";
-  if (/^(caf[eé]\s+da\s+manh[aã],?\s+almo[cç]o\s+e\s+jantar|pens[aã]o\s+completa)$/i.test(s)) return "Pensão Completa";
-  if (/^caf[eé]\s+da\s+manh[aã]$/i.test(s)) return "Café da Manhã";
-  if (/^all\s+inclusive$/i.test(s)) return "All Inclusive";
-  if (/^tudo\s+inclu[ií]do$/i.test(s)) return "All Inclusive";
-  if (/^almo[cç]o$/i.test(s)) return "Almoço";
-  if (/^jantar$/i.test(s)) return "Jantar";
-  return s;
-}
-function pacoteIsAllInclusive(v: string): boolean {
-  return /all\s*inclusive|tudo\s*inclu[ií]do/i.test(v || "");
-}
-
-// Período "DD/MM a DD/MM/AAAA" — regras V1 (mesmo mês, mesmo ano, cross-ano).
-function pacoteFormatPeriodo(ida: string, volta: string): string {
-  if (!ida || !volta) return "";
-  const [yi, mi, di] = ida.split("-");
-  const [yv, mv, dv] = volta.split("-");
-  if (!yi || !yv) return "";
-  const p = (n: string) => n.padStart(2, "0");
-  if (yi === yv && mi === mv) return `${p(di)} a ${p(dv)}/${p(mi)}/${yi}`;
-  if (yi === yv) return `${p(di)}/${p(mi)} a ${p(dv)}/${p(mv)}/${yi}`;
-  return `${p(di)}/${p(mi)}/${yi} a ${p(dv)}/${p(mv)}/${yv}`;
-}
-
 // "12345678" (cents) → "123.456,78"
 function pacoteFormatReal(raw: string): string {
   const nums = (raw || "").replace(/\D/g, "");
@@ -455,8 +699,6 @@ function pacoteFormatReal(raw: string): string {
   return Math.floor(n / 100).toLocaleString("pt-BR") + "," + String(n % 100).padStart(2, "0");
 }
 
-const PACOTE_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`); // 2x..36x V1
-const PACOTE_DESCONTO_OPTS = ["5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"]; // V1 DESCONTO_VALS
 // Valores spec ("cartao"/"entrada") — useFormAdapter traduz p/ legacy "Cartão de Crédito"/"Boleto" no write
 // e legacy → spec no read, consistente com PagamentoSection compartilhado.
 const PACOTE_FORMA_PGTO_OPTS: { value: string; label: string }[] = [
@@ -527,24 +769,18 @@ export function PacoteForm({
   }
 
   // ── Handlers com cálculos derivados ─────────────────
-  function computeNoites(ida: string, volta: string): number {
-    if (!ida || !volta) return 0;
-    const d1 = new Date(ida + "T00:00:00");
-    const d2 = new Date(volta + "T00:00:00");
-    return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86_400_000));
-  }
   const onIdaChange = (v: string) => {
     set("dataida", v);
     const volta = (fields.datavolta as string) || "";
-    set("dataperiodo", volta ? pacoteFormatPeriodo(v, volta) : "");
-    const n = computeNoites(v, volta);
+    set("dataperiodo", volta ? formatPeriodo(v, volta) : "");
+    const n = calcularNoites(v, volta);
     set("noites", n > 0 ? String(n) : "");
   };
   const onVoltaChange = (v: string) => {
     set("datavolta", v);
     const ida = (fields.dataida as string) || "";
-    set("dataperiodo", ida ? pacoteFormatPeriodo(ida, v) : "");
-    const n = computeNoites(ida, v);
+    set("dataperiodo", ida ? formatPeriodo(ida, v) : "");
+    const n = calcularNoites(ida, v);
     set("noites", n > 0 ? String(n) : "");
   };
   const onValorParcelaChange = (raw: string) => {
@@ -733,34 +969,16 @@ export function PacoteForm({
         </div>
       )}
 
-      {showServicos && (
+      {(hasBind(binds, "servicoslista") || [1,2,3,4,5,6].some(i => hasBind(binds, `servico${i}`))) && (
         <Section title="Serviços Inclusos">
-          {Array.from({ length: 6 }, (_, i) => {
-            if (binds && !binds.has(`servico${i + 1}`) && !binds.has("servicoslista")) return null;
-            const val = servicos[i] ?? "";
-            return (
-              <input
-                key={i}
-                value={val}
-                onChange={(e) => {
-                  const n = [...servicos];
-                  n[i] = e.target.value;
-                  updateServicos(n);
-                }}
-                onBlur={(e) => {
-                  const v = pacoteApplyServicoDict(e.target.value);
-                  if (v !== e.target.value) {
-                    const n = [...servicos];
-                    n[i] = v;
-                    updateServicos(n);
-                  }
-                  if (pacoteIsAllInclusive(v)) set("allinclusive", true);
-                }}
-                placeholder={`Serviço ${i + 1}`}
-                className={INPUT_CLASS}
-              />
-            );
-          })}
+          <ServicosField
+            servicos={servicos}
+            setServicos={updateServicos}
+            set={set}
+            binds={binds}
+            count={6}
+            applyDict={true}
+          />
         </Section>
       )}
 
@@ -846,7 +1064,7 @@ export function PacoteForm({
                     style={SELECT_STYLE}
                   >
                     <option value="">— nenhum —</option>
-                    {PACOTE_PARCELAS_OPTS.map((p) => (
+                    {PARCELAS_OPTS.map((p) => (
                       <option key={p} value={p}>{p}</option>
                     ))}
                   </select>
@@ -875,7 +1093,7 @@ export function PacoteForm({
                 style={SELECT_STYLE}
               >
                 <option value="">– nenhum –</option>
-                {PACOTE_DESCONTO_OPTS.map((d) => (
+                {DESCONTO_OPTS.map((d) => (
                   <option key={d} value={d.replace("%", "")}>{d}</option>
                 ))}
               </select>
@@ -901,31 +1119,14 @@ export function PacoteForm({
         </Section>
       )}
 
-      {/* Legenda do Post */}
-      {(formato === "feed" || formato === "reels") && (
-        <Section title="Legenda do Post" icon={<FileText size={13} />}>
-          <Field label="Legenda (opcional)" asSection>
-            <div className="flex flex-col gap-2">
-              <textarea
-                value={(fields.legenda_post as string) || ""}
-                onChange={(e) => set("legenda_post", e.target.value)}
-                placeholder="Escreva a legenda do post aqui..."
-                className={`${INPUT_CLASS} h-auto resize-none py-2`}
-                rows={4}
-              />
-              {(fields.destino as string)?.trim() && formato && (
-                <SugerirLegenda
-                  destino={(fields.destino as string) || ""}
-                  tipoArte="pacote"
-                  formato={formato}
-                  nomeLoja={nomeLoja}
-                  onSelect={(legenda) => set("legenda_post", legenda)}
-                />
-              )}
-            </div>
-          </Field>
-        </Section>
-      )}
+      <LegendaPostSection
+        fields={fields}
+        set={set}
+        formato={formato}
+        nomeLoja={nomeLoja}
+        tipoArte="pacote"
+        destino={(fields.destino as string) || ""}
+      />
     </div>
   );
 }
@@ -945,11 +1146,6 @@ export function CampanhaForm({
   formato?: string;
   nomeLoja?: string;
 }) {
-  const noites = calcularNoites(
-    (fields.dataida as string) || "",
-    (fields.datavolta as string) || "",
-  );
-
   const showDestino = hasBind(binds, "destino");
   const showSaida = hasBind(binds, "saida");
   const showTipovoo = hasBind(binds, "tipovoo");
@@ -1007,41 +1203,22 @@ export function CampanhaForm({
         </div>
       )}
 
-      {(showIda || showVolta) && (
+      {(hasBind(binds, "dataida") || hasBind(binds, "datavolta")) && (
         <Section title="Datas" icon="📅">
-          <div className="grid grid-cols-2 gap-2">
-            {showIda && (
-              <Field label="Ida *">
-                <input
-                  type="date"
-                  min={today}
-                  value={(fields.dataida as string) || ""}
-                  onChange={(e) => {
-                    set("dataida", e.target.value);
-                    set("dataida_fmt", fmtDate(e.target.value));
-                  }}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-            )}
-            {showVolta && (
-              <Field label="Volta *">
-                <input
-                  type="date"
-                  min={(fields.dataida as string) || today}
-                  value={(fields.datavolta as string) || ""}
-                  onChange={(e) => {
-                    set("datavolta", e.target.value);
-                    set("datavolta_fmt", fmtDate(e.target.value));
-                  }}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-            )}
-          </div>
-          {noites > 0 && (
-            <p className="text-[11px] text-[var(--txt3)]">🗓️ {noites} noites</p>
-          )}
+          <DatasField
+            fields={fields}
+            set={set}
+            today={today}
+            binds={binds}
+            onIdaChange={(v) => {
+              set("dataida", v);
+              set("dataida_fmt", fmtDate(v));
+            }}
+            onVoltaChange={(v) => {
+              set("datavolta", v);
+              set("datavolta_fmt", fmtDate(v));
+            }}
+          />
         </Section>
       )}
 
@@ -1063,58 +1240,28 @@ export function CampanhaForm({
 
       {showServicos && (
         <Section title="Serviços Inclusos" icon="🎒">
-          {servicos.map((s, i) => {
-            if (binds && !binds.has(`servico${i + 1}`)) return null;
-            return (
-              <input
-                key={i}
-                value={s}
-                onChange={(e) => {
-                  const n = [...servicos];
-                  n[i] = e.target.value;
-                  setServicos(n);
-                }}
-                onBlur={() => {
-                  if (servicos.some((sv) => sv.toLowerCase().includes("all inclusive"))) {
-                    set("allinclusive", true);
-                  }
-                }}
-                placeholder={`Serviço ${i + 1}`}
-                className={INPUT_CLASS}
-              />
-            );
-          })}
+          <ServicosField
+            servicos={servicos}
+            setServicos={setServicos}
+            set={set}
+            binds={binds}
+            count={8}
+            applyDict={false}
+          />
         </Section>
       )}
 
       <BadgesSection fields={fields} set={set} formType="campanha" feriadoOpts={feriadoOpts} binds={binds} />
       <PagamentoSection fields={fields} set={set} totalLabel="por pessoa apto. duplo" binds={binds} />
 
-      {/* Legenda do Post */}
-      {(formato === "feed" || formato === "reels") && (
-        <Section title="Legenda do Post" icon={<FileText size={13} />}>
-          <Field label="Legenda (opcional)" asSection>
-            <div className="flex flex-col gap-2">
-              <textarea
-                value={(fields.legenda_post as string) || ""}
-                onChange={(e) => set("legenda_post", e.target.value)}
-                placeholder="Escreva a legenda do post aqui..."
-                className={`${INPUT_CLASS} h-auto resize-none py-2`}
-                rows={4}
-              />
-              {(fields.destino as string)?.trim() && formato && (
-                <SugerirLegenda
-                  destino={(fields.destino as string) || "Campanha"}
-                  tipoArte="campanha"
-                  formato={formato}
-                  nomeLoja={nomeLoja}
-                  onSelect={(legenda) => set("legenda_post", legenda)}
-                />
-              )}
-            </div>
-          </Field>
-        </Section>
-      )}
+      <LegendaPostSection
+        fields={fields}
+        set={set}
+        formato={formato}
+        nomeLoja={nomeLoja}
+        tipoArte="campanha"
+        destino={(fields.destino as string) || "Campanha"}
+      />
     </>
   );
 }
@@ -1131,11 +1278,6 @@ export function CruzeiroForm({
   formato?: string;
   nomeLoja?: string;
 }) {
-  const noites = calcularNoites(
-    (fields.dataida as string) || "",
-    (fields.datavolta as string) || "",
-  );
-
   const showNavio = hasBind(binds, "navio");
   const showItin = hasBind(binds, "itinerario");
   const showIda = hasBind(binds, "dataida");
@@ -1171,43 +1313,29 @@ export function CruzeiroForm({
             </Field>
           )}
 
-          {(showIda || showVolta) && (
-            <div className="grid grid-cols-2 gap-2">
-              {showIda && (
-                <Field label="Embarque *">
-                  <input
-                    type="date"
-                    min={today}
-                    value={(fields.dataida as string) || ""}
-                    onChange={(e) => {
-                      set("dataida", e.target.value);
-                      set("dataida_fmt", fmtDate(e.target.value));
-                    }}
-                    className={INPUT_CLASS}
-                  />
-                </Field>
-              )}
-              {showVolta && (
-                <Field label="Desembarque *">
-                  <input
-                    type="date"
-                    min={(fields.dataida as string) || today}
-                    value={(fields.datavolta as string) || ""}
-                    onChange={(e) => {
-                      set("datavolta", e.target.value);
-                      set("datavolta_fmt", fmtDate(e.target.value));
-                    }}
-                    className={INPUT_CLASS}
-                  />
-                </Field>
-              )}
-            </div>
-          )}
+          <DatasField
+            fields={fields}
+            set={set}
+            today={today}
+            binds={binds}
+            labels={{ ida: "Embarque", volta: "Desembarque" }}
+            showNoites={false}
+            onIdaChange={(v) => {
+              set("dataida", v);
+              set("dataida_fmt", fmtDate(v));
+            }}
+            onVoltaChange={(v) => {
+              set("datavolta", v);
+              set("datavolta_fmt", fmtDate(v));
+            }}
+          />
 
-          {noites > 0 && (
+          {calcularNoites((fields.dataida as string) || "", (fields.datavolta as string) || "") > 0 && (
             <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2">
               <span className="text-[14px] text-[var(--orange)]">🌙</span>
-              <span className="text-[12px] font-bold text-[var(--txt)]">{noites} noites</span>
+              <span className="text-[12px] font-bold text-[var(--txt)]">
+                {calcularNoites((fields.dataida as string) || "", (fields.datavolta as string) || "")} noites
+              </span>
               <span className="text-[10px] text-[var(--txt3)]">calculado automaticamente</span>
             </div>
           )}
@@ -1230,31 +1358,14 @@ export function CruzeiroForm({
 
       <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" binds={binds} />
 
-      {/* Legenda do Post */}
-      {(formato === "feed" || formato === "reels") && (
-        <Section title="Legenda do Post" icon={<FileText size={13} />}>
-          <Field label="Legenda (opcional)" asSection>
-            <div className="flex flex-col gap-2">
-              <textarea
-                value={(fields.legenda_post as string) || ""}
-                onChange={(e) => set("legenda_post", e.target.value)}
-                placeholder="Escreva a legenda do post aqui..."
-                className={`${INPUT_CLASS} h-auto resize-none py-2`}
-                rows={4}
-              />
-              {((fields.destino as string)?.trim() || (fields.navio as string)?.trim()) && formato && (
-                <SugerirLegenda
-                  destino={(fields.destino as string) || (fields.navio as string) || (fields.itinerario as string) || "Cruzeiro"}
-                  tipoArte="cruzeiro"
-                  formato={formato}
-                  nomeLoja={nomeLoja}
-                  onSelect={(legenda) => set("legenda_post", legenda)}
-                />
-              )}
-            </div>
-          </Field>
-        </Section>
-      )}
+      <LegendaPostSection
+        fields={fields}
+        set={set}
+        formato={formato}
+        nomeLoja={nomeLoja}
+        tipoArte="cruzeiro"
+        destino={(fields.destino as string) || (fields.navio as string) || (fields.itinerario as string) || "Cruzeiro"}
+      />
     </>
   );
 }
@@ -1268,7 +1379,6 @@ export function AnoiteceuForm({
   set: Setter;
   binds?: Set<string>;
 }) {
-  const descontoOpts = ["5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -1292,7 +1402,7 @@ export function AnoiteceuForm({
             style={SELECT_STYLE}
           >
             <option value="">Selecione...</option>
-            {descontoOpts.map((opt) => (
+            {DESCONTO_OPTS.map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
@@ -1346,8 +1456,6 @@ export function AnoiteceuForm({
  */
 
 const LAM_INCLUSO_OPTS = ["Aéreo + Hotel + Transfer", "Aéreo + Hotel", "Hotel + Transfer", "Só Hotel", "Cruzeiro"];
-const LAM_VOO_OPTS = ["Voo Direto", "Voo Conexão"];
-const LAM_PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`);
 
 // 4 paletas do V1 (lamina.html:286-292). Default = índice 0 (Verde).
 const LAM_PALETTES = [
@@ -1400,17 +1508,6 @@ function emptyLamDest(): LamDest {
   };
 }
 
-/** V1 lamina.html:623-631 — formato do período por período ida/volta. */
-function lamFormatPeriodo(ida: string, volta: string): string {
-  if (!ida || !volta) return "";
-  const [yi, mi, di] = ida.split("-");
-  const [yv, mv, dv] = volta.split("-");
-  const p = (n: string) => n.padStart(2, "0");
-  if (yi === yv && mi === mv) return `${p(di)} a ${p(dv)}/${p(mi)}/${yi}`;
-  if (yi === yv) return `${p(di)}/${p(mi)} a ${p(dv)}/${p(mv)}/${yi}`;
-  return `${p(di)}/${p(mi)}/${yi} a ${p(dv)}/${p(mv)}/${yv}`;
-}
-
 export function CardWhatsAppForm({
   fields, set, today,
   loadDestinos, loadHoteis, binds,
@@ -1456,7 +1553,7 @@ export function CardWhatsAppForm({
       set(`lam_d${n}_destino`, d.destino ? d.destino.toUpperCase() : "");
       set(`lam_d${n}_saida`, d.saida);
       set(`lam_d${n}_voo`, d.voo);
-      set(`lam_d${n}_periodo`, lamFormatPeriodo(d.ida, d.volta));
+      set(`lam_d${n}_periodo`, formatPeriodo(d.ida, d.volta));
       set(`lam_d${n}_hotel`, d.hotel);
       set(`lam_d${n}_incluso`, d.incluso);
       // pgto: V1 resolution rules
@@ -1553,7 +1650,7 @@ export function CardWhatsAppForm({
         servicos: destFilled.map((d) => d.incluso).filter(Boolean)[0] ?? "",
         preco: menorPreco ? `a partir de R$ ${menorPreco}` : "",
         parcelas: destFilled.map((d) => d.parc).filter(Boolean)[0] ?? "",
-        datas: destFilled.map((d) => lamFormatPeriodo(d.ida, d.volta)).filter(Boolean).slice(0, 2).join(" / "),
+        datas: destFilled.map((d) => formatPeriodo(d.ida, d.volta)).filter(Boolean).slice(0, 2).join(" / "),
         tipo: "Card WhatsApp — 4 destinos (promocional, tom informal para WhatsApp)",
       };
       const res = await fetch("/api/ai/legenda", {
@@ -1673,7 +1770,7 @@ export function CardWhatsAppForm({
               className={SELECT_CLASS}
               style={SELECT_STYLE}
             >
-              {LAM_VOO_OPTS.map((v) => (
+              {VOO_OPTS.map((v) => (
                 <option key={v} value={v}>{v}</option>
               ))}
             </select>
@@ -1704,7 +1801,7 @@ export function CardWhatsAppForm({
         </div>
         {nts > 0 && (
           <p className="text-[10px] text-[var(--txt3)]">
-            ✈ {nts} noite{nts === 1 ? "" : "s"} · {lamFormatPeriodo(d.ida, d.volta)}
+            ✈ {nts} noite{nts === 1 ? "" : "s"} · {formatPeriodo(d.ida, d.volta)}
           </p>
         )}
       </Section>
@@ -1764,7 +1861,7 @@ export function CardWhatsAppForm({
             <SearchableSelect
               value={d.parc}
               onChange={(v) => updateDest(curDest, { parc: v })}
-              options={LAM_PARCELAS_OPTS}
+              options={PARCELAS_OPTS}
               placeholder="12x"
             />
           </Field>
