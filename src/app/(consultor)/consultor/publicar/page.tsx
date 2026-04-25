@@ -7,9 +7,9 @@ export default function ConsultorPublicarPage() {
   return (
     <PublicarPageBase
       role="consultor"
-      enablePublishing={false}
+      enablePublishing={true}
       getNomeLoja={(profile) => {
-        // Consultor não publica, mas pode receber o nome da loja para preview
+        // Consultor pode publicar para sua própria loja
         return profile?.store?.name;
       }}
     />
