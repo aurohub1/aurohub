@@ -11,10 +11,14 @@ import {
 
 interface Lembrete {
   id: string;
-  cliente: string;
-  data: string; // YYYY-MM-DD
-  nota: string;
+  licensee_id: string;
+  store_id: string;
+  user_id: string;
+  data_iso: string; // YYYY-MM-DD
+  texto: string;
+  visibilidade: "loja" | "todas";
   feito: boolean;
+  created_at: string;
 }
 
 interface DataComemorativa {
@@ -33,11 +37,14 @@ interface PublishedPost {
   formato: string | null;
 }
 
+interface Store {
+  id: string;
+  name: string;
+}
+
 type ViewMode = "mes" | "semana";
 
 /* ── Constantes ──────────────────────────────────── */
-
-const LS_LEMBRETES = "ah_vendedor_lembretes_v1";
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -58,10 +65,6 @@ const TIPO_BADGE: Record<string, { bg: string; color: string }> = {
 
 /* ── Helpers ─────────────────────────────────────── */
 
-function uid(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
-
 function isoDay(y: number, m: number, d: number): string {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
@@ -81,7 +84,7 @@ function sameISO(a: string, b: string): boolean {
 
 /* ── Component ───────────────────────────────────── */
 
-export default function VendedorCalendarioPage() {
+export default function ConsultorCalendarioPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [view, setView] = useState<ViewMode>("mes");
 
@@ -93,11 +96,14 @@ export default function VendedorCalendarioPage() {
   const [datasSegmento, setDatasSegmento] = useState<DataComemorativa[]>([]);
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
   const [posts, setPosts] = useState<PublishedPost[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [selectedStore, setSelectedStore] = useState<string>("todas");
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [formCliente, setFormCliente] = useState("");
+  const [formTexto, setFormTexto] = useState("");
   const [formData, setFormData] = useState(selectedDay);
-  const [formNota, setFormNota] = useState("");
+  const [formLoja, setFormLoja] = useState("");
+  const [formTodasLojas, setFormTodasLojas] = useState(false);
 
   /* ── Load ─────────────────────────────────────── */
 
@@ -124,39 +130,44 @@ export default function VendedorCalendarioPage() {
         all.filter((d) => d.tipo === "segmento" || d.tipo === "evento" || (segmentId && d.segment_id === segmentId))
       );
       void anoB;
-    } catch { /* tabela ausente — silent */ }
+    } catch (err) {
+      console.warn("[Calendario] erro ao carregar datas_comemorativas:", err);
+    }
 
-    // Carregar posts do consultor
-    if (p?.id) {
+    // Carregar lojas, posts e lembretes
+    if (p?.licensee_id) {
       try {
+        const { data: storesData } = await supabase
+          .from("stores")
+          .select("id, name")
+          .eq("licensee_id", p.licensee_id)
+          .order("name");
+        setStores((storesData ?? []) as Store[]);
+
         const firstDay = new Date(cursor.year, cursor.month, 1);
         const lastDay = new Date(cursor.year, cursor.month + 1, 0);
         const { data: postsData } = await supabase
           .from("publication_history")
           .select("id, created_at, loja_id, destino, formato")
-          .eq("user_id", p.id)
+          .eq("licensee_id", p.licensee_id)
           .gte("created_at", firstDay.toISOString())
           .lte("created_at", lastDay.toISOString());
         setPosts((postsData ?? []) as PublishedPost[]);
+
+        // Buscar lembretes do banco (RLS garante visibilidade)
+        const { data: lembretesData } = await supabase
+          .from("lembretes")
+          .select("*")
+          .eq("licensee_id", p.licensee_id)
+          .order("data_iso");
+        setLembretes((lembretesData ?? []) as Lembrete[]);
       } catch (err) {
-        console.warn("[Calendario] erro ao carregar posts:", err);
+        console.warn("[Calendario] erro ao carregar dados:", err);
       }
     }
   }, [cursor.month, cursor.year]);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_LEMBRETES);
-      if (raw) setLembretes(JSON.parse(raw));
-    } catch { /* silent */ }
-  }, []);
-
-  function persistLembretes(next: Lembrete[]) {
-    setLembretes(next);
-    try { localStorage.setItem(LS_LEMBRETES, JSON.stringify(next)); } catch { /* silent */ }
-  }
 
   /* ── Derived — eventos por dia ─────────────────── */
 
@@ -166,31 +177,37 @@ export default function VendedorCalendarioPage() {
     const map: Record<string, Evento[]> = {};
     const add = (iso: string, ev: Evento) => { (map[iso] ??= []).push(ev); };
 
+    const buildIso = (row: { data_mes?: number; data_dia?: number; data?: string }): string | null => {
+      if (row.data && typeof row.data === "string") {
+        const d = new Date(row.data + "T12:00:00");
+        if (!isNaN(d.getTime())) return isoDay(d.getFullYear(), d.getMonth(), d.getDate());
+      }
+      if (typeof row.data_mes === "number" && typeof row.data_dia === "number") {
+        return isoDay(cursor.year, row.data_mes - 1, row.data_dia);
+      }
+      return null;
+    };
+
     for (const f of feriados) {
-      const fRow = f as { data_mes?: number; data_dia?: number; data?: string };
-      const fIso = fRow.data && typeof fRow.data === "string"
-        ? (() => { const d = new Date(fRow.data + "T12:00:00"); return isNaN(d.getTime()) ? null : isoDay(d.getFullYear(), d.getMonth(), d.getDate()); })()
-        : (typeof fRow.data_mes === "number" && typeof fRow.data_dia === "number" ? isoDay(cursor.year, fRow.data_mes - 1, fRow.data_dia) : null);
-      if (fIso) add(fIso, { tipo: f.tipo, label: f.nome, source: "feriado" });
+      const iso = buildIso(f);
+      if (iso) add(iso, { tipo: f.tipo, label: f.nome, source: "feriado" });
     }
     for (const s of datasSegmento) {
-      const sRow = s as { data_mes?: number; data_dia?: number; data?: string };
-      const sIso = sRow.data && typeof sRow.data === "string"
-        ? (() => { const d = new Date(sRow.data + "T12:00:00"); return isNaN(d.getTime()) ? null : isoDay(d.getFullYear(), d.getMonth(), d.getDate()); })()
-        : (typeof sRow.data_mes === "number" && typeof sRow.data_dia === "number" ? isoDay(cursor.year, sRow.data_mes - 1, sRow.data_dia) : null);
-      if (sIso) add(sIso, { tipo: "segmento", label: s.nome, source: "segmento" });
+      const iso = buildIso(s);
+      if (iso) add(iso, { tipo: "segmento", label: s.nome, source: "segmento" });
     }
     for (const l of lembretes) {
-      add(l.data, { tipo: "lembrete", label: `${l.cliente}${l.nota ? " — " + l.nota : ""}`, source: "lembrete", refId: l.id });
+      add(l.data_iso, { tipo: "lembrete", label: l.texto, source: "lembrete", refId: l.id });
     }
-    for (const post of posts) {
+    const filteredPosts = selectedStore === "todas" ? posts : posts.filter(p => p.loja_id === selectedStore);
+    for (const post of filteredPosts) {
       const d = new Date(post.created_at);
       const iso = isoDay(d.getFullYear(), d.getMonth(), d.getDate());
       const label = [post.destino, post.formato].filter(Boolean).join(" · ") || "Post";
       add(iso, { tipo: "publicado", label, source: "publicado", refId: post.id, destino: post.destino || undefined, formato: post.formato || undefined });
     }
     return map;
-  }, [feriados, datasSegmento, lembretes, posts, cursor.year]);
+  }, [feriados, datasSegmento, lembretes, posts, selectedStore, cursor.year]);
 
   /* ── Month grid ───────────────────────────────── */
 
@@ -246,28 +263,54 @@ export default function VendedorCalendarioPage() {
   }
 
   function openAddLembrete() {
-    setFormCliente("");
+    setFormTexto("");
     setFormData(selectedDay);
-    setFormNota("");
+    setFormLoja(profile?.store_id || "");
+    setFormTodasLojas(false);
     setModalOpen(true);
   }
 
-  function saveLembrete() {
-    if (!formCliente.trim() || !formData) return;
-    const next = [
-      ...lembretes,
-      { id: uid(), cliente: formCliente.trim(), data: formData, nota: formNota.trim(), feito: false },
-    ].sort((a, b) => a.data.localeCompare(b.data));
-    persistLembretes(next);
-    setModalOpen(false);
+  async function saveLembrete() {
+    if (!formTexto.trim() || !formData || !profile?.licensee_id || !profile?.store_id) return;
+
+    try {
+      // Consultor sempre salva na sua própria loja
+      await supabase.from("lembretes").insert({
+        licensee_id: profile.licensee_id,
+        store_id: profile.store_id,
+        user_id: profile.id,
+        data_iso: formData,
+        texto: formTexto.trim(),
+        visibilidade: "loja",
+        feito: false,
+      });
+
+      await loadData();
+      setModalOpen(false);
+    } catch (err) {
+      console.error("[Calendario] erro ao salvar lembrete:", err);
+      alert("Erro ao salvar lembrete");
+    }
   }
 
-  function toggleLembrete(id: string) {
-    persistLembretes(lembretes.map((l) => l.id === id ? { ...l, feito: !l.feito } : l));
+  async function toggleLembrete(id: string) {
+    try {
+      const lem = lembretes.find(l => l.id === id);
+      if (!lem) return;
+      await supabase.from("lembretes").update({ feito: !lem.feito }).eq("id", id);
+      await loadData();
+    } catch (err) {
+      console.error("[Calendario] erro ao atualizar lembrete:", err);
+    }
   }
 
-  function removeLembrete(id: string) {
-    persistLembretes(lembretes.filter((l) => l.id !== id));
+  async function removeLembrete(id: string) {
+    try {
+      await supabase.from("lembretes").delete().eq("id", id);
+      await loadData();
+    } catch (err) {
+      console.error("[Calendario] erro ao remover lembrete:", err);
+    }
   }
 
   /* ── Render ───────────────────────────────────── */
@@ -317,6 +360,18 @@ export default function VendedorCalendarioPage() {
               </button>
             ))}
           </div>
+          {stores.length > 0 && (
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="h-9 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[12px] text-[var(--txt)] outline-none"
+            >
+              <option value="todas">Todas as lojas</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={openAddLembrete}
             className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
@@ -532,32 +587,22 @@ export default function VendedorCalendarioPage() {
             </div>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Nome do cliente</label>
+                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Lembrete *</label>
                 <input
                   type="text"
-                  value={formCliente}
-                  onChange={(e) => setFormCliente(e.target.value)}
-                  placeholder="Ex.: Maria Oliveira"
+                  value={formTexto}
+                  onChange={(e) => setFormTexto(e.target.value)}
+                  placeholder="Ex.: Ligar para Maria Oliveira - aniversário"
                   autoFocus
                   className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Data</label>
+                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Data *</label>
                 <input
                   type="date"
                   value={formData}
                   onChange={(e) => setFormData(e.target.value)}
-                  className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Nota (opcional)</label>
-                <input
-                  type="text"
-                  value={formNota}
-                  onChange={(e) => setFormNota(e.target.value)}
-                  placeholder="Ex.: aniversário, viagem em julho"
                   className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
                 />
               </div>
@@ -571,7 +616,7 @@ export default function VendedorCalendarioPage() {
               </button>
               <button
                 onClick={saveLembrete}
-                disabled={!formCliente.trim() || !formData}
+                disabled={!formTexto.trim() || !formData}
                 className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-lg disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
               >
