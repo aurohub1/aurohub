@@ -115,6 +115,14 @@ export default function UserMetricsPage() {
     };
   }, [rows]);
 
+  const consultoresNoPeriodo = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of filtered) {
+      if (r.tipo === "publicado" && r.user_id) set.add(r.user_id);
+    }
+    return set.size;
+  }, [filtered]);
+
   // Feature off → tela de upgrade
   if (!loading && profile && !features.has("metricas")) {
     return (
@@ -206,7 +214,7 @@ export default function UserMetricsPage() {
           </div>
 
           {/* Linha detalhes - Top templates, Por consultor, Atividade */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 ${consultoresNoPeriodo >= 2 ? "lg:grid-cols-3" : ""}`}>
             {/* Top templates - placeholder */}
             <div className="rounded-xl shadow-sm bg-white border border-slate-100 p-6" style={{ background: "var(--card-bg)", borderColor: "var(--bdr)" }}>
               <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4" style={{ color: "var(--txt2)" }}>Top templates</h3>
@@ -215,13 +223,15 @@ export default function UserMetricsPage() {
               </div>
             </div>
 
-            {/* Por consultor - placeholder */}
-            <div className="rounded-xl shadow-sm bg-white border border-slate-100 p-6" style={{ background: "var(--card-bg)", borderColor: "var(--bdr)" }}>
-              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4" style={{ color: "var(--txt2)" }}>Por consultor</h3>
-              <div className="flex flex-col gap-2">
-                <div className="text-sm text-slate-600" style={{ color: "var(--txt2)" }}>Em breve</div>
+            {/* Por consultor - só renderiza se houver 2+ consultores */}
+            {consultoresNoPeriodo >= 2 && (
+              <div className="rounded-xl shadow-sm bg-white border border-slate-100 p-6" style={{ background: "var(--card-bg)", borderColor: "var(--bdr)" }}>
+                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4" style={{ color: "var(--txt2)" }}>Por consultor</h3>
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm text-slate-600" style={{ color: "var(--txt2)" }}>Em breve</div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Atividade recente */}
             <ActivityFeed rows={filtered} />
