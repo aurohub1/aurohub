@@ -116,6 +116,43 @@ export function PublishFooter({
           </div>
         </div>
       )}
+      <div style={{ display: "flex", gap: "6px" }}>
+        <button
+          onClick={onClear}
+          style={{
+            flex: 1,
+            padding: "8px",
+            borderRadius: "8px",
+            border: "1px solid var(--bdr2)",
+            background: "transparent",
+            color: "var(--txt3)",
+            fontSize: "11px",
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+          }}
+        >
+          <Trash2 size={12} style={{ display: "inline", marginRight: "4px" }} />
+          Limpar
+        </button>
+        <button
+          onClick={onDownload}
+          style={{
+            flex: 1,
+            padding: "8px",
+            borderRadius: "8px",
+            border: "1px solid var(--bdr2)",
+            background: "transparent",
+            color: "var(--txt3)",
+            fontSize: "11px",
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+          }}
+        >
+          ⬇ Download
+        </button>
+      </div>
       {format !== "tv" && (
         <>
           <button
@@ -173,43 +210,6 @@ export function PublishFooter({
           </button>
         </>
       )}
-      <div style={{ display: "flex", gap: "6px" }}>
-        <button
-          onClick={onClear}
-          style={{
-            flex: 1,
-            padding: "8px",
-            borderRadius: "8px",
-            border: "1px solid var(--bdr2)",
-            background: "transparent",
-            color: "var(--txt3)",
-            fontSize: "11px",
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-          }}
-        >
-          <Trash2 size={12} style={{ display: "inline", marginRight: "4px" }} />
-          Limpar
-        </button>
-        <button
-          onClick={onDownload}
-          style={{
-            flex: 1,
-            padding: "8px",
-            borderRadius: "8px",
-            border: "1px solid var(--bdr2)",
-            background: "transparent",
-            color: "var(--txt3)",
-            fontSize: "11px",
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-          }}
-        >
-          ⬇ Download
-        </button>
-      </div>
       {statusMsg && (
         <div
           style={{
