@@ -120,7 +120,7 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
 
     // Desconto Anoiteceu: só o número sem "%" — v1 client.js:953-958
     case "desconto_anoit_valor": {
-      const d = values.desconto_anoit;
+      const d = values.desconto;
       if (!d || d === "– nenhum –") return "";
       return String(d).replace("%", "").trim();
     }
@@ -367,6 +367,16 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
     if (!el.bindParam) return null;
 
     let txt = resolveText(el, values);
+
+    // DEBUG: Log bind resolution
+    if (el.bindParam) {
+      console.log('[PreviewStage DEBUG]', {
+        bindParam: el.bindParam,
+        valorResolvido: txt,
+        valuesKeys: Object.keys(values)
+      });
+    }
+
     // Se tem bindParam mas valor está vazio, não renderiza
     if (!txt) return null;
     const baseFont = el.fontSize ?? 24;

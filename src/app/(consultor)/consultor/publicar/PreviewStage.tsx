@@ -120,7 +120,7 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
 
     // Desconto Anoiteceu: só o número sem "%" — v1 client.js:953-958
     case "desconto_anoit_valor": {
-      const d = values.desconto_anoit;
+      const d = values.desconto;
       if (!d || d === "– nenhum –") return "";
       return String(d).replace("%", "").trim();
     }
