@@ -414,9 +414,11 @@ export default function PublicarPageBase({
   const values = formCache[tab] ?? DEFAULTS;
   const badges = badgeCache[tab] ?? {};
 
-  async function onImgFundo(url: string) {
-    setField("imgfundo", url);
-  }
+  const onImgFundo = useCallback(async (nome: string) => {
+    if (!nome?.trim()) return;
+    const url = await fetchImgFundo(nome);
+    if (url) setField("imgfundo", url);
+  }, []);
 
   async function onHotelBlur(hotel?: string) {
     const h = (hotel ?? values.hotel)?.trim();
