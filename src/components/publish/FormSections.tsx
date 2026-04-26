@@ -35,11 +35,16 @@ export const VOO_OPTS = ["Voo Direto", "Voo Conexão"];
 export const DESCONTO_OPTS_FORM = DESCONTO_OPTS;
 export const PARCELAS_OPTS_FORM = Array.from({ length: 20 }, (_, i) => `${i + 1}x`);
 export const NAVIOS_DEFAULT = [
-  // MSC Cruises
+  // MSC Cruises (principais)
   "MSC Seashore",
+  "MSC Grandiosa",
+  "MSC Musica",
+  "MSC Armonia",
+  "MSC Magnifica",
+  "MSC Seascape",
+  "MSC World Europa",
   "MSC Seaside",
   "MSC Seaview",
-  "MSC Grandiosa",
   "MSC Bellissima",
   "MSC Meraviglia",
   "MSC Virtuosa",
@@ -47,29 +52,27 @@ export const NAVIOS_DEFAULT = [
   "MSC Divina",
   "MSC Fantasia",
   "MSC Splendida",
-  "MSC Magnifica",
-  "MSC Musica",
   "MSC Poesia",
   "MSC Orchestra",
   "MSC Sinfonia",
-  "MSC Armonia",
   "MSC Lirica",
   "MSC Opera",
-  // Costa Cruises
+  // Costa Cruises (principais)
   "Costa Fascinosa",
+  "Costa Diadema",
+  "Costa Firenze",
   "Costa Favolosa",
   "Costa Luminosa",
   "Costa Pacifica",
-  "Costa Diadema",
   "Costa Fortuna",
   "Costa Magica",
-  "Costa Firenze",
   "Costa Venezia",
   "Costa Smeralda",
   "Costa Toscana",
-  // Norwegian Cruise Line
-  "Norwegian Jewel",
+  // Norwegian Cruise Line (principais)
   "Norwegian Jade",
+  "Norwegian Prima",
+  "Norwegian Jewel",
   "Norwegian Pearl",
   "Norwegian Gem",
   "Norwegian Star",
@@ -81,8 +84,9 @@ export const NAVIOS_DEFAULT = [
   "Norwegian Escape",
   "Norwegian Bliss",
   "Norwegian Encore",
-  // Carnival Cruise Line
+  // Carnival Cruise Line (principais)
   "Carnival Jubilee",
+  "Carnival Venezia",
   "Carnival Celebration",
   "Carnival Mardi Gras",
   "Carnival Panorama",
@@ -135,7 +139,7 @@ export const NAVIOS_DEFAULT = [
   "Sapphire Princess",
   "Caribbean Princess",
   "Island Princess",
-].sort();
+];
 
 /* ── Helpers ─────────────────────────────────────────── */
 
