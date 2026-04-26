@@ -1163,6 +1163,7 @@ export default function PublicarPageBase({
                 formato={format}
                 nomeLoja={nomeLoja}
                 loadDestinos={loadDestinos}
+                onImgFundo={onImgFundo}
               />
             ) : tab === "cruzeiro" ? (
               <CruzeiroForm
@@ -1172,6 +1173,7 @@ export default function PublicarPageBase({
                 binds={templateBinds}
                 formato={format}
                 nomeLoja={nomeLoja}
+                onImgFundo={onImgFundo}
               />
             ) : tab === "anoiteceu" ? (
               <AnoiteceuForm

@@ -1269,7 +1269,7 @@ export function CampanhaForm({
 /* ── CruzeiroForm ───────────────────────────────────── */
 
 export function CruzeiroForm({
-  fields, set, today, binds, formato, nomeLoja,
+  fields, set, today, binds, formato, nomeLoja, onImgFundo,
 }: {
   fields: Fields;
   set: Setter;
@@ -1277,6 +1277,7 @@ export function CruzeiroForm({
   binds?: Set<string>;
   formato?: string;
   nomeLoja?: string;
+  onImgFundo?: (url: string) => void;
 }) {
   const showNavio = hasBind(binds, "navio");
   const showItin = hasBind(binds, "itinerario");
@@ -1284,6 +1285,33 @@ export function CruzeiroForm({
   const showVolta = hasBind(binds, "datavolta");
   const showIncluso = hasBind(binds, "incluso");
   const showCruz = showNavio || showItin || showIda || showVolta;
+
+  // Busca imgfundo por navio ou itinerário
+  const fetchTokenRef = useRef(0);
+  async function fetchImgFundo(needle: string) {
+    if (!onImgFundo) return;
+    const token = ++fetchTokenRef.current;
+    try {
+      let url: string | null = null;
+      if (needle.trim()) {
+        const { data } = await _sb_for_lamina
+          .from("imgfundo")
+          .select("url")
+          .ilike("nome", `%${needle.trim()}%`)
+          .limit(50);
+        if (token !== fetchTokenRef.current) return; // stale
+        const rows = (data ?? []) as { url: string }[];
+        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
+      }
+      if (!url) {
+        const { data } = await _sb_for_lamina.from("imgfundo").select("url").limit(500);
+        if (token !== fetchTokenRef.current) return; // stale
+        const rows = (data ?? []) as { url: string }[];
+        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
+      }
+      if (url) onImgFundo(url);
+    } catch { /* silent — RLS ou tabela ausente */ }
+  }
 
   // Bind derivado - valortotaltexto
   useEffect(() => {
@@ -1310,6 +1338,10 @@ export function CruzeiroForm({
               <SearchableSelect
                 value={(fields.navio as string) || ""}
                 onChange={(v) => set("navio", v)}
+                onBlur={(v) => {
+                  set("navio", v);
+                  if (v.trim()) fetchImgFundo(v);
+                }}
                 options={NAVIOS_DEFAULT}
                 placeholder="Buscar navio..."
                 allowCustom
@@ -1393,7 +1425,7 @@ export function CruzeiroForm({
 /* ── PassagemForm ───────────────────────────────────── */
 
 export function PassagemForm({
-  fields, set, today, binds, formato, nomeLoja, loadDestinos,
+  fields, set, today, binds, formato, nomeLoja, loadDestinos, onImgFundo,
 }: {
   fields: Fields;
   set: Setter;
@@ -1402,12 +1434,40 @@ export function PassagemForm({
   formato?: string;
   nomeLoja?: string;
   loadDestinos?: () => Promise<string[]>;
+  onImgFundo?: (url: string) => void;
 }) {
   const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
   useEffect(() => {
     loadDestinos?.().then(setDestinoOpts).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Busca imgfundo por destino
+  const fetchTokenRef = useRef(0);
+  async function fetchImgFundo(needle: string) {
+    if (!onImgFundo) return;
+    const token = ++fetchTokenRef.current;
+    try {
+      let url: string | null = null;
+      if (needle.trim()) {
+        const { data } = await _sb_for_lamina
+          .from("imgfundo")
+          .select("url")
+          .ilike("nome", `%${needle.trim()}%`)
+          .limit(50);
+        if (token !== fetchTokenRef.current) return; // stale
+        const rows = (data ?? []) as { url: string }[];
+        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
+      }
+      if (!url) {
+        const { data } = await _sb_for_lamina.from("imgfundo").select("url").limit(500);
+        if (token !== fetchTokenRef.current) return; // stale
+        const rows = (data ?? []) as { url: string }[];
+        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
+      }
+      if (url) onImgFundo(url);
+    } catch { /* silent — RLS ou tabela ausente */ }
+  }
 
   // Binds derivados - textoparcelas
   useEffect(() => {
@@ -1454,6 +1514,11 @@ export function PassagemForm({
             <DestinoField
               value={(fields.destino as string) || ""}
               onChange={(v) => set("destino", capitalizarDestino(v))}
+              onBlur={(v) => {
+                const up = v.toUpperCase();
+                set("destino", up);
+                if (up.trim()) fetchImgFundo(up);
+              }}
               options={destinoOpts}
             />
           )}
