@@ -283,13 +283,18 @@ export default function PublicarPageBase({
       .order("format")
       .order("name");
     if (data) {
-      // Deduplicar templates por (form_type + format + name) — prioriza licensee_id sobre is_base
+      // Deduplicar templates por (form_type + format) — mantém primeiro template (id menor = mais antigo)
       const seen = new Map<string, any>();
       for (const r of data) {
-        const key = `${r.form_type}:${r.format}:${r.name}`;
+        const key = `${r.form_type}:${r.format}`;
         const existing = seen.get(key);
         // Prioriza template customizado (licensee_id) sobre base (is_base)
-        if (!existing || (!existing.licensee_id && r.licensee_id)) {
+        // Se ambos forem do mesmo tipo, mantém o de id menor (mais antigo)
+        if (!existing) {
+          seen.set(key, r);
+        } else if (!existing.licensee_id && r.licensee_id) {
+          seen.set(key, r);
+        } else if (existing.licensee_id === r.licensee_id && r.id < existing.id) {
           seen.set(key, r);
         }
       }
