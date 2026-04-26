@@ -312,6 +312,19 @@ function applyLamColorMap(el: EditorElement, map: Record<string, string>): Edito
 
 /* ── Per-element ────────────────────────────────── */
 
+function resolveKonvaFontStyle(el: any): string {
+  const weight = el.fontWeight;
+  const style = el.fontStyle;
+
+  const isBold = weight === 'bold' || Number(weight) >= 700;
+  const isItalic = style === 'italic';
+
+  if (isBold && isItalic) return 'bold italic';
+  if (isBold) return 'bold';
+  if (isItalic) return 'italic';
+  return 'normal';
+}
+
 function RenderEl({ el, values }: { el: EditorElement; values: Record<string, string> }) {
   if (el.visible === false) return null;
   if (el.hideIfEmpty && el.bindParam && !values[el.bindParam] && !DYNAMIC_BADGES.has(el.bindParam)) return null;
@@ -391,7 +404,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             text={intPart}
             fontSize={fSize}
             fontFamily={el.fontFamily ?? "DM Sans"}
-            fontStyle={el.fontStyle ?? "normal"}
+            fontStyle={resolveKonvaFontStyle(el)}
             fill={el.fill || "#000"}
             align={el.align ?? "left"}
             letterSpacing={el.letterSpacing ?? 0}
@@ -402,7 +415,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             text={`,${decPart}`}
             fontSize={decSize}
             fontFamily={el.fontFamily ?? "DM Sans"}
-            fontStyle={el.fontStyle ?? "normal"}
+            fontStyle={resolveKonvaFontStyle(el)}
             fill={el.fill || "#000"}
             letterSpacing={el.letterSpacing ?? 0}
           />
@@ -483,7 +496,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
         text={txt}
         fontSize={fSize}
         fontFamily={el.fontFamily ?? "DM Sans"}
-        fontStyle={el.fontStyle ?? "normal"}
+        fontStyle={resolveKonvaFontStyle(el)}
         textDecoration={el.textDecoration ?? ""}
         fill={el.fill || "#000"}
         stroke={el.stroke}
