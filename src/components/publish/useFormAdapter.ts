@@ -91,8 +91,8 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
     // Desconto % — spec usa "numerodesconto" (pacote/campanha) e "desconto_anoit" (anoiteceu)
     f.numerodesconto = values.desconto || "";
     f.desconto_anoit = values.desconto || "";
-    // Valor total (spec) ← legacy totalduplo/totalcruzeiro
-    f.valortotal = values.totalduplo || values.totalcruzeiro || "";
+    // Valor total (spec) — prioriza valortotal, fallback para legacy totalduplo/totalcruzeiro
+    f.valortotal = values.valortotal || values.totalduplo || values.totalcruzeiro || "";
     // Datas formatadas (read-only derivado de dataida/datavolta)
     f.dataida_fmt   = values.dataida   ? fmtDate(values.dataida)   : "";
     f.datavolta_fmt = values.datavolta ? fmtDate(values.datavolta) : "";
@@ -121,11 +121,6 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
         return;
       case "desconto_anoit":
         setField("desconto", s);
-        return;
-      case "valortotal":
-        // cruzeiro escreve em totalcruzeiro; demais em totalduplo
-        if (tab === "cruzeiro") setField("totalcruzeiro", s);
-        else setField("totalduplo", s);
         return;
       case "dataida_fmt":
       case "datavolta_fmt":
