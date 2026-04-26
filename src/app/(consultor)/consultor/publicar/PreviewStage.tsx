@@ -125,6 +125,28 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return String(d).replace("%", "").trim();
     }
 
+    // Datas Anoiteceu: formato DD/MM/YYYY
+    case "data_inicio": {
+      const raw = values.inicio || "";
+      if (!raw) return "";
+      const [y, m, d] = raw.split("-");
+      return `${d}/${m}/${y}`;
+    }
+
+    case "data_fim": {
+      const raw = values.fim || "";
+      if (!raw) return "";
+      const [y, m, d] = raw.split("-");
+      return `${d}/${m}/${y}`;
+    }
+
+    case "para_viagens_ate": {
+      const raw = values.viagens_ate || "";
+      if (!raw) return "";
+      const [y, m, d] = raw.split("-");
+      return `${d}/${m}/${y}`;
+    }
+
     case "formapagamento": {
       const forma = values.formapagamento || "";
       const entrada = values.entrada || "";
