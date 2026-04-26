@@ -1444,10 +1444,22 @@ export function CruzeiroForm({
               <SearchableSelect
                 value={(fields.navio as string) || ""}
                 onChange={(v) => set("navio", v)}
-                onBlur={() => onImgFundo?.(fields.navio as string)}
                 options={NAVIOS_DEFAULT}
                 placeholder="Buscar navio..."
                 allowCustom
+              />
+            </Field>
+          )}
+
+          {showNavio && (
+            <Field label="Porto de embarque">
+              <input
+                type="text"
+                value={(fields.porto as string) || ""}
+                onChange={(e) => set("porto", e.target.value)}
+                onBlur={() => onImgFundo?.(fields.porto as string)}
+                placeholder="Santos, Rio de Janeiro, Buenos Aires..."
+                className={INPUT_CLASS}
               />
             </Field>
           )}

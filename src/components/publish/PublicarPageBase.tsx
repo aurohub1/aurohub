@@ -348,23 +348,6 @@ export default function PublicarPageBase({
     );
   }
 
-  async function fetchImgFundoNavio(navio: string) {
-    const rows = await loadDestinoData(); // mesma tabela imgfundo
-    const t = normalizar(navio);
-    // Buscar por match parcial do nome do navio
-    const m = rows.filter((r) =>
-      normalizar(r.nome).includes(t) || t.includes(normalizar(r.nome))
-    );
-    if (!m.length) {
-      // Fallback: imagem default de cruzeiro
-      return "https://res.cloudinary.com/dxgj4bcch/image/upload/cruzeiro_default.jpg";
-    }
-    return proximaImagem(
-      "navio_" + slugify(navio),
-      m.map((r) => r.url)
-    );
-  }
-
   async function fetchImgHotel(hotel: string) {
     const rows = await loadHotelData();
     const t = normalizar(hotel);
@@ -449,11 +432,9 @@ export default function PublicarPageBase({
 
   const onImgFundo = useCallback(async (nome: string) => {
     if (!nome?.trim()) return;
-    const url = tab === "cruzeiro"
-      ? await fetchImgFundoNavio(nome)
-      : await fetchImgFundo(nome);
+    const url = await fetchImgFundo(nome);
     if (url) setField("imgfundo", url);
-  }, [tab]);
+  }, []);
 
   async function onHotelBlur(hotel?: string) {
     const h = (hotel ?? values.hotel)?.trim();
