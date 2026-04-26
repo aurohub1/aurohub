@@ -372,6 +372,48 @@ export default function EditorTemplatesPage() {
     }
   }
 
+  // Publica um template (seta is_base: true)
+  async function publishTemplate(key: string) {
+    if (!confirm("Publicar este template para todos os clientes?\n\nEle ficará visível na biblioteca de templates.")) {
+      return;
+    }
+    try {
+      // 1. Buscar template no system_config
+      const { data: row } = await supabase.from("system_config").select("value").eq("key", key).single();
+      if (!row?.value) {
+        alert("Template não encontrado.");
+        return;
+      }
+      const parsed = JSON.parse(row.value);
+
+      // 2. Upsert em form_templates com is_base: true
+      await supabase.from("form_templates").upsert({
+        name: parsed.nome || key,
+        form_type: parsed.formType || "pacote",
+        format: parsed.format || "stories",
+        is_base: true,
+        active: true,
+        licensee_id: null,
+        schema: {
+          elements: parsed.elements || [],
+          background: parsed.background || "#0E1520",
+          formType: parsed.formType || "pacote",
+          width: parsed.width || 1080,
+          height: parsed.height || 1920,
+          duration: parsed.duration || 5,
+        },
+        width: parsed.width || 1080,
+        height: parsed.height || 1920,
+      }, { onConflict: "name,form_type,format" });
+
+      alert("Template publicado com sucesso!");
+      await loadCanvasTemplates();
+    } catch (err) {
+      console.error("[Publish]", err);
+      alert("Falha ao publicar template.");
+    }
+  }
+
   /* ── Render ────────────────────────────────────── */
 
   const isAdm = profile?.role === "adm" || profile?.role === "operador";
@@ -448,6 +490,7 @@ export default function EditorTemplatesPage() {
                       onDuplicate={duplicateCanvasTmpl}
                       onDelete={deleteCanvasTmpl}
                       onClone={isAdm && t.isBase ? setCloneKey : undefined}
+                      onPublish={isAdm ? publishTemplate : undefined}
                       onNameChange={handleNameChange}
                       onThumbUpload={handleThumbUpload}
                       onThumbCapture={handleCaptureCard}
@@ -517,6 +560,7 @@ export default function EditorTemplatesPage() {
                           onEdit={(key) => router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`)}
                           onDuplicate={duplicateCanvasTmpl}
                           onDelete={deleteCanvasTmpl}
+                          onPublish={isAdm ? publishTemplate : undefined}
                           onNameChange={handleNameChange}
                           onThumbUpload={handleThumbUpload}
                           onThumbCapture={handleCaptureCard}
