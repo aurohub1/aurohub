@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
-import { FileText, Search, Sparkles, CalendarClock } from "lucide-react";
+import { FileText, Search, Sparkles, CalendarClock, Trash2 } from "lucide-react";
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -72,33 +72,31 @@ export default function VendedorTemplatesPage() {
       if (!p?.licensee_id) { setLoading(false); return; }
 
       const { data } = await supabase
-        .from("system_config")
-        .select("key, value, updated_at")
-        .like("key", "tmpl_%")
-        .order("updated_at", { ascending: false });
+        .from("form_templates")
+        .select("*")
+        .or(`is_base.eq.true,licensee_id.eq.${p.licensee_id}`)
+        .eq("active", true)
+        .order("form_type")
+        .order("format")
+        .order("name");
 
       const rows: TemplateRow[] = [];
-      for (const r of (data ?? []) as { key: string; value: string; updated_at: string }[]) {
-        try {
-          const parsed = JSON.parse(r.value);
-          const lid = parsed.licenseeId ?? parsed.licensee_id ?? null;
-          if (lid && lid.trim() !== p.licensee_id.trim()) continue;
-          const nome = parsed.nome || r.key.replace(/^tmpl_/, "");
-          const formType = parsed.formType || parsed.schema?.formType || "pacote";
-          const format = parsed.format || parsed.schema?.format || "stories";
-          const bgColor = parsed.bgColor || parsed.background || parsed.schema?.background || "#1E3A6E";
-          const thumbnail = parsed.thumbnail || null;
-          rows.push({
-            key: r.key,
-            id: r.key.replace(/^tmpl_/, ""),
-            nome,
-            formType,
-            format,
-            updatedAt: r.updated_at,
-            bgColor,
-            thumbnail,
-          });
-        } catch { /* skip */ }
+      for (const r of (data ?? []) as any[]) {
+        const nome = r.name || `Template ${r.id.slice(0, 8)}`;
+        const formType = r.form_type || "pacote";
+        const format = r.format || "stories";
+        const bgColor = r.schema?.background || "#1E3A6E";
+        const thumbnail = r.schema?.thumbnail || null;
+        rows.push({
+          key: r.id,
+          id: r.id,
+          nome,
+          formType,
+          format,
+          updatedAt: r.updated_at,
+          bgColor,
+          thumbnail,
+        });
       }
       setTemplates(rows);
     } catch (err) {
@@ -123,6 +121,31 @@ export default function VendedorTemplatesPage() {
 
   const useTemplate = (id: string) => {
     router.push(`/gerente/publicar?template=${id}`);
+  };
+
+  const deleteTemplate = async (id: string, nome: string) => {
+    if (!confirm(`Tem certeza que deseja deletar o template "${nome}"?\n\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("form_templates")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        alert(`Erro ao deletar template: ${error.message}`);
+        return;
+      }
+
+      // Remover da lista local
+      setTemplates(prev => prev.filter(t => t.id !== id));
+      alert(`Template "${nome}" deletado com sucesso.`);
+    } catch (err: any) {
+      console.error("[deleteTemplate]", err);
+      alert(`Erro ao deletar template: ${err.message || "Erro desconhecido"}`);
+    }
   };
 
   /* ── Render ────────────────────────────────────── */
@@ -225,7 +248,13 @@ export default function VendedorTemplatesPage() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
           {filtered.map((t) => (
-            <TemplateCard key={t.key} tpl={t} onUse={() => useTemplate(t.id)} />
+            <TemplateCard
+              key={t.key}
+              tpl={t}
+              onUse={() => useTemplate(t.id)}
+              onDelete={() => deleteTemplate(t.id, t.nome)}
+              showDelete={profile?.role === "adm" || profile?.role === "gerente"}
+            />
           ))}
         </div>
       )}
@@ -261,7 +290,17 @@ function FilterPill({
   );
 }
 
-function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
+function TemplateCard({
+  tpl,
+  onUse,
+  onDelete,
+  showDelete,
+}: {
+  tpl: TemplateRow;
+  onUse: () => void;
+  onDelete: () => void;
+  showDelete: boolean;
+}) {
   const tMeta = typeMeta(tpl.formType);
   const fMeta = formatMeta(tpl.format);
 
@@ -280,6 +319,40 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
             {tMeta.label}
           </span>
         </div>
+        {showDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              width: 28,
+              height: 28,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(239, 68, 68, 0.9)",
+              border: "none",
+              borderRadius: 6,
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#ef4444";
+              e.currentTarget.style.transform = "scale(1.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(239, 68, 68, 0.9)";
+              e.currentTarget.style.transform = "scale(1)";
+            }}
+            title="Deletar template"
+          >
+            <Trash2 size={14} color="#fff" />
+          </button>
+        )}
       </div>
       <button
         onClick={onUse}
