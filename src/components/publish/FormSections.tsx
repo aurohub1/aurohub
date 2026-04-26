@@ -1682,7 +1682,7 @@ export function AnoiteceuForm({
 
   return (
     <>
-      <div className="mb-3 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 px-4 py-3 backdrop-blur-sm">
+      <div className="rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 px-4 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🌙</span>
           <div>
