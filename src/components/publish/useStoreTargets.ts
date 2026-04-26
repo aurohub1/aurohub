@@ -45,8 +45,8 @@ export function useStoreTargets(profile: FullProfile | null) {
             .select("id,name")
             .in("id", storeIds);
 
-          // Ordenação customizada: Rio Preto → Barretos → Damha
-          const storeOrder = ["Rio Preto", "Barretos", "Damha"];
+          // Ordenação customizada: Barretos → Damha → Rio Preto
+          const storeOrder = ["Barretos", "Damha", "Rio Preto"];
           const sorted = (storesData ?? []).sort((a, b) => {
             const indexA = storeOrder.findIndex((s) => a.name.includes(s));
             const indexB = storeOrder.findIndex((s) => b.name.includes(s));
