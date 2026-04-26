@@ -788,32 +788,39 @@ export default function PublicarPageBase({
             gap: "16px",
           }}
         >
-          {availableTemplates.map((tmpl, i) => (
-            <button
-              key={tmpl.id}
-              onClick={() => selectTemplate(tmpl.id)}
-              style={{
-                background: "var(--bg2)",
-                border: "1.5px solid var(--bdr)",
-                borderRadius: "14px",
-                padding: "0",
-                cursor: "pointer",
-                textAlign: "left",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-                transition: "all .2s",
-                animation: `fadeUp .3s ease ${i * 0.05}s both`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "var(--brand-primary)";
-                e.currentTarget.style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "var(--bdr)";
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
-            >
+          {availableTemplates.map((tmpl, i) => {
+            const isActive = selectedTemplateId === tmpl.id;
+            return (
+              <button
+                key={tmpl.id}
+                onClick={() => selectTemplate(tmpl.id)}
+                style={{
+                  background: isActive ? "color-mix(in srgb, var(--brand-primary) 10%, var(--bg2))" : "var(--bg2)",
+                  border: isActive ? "2px solid var(--brand-primary)" : "1.5px solid var(--bdr)",
+                  borderRadius: "14px",
+                  padding: "0",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                  transition: "all .2s",
+                  animation: `fadeUp .3s ease ${i * 0.05}s both`,
+                  boxShadow: isActive ? "0 0 0 3px color-mix(in srgb, var(--brand-primary) 20%, transparent)" : "none",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.borderColor = "var(--brand-primary)";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.borderColor = "var(--bdr)";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }
+                }}
+              >
               <div
                 style={{
                   width: "100%",
@@ -854,7 +861,8 @@ export default function PublicarPageBase({
                 </div>
               </div>
             </button>
-          ))}
+          );
+          })}
         </div>
       </div>
     );
