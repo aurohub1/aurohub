@@ -12,7 +12,6 @@ import {
   PassagemForm,
   CruzeiroForm,
 } from "@/components/publish/FormSections";
-import DynamicForm from "@/components/publish/DynamicForm";
 import {
   Plane,
   Target,
@@ -472,14 +471,9 @@ export default function PublicarPageBase({
     if (!currentTemplate?.schema?.elements) return b;
     for (const el of currentTemplate.schema.elements) {
       if (el.bindParam) b.add(el.bindParam);
+      if (el.imageBind) b.add(el.imageBind);
     }
     return b;
-  }, [currentTemplate]);
-
-  // Detecta se o template tem formulário dinâmico configurado
-  const hasDynamicForm = useMemo(() => {
-    if (!currentTemplate?.schema?.elements) return false;
-    return currentTemplate.schema.elements.some((el: any) => el.formField);
   }, [currentTemplate]);
 
   const visibleFormats = useMemo(() => {
@@ -1139,14 +1133,6 @@ export default function PublicarPageBase({
               >
                 Nenhum template disponível para {tab}.
               </div>
-            ) : hasDynamicForm ? (
-              <DynamicForm
-                schema={schema}
-                fields={fields}
-                set={set}
-                onImgFundo={onImgFundo}
-                today={new Date().toISOString().slice(0, 10)}
-              />
             ) : tab === "pacote" ? (
               <PacoteForm
                 fields={fields}
