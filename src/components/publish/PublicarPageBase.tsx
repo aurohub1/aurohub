@@ -282,9 +282,19 @@ export default function PublicarPageBase({
       .order("form_type")
       .order("format")
       .order("name");
-    if (data)
+    if (data) {
+      // Deduplicar templates por (form_type + format + name) — prioriza licensee_id sobre is_base
+      const seen = new Map<string, any>();
+      for (const r of data) {
+        const key = `${r.form_type}:${r.format}:${r.name}`;
+        const existing = seen.get(key);
+        // Prioriza template customizado (licensee_id) sobre base (is_base)
+        if (!existing || (!existing.licensee_id && r.licensee_id)) {
+          seen.set(key, r);
+        }
+      }
       setTemplates(
-        data.map((r: any) => ({
+        Array.from(seen.values()).map((r: any) => ({
           id: r.id,
           name: r.name,
           formType: r.form_type || "pacote",
@@ -298,6 +308,7 @@ export default function PublicarPageBase({
           height: r.height || 1920,
         }))
       );
+    }
   }
 
   async function loadDestinoData() {
