@@ -498,6 +498,10 @@ export interface SaveTemplateData {
    * Quem chamou o modal deve usar este campo como fonte do upload pro Cloudinary.
    */
   thumbnail: string | null;
+  licenseeId?: string;
+  lojaId?: string;
+  licenseeNome?: string;
+  lojaNome?: string;
 }
 
 const FORM_TYPES = [
@@ -537,10 +541,12 @@ function sortLojasPriority<T extends { name: string }>(rows: T[]): T[] {
   });
 }
 
-export function SaveTemplateModal({ initialName, initialFormType, initialFormat, captureThumb, existingThumb, onClose, onConfirm }: {
+export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, captureThumb, existingThumb, onClose, onConfirm }: {
   initialName?: string;
   initialFormType: string;
   initialFormat: string;
+  initialLicenseeId?: string;
+  initialLojaId?: string;
   /** dataURL capturado do canvas — usado no modo "capture" */
   captureThumb?: string | null;
   /** URL da thumb já salva do template (vinda do banco) — usado no modo "existing" (default em edição) */
@@ -551,7 +557,32 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
   const [nome, setNome] = useState(initialName || "");
   const [formType, setFormType] = useState(initialFormType);
   const [format, setFormat] = useState(initialFormat);
+  const [licenseeId, setLicenseeId] = useState(initialLicenseeId || "");
+  const [lojaId, setLojaId] = useState(initialLojaId || "");
+  const [licensees, setLicensees] = useState<{id: string; name: string}[]>([]);
+  const [lojas, setLojas] = useState<{id: string; name: string}[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Carregar licensees
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("licensees").select("id, name").order("name");
+      setLicensees((data as {id: string; name: string}[]) || []);
+    })();
+  }, []);
+
+  // Carregar lojas quando licensee mudar
+  useEffect(() => {
+    if (!licenseeId) {
+      setLojas([]);
+      setLojaId("");
+      return;
+    }
+    (async () => {
+      const { data } = await supabase.from("stores").select("id, name").eq("licensee_id", licenseeId).order("name");
+      setLojas((data as {id: string; name: string}[]) || []);
+    })();
+  }, [licenseeId]);
 
   // Thumbnail — 3 modos:
   //  existing: usa URL já salva no banco (default quando template tem thumb)
@@ -591,11 +622,17 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
     if (!canSave) return;
     setSaving(true);
     try {
+      const licenseeData = licensees.find(l => l.id === licenseeId);
+      const lojaData = lojas.find(l => l.id === lojaId);
       await onConfirm({
         nome: nome.trim(),
         formType,
         format,
         thumbnail: effectiveThumb,
+        licenseeId: licenseeId || undefined,
+        lojaId: lojaId || undefined,
+        licenseeNome: licenseeData?.name || undefined,
+        lojaNome: lojaData?.name || undefined,
       });
     } finally { setSaving(false); }
   };
@@ -607,6 +644,20 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
           <input autoFocus value={nome} onChange={e => setNome(e.target.value)} placeholder="ex: Pacote Rio Preto Verão"
             style={fieldS} onKeyDown={e => e.key === "Enter" && confirm()} />
         </L>
+        <L label="Cliente (deixe vazio para template base)">
+          <select value={licenseeId} onChange={e => setLicenseeId(e.target.value)} style={fieldS}>
+            <option value="">Todos (template base)</option>
+            {licensees.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        </L>
+        {licenseeId && lojas.length > 0 && (
+          <L label="Loja (opcional)">
+            <select value={lojaId} onChange={e => setLojaId(e.target.value)} style={fieldS}>
+              <option value="">Todas as lojas</option>
+              {lojas.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </L>
+        )}
         <L label="Thumbnail">
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{
