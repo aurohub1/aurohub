@@ -1142,6 +1142,7 @@ export default function PublicarPageBase({
               overflowY: "auto",
               overflowX: "hidden",
               padding: "14px",
+              paddingBottom: "160px",
               display: "flex",
               flexDirection: "column",
               gap: "10px",
