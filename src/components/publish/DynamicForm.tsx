@@ -11,11 +11,9 @@
 import { useMemo } from "react";
 import type { EditorElement, EditorSchema } from "@/components/editor/types";
 import { Section, Field } from "./FormSections";
+import type { Fields, Setter } from "./useFormAdapter";
 
 /* ── Types ─────────────────────────────────────────────── */
-
-type Fields = Record<string, string>;
-type Setter = (k: string, v: string) => void;
 
 interface DynamicFormProps {
   schema: EditorSchema;
@@ -236,7 +234,8 @@ export default function DynamicForm({
     <div className="flex flex-col">
       <Section title="Formulário Dinâmico" icon="📋">
         {formElements.map((el) => {
-          const value = fields[el.bindParam!] || "";
+          const rawValue = fields[el.bindParam!];
+          const value = String(rawValue ?? "");
           return (
             <Field key={el.id} label={el.formField!.label}>
               <FormField
