@@ -40,6 +40,16 @@ export interface EditorElement {
   locked?: boolean; visible?: boolean;
   // Bind
   bindParam?: string;
+  // Form Field — configuração do campo no formulário dinâmico
+  formField?: {
+    label: string;           // Label visível para o usuário (ex: 'Destino')
+    inputType: 'text' | 'date' | 'select' | 'textarea' | 'number' | 'image' | 'currency';
+    placeholder?: string;
+    required?: boolean;
+    options?: string[];      // Para inputType = 'select'
+    triggerImgFundo?: boolean; // Se true, ao preencher busca imgfundo automaticamente
+    uppercase?: boolean;     // Se true, converte para maiúsculas
+  };
   // Animation
   animation?: AnimationType; animDelay?: number; animDuration?: number;
   animEasing?: EasingType; animRepeat?: number;
