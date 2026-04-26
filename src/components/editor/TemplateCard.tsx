@@ -16,6 +16,7 @@ export interface CanvasTemplate {
   thumbnail: string | null;
   isBase: boolean;
   baseTipo: string | null;
+  accessLicensees?: string[];
 }
 
 interface TemplateCardProps {
@@ -24,6 +25,7 @@ interface TemplateCardProps {
   onDuplicate: (key: string) => void;
   onDelete: (key: string) => void;
   onClone?: (key: string) => void;
+  onAccess?: (key: string) => void;
   onNameChange: (key: string, nome: string) => void;
   onThumbUpload: (key: string, file: File) => void;
   onThumbCapture: (key: string) => void;
@@ -36,6 +38,7 @@ export function TemplateCard({
   onDuplicate,
   onDelete,
   onClone,
+  onAccess,
   onNameChange,
   onThumbUpload,
   onThumbCapture,
@@ -175,6 +178,41 @@ export function TemplateCard({
             )}
           </div>
         )}
+
+        {/* Access badge (se template tem acesso compartilhado) */}
+        {t.accessLicensees && t.accessLicensees.length > 0 && (
+          <div className="mt-2 border-t border-[var(--bdr)] pt-2">
+            <div className="flex flex-wrap gap-1">
+              {t.accessLicensees.slice(0, 2).map((name, i) => (
+                <span
+                  key={i}
+                  className="text-[9px] font-medium"
+                  style={{
+                    background: "#e0f2fe",
+                    color: "#0369a1",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  {name}
+                </span>
+              ))}
+              {t.accessLicensees.length > 2 && (
+                <span
+                  className="text-[9px] font-medium"
+                  style={{
+                    background: "#f3f4f6",
+                    color: "#6b7280",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  +{t.accessLicensees.length - 2}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
@@ -186,6 +224,16 @@ export function TemplateCard({
           <Pencil size={12} />
           <span>Editar</span>
         </button>
+        {onAccess && (
+          <button
+            onClick={() => onAccess(t.key)}
+            className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+            title="Gerenciar acesso"
+          >
+            <span className="text-xs">👥</span>
+            <span>Acesso</span>
+          </button>
+        )}
         {t.isBase && onClone && (
           <button
             onClick={() => onClone(t.key)}

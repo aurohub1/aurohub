@@ -32,6 +32,12 @@ export default function EditorTemplatesPage() {
   const [cloneSelectedLojas, setCloneSelectedLojas] = useState<Set<string>>(new Set());
   const [cloneCustomName, setCloneCustomName] = useState<string>("");
 
+  // Access modal
+  const [accessKey, setAccessKey] = useState<string | null>(null);
+  const [accessLicensees, setAccessLicensees] = useState<Set<string>>(new Set());
+  const [accessIsBase, setAccessIsBase] = useState(false);
+  const [savingAccess, setSavingAccess] = useState(false);
+
 
   useEffect(() => {
     (async () => {
@@ -145,6 +151,23 @@ export default function EditorTemplatesPage() {
         .select("key,value,updated_at")
         .like("key", "tmpl_%")
         .order("updated_at", { ascending: false });
+
+      // Busca todos os acessos de template_access
+      const { data: accessData } = await supabase
+        .from("template_access")
+        .select("template_key,licensee_id,licensees(name)");
+
+      // Mapa: template_key → array de nomes de licensees
+      const accessMap = new Map<string, string[]>();
+      if (accessData) {
+        for (const rec of accessData as { template_key: string; licensee_id: string; licensees: { name: string } | null }[]) {
+          const key = rec.template_key;
+          const name = rec.licensees?.name ?? "Cliente desconhecido";
+          if (!accessMap.has(key)) accessMap.set(key, []);
+          accessMap.get(key)!.push(name);
+        }
+      }
+
       const list: CanvasTemplate[] = (data || []).map((r: { key: string; value: string; updated_at: string }) => {
         let nome = "", format = "—", formType = "—", segmento = "Geral", licenseeId: string | null = null, licenseeNome = "Sem marca", lojaNome = "Sem loja", thumbnail: string | null = null, parsedIsBase = false;
         try {
@@ -179,6 +202,7 @@ export default function EditorTemplatesPage() {
           thumbnail,
           isBase,
           baseTipo,
+          accessLicensees: accessMap.get(r.key) ?? [],
         };
       });
       setCanvasTemplates(list);
@@ -328,6 +352,70 @@ export default function EditorTemplatesPage() {
     } catch (err) { console.error("[CanvasTemplates] delete:", err); alert("Erro ao excluir."); }
   };
 
+  // Abre modal de acesso e carrega licensees que já têm acesso
+  const openAccessModal = async (key: string) => {
+    setAccessKey(key);
+    const tmpl = canvasTemplates.find(t => t.key === key);
+    setAccessIsBase(tmpl?.isBase ?? false);
+
+    // Busca licensees que têm acesso
+    const { data } = await supabase
+      .from("template_access")
+      .select("licensee_id")
+      .eq("template_key", key);
+    const licIds = new Set((data ?? []).map((r: { licensee_id: string }) => r.licensee_id));
+    setAccessLicensees(licIds);
+  };
+
+  // Salva acesso do template
+  const saveTemplateAccess = async () => {
+    if (!accessKey) return;
+    setSavingAccess(true);
+    try {
+      // 1. Atualiza is_base no system_config
+      const { data: row } = await supabase
+        .from("system_config")
+        .select("value")
+        .eq("key", accessKey)
+        .single();
+      if (row?.value) {
+        const parsed = JSON.parse(row.value);
+        parsed.is_base = accessIsBase;
+        await supabase.from("system_config").upsert({
+          key: accessKey,
+          value: JSON.stringify(parsed),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "key" });
+      }
+
+      // 2. Sincroniza template_access
+      // Delete todos os registros antigos
+      await supabase
+        .from("template_access")
+        .delete()
+        .eq("template_key", accessKey);
+
+      // Se não é base, insere os licensees selecionados
+      if (!accessIsBase && accessLicensees.size > 0) {
+        const rows = [...accessLicensees].map(licId => ({
+          template_key: accessKey,
+          licensee_id: licId,
+        }));
+        await supabase.from("template_access").insert(rows);
+      }
+
+      setAccessKey(null);
+      setAccessLicensees(new Set());
+      setAccessIsBase(false);
+      await loadCanvasTemplates();
+    } catch (err) {
+      console.error("[Save access]", err);
+      alert("Falha ao salvar acesso.");
+    } finally {
+      setSavingAccess(false);
+    }
+  };
+
 
   // Duplica um template de cliente (mesmo licensee)
   async function duplicateCanvasTmpl(key: string) {
@@ -450,6 +538,7 @@ export default function EditorTemplatesPage() {
                       onDuplicate={duplicateCanvasTmpl}
                       onDelete={deleteCanvasTmpl}
                       onClone={isAdm && t.isBase ? setCloneKey : undefined}
+                      onAccess={isAdm ? openAccessModal : undefined}
                       onNameChange={handleNameChange}
                       onThumbUpload={handleThumbUpload}
                       onThumbCapture={handleCaptureCard}
@@ -519,6 +608,7 @@ export default function EditorTemplatesPage() {
                           onEdit={(key) => router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`)}
                           onDuplicate={duplicateCanvasTmpl}
                           onDelete={deleteCanvasTmpl}
+                          onAccess={isAdm ? openAccessModal : undefined}
                           onNameChange={handleNameChange}
                           onThumbUpload={handleThumbUpload}
                           onThumbCapture={handleCaptureCard}
@@ -663,6 +753,108 @@ export default function EditorTemplatesPage() {
                 className="rounded-lg bg-[var(--orange)] px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
               >
                 {cloning ? "Clonando..." : "Clonar"}
+              </button>
+            </div>
+          </div>
+        </Ov>
+      )}
+
+      {/* Access modal */}
+      {accessKey && (
+        <Ov onClose={() => setAccessKey(null)}>
+          <div className="mx-4 flex w-full max-w-[420px] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
+            <div className="border-b border-[var(--bdr)] px-6 py-4">
+              <div className="text-[15px] font-bold text-[var(--txt)]">Gerenciar acesso ao template</div>
+              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Escolha quais clientes podem usar este template</div>
+            </div>
+            <div className="max-h-[50vh] flex-1 overflow-y-auto px-6 py-4">
+              <div className="flex flex-col gap-4">
+                {/* Checkbox "Todos (base)" */}
+                <div className="rounded-lg border border-[var(--bdr)] p-3">
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={accessIsBase}
+                      onChange={(e) => {
+                        setAccessIsBase(e.target.checked);
+                        if (e.target.checked) {
+                          setAccessLicensees(new Set());
+                        }
+                      }}
+                      className="accent-[var(--orange)]"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-[13px] font-bold text-[var(--txt)]">Todos os clientes (template base)</span>
+                      <span className="text-[10px] text-[var(--txt3)]">Visível para todos os licensees</span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Lista de licensees */}
+                {!accessIsBase && (
+                  <div>
+                    <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--txt3)]">
+                      Clientes específicos ({accessLicensees.size}/{licensees.length})
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {licensees.length === 0 ? (
+                        <div className="text-[12px] text-[var(--txt3)]">Nenhum cliente cadastrado.</div>
+                      ) : (
+                        licensees.map((l) => {
+                          const sel = accessLicensees.has(l.id);
+                          return (
+                            <label
+                              key={l.id}
+                              className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2.5 hover:bg-[var(--hover-bg)] ${sel ? "border-[var(--orange)] bg-[var(--orange3)]" : "border-[var(--bdr)]"}`}
+                            >
+                              <span className="flex items-center gap-2">
+                                <span
+                                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                                  style={{ background: getLicColor(l.name) }}
+                                >
+                                  {getInitials(l.name) || "·"}
+                                </span>
+                                <span className={`text-[13px] font-medium ${sel ? "text-[var(--orange)]" : "text-[var(--txt)]"}`}>{l.name}</span>
+                              </span>
+                              <input
+                                type="checkbox"
+                                checked={sel}
+                                onChange={() => {
+                                  const next = new Set(accessLicensees);
+                                  if (next.has(l.id)) next.delete(l.id);
+                                  else next.add(l.id);
+                                  setAccessLicensees(next);
+                                }}
+                                className="accent-[var(--orange)]"
+                              />
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 border-t border-[var(--bdr)] px-6 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setAccessKey(null);
+                  setAccessLicensees(new Set());
+                  setAccessIsBase(false);
+                }}
+                className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={saveTemplateAccess}
+                disabled={savingAccess}
+                className="rounded-lg bg-[var(--orange)] px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+              >
+                {savingAccess ? "Salvando..." : "Salvar"}
               </button>
             </div>
           </div>
