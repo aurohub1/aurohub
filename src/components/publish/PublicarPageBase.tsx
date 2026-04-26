@@ -1035,7 +1035,6 @@ export default function PublicarPageBase({
         <div
           style={{
             width: "300px",
-            height: "100%",
             flexShrink: 0,
             background: "var(--bg1)",
             borderRight: "1px solid var(--bdr)",
