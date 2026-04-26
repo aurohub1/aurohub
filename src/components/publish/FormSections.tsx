@@ -1286,33 +1286,6 @@ export function CruzeiroForm({
   const showIncluso = hasBind(binds, "incluso");
   const showCruz = showNavio || showItin || showIda || showVolta;
 
-  // Busca imgfundo por navio ou itinerário
-  const fetchTokenRef = useRef(0);
-  async function fetchImgFundo(needle: string) {
-    if (!onImgFundo) return;
-    const token = ++fetchTokenRef.current;
-    try {
-      let url: string | null = null;
-      if (needle.trim()) {
-        const { data } = await _sb_for_lamina
-          .from("imgfundo")
-          .select("url")
-          .ilike("nome", `%${needle.trim()}%`)
-          .limit(50);
-        if (token !== fetchTokenRef.current) return; // stale
-        const rows = (data ?? []) as { url: string }[];
-        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
-      }
-      if (!url) {
-        const { data } = await _sb_for_lamina.from("imgfundo").select("url").limit(500);
-        if (token !== fetchTokenRef.current) return; // stale
-        const rows = (data ?? []) as { url: string }[];
-        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
-      }
-      if (url) onImgFundo(url);
-    } catch { /* silent — RLS ou tabela ausente */ }
-  }
-
   // Bind derivado - valortotaltexto
   useEffect(() => {
     const valortotal = fields.valortotal as string;
@@ -1338,20 +1311,7 @@ export function CruzeiroForm({
               <SearchableSelect
                 value={(fields.navio as string) || ""}
                 onChange={(v) => set("navio", v)}
-                onBlur={(v) => {
-                  set("navio", v);
-                  // Prioridade: itinerário (primeiro porto) > navio
-                  const itin = (fields.itinerario as string)?.trim();
-                  if (itin) {
-                    const primeiroPorto = itin.split("/")[0]?.trim();
-                    if (primeiroPorto && primeiroPorto !== "Navegação") {
-                      fetchImgFundo(primeiroPorto);
-                      return;
-                    }
-                  }
-                  // Fallback: navio
-                  if (v.trim()) fetchImgFundo(v);
-                }}
+                onBlur={() => onImgFundo?.(fields.navio as string)}
                 options={NAVIOS_DEFAULT}
                 placeholder="Buscar navio..."
                 allowCustom
@@ -1364,17 +1324,6 @@ export function CruzeiroForm({
               <textarea
                 value={(fields.itinerario as string) || ""}
                 onChange={(e) => set("itinerario", e.target.value)}
-                onBlur={(e) => {
-                  const itin = e.target.value.trim();
-                  set("itinerario", itin);
-                  // Extrair primeiro porto do itinerário (antes do primeiro "/")
-                  if (itin) {
-                    const primeiroPorto = itin.split("/")[0]?.trim();
-                    if (primeiroPorto && primeiroPorto !== "Navegação") {
-                      fetchImgFundo(primeiroPorto);
-                    }
-                  }
-                }}
                 placeholder="Santos / Navegação / Búzios / Navegação / Santos"
                 className={`${INPUT_CLASS} h-auto resize-none py-2`}
                 rows={2}
@@ -1463,33 +1412,6 @@ export function PassagemForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Busca imgfundo por destino
-  const fetchTokenRef = useRef(0);
-  async function fetchImgFundo(needle: string) {
-    if (!onImgFundo) return;
-    const token = ++fetchTokenRef.current;
-    try {
-      let url: string | null = null;
-      if (needle.trim()) {
-        const { data } = await _sb_for_lamina
-          .from("imgfundo")
-          .select("url")
-          .ilike("nome", `%${needle.trim()}%`)
-          .limit(50);
-        if (token !== fetchTokenRef.current) return; // stale
-        const rows = (data ?? []) as { url: string }[];
-        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
-      }
-      if (!url) {
-        const { data } = await _sb_for_lamina.from("imgfundo").select("url").limit(500);
-        if (token !== fetchTokenRef.current) return; // stale
-        const rows = (data ?? []) as { url: string }[];
-        if (rows.length) url = rows[Math.floor(Math.random() * rows.length)].url;
-      }
-      if (url) onImgFundo(url);
-    } catch { /* silent — RLS ou tabela ausente */ }
-  }
-
   // Binds derivados - textoparcelas
   useEffect(() => {
     const parcelas = fields.parcelas as string;
@@ -1535,11 +1457,7 @@ export function PassagemForm({
             <DestinoField
               value={(fields.destino as string) || ""}
               onChange={(v) => set("destino", capitalizarDestino(v))}
-              onBlur={(v) => {
-                const up = v.toUpperCase();
-                set("destino", up);
-                if (up.trim()) fetchImgFundo(up);
-              }}
+              onBlur={() => onImgFundo?.(fields.destino as string)}
               options={destinoOpts}
             />
           )}
