@@ -1410,101 +1410,168 @@ export function PassagemForm({
   onImgFundo?: (url: string) => void;
 }) {
   const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
+  const selectedFromListRef = useRef(false);
+
   useEffect(() => {
     loadDestinos?.().then(setDestinoOpts).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Binds derivados - textoparcelas
-  useEffect(() => {
-    const parcelas = fields.parcelas as string;
-    const valorparcela = fields.valorparcela as string;
-    if (parcelas && valorparcela) {
-      set("textoparcelas", `${parcelas} de R$ ${valorparcela}`);
-    }
-  }, [fields.parcelas, fields.valorparcela, set]);
-
-  // Binds derivados - valortotaltexto
-  useEffect(() => {
-    const valortotal = fields.valortotal as string;
-    if (valortotal) {
-      set("valortotaltexto", `R$ ${valortotal}`);
-    }
-  }, [fields.valortotal, set]);
-
-  const showSaida = hasBind(binds, "saida", "origem");
   const showDestino = hasBind(binds, "destino");
+  const showSaida = hasBind(binds, "saida", "origem");
   const showVoo = hasBind(binds, "voo", "tipovoo");
   const showIda = hasBind(binds, "dataida");
   const showVolta = hasBind(binds, "datavolta");
   const showIncluso = hasBind(binds, "incluso");
-  const showPassagem = showSaida || showDestino || showIda || showVolta;
+  const showValorTotal = hasBind(binds, "valortotal", "valor_total");
+  const showParcelas = hasBind(binds, "parcelas_passagem");
 
   return (
     <>
-      {showPassagem && (
-        <Section title="Passagem Aérea" icon="✈️">
+      <Section title="✈ Passagem Aérea" icon="">
+        {/* Destino */}
+        {showDestino && (
+          <Field label="Destino / Resort *" asSection>
+            <SearchableSelect
+              value={(fields.destino as string) || ""}
+              onChange={(v) => {
+                const upper = v.toUpperCase();
+                set("destino", upper);
+                // Trigger 1: onSelect (quando escolhe do dropdown)
+                selectedFromListRef.current = true;
+                if (upper.trim()) onImgFundo?.(upper);
+              }}
+              onBlur={(v) => {
+                // Trigger 2: onBlur (quando digita manual e sai do campo)
+                // Anti-double-call: se acabou de selecionar da lista, ignora
+                if (selectedFromListRef.current) {
+                  selectedFromListRef.current = false;
+                  return;
+                }
+                const upper = v.toUpperCase();
+                if (upper.trim() && upper !== (fields.destino as string || "").toUpperCase()) {
+                  set("destino", upper);
+                  onImgFundo?.(upper);
+                }
+              }}
+              options={destinoOpts}
+              placeholder="ex. CANCÚN"
+              allowCustom
+            />
+          </Field>
+        )}
+
+        {/* Saída + Tipo de Voo (inline) */}
+        <div className="grid grid-cols-2 gap-2">
           {showSaida && (
-            <Field label="Origem/Saída *">
-              <SearchableSelect
+            <Field label="Saída *">
+              <input
+                type="text"
                 value={(fields.saida as string) || ""}
-                onChange={(v) => set("saida", capitalizarDestino(v))}
-                options={destinoOpts}
-                placeholder="Cidade de partida..."
-                allowCustom
+                onChange={(e) => set("saida", e.target.value.toUpperCase())}
+                placeholder="ex: GRU"
+                className={INPUT_CLASS}
               />
             </Field>
           )}
-
-          {showDestino && (
-            <DestinoField
-              value={(fields.destino as string) || ""}
-              onChange={(v) => set("destino", capitalizarDestino(v))}
-              onBlur={() => onImgFundo?.(fields.destino as string)}
-              options={destinoOpts}
-            />
+          {showVoo && (
+            <Field label="Tipo de Voo *">
+              <TipoVooField
+                value={(fields.voo as string) || ""}
+                onChange={(v) => set("voo", v)}
+                variant="buttons"
+              />
+            </Field>
           )}
+        </div>
 
-          {showVoo && <TipoVooField value={(fields.voo as string) || ""} onChange={(v) => set("voo", v)} />}
+        {/* Datas Ida + Volta (inline) */}
+        {(showIda || showVolta) && (
+          <div className="grid grid-cols-2 gap-2">
+            {showIda && (
+              <Field label="Ida *">
+                <input
+                  type="date"
+                  value={(fields.dataida as string) || ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    set("dataida", v);
+                    set("dataida_fmt", fmtDate(v));
+                    const volta = (fields.datavolta as string) || "";
+                    if (v && volta) set("dataperiodo", formatPeriodo(v, volta));
+                  }}
+                  min={today}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
+            {showVolta && (
+              <Field label="Volta *">
+                <input
+                  type="date"
+                  value={(fields.datavolta as string) || ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    set("datavolta", v);
+                    set("datavolta_fmt", fmtDate(v));
+                    const ida = (fields.dataida as string) || "";
+                    if (ida && v) set("dataperiodo", formatPeriodo(ida, v));
+                  }}
+                  min={(fields.dataida as string) || today}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
+          </div>
+        )}
 
-          <DatasField
-            fields={fields}
-            set={set}
-            today={today}
-            binds={binds}
-            labels={{ ida: "Ida", volta: "Volta" }}
-            showNoites={false}
-            onIdaChange={(v) => {
-              set("dataida", v);
-              set("dataida_fmt", fmtDate(v));
-              const volta = (fields.datavolta as string) || "";
-              if (volta) set("dataperiodo", formatPeriodo(v, volta));
-            }}
-            onVoltaChange={(v) => {
-              set("datavolta", v);
-              set("datavolta_fmt", fmtDate(v));
-              const ida = (fields.dataida as string) || "";
-              if (ida) set("dataperiodo", formatPeriodo(ida, v));
-            }}
-          />
-        </Section>
-      )}
-
-      {showIncluso && (
-        <Section title="Incluso" icon="🎒">
-          <Field label="O que está incluso">
-            <textarea
+        {/* Incluso */}
+        {showIncluso && (
+          <Field label="Incluso (opcional)">
+            <input
+              type="text"
               value={(fields.incluso as string) || ""}
               onChange={(e) => set("incluso", e.target.value)}
-              placeholder="ex. Bagagem, Seguro Viagem, Lanche a bordo"
-              className={`${INPUT_CLASS} h-auto resize-none py-2`}
-              rows={3}
+              placeholder=""
+              className={INPUT_CLASS}
             />
           </Field>
-        </Section>
-      )}
+        )}
+      </Section>
 
-      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" binds={binds} />
+      {/* Valor */}
+      <Section title="💰 Valor" icon="">
+        {showValorTotal && (
+          <Field label="Valor por pessoa *">
+            <input
+              type="text"
+              value={(fields.valortotal as string) || ""}
+              onChange={(e) => set("valortotal", e.target.value)}
+              placeholder="ex: 841,49"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        )}
+
+        {/* Parcelas (dropdown 2x-36x) */}
+        {showParcelas && (
+          <Field label="Parcelas">
+            <select
+              value={(fields.parcelas_passagem as string) || ""}
+              onChange={(e) => set("parcelas_passagem", e.target.value)}
+              className={SELECT_CLASS}
+              style={SELECT_STYLE}
+            >
+              <option value="">– nenhum –</option>
+              {PARCELAS_OPTS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+      </Section>
 
       <LegendaPostSection
         fields={fields}
