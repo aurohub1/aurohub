@@ -1715,6 +1715,7 @@ export function AnoiteceuForm({
               type="date"
               value={inicioDate}
               onChange={(e) => set("inicio", dateToShort(e.target.value))}
+              min={today}
               className={INPUT_CLASS}
             />
           </Field>
@@ -1723,6 +1724,7 @@ export function AnoiteceuForm({
               type="date"
               value={fimDate}
               onChange={(e) => set("fim", dateToShort(e.target.value))}
+              min={inicioDate || today}
               className={INPUT_CLASS}
             />
           </Field>
