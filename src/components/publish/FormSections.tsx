@@ -1340,6 +1340,16 @@ export function CruzeiroForm({
                 onChange={(v) => set("navio", v)}
                 onBlur={(v) => {
                   set("navio", v);
+                  // Prioridade: itinerário (primeiro porto) > navio
+                  const itin = (fields.itinerario as string)?.trim();
+                  if (itin) {
+                    const primeiroPorto = itin.split("/")[0]?.trim();
+                    if (primeiroPorto && primeiroPorto !== "Navegação") {
+                      fetchImgFundo(primeiroPorto);
+                      return;
+                    }
+                  }
+                  // Fallback: navio
                   if (v.trim()) fetchImgFundo(v);
                 }}
                 options={NAVIOS_DEFAULT}
@@ -1354,6 +1364,17 @@ export function CruzeiroForm({
               <textarea
                 value={(fields.itinerario as string) || ""}
                 onChange={(e) => set("itinerario", e.target.value)}
+                onBlur={(e) => {
+                  const itin = e.target.value.trim();
+                  set("itinerario", itin);
+                  // Extrair primeiro porto do itinerário (antes do primeiro "/")
+                  if (itin) {
+                    const primeiroPorto = itin.split("/")[0]?.trim();
+                    if (primeiroPorto && primeiroPorto !== "Navegação") {
+                      fetchImgFundo(primeiroPorto);
+                    }
+                  }
+                }}
                 placeholder="Santos / Navegação / Búzios / Navegação / Santos"
                 className={`${INPUT_CLASS} h-auto resize-none py-2`}
                 rows={2}
