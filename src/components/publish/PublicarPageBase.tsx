@@ -1142,7 +1142,6 @@ export default function PublicarPageBase({
               overflowY: "auto",
               overflowX: "hidden",
               padding: "14px",
-              paddingBottom: "200px",
               display: "flex",
               flexDirection: "column",
               gap: "10px",
@@ -1221,6 +1220,8 @@ export default function PublicarPageBase({
                 Formulário de {tab} em breve.
               </div>
             )}
+            {/* Espaçador para garantir scroll acima do footer */}
+            <div style={{ height: "120px", flexShrink: 0 }} />
           </div>
 
           {/* Footer */}
