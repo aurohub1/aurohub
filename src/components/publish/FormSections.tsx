@@ -1694,17 +1694,12 @@ export function AnoiteceuForm({
 
       <Section title="Desconto" icon={<Tag size={13} />}>
         <Field label="Desconto">
-          <select
+          <SearchableSelect
             value={(fields.desconto as string) || ""}
-            onChange={(e) => set("desconto", e.target.value)}
-            className={SELECT_CLASS}
-            style={SELECT_STYLE}
-          >
-            <option value="">Selecione...</option>
-            {DESCONTO_OPTS.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
+            onChange={(v) => set("desconto", v)}
+            options={DESCONTO_OPTS}
+            placeholder="Selecione..."
+          />
         </Field>
       </Section>
 
