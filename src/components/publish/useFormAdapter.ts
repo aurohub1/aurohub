@@ -142,10 +142,13 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
         setField("paraviagens", s);
         return;
       case "inicio":
+        setField("inicio", s);
+        return;
       case "fim":
+        setField("fim", s);
+        return;
       case "paraviagens":
-        // O CampanhaForm/AnoiteceuForm também setam representações curtas ("dd/mm")
-        // mas só pra exibição — ignora; as iso são o source of truth.
+        setField("paraviagens", s);
         return;
       case "formapagamento":
         setField("formapagamento", formaPgtoSpecToLegacy(s));

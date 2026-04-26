@@ -141,7 +141,7 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     }
 
     case "para_viagens_ate": {
-      const raw = values.viagens_ate || "";
+      const raw = values.viagens_ate || values.paraviagens || "";
       if (!raw) return "";
       const [y, m, d] = raw.split("-");
       return `${d}/${m}/${y}`;
