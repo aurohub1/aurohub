@@ -1017,6 +1017,7 @@ export default function PublicarPageBase({
             borderRight: "1px solid var(--bdr)",
             display: "flex",
             flexDirection: "column",
+            minHeight: 0,
           }}
         >
           {/* Pills de formato */}
