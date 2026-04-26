@@ -28,6 +28,7 @@ export { SugerirLegenda };
 // Unificadas (Fase 1 refactor)
 export const DESCONTO_OPTS = ["5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%"];
 export const PARCELAS_OPTS = Array.from({ length: 35 }, (_, i) => `${i + 2}x`); // 2x-36x
+export const PARCELAS_OPTS_PASSAGEM = Array.from({ length: 23 }, (_, i) => `${i + 2}x`); // 2x-24x
 export const VOO_OPTS = ["Voo Direto", "Voo Conexão"];
 
 // Legados (manter compat temporária)
@@ -368,7 +369,7 @@ export function TipoVooField({
   return (
     <div
       className="flex rounded-lg border p-0.5"
-      style={{ background: "var(--bg2)", borderColor: "var(--bdr)", gap: "8px", flexWrap: "nowrap" }}
+      style={{ background: "var(--bg2)", borderColor: "var(--bdr)", gap: "8px", flexWrap: "wrap" }}
     >
       {opts.map((opt) => {
         const fullOpt = opt === "Voo Direto" ? "( Voo Direto )" : "( Voo Conexão )";
@@ -378,7 +379,7 @@ export function TipoVooField({
             key={opt}
             type="button"
             onClick={() => onChange(fullOpt)}
-            className="flex-1 whitespace-nowrap font-semibold transition-all"
+            className="flex-1 font-semibold transition-all"
             style={
               sel
                 ? { background: "var(--brand-primary)", color: "#FFFFFF", boxShadow: "0 1px 6px color-mix(in srgb, var(--brand-primary) 40%, transparent)", padding: "6px 16px", fontSize: "11px", borderRadius: "8px" }
@@ -1417,14 +1418,33 @@ export function PassagemForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Handlers com formatação especial (igual PacoteForm)
+  const onValorParcelaChange = (raw: string) => {
+    const clean = raw.replace(/[^\d,.]/g, "");
+    set("valorparcela", clean);
+    const nums = clean.replace(/\D/g, "");
+    if (nums) {
+      const n = parseInt(nums, 10);
+      set("valorint", Math.floor(n / 100).toLocaleString("pt-BR"));
+      set("valdec", "," + String(n % 100).padStart(2, "0"));
+    } else {
+      set("valorint", "");
+      set("valdec", "");
+    }
+  };
+
   const showDestino = hasBind(binds, "destino");
-  const showSaida = hasBind(binds, "saida", "origem");
+  const showAeroporto = hasBind(binds, "aeroporto", "saida", "origem");
+  const showDataSaida = hasBind(binds, "data_saida");
   const showVoo = hasBind(binds, "voo", "tipovoo");
   const showIda = hasBind(binds, "dataida");
   const showVolta = hasBind(binds, "datavolta");
   const showIncluso = hasBind(binds, "incluso");
+  const showValorParcela = hasBind(binds, "valorparcela", "valorint", "valdec");
+  const showParcelas = hasBind(binds, "parcelas");
   const showValorTotal = hasBind(binds, "valortotal", "valor_total");
-  const showParcelas = hasBind(binds, "parcelas_passagem");
+  const showFormaPgto = hasBind(binds, "formapagamento");
+  const showEntrada = fields.formapagamento === "entrada";
 
   return (
     <>
@@ -1461,15 +1481,30 @@ export function PassagemForm({
           </Field>
         )}
 
-        {/* Saída + Tipo de Voo (inline) */}
+        {/* Aeroporto (Saída) + Data de Saída + Tipo de Voo (inline grid) */}
         <div className="grid grid-cols-2 gap-2">
-          {showSaida && (
-            <Field label="Saída *">
+          {showAeroporto && (
+            <Field label="Aeroporto (Saída) *">
               <input
                 type="text"
-                value={(fields.saida as string) || ""}
-                onChange={(e) => set("saida", e.target.value.toUpperCase())}
+                value={(fields.aeroporto as string) || (fields.saida as string) || ""}
+                onChange={(e) => {
+                  const v = e.target.value.toUpperCase();
+                  set("aeroporto", v);
+                  set("saida", v); // Compat com binds antigos
+                }}
                 placeholder="ex: GRU"
+                className={INPUT_CLASS}
+              />
+            </Field>
+          )}
+          {showDataSaida && (
+            <Field label="Data de Saída *">
+              <input
+                type="date"
+                value={(fields.data_saida as string) || ""}
+                onChange={(e) => set("data_saida", e.target.value)}
+                min={today}
                 className={INPUT_CLASS}
               />
             </Field>
@@ -1539,12 +1574,47 @@ export function PassagemForm({
         )}
       </Section>
 
-      {/* Valor */}
+      {/* Valor e Pagamento */}
       <Section title="💰 Valor" icon="">
-        {showValorTotal && (
-          <Field label="Valor por pessoa *">
+        {/* Valor da Parcela (número grande + centavos pequenos) */}
+        {showValorParcela && (
+          <Field label="Valor da Parcela *">
             <input
               type="text"
+              inputMode="decimal"
+              value={(fields.valorparcela as string) || ""}
+              onChange={(e) => onValorParcelaChange(e.target.value)}
+              placeholder="ex: 890,00"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        )}
+
+        {/* Parcelas (dropdown 2x-24x) */}
+        {showParcelas && (
+          <Field label="Parcelas *">
+            <select
+              value={(fields.parcelas as string) || ""}
+              onChange={(e) => set("parcelas", e.target.value)}
+              className={SELECT_CLASS}
+              style={SELECT_STYLE}
+            >
+              <option value="">– nenhum –</option>
+              {PARCELAS_OPTS_PASSAGEM.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+
+        {/* Valor Total */}
+        {showValorTotal && (
+          <Field label="Valor Total (por pessoa) *">
+            <input
+              type="text"
+              inputMode="decimal"
               value={(fields.valortotal as string) || ""}
               onChange={(e) => set("valortotal", e.target.value)}
               placeholder="ex: 841,49"
@@ -1553,22 +1623,35 @@ export function PassagemForm({
           </Field>
         )}
 
-        {/* Parcelas (dropdown 2x-36x) */}
-        {showParcelas && (
-          <Field label="Parcelas">
+        {/* Forma de Pagamento */}
+        {showFormaPgto && (
+          <Field label="Forma de Pagamento *">
             <select
-              value={(fields.parcelas_passagem as string) || ""}
-              onChange={(e) => set("parcelas_passagem", e.target.value)}
+              value={(fields.formapagamento as string) || ""}
+              onChange={(e) => set("formapagamento", e.target.value)}
               className={SELECT_CLASS}
               style={SELECT_STYLE}
             >
-              <option value="">– nenhum –</option>
-              {PARCELAS_OPTS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
+              <option value="">Selecione...</option>
+              <option value="cartao">Cartão de Crédito</option>
+              <option value="entrada">Boleto</option>
+              <option value="debito">Débito</option>
+              <option value="pix">PIX</option>
             </select>
+          </Field>
+        )}
+
+        {/* Entrada (condicional - só aparece quando formapagamento === "entrada") */}
+        {showEntrada && (
+          <Field label="Valor da Entrada (R$) *">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={(fields.entrada as string) || ""}
+              onChange={(e) => set("entrada", e.target.value.replace(/[^\d,.]/g, ""))}
+              placeholder="ex: 1.500,00"
+              className={INPUT_CLASS}
+            />
           </Field>
         )}
       </Section>
@@ -1579,7 +1662,7 @@ export function PassagemForm({
         formato={formato}
         nomeLoja={nomeLoja}
         tipoArte="pacote"
-        destino={(fields.destino as string) || (fields.saida as string) || "Passagem"}
+        destino={(fields.destino as string) || (fields.aeroporto as string) || (fields.saida as string) || "Passagem"}
       />
     </>
   );
