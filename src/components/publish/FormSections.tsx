@@ -1285,6 +1285,22 @@ export function CruzeiroForm({
   const showIncluso = hasBind(binds, "incluso");
   const showCruz = showNavio || showItin || showIda || showVolta;
 
+  // Bind derivado - valortotaltexto
+  useEffect(() => {
+    const valortotal = fields.valortotal as string;
+    if (valortotal) {
+      set("valortotaltexto", `R$ ${valortotal}`);
+    }
+  }, [fields.valortotal, set]);
+
+  // Sincronizar forma_pgto com formapagamento (template usa forma_pgto)
+  useEffect(() => {
+    const formapagamento = fields.formapagamento as string;
+    if (formapagamento) {
+      set("forma_pgto", formapagamento);
+    }
+  }, [fields.formapagamento, set]);
+
   return (
     <>
       {showCruz && (
@@ -1323,10 +1339,14 @@ export function CruzeiroForm({
             onIdaChange={(v) => {
               set("dataida", v);
               set("dataida_fmt", fmtDate(v));
+              const volta = (fields.datavolta as string) || "";
+              if (volta) set("dataperiodo", formatPeriodo(v, volta));
             }}
             onVoltaChange={(v) => {
               set("datavolta", v);
               set("datavolta_fmt", fmtDate(v));
+              const ida = (fields.dataida as string) || "";
+              if (ida) set("dataperiodo", formatPeriodo(ida, v));
             }}
           />
 
@@ -1389,11 +1409,29 @@ export function PassagemForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Binds derivados - textoparcelas
+  useEffect(() => {
+    const parcelas = fields.parcelas as string;
+    const valorparcela = fields.valorparcela as string;
+    if (parcelas && valorparcela) {
+      set("textoparcelas", `${parcelas} de R$ ${valorparcela}`);
+    }
+  }, [fields.parcelas, fields.valorparcela, set]);
+
+  // Binds derivados - valortotaltexto
+  useEffect(() => {
+    const valortotal = fields.valortotal as string;
+    if (valortotal) {
+      set("valortotaltexto", `R$ ${valortotal}`);
+    }
+  }, [fields.valortotal, set]);
+
   const showSaida = hasBind(binds, "saida", "origem");
   const showDestino = hasBind(binds, "destino");
-  const showTipovoo = hasBind(binds, "tipovoo");
+  const showVoo = hasBind(binds, "voo", "tipovoo");
   const showIda = hasBind(binds, "dataida");
   const showVolta = hasBind(binds, "datavolta");
+  const showIncluso = hasBind(binds, "incluso");
   const showPassagem = showSaida || showDestino || showIda || showVolta;
 
   return (
@@ -1420,7 +1458,7 @@ export function PassagemForm({
             />
           )}
 
-          {showTipovoo && <TipoVooField value={(fields.tipovoo as string) || ""} onChange={(v) => set("tipovoo", v)} />}
+          {showVoo && <TipoVooField value={(fields.voo as string) || ""} onChange={(v) => set("voo", v)} />}
 
           <DatasField
             fields={fields}
@@ -1442,6 +1480,20 @@ export function PassagemForm({
               if (ida) set("dataperiodo", formatPeriodo(ida, v));
             }}
           />
+        </Section>
+      )}
+
+      {showIncluso && (
+        <Section title="Incluso" icon="🎒">
+          <Field label="O que está incluso">
+            <textarea
+              value={(fields.incluso as string) || ""}
+              onChange={(e) => set("incluso", e.target.value)}
+              placeholder="ex. Bagagem, Seguro Viagem, Lanche a bordo"
+              className={`${INPUT_CLASS} h-auto resize-none py-2`}
+              rows={3}
+            />
+          </Field>
         </Section>
       )}
 
