@@ -1661,6 +1661,13 @@ export function AnoiteceuForm({
 }) {
   const today = new Date().toISOString().slice(0, 10);
 
+  // Máscara DD/MM: aceita apenas números, insere / após 2 dígitos
+  const maskDDMM = (value: string): string => {
+    const digits = value.replace(/\D/g, "").slice(0, 4); // máx 4 dígitos
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  };
+
   return (
     <>
       <div className="mb-3 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 px-4 py-3 backdrop-blur-sm">
@@ -1693,19 +1700,21 @@ export function AnoiteceuForm({
         <div className="grid grid-cols-2 gap-2">
           <Field label="INÍCIO">
             <input
-              type="date"
+              type="text"
               value={(fields.inicio as string) || ""}
-              onChange={(e) => set("inicio", e.target.value)}
-              min={today}
+              onChange={(e) => set("inicio", maskDDMM(e.target.value))}
+              placeholder="ex: 28/04"
+              maxLength={5}
               className={INPUT_CLASS}
             />
           </Field>
           <Field label="FIM">
             <input
-              type="date"
+              type="text"
               value={(fields.fim as string) || ""}
-              onChange={(e) => set("fim", e.target.value)}
-              min={(fields.inicio as string) || today}
+              onChange={(e) => set("fim", maskDDMM(e.target.value))}
+              placeholder="ex: 30/04"
+              maxLength={5}
               className={INPUT_CLASS}
             />
           </Field>
