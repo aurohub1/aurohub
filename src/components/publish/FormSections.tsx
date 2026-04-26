@@ -881,7 +881,7 @@ export function PacoteForm({
                   {/* V1 .radio-group + .radio-btn.on — botões inline, altura 32px, font 12px, gap 8px. */}
                   <div
                     className="flex rounded-lg border p-0.5"
-                    style={{ background: "var(--bg2)", borderColor: "var(--bdr)", gap: "8px", flexWrap: "nowrap" }}
+                    style={{ background: "var(--bg2)", borderColor: "var(--bdr)", gap: "8px", flexWrap: "wrap" }}
                   >
                     {["( Voo Direto )", "( Voo Conexão )"].map((opt) => {
                       const sel = fields.tipovoo === opt;
@@ -890,7 +890,7 @@ export function PacoteForm({
                           key={opt}
                           type="button"
                           onClick={() => set("tipovoo", opt)}
-                          className="flex-1 whitespace-nowrap font-semibold transition-all"
+                          className="flex-1 font-semibold transition-all"
                           style={
                             sel
                               ? { background: "var(--brand-primary)", color: "#FFFFFF", boxShadow: "0 1px 6px color-mix(in srgb, var(--brand-primary) 40%, transparent)", padding: "6px 16px", fontSize: "11px", borderRadius: "8px" }
@@ -1434,11 +1434,10 @@ export function PassagemForm({
   };
 
   const showDestino = hasBind(binds, "destino");
-  const showAeroporto = hasBind(binds, "aeroporto", "saida", "origem");
-  const showDataSaida = hasBind(binds, "data_saida");
+  const showSaida = hasBind(binds, "saida", "aeroporto", "origem");
   const showVoo = hasBind(binds, "voo", "tipovoo");
-  const showIda = hasBind(binds, "dataida");
-  const showVolta = hasBind(binds, "datavolta");
+  const showIda = hasBind(binds, "ida");
+  const showVolta = hasBind(binds, "volta");
   const showIncluso = hasBind(binds, "incluso");
   const showValorParcela = hasBind(binds, "valorparcela", "valorint", "valdec");
   const showParcelas = hasBind(binds, "parcelas");
@@ -1481,30 +1480,15 @@ export function PassagemForm({
           </Field>
         )}
 
-        {/* Aeroporto (Saída) + Data de Saída + Tipo de Voo (inline grid) */}
+        {/* Saída + Tipo de Voo (inline grid) */}
         <div className="grid grid-cols-2 gap-2">
-          {showAeroporto && (
-            <Field label="Aeroporto (Saída) *">
+          {showSaida && (
+            <Field label="Saída *">
               <input
                 type="text"
-                value={(fields.aeroporto as string) || (fields.saida as string) || ""}
-                onChange={(e) => {
-                  const v = e.target.value.toUpperCase();
-                  set("aeroporto", v);
-                  set("saida", v); // Compat com binds antigos
-                }}
+                value={(fields.saida as string) || ""}
+                onChange={(e) => set("saida", e.target.value.toUpperCase())}
                 placeholder="ex: GRU"
-                className={INPUT_CLASS}
-              />
-            </Field>
-          )}
-          {showDataSaida && (
-            <Field label="Data de Saída *">
-              <input
-                type="date"
-                value={(fields.data_saida as string) || ""}
-                onChange={(e) => set("data_saida", e.target.value)}
-                min={today}
                 className={INPUT_CLASS}
               />
             </Field>
@@ -1527,13 +1511,12 @@ export function PassagemForm({
               <Field label="Ida *">
                 <input
                   type="date"
-                  value={(fields.dataida as string) || ""}
+                  value={(fields.ida as string) || ""}
                   onChange={(e) => {
                     const v = e.target.value;
-                    set("dataida", v);
-                    set("dataida_fmt", fmtDate(v));
-                    const volta = (fields.datavolta as string) || "";
-                    if (v && volta) set("dataperiodo", formatPeriodo(v, volta));
+                    set("ida", v);
+                    const volta = (fields.volta as string) || "";
+                    if (v && volta) set("periodo", formatPeriodo(v, volta));
                   }}
                   min={today}
                   className={INPUT_CLASS}
@@ -1544,15 +1527,14 @@ export function PassagemForm({
               <Field label="Volta *">
                 <input
                   type="date"
-                  value={(fields.datavolta as string) || ""}
+                  value={(fields.volta as string) || ""}
                   onChange={(e) => {
                     const v = e.target.value;
-                    set("datavolta", v);
-                    set("datavolta_fmt", fmtDate(v));
-                    const ida = (fields.dataida as string) || "";
-                    if (ida && v) set("dataperiodo", formatPeriodo(ida, v));
+                    set("volta", v);
+                    const ida = (fields.ida as string) || "";
+                    if (ida && v) set("periodo", formatPeriodo(ida, v));
                   }}
-                  min={(fields.dataida as string) || today}
+                  min={(fields.ida as string) || today}
                   className={INPUT_CLASS}
                 />
               </Field>
@@ -1576,9 +1558,9 @@ export function PassagemForm({
 
       {/* Valor e Pagamento */}
       <Section title="💰 Valor" icon="">
-        {/* Valor da Parcela (número grande + centavos pequenos) */}
+        {/* Valor por Pessoa (número grande + centavos pequenos) */}
         {showValorParcela && (
-          <Field label="Valor da Parcela *">
+          <Field label="Valor por Pessoa *">
             <input
               type="text"
               inputMode="decimal"
