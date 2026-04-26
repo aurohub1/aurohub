@@ -160,6 +160,25 @@ export const NAVIOS_DEFAULT = [
   "Sapphire Princess",
   "Caribbean Princess",
   "Island Princess",
+  // ═══════════════════════════════════════════════════════
+  // Oceania Cruises — 6 navios
+  // ═══════════════════════════════════════════════════════
+  "— OCEANIA —",
+  "Oceania Riviera",
+  "Oceania Marina",
+  "Oceania Vista",
+  "Oceania Insignia",
+  "Oceania Nautica",
+  "Oceania Regatta",
+  // ═══════════════════════════════════════════════════════
+  // Disney Cruise Line — 5 navios
+  // ═══════════════════════════════════════════════════════
+  "— DISNEY —",
+  "Disney Wish",
+  "Disney Fantasy",
+  "Disney Dream",
+  "Disney Magic",
+  "Disney Wonder",
 ];
 
 /* ── Helpers ─────────────────────────────────────────── */
@@ -1412,21 +1431,24 @@ export function CampanhaForm({
 
 /* ── CruzeiroForm ───────────────────────────────────── */
 
+// URLs exatas dos logos das companhias marítimas (V1 client.js linha 1708-1716)
+const CIA_LOGOS: Record<string, string> = {
+  'ROYAL':     'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106662/royal_madqky.png',
+  'CELEBRITY': 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106665/xcruise_blcv45.png',
+  'PRINCESS':  'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106664/princess_xteony.png',
+  'OCEANIA':   'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106671/ocean_mccpbc.png',
+  'NORWEGIAN': 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106667/norwegian_ugg7j9.png',
+  'MSC':       'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106669/msc_uqiqji.png',
+  'COSTA':     'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106668/costa_rzno1p.png',
+  'DISNEY':    'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106663/disney_ttcdgq.png',
+};
+
 function detectCompaniaLogo(navio: string): string {
-  const upper = navio.toUpperCase();
-  if (upper.includes("MSC")) {
-    return "https://res.cloudinary.com/dxgj4bcch/image/upload/logos/msc_logo.png";
+  const n = (navio || '').toUpperCase();
+  for (const [cia, url] of Object.entries(CIA_LOGOS)) {
+    if (n.includes(cia)) return url;
   }
-  if (upper.includes("COSTA")) {
-    return "https://res.cloudinary.com/dxgj4bcch/image/upload/logos/costa_logo.png";
-  }
-  if (upper.includes("NORWEGIAN")) {
-    return "https://res.cloudinary.com/dxgj4bcch/image/upload/logos/norwegian_logo.png";
-  }
-  if (upper.includes("CARNIVAL")) {
-    return "https://res.cloudinary.com/dxgj4bcch/image/upload/logos/carnival_logo.png";
-  }
-  return "";
+  return '';
 }
 
 export function CruzeiroForm({
@@ -1463,13 +1485,21 @@ export function CruzeiroForm({
     }
   }, [fields.formapagamento, set]);
 
-  // Auto-detectar logo da companhia pelo nome do navio
+  // Auto-detectar logo da companhia e imgfundo pelo nome do navio
   useEffect(() => {
     const navio = fields.navio as string;
     if (navio) {
+      // Logo da companhia
       const logo = detectCompaniaLogo(navio);
       if (logo) {
         set("logo_cia", logo);
+      }
+
+      // Imagem de fundo: usar overlay padrão do cruzeiro (mesmo do V1)
+      // V1 usa API.getImgCruise(navio) mas não há imagens de navios na tabela imgfundo
+      // Usar imagem padrão do template Cruzeiro Stories
+      if (!fields.imgfundo) {
+        set("imgfundo", "https://res.cloudinary.com/dxgj4bcch/image/upload/BARRETOS_-_BULK_CRUZEIRO_1_s6xcdn.png");
       }
     }
   }, [fields.navio, set]);
