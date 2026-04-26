@@ -1369,6 +1369,23 @@ export function CampanhaForm({
 
 /* ── CruzeiroForm ───────────────────────────────────── */
 
+function detectCompaniaLogo(navio: string): string {
+  const upper = navio.toUpperCase();
+  if (upper.includes("MSC")) {
+    return "https://res.cloudinary.com/dxgj4bcch/image/upload/logos/msc_logo.png";
+  }
+  if (upper.includes("COSTA")) {
+    return "https://res.cloudinary.com/dxgj4bcch/image/upload/logos/costa_logo.png";
+  }
+  if (upper.includes("NORWEGIAN")) {
+    return "https://res.cloudinary.com/dxgj4bcch/image/upload/logos/norwegian_logo.png";
+  }
+  if (upper.includes("CARNIVAL")) {
+    return "https://res.cloudinary.com/dxgj4bcch/image/upload/logos/carnival_logo.png";
+  }
+  return "";
+}
+
 export function CruzeiroForm({
   fields, set, today, binds, formato, nomeLoja, onImgFundo,
 }: {
@@ -1402,6 +1419,17 @@ export function CruzeiroForm({
       set("forma_pgto", formapagamento);
     }
   }, [fields.formapagamento, set]);
+
+  // Auto-detectar logo da companhia pelo nome do navio
+  useEffect(() => {
+    const navio = fields.navio as string;
+    if (navio) {
+      const logo = detectCompaniaLogo(navio);
+      if (logo) {
+        set("logo_cia", logo);
+      }
+    }
+  }, [fields.navio, set]);
 
   return (
     <>
