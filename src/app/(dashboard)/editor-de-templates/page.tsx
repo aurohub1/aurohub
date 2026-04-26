@@ -32,6 +32,12 @@ export default function EditorTemplatesPage() {
   const [cloneSelectedLojas, setCloneSelectedLojas] = useState<Set<string>>(new Set());
   const [cloneCustomName, setCloneCustomName] = useState<string>("");
 
+  // Publish modal (template → licensees)
+  const [publishKey, setPublishKey] = useState<string | null>(null);
+  const [publishSelectedLicensees, setPublishSelectedLicensees] = useState<Set<string>>(new Set());
+  const [publishForAll, setPublishForAll] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
   useEffect(() => {
     (async () => {
       const p = await getProfile(supabase);
@@ -372,28 +378,37 @@ export default function EditorTemplatesPage() {
     }
   }
 
-  // Publica um template (seta is_base: true)
-  async function publishTemplate(key: string) {
-    if (!confirm("Publicar este template para todos os clientes?\n\nEle ficará visível na biblioteca de templates.")) {
+  // Abre modal de publicação
+  function publishTemplate(key: string) {
+    setPublishKey(key);
+    setPublishSelectedLicensees(new Set());
+    setPublishForAll(false);
+  }
+
+  // Executa a publicação
+  async function executePublish() {
+    if (!publishKey) return;
+    if (!publishForAll && publishSelectedLicensees.size === 0) {
+      alert("Selecione pelo menos um cliente ou marque 'Publicar para TODOS'.");
       return;
     }
+
+    setPublishing(true);
     try {
       // 1. Buscar template no system_config
-      const { data: row } = await supabase.from("system_config").select("value").eq("key", key).single();
+      const { data: row } = await supabase.from("system_config").select("value").eq("key", publishKey).single();
       if (!row?.value) {
         alert("Template não encontrado.");
+        setPublishing(false);
         return;
       }
       const parsed = JSON.parse(row.value);
 
-      // 2. Upsert em form_templates com is_base: true
-      await supabase.from("form_templates").upsert({
-        name: parsed.nome || key,
+      const templateData = {
+        name: parsed.nome || publishKey,
         form_type: parsed.formType || "pacote",
         format: parsed.format || "stories",
-        is_base: true,
         active: true,
-        licensee_id: null,
         schema: {
           elements: parsed.elements || [],
           background: parsed.background || "#0E1520",
@@ -404,13 +419,34 @@ export default function EditorTemplatesPage() {
         },
         width: parsed.width || 1080,
         height: parsed.height || 1920,
-      }, { onConflict: "name,form_type,format" });
+      };
 
-      alert("Template publicado com sucesso!");
+      // 2. Publicar para TODOS (is_base: true)
+      if (publishForAll) {
+        await supabase.from("form_templates").upsert({
+          ...templateData,
+          is_base: true,
+          licensee_id: null,
+        }, { onConflict: "name,form_type,format" });
+      }
+
+      // 3. Publicar para clientes específicos (is_base: false, licensee_id específico)
+      for (const licenseeId of publishSelectedLicensees) {
+        await supabase.from("form_templates").insert({
+          ...templateData,
+          is_base: false,
+          licensee_id: licenseeId,
+        });
+      }
+
+      alert(`Template publicado com sucesso!`);
+      setPublishKey(null);
       await loadCanvasTemplates();
     } catch (err) {
       console.error("[Publish]", err);
       alert("Falha ao publicar template.");
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -705,6 +741,110 @@ export default function EditorTemplatesPage() {
                 className="rounded-lg bg-[var(--orange)] px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
               >
                 {cloning ? "Clonando..." : "Clonar"}
+              </button>
+            </div>
+          </div>
+        </Ov>
+      )}
+
+      {/* Publish modal (template → licensees) */}
+      {publishKey && (
+        <Ov onClose={() => setPublishKey(null)}>
+          <div className="mx-4 flex w-full max-w-[420px] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
+            <div className="border-b border-[var(--bdr)] px-6 py-4">
+              <div className="text-[15px] font-bold text-[var(--txt)]">Publicar template</div>
+              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Escolha para quem disponibilizar</div>
+            </div>
+            <div className="max-h-[50vh] flex-1 overflow-y-auto px-6 py-4">
+              <div className="flex flex-col gap-4">
+                {/* Thumbnail do template */}
+                {(() => {
+                  const tmpl = canvasTemplates.find(t => t.key === publishKey);
+                  return tmpl?.thumbnail ? (
+                    <div className="rounded-lg border border-[var(--bdr)] overflow-hidden" style={{ height: "120px", background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)" }}>
+                      <img src={tmpl.thumbnail} alt={tmpl.nome} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Publicar para TODOS */}
+                <div className="rounded-lg border-2 border-green-500 bg-green-50 dark:bg-green-950 p-3">
+                  <label className="flex cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={publishForAll}
+                      onChange={(e) => setPublishForAll(e.target.checked)}
+                      className="h-4 w-4 accent-green-600"
+                    />
+                    <div className="flex-1">
+                      <div className="text-[13px] font-bold text-green-700 dark:text-green-400">Publicar para TODOS os clientes</div>
+                      <div className="mt-0.5 text-[10px] text-green-600 dark:text-green-500">Template base visível para todos</div>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Clientes específicos */}
+                <div>
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--txt3)]">
+                    Ou selecione clientes específicos ({publishSelectedLicensees.size})
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {licensees.length === 0 ? (
+                      <div className="text-[12px] text-[var(--txt3)]">Nenhum licensee cadastrado.</div>
+                    ) : (
+                      licensees.map((l) => {
+                        const selected = publishSelectedLicensees.has(l.id);
+                        return (
+                          <label
+                            key={l.id}
+                            className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2.5 hover:bg-[var(--hover-bg)] ${selected ? "border-[var(--orange)] bg-[var(--orange3)]" : "border-[var(--bdr)]"}`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                                style={{ background: getLicColor(l.name) }}
+                              >
+                                {getInitials(l.name) || "·"}
+                              </span>
+                              <span className={`text-[13px] font-medium ${selected ? "text-[var(--orange)]" : "text-[var(--txt)]"}`}>{l.name}</span>
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => {
+                                const next = new Set(publishSelectedLicensees);
+                                if (next.has(l.id)) {
+                                  next.delete(l.id);
+                                } else {
+                                  next.add(l.id);
+                                }
+                                setPublishSelectedLicensees(next);
+                              }}
+                              className="accent-[var(--orange)]"
+                            />
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 border-t border-[var(--bdr)] px-6 py-4">
+              <button
+                type="button"
+                onClick={() => { setPublishKey(null); setPublishSelectedLicensees(new Set()); setPublishForAll(false); }}
+                className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={executePublish}
+                disabled={!publishForAll && publishSelectedLicensees.size === 0 || publishing}
+                className="rounded-lg bg-green-600 px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+              >
+                {publishing ? "Publicando..." : "Publicar"}
               </button>
             </div>
           </div>
