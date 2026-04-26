@@ -94,6 +94,22 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     case "parcelaspassagem":
       return values.parcelaspassagem || values.parcelas || "";
 
+    // Campos de passagem (migração V2)
+    case "periodo":
+      return values.periodo || "";
+    case "saida":
+      return values.saida || "";
+    case "voo":
+      return values.voo || "";
+    case "incluso":
+      return values.incluso || "";
+    case "valorparcela":
+      return values.valorparcela || "";
+    case "valortotal":
+      return values.valortotal || "";
+    case "parcelas":
+      return values.parcelas || "";
+
     // Desconto: só o número sem "%" — v1 client.js:946-952
     case "desconto":
     case "desconto_valor": {
