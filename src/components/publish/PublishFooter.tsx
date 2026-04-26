@@ -40,6 +40,7 @@ export function PublishFooter({
     <div
       style={{
         padding: "8px 14px 16px",
+        paddingBottom: "80px",
         borderTop: "1px solid var(--bdr)",
         display: "flex",
         flexDirection: "column",
