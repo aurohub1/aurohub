@@ -34,9 +34,11 @@ export default function EditorTemplatesPage() {
 
   // Access modal
   const [accessKey, setAccessKey] = useState<string | null>(null);
-  const [accessLicensees, setAccessLicensees] = useState<Set<string>>(new Set());
+  // Map: licenseeId → Set<storeId> (vazio = todas as lojas)
+  const [accessSelections, setAccessSelections] = useState<Map<string, Set<string>>>(new Map());
   const [accessIsBase, setAccessIsBase] = useState(false);
   const [savingAccess, setSavingAccess] = useState(false);
+  const [licenseeStores, setLicenseeStores] = useState<Map<string, { id: string; name: string }[]>>(new Map());
 
 
   useEffect(() => {
@@ -152,19 +154,34 @@ export default function EditorTemplatesPage() {
         .like("key", "tmpl_%")
         .order("updated_at", { ascending: false });
 
-      // Busca todos os acessos de template_access
+      // Busca todos os acessos de template_access com joins
       const { data: accessData } = await supabase
         .from("template_access")
-        .select("template_key,licensee_id,licensees(name)");
+        .select("template_key,licensee_id,store_id,licensees(name),stores(name)");
 
-      // Mapa: template_key → array de nomes de licensees
+      // Mapa: template_key → array de strings descritivas
       const accessMap = new Map<string, string[]>();
       if (accessData) {
-        for (const rec of accessData as { template_key: string; licensee_id: string; licensees: { name: string } | null }[]) {
+        for (const rec of accessData as {
+          template_key: string;
+          licensee_id: string;
+          store_id: string | null;
+          licensees: { name: string } | null;
+          stores: { name: string } | null;
+        }[]) {
           const key = rec.template_key;
-          const name = rec.licensees?.name ?? "Cliente desconhecido";
+          const licName = rec.licensees?.name ?? "Cliente desconhecido";
+
           if (!accessMap.has(key)) accessMap.set(key, []);
-          accessMap.get(key)!.push(name);
+
+          if (rec.store_id === null) {
+            // Todas as lojas da marca
+            accessMap.get(key)!.push(`${licName} (todas)`);
+          } else {
+            // Loja específica
+            const storeName = rec.stores?.name ?? "Loja";
+            accessMap.get(key)!.push(`${licName} - ${storeName}`);
+          }
         }
       }
 
@@ -358,13 +375,36 @@ export default function EditorTemplatesPage() {
     const tmpl = canvasTemplates.find(t => t.key === key);
     setAccessIsBase(tmpl?.isBase ?? false);
 
-    // Busca licensees que têm acesso
+    // Carrega lojas de todos os licensees
+    const storesMap = new Map<string, { id: string; name: string }[]>();
+    for (const lic of licensees) {
+      const { data } = await supabase
+        .from("stores")
+        .select("id,name")
+        .eq("licensee_id", lic.id)
+        .order("name");
+      storesMap.set(lic.id, (data as { id: string; name: string }[]) ?? []);
+    }
+    setLicenseeStores(storesMap);
+
+    // Busca acessos existentes (licensee_id + store_id)
     const { data } = await supabase
       .from("template_access")
-      .select("licensee_id")
+      .select("licensee_id,store_id")
       .eq("template_key", key);
-    const licIds = new Set((data ?? []).map((r: { licensee_id: string }) => r.licensee_id));
-    setAccessLicensees(licIds);
+
+    // Monta Map: licenseeId → Set<storeId>
+    const selections = new Map<string, Set<string>>();
+    for (const rec of (data ?? []) as { licensee_id: string; store_id: string | null }[]) {
+      if (!selections.has(rec.licensee_id)) {
+        selections.set(rec.licensee_id, new Set());
+      }
+      if (rec.store_id) {
+        selections.get(rec.licensee_id)!.add(rec.store_id);
+      }
+      // Se store_id é null, deixa o Set vazio (= todas as lojas)
+    }
+    setAccessSelections(selections);
   };
 
   // Salva acesso do template
@@ -395,18 +435,31 @@ export default function EditorTemplatesPage() {
         .delete()
         .eq("template_key", accessKey);
 
-      // Se não é base, insere os licensees selecionados
-      if (!accessIsBase && accessLicensees.size > 0) {
-        const rows = [...accessLicensees].map(licId => ({
-          template_key: accessKey,
-          licensee_id: licId,
-        }));
-        await supabase.from("template_access").insert(rows);
+      // Se não é base, insere os registros
+      if (!accessIsBase && accessSelections.size > 0) {
+        const rows: { template_key: string; licensee_id: string; store_id: string | null }[] = [];
+
+        for (const [licId, storeIds] of accessSelections.entries()) {
+          if (storeIds.size === 0) {
+            // Todas as lojas → salva sem store_id
+            rows.push({ template_key: accessKey, licensee_id: licId, store_id: null });
+          } else {
+            // Lojas específicas → um registro por loja
+            for (const storeId of storeIds) {
+              rows.push({ template_key: accessKey, licensee_id: licId, store_id: storeId });
+            }
+          }
+        }
+
+        if (rows.length > 0) {
+          await supabase.from("template_access").insert(rows);
+        }
       }
 
       setAccessKey(null);
-      setAccessLicensees(new Set());
+      setAccessSelections(new Map());
       setAccessIsBase(false);
+      setLicenseeStores(new Map());
       await loadCanvasTemplates();
     } catch (err) {
       console.error("[Save access]", err);
@@ -762,12 +815,12 @@ export default function EditorTemplatesPage() {
       {/* Access modal */}
       {accessKey && (
         <Ov onClose={() => setAccessKey(null)}>
-          <div className="mx-4 flex w-full max-w-[420px] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
+          <div className="mx-4 flex w-full max-w-[500px] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
             <div className="border-b border-[var(--bdr)] px-6 py-4">
               <div className="text-[15px] font-bold text-[var(--txt)]">Gerenciar acesso ao template</div>
-              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Escolha quais clientes podem usar este template</div>
+              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Escolha quais clientes e lojas podem usar este template</div>
             </div>
-            <div className="max-h-[50vh] flex-1 overflow-y-auto px-6 py-4">
+            <div className="max-h-[60vh] flex-1 overflow-y-auto px-6 py-4">
               <div className="flex flex-col gap-4">
                 {/* Checkbox "Todos (base)" */}
                 <div className="rounded-lg border border-[var(--bdr)] p-3">
@@ -778,56 +831,123 @@ export default function EditorTemplatesPage() {
                       onChange={(e) => {
                         setAccessIsBase(e.target.checked);
                         if (e.target.checked) {
-                          setAccessLicensees(new Set());
+                          setAccessSelections(new Map());
                         }
                       }}
                       className="accent-[var(--orange)]"
                     />
                     <div className="flex flex-col">
                       <span className="text-[13px] font-bold text-[var(--txt)]">Todos os clientes (template base)</span>
-                      <span className="text-[10px] text-[var(--txt3)]">Visível para todos os licensees</span>
+                      <span className="text-[10px] text-[var(--txt3)]">Visível para todos os licensees e lojas</span>
                     </div>
                   </label>
                 </div>
 
-                {/* Lista de licensees */}
+                {/* Hierarquia Marcas → Lojas */}
                 {!accessIsBase && (
                   <div>
                     <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--txt3)]">
-                      Clientes específicos ({accessLicensees.size}/{licensees.length})
+                      Marcas e Lojas
                     </div>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-2">
                       {licensees.length === 0 ? (
                         <div className="text-[12px] text-[var(--txt3)]">Nenhum cliente cadastrado.</div>
                       ) : (
-                        licensees.map((l) => {
-                          const sel = accessLicensees.has(l.id);
+                        licensees.map((lic) => {
+                          const stores = licenseeStores.get(lic.id) ?? [];
+                          const selectedStores = accessSelections.get(lic.id) ?? new Set<string>();
+                          const hasAccess = accessSelections.has(lic.id);
+                          const allStoresSelected = hasAccess && selectedStores.size === 0;
+
                           return (
-                            <label
-                              key={l.id}
-                              className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2.5 hover:bg-[var(--hover-bg)] ${sel ? "border-[var(--orange)] bg-[var(--orange3)]" : "border-[var(--bdr)]"}`}
+                            <details
+                              key={lic.id}
+                              open={hasAccess}
+                              className="rounded-lg border border-[var(--bdr)] overflow-hidden"
                             >
-                              <span className="flex items-center gap-2">
+                              <summary className="flex cursor-pointer items-center gap-2 p-3 hover:bg-[var(--hover-bg)]">
                                 <span
                                   className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
-                                  style={{ background: getLicColor(l.name) }}
+                                  style={{ background: getLicColor(lic.name) }}
                                 >
-                                  {getInitials(l.name) || "·"}
+                                  {getInitials(lic.name) || "·"}
                                 </span>
-                                <span className={`text-[13px] font-medium ${sel ? "text-[var(--orange)]" : "text-[var(--txt)]"}`}>{l.name}</span>
-                              </span>
-                              <input
-                                type="checkbox"
-                                checked={sel}
-                                onChange={() => {
-                                  const next = new Set(accessLicensees);
-                                  if (next.has(l.id)) next.delete(l.id);
-                                  else next.add(l.id);
-                                  setAccessLicensees(next);
-                                }}
-                                className="accent-[var(--orange)]"
-                              />
-                            </label>
+                                <span className="flex-1 text-[13px] font-medium text-[var(--txt)]">{lic.name}</span>
+                                {hasAccess && (
+                                  <span className="text-[10px] font-semibold text-[var(--orange)]">
+                                    {allStoresSelected ? "Todas" : `${selectedStores.size} loja${selectedStores.size !== 1 ? "s" : ""}`}
+                                  </span>
+                                )}
+                              </summary>
+
+                              <div className="border-t border-[var(--bdr)] bg-[var(--bg1)] p-3">
+                                {/* Todas as lojas */}
+                                <label className="flex cursor-pointer items-center gap-2 p-2 rounded hover:bg-[var(--hover-bg)]">
+                                  <input
+                                    type="checkbox"
+                                    checked={allStoresSelected}
+                                    onChange={() => {
+                                      const next = new Map(accessSelections);
+                                      if (allStoresSelected) {
+                                        next.delete(lic.id);
+                                      } else {
+                                        next.set(lic.id, new Set());
+                                      }
+                                      setAccessSelections(next);
+                                    }}
+                                    className="accent-[var(--orange)]"
+                                  />
+                                  <span className="text-[12px] font-bold text-[var(--txt)]">Todas as lojas</span>
+                                </label>
+
+                                {/* Lista de lojas */}
+                                {stores.length > 0 && (
+                                  <div className="mt-2 ml-6 flex flex-col gap-1">
+                                    {stores.map((store) => {
+                                      const storeSelected = selectedStores.has(store.id);
+                                      return (
+                                        <label
+                                          key={store.id}
+                                          className="flex cursor-pointer items-center gap-2 p-2 rounded hover:bg-[var(--hover-bg)]"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={storeSelected || allStoresSelected}
+                                            disabled={allStoresSelected}
+                                            onChange={() => {
+                                              const next = new Map(accessSelections);
+                                              const storeSet = new Set(selectedStores);
+
+                                              if (storeSet.has(store.id)) {
+                                                storeSet.delete(store.id);
+                                              } else {
+                                                storeSet.add(store.id);
+                                              }
+
+                                              if (storeSet.size === 0) {
+                                                next.delete(lic.id);
+                                              } else {
+                                                next.set(lic.id, storeSet);
+                                              }
+
+                                              setAccessSelections(next);
+                                            }}
+                                            className="accent-[var(--orange)]"
+                                          />
+                                          <span className={`text-[11px] ${allStoresSelected ? "text-[var(--txt3)]" : "text-[var(--txt2)]"}`}>
+                                            {store.name}
+                                          </span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                {stores.length === 0 && (
+                                  <div className="ml-6 text-[11px] text-[var(--txt3)]">Nenhuma loja cadastrada</div>
+                                )}
+                              </div>
+                            </details>
                           );
                         })
                       )}
@@ -841,8 +961,9 @@ export default function EditorTemplatesPage() {
                 type="button"
                 onClick={() => {
                   setAccessKey(null);
-                  setAccessLicensees(new Set());
+                  setAccessSelections(new Map());
                   setAccessIsBase(false);
+                  setLicenseeStores(new Map());
                 }}
                 className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]"
               >
