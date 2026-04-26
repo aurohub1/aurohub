@@ -164,6 +164,10 @@ export function SearchableSelect({
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
+  useEffect(() => {
+    if (!open) setQ(value ?? '');
+  }, [open, value]);
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return options;
@@ -849,7 +853,6 @@ export function PacoteForm({
                 onChange={(v) => set("destino", v.toUpperCase())}
                 onBlur={(v) => {
                   const up = v.toUpperCase();
-                  set("destino", up);
                   if (up.trim()) onImgFundo?.(up);
                 }}
                 options={destinoOpts}
