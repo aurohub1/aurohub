@@ -1132,15 +1132,8 @@ export default function PublicarPageBase({
             </div>
           )}
 
-          {/* Campos */}
-          <div
-            style={{
-              padding: "14px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-            }}
-          >
+          {/* Formulários */}
+          <div style={{ padding: "14px" }}>
             {!currentTemplate ? (
               <div
                 style={{
