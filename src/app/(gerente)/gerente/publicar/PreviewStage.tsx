@@ -110,6 +110,18 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     case "parcelas":
       return values.parcelas || "";
 
+    // Campos de cruzeiro
+    case "navio":
+      return values.navio || "";
+    case "itinerario":
+      return values.itinerario || "";
+    case "forma_pgto":
+      return values.forma_pgto || values.formapagamento || "";
+    case "valortotaltexto":
+      return values.valortotaltexto || "";
+    case "logo_cia":
+      return values.logo_cia || "";
+
     // Desconto: só o número sem "%" — v1 client.js:946-952
     case "desconto":
     case "desconto_valor": {
