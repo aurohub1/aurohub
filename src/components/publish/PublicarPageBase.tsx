@@ -1221,7 +1221,7 @@ export default function PublicarPageBase({
               </div>
             )}
             {/* Espaçador para garantir scroll acima do footer */}
-            <div style={{ height: "120px", flexShrink: 0 }} />
+            <div style={{ height: "300px", flexShrink: 0 }} />
           </div>
 
           {/* Footer */}

@@ -1659,33 +1659,26 @@ export function AnoiteceuForm({
   set: Setter;
   binds?: Set<string>;
 }) {
-  const today = new Date();
-  const currentYear = today.getFullYear();
+  const today = new Date().toISOString().slice(0, 10);
 
-  // Gerar arrays de opções
-  const dias = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
-  const meses = [
-    { value: '01', label: 'Jan' },
-    { value: '02', label: 'Fev' },
-    { value: '03', label: 'Mar' },
-    { value: '04', label: 'Abr' },
-    { value: '05', label: 'Mai' },
-    { value: '06', label: 'Jun' },
-    { value: '07', label: 'Jul' },
-    { value: '08', label: 'Ago' },
-    { value: '09', label: 'Set' },
-    { value: '10', label: 'Out' },
-    { value: '11', label: 'Nov' },
-    { value: '12', label: 'Dez' },
-  ];
-  const anos = Array.from({ length: 3 }, (_, i) => currentYear + i);
+  // Converter YYYY-MM-DD → DD/MM
+  const dateToShort = (isoDate: string): string => {
+    if (!isoDate) return "";
+    const [y, m, d] = isoDate.split("-");
+    return `${d}/${m}`;
+  };
 
-  // Parse INÍCIO (formato DD/MM)
-  const [inicioDia, inicioMes] = ((fields.inicio as string) || '').split('/');
-  // Parse FIM (formato DD/MM)
-  const [fimDia, fimMes] = ((fields.fim as string) || '').split('/');
-  // Parse PARA VIAGENS ATÉ (formato YYYY-MM-DD)
-  const [viagensAno, viagensMes, viagensDia] = ((fields.viagens_ate as string) || '').split('-');
+  // Converter DD/MM → YYYY-MM-DD (assume ano atual)
+  const shortToDate = (short: string): string => {
+    if (!short || !short.includes("/")) return "";
+    const [d, m] = short.split("/");
+    const year = new Date().getFullYear();
+    return `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  };
+
+  // Valores para os inputs (converte DD/MM ↔ YYYY-MM-DD)
+  const inicioDate = shortToDate((fields.inicio as string) || "");
+  const fimDate = shortToDate((fields.fim as string) || "");
 
   return (
     <>
@@ -1718,114 +1711,33 @@ export function AnoiteceuForm({
       <Section title="Válidade da Promoção" icon="📅">
         <div className="grid grid-cols-2 gap-2">
           <Field label="INÍCIO">
-            <div className="flex gap-1">
-              <select
-                value={inicioDia || ""}
-                onChange={(e) => {
-                  const dia = e.target.value;
-                  const mes = inicioMes || "";
-                  set("inicio", dia && mes ? `${dia}/${mes}` : "");
-                }}
-                className={SELECT_CLASS}
-                style={{ ...SELECT_STYLE, flex: 1 }}
-              >
-                <option value="">Dia</option>
-                {dias.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-              <select
-                value={inicioMes || ""}
-                onChange={(e) => {
-                  const dia = inicioDia || "";
-                  const mes = e.target.value;
-                  set("inicio", dia && mes ? `${dia}/${mes}` : "");
-                }}
-                className={SELECT_CLASS}
-                style={{ ...SELECT_STYLE, flex: 1 }}
-              >
-                <option value="">Mês</option>
-                {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-              </select>
-            </div>
+            <input
+              type="date"
+              value={inicioDate}
+              onChange={(e) => set("inicio", dateToShort(e.target.value))}
+              className={INPUT_CLASS}
+            />
           </Field>
           <Field label="FIM">
-            <div className="flex gap-1">
-              <select
-                value={fimDia || ""}
-                onChange={(e) => {
-                  const dia = e.target.value;
-                  const mes = fimMes || "";
-                  set("fim", dia && mes ? `${dia}/${mes}` : "");
-                }}
-                className={SELECT_CLASS}
-                style={{ ...SELECT_STYLE, flex: 1 }}
-              >
-                <option value="">Dia</option>
-                {dias.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-              <select
-                value={fimMes || ""}
-                onChange={(e) => {
-                  const dia = fimDia || "";
-                  const mes = e.target.value;
-                  set("fim", dia && mes ? `${dia}/${mes}` : "");
-                }}
-                className={SELECT_CLASS}
-                style={{ ...SELECT_STYLE, flex: 1 }}
-              >
-                <option value="">Mês</option>
-                {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-              </select>
-            </div>
+            <input
+              type="date"
+              value={fimDate}
+              onChange={(e) => set("fim", dateToShort(e.target.value))}
+              className={INPUT_CLASS}
+            />
           </Field>
         </div>
       </Section>
 
       <Section title="Validade" icon="📅">
         <Field label="PARA VIAGENS ATÉ">
-          <div className="flex gap-1">
-            <select
-              value={viagensDia || ""}
-              onChange={(e) => {
-                const dia = e.target.value;
-                const mes = viagensMes || "";
-                const ano = viagensAno || "";
-                set("viagens_ate", dia && mes && ano ? `${ano}-${mes}-${dia}` : "");
-              }}
-              className={SELECT_CLASS}
-              style={{ ...SELECT_STYLE, flex: 1 }}
-            >
-              <option value="">Dia</option>
-              {dias.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <select
-              value={viagensMes || ""}
-              onChange={(e) => {
-                const dia = viagensDia || "";
-                const mes = e.target.value;
-                const ano = viagensAno || "";
-                set("viagens_ate", dia && mes && ano ? `${ano}-${mes}-${dia}` : "");
-              }}
-              className={SELECT_CLASS}
-              style={{ ...SELECT_STYLE, flex: 1 }}
-            >
-              <option value="">Mês</option>
-              {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
-            <select
-              value={viagensAno || ""}
-              onChange={(e) => {
-                const dia = viagensDia || "";
-                const mes = viagensMes || "";
-                const ano = e.target.value;
-                set("viagens_ate", dia && mes && ano ? `${ano}-${mes}-${dia}` : "");
-              }}
-              className={SELECT_CLASS}
-              style={{ ...SELECT_STYLE, flex: 1 }}
-            >
-              <option value="">Ano</option>
-              {anos.map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </div>
+          <input
+            type="date"
+            value={(fields.viagens_ate as string) || ""}
+            onChange={(e) => set("viagens_ate", e.target.value)}
+            min={today}
+            className={INPUT_CLASS}
+          />
         </Field>
       </Section>
     </>
