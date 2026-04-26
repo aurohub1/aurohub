@@ -36,6 +36,16 @@ editor.js (171KB) = motor do editor, base para migração Konva/React.
 - Instagram API: sempre graph.instagram.com
 - AZV tokens são permanentes — nunca sugerir renovação
 
+## Layout da página /cliente/publicar (PublicarPageBase.tsx)
+**Container raiz:** `height: calc(100dvh - 40px)` para reservar espaço do ticker fixo
+
+**Coluna esquerda:** `display:flex, flexDirection:column, height:100%`
+  - **Scroll container:** `flex:1, minHeight:0, overflowY:auto` — só formulários
+  - **PublishFooter:** `flexShrink:0` — fixo no fundo, FORA do scroll
+
+**NUNCA colocar o PublishFooter dentro do scroll container**  
+**NUNCA adicionar espaçadores para compensar o footer**
+
 ## Design
 - Dark premium por padrão, suporte a light
 - DM Sans (UI) + DM Serif Display (títulos)
