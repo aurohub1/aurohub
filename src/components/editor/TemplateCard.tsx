@@ -24,7 +24,6 @@ interface TemplateCardProps {
   onDuplicate: (key: string) => void;
   onDelete: (key: string) => void;
   onClone?: (key: string) => void;
-  onPublish?: (key: string) => void;
   onNameChange: (key: string, nome: string) => void;
   onThumbUpload: (key: string, file: File) => void;
   onThumbCapture: (key: string) => void;
@@ -37,7 +36,6 @@ export function TemplateCard({
   onDuplicate,
   onDelete,
   onClone,
-  onPublish,
   onNameChange,
   onThumbUpload,
   onThumbCapture,
@@ -188,16 +186,6 @@ export function TemplateCard({
           <Pencil size={12} />
           <span>Editar</span>
         </button>
-        {!t.isBase && onPublish && (
-          <button
-            onClick={() => onPublish(t.key)}
-            className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-950 hover:text-green-700"
-            title="Publicar template para todos os clientes"
-          >
-            <span className="text-xs">✓</span>
-            <span>Publicar</span>
-          </button>
-        )}
         {t.isBase && onClone && (
           <button
             onClick={() => onClone(t.key)}
