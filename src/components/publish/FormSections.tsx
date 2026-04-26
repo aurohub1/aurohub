@@ -1370,6 +1370,95 @@ export function CruzeiroForm({
   );
 }
 
+/* ── PassagemForm ───────────────────────────────────── */
+
+export function PassagemForm({
+  fields, set, today, binds, formato, nomeLoja, loadDestinos,
+}: {
+  fields: Fields;
+  set: Setter;
+  today: string;
+  binds?: Set<string>;
+  formato?: string;
+  nomeLoja?: string;
+  loadDestinos?: () => Promise<string[]>;
+}) {
+  const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
+  useEffect(() => {
+    loadDestinos?.().then(setDestinoOpts).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const showSaida = hasBind(binds, "saida", "origem");
+  const showDestino = hasBind(binds, "destino");
+  const showTipovoo = hasBind(binds, "tipovoo");
+  const showIda = hasBind(binds, "dataida");
+  const showVolta = hasBind(binds, "datavolta");
+  const showPassagem = showSaida || showDestino || showIda || showVolta;
+
+  return (
+    <>
+      {showPassagem && (
+        <Section title="Passagem Aérea" icon="✈️">
+          {showSaida && (
+            <Field label="Origem/Saída *">
+              <SearchableSelect
+                value={(fields.saida as string) || ""}
+                onChange={(v) => set("saida", capitalizarDestino(v))}
+                options={destinoOpts}
+                placeholder="Cidade de partida..."
+                allowCustom
+              />
+            </Field>
+          )}
+
+          {showDestino && (
+            <DestinoField
+              value={(fields.destino as string) || ""}
+              onChange={(v) => set("destino", capitalizarDestino(v))}
+              options={destinoOpts}
+            />
+          )}
+
+          {showTipovoo && <TipoVooField value={(fields.tipovoo as string) || ""} onChange={(v) => set("tipovoo", v)} />}
+
+          <DatasField
+            fields={fields}
+            set={set}
+            today={today}
+            binds={binds}
+            labels={{ ida: "Ida", volta: "Volta" }}
+            showNoites={false}
+            onIdaChange={(v) => {
+              set("dataida", v);
+              set("dataida_fmt", fmtDate(v));
+              const volta = (fields.datavolta as string) || "";
+              if (volta) set("dataperiodo", formatPeriodo(v, volta));
+            }}
+            onVoltaChange={(v) => {
+              set("datavolta", v);
+              set("datavolta_fmt", fmtDate(v));
+              const ida = (fields.dataida as string) || "";
+              if (ida) set("dataperiodo", formatPeriodo(ida, v));
+            }}
+          />
+        </Section>
+      )}
+
+      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" binds={binds} />
+
+      <LegendaPostSection
+        fields={fields}
+        set={set}
+        formato={formato}
+        nomeLoja={nomeLoja}
+        tipoArte="pacote"
+        destino={(fields.destino as string) || (fields.saida as string) || "Passagem"}
+      />
+    </>
+  );
+}
+
 /* ── AnoiteceuForm ──────────────────────────────────── */
 
 export function AnoiteceuForm({

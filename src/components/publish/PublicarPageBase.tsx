@@ -9,6 +9,8 @@ import {
   PacoteForm,
   CardWhatsAppForm,
   AnoiteceuForm,
+  PassagemForm,
+  CruzeiroForm,
 } from "@/components/publish/FormSections";
 import {
   Plane,
@@ -1151,6 +1153,25 @@ export default function PublicarPageBase({
                 set={set}
                 today={new Date().toISOString().slice(0, 10)}
                 binds={templateBinds}
+              />
+            ) : tab === "passagem" ? (
+              <PassagemForm
+                fields={fields}
+                set={set}
+                today={new Date().toISOString().slice(0, 10)}
+                binds={templateBinds}
+                formato={format}
+                nomeLoja={nomeLoja}
+                loadDestinos={loadDestinos}
+              />
+            ) : tab === "cruzeiro" ? (
+              <CruzeiroForm
+                fields={fields}
+                set={set}
+                today={new Date().toISOString().slice(0, 10)}
+                binds={templateBinds}
+                formato={format}
+                nomeLoja={nomeLoja}
               />
             ) : tab === "anoiteceu" ? (
               <AnoiteceuForm
