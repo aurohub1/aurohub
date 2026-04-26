@@ -43,10 +43,20 @@ export function useStoreTargets(profile: FullProfile | null) {
           const { data: storesData } = await supabase
             .from("stores")
             .select("id,name")
-            .in("id", storeIds)
-            .order("name");
+            .in("id", storeIds);
 
-          targets = (storesData ?? []) as StoreOption[];
+          // Ordenação customizada: Rio Preto → Barretos → Damha
+          const storeOrder = ["Rio Preto", "Barretos", "Damha"];
+          const sorted = (storesData ?? []).sort((a, b) => {
+            const indexA = storeOrder.findIndex((s) => a.name.includes(s));
+            const indexB = storeOrder.findIndex((s) => b.name.includes(s));
+            // Se não encontrar na lista customizada, coloca no final
+            const orderA = indexA === -1 ? 999 : indexA;
+            const orderB = indexB === -1 ? 999 : indexB;
+            return orderA - orderB;
+          });
+
+          targets = sorted as StoreOption[];
         } else if (profile.store_id) {
           // Fallback: usar a loja do próprio usuário
           const { data: ownStore } = await supabase
