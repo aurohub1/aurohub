@@ -1031,16 +1031,16 @@ export default function PublicarPageBase({
 
       {/* BODY */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
-        {/* FORMULÁRIO */}
+        {/* FORMULÁRIO - coluna inteira scrollável */}
         <div
           style={{
             width: "300px",
+            height: "100%",
             flexShrink: 0,
             background: "var(--bg1)",
             borderRight: "1px solid var(--bdr)",
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0,
+            overflowY: "auto",
+            overflowX: "hidden",
           }}
         >
           {/* Pills de formato */}
@@ -1049,7 +1049,6 @@ export default function PublicarPageBase({
               style={{
                 padding: "14px 14px 0",
                 borderBottom: "1px solid var(--bdr)",
-                flexShrink: 0,
               }}
             >
               <div
@@ -1133,13 +1132,9 @@ export default function PublicarPageBase({
             </div>
           )}
 
-          {/* Campos — scroll aqui */}
+          {/* Campos */}
           <div
             style={{
-              flex: 1,
-              minHeight: 0,
-              overflowY: "auto",
-              overflowX: "hidden",
               padding: "14px",
               display: "flex",
               flexDirection: "column",
@@ -1219,11 +1214,9 @@ export default function PublicarPageBase({
                 Formulário de {tab} em breve.
               </div>
             )}
-            {/* Espaçador para garantir scroll acima do footer */}
-            <div style={{ height: "300px", flexShrink: 0 }} />
           </div>
 
-          {/* Footer */}
+          {/* Footer - faz parte do fluxo scrollável */}
           <PublishFooter
             role={role}
             enablePublishing={enablePublishing}
