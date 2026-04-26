@@ -1490,19 +1490,6 @@ export function CruzeiroForm({
             </Field>
           )}
 
-          {showNavio && (
-            <Field label="Porto de embarque">
-              <input
-                type="text"
-                value={(fields.porto as string) || ""}
-                onChange={(e) => set("porto", e.target.value)}
-                onBlur={() => onImgFundo?.(fields.porto as string)}
-                placeholder="Santos, Rio de Janeiro, Buenos Aires..."
-                className={INPUT_CLASS}
-              />
-            </Field>
-          )}
-
           {showItin && (
             <Field label="Itinerário">
               <textarea
@@ -1557,6 +1544,19 @@ export function CruzeiroForm({
               placeholder="ex. Cabine Interna, Pensão Completa, Bebidas"
               className={`${INPUT_CLASS} h-auto resize-none py-2`}
               rows={3}
+            />
+          </Field>
+        </Section>
+      )}
+
+      {hasBind(binds, "numerodesconto") && (
+        <Section title="Desconto" icon="💰">
+          <Field label="% Desconto (opcional)">
+            <SearchableSelect
+              value={(fields.numerodesconto as string) || ""}
+              onChange={(v) => set("numerodesconto", v)}
+              options={["– nenhum –", ...DESCONTO_OPTS_FORM]}
+              placeholder="Selecionar..."
             />
           </Field>
         </Section>
