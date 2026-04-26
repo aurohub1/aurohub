@@ -125,19 +125,19 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return String(d).replace("%", "").trim();
     }
 
-    // Datas Anoiteceu: formato DD/MM/YYYY
+    // Datas Anoiteceu: data_inicio e data_fim formato DD/MM
     case "data_inicio": {
       const raw = values.inicio || "";
       if (!raw) return "";
       const [y, m, d] = raw.split("-");
-      return `${d}/${m}/${y}`;
+      return `${d}/${m}`;
     }
 
     case "data_fim": {
       const raw = values.fim || "";
       if (!raw) return "";
       const [y, m, d] = raw.split("-");
-      return `${d}/${m}/${y}`;
+      return `${d}/${m}`;
     }
 
     case "para_viagens_ate": {
