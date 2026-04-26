@@ -35,7 +35,10 @@ export const VOO_OPTS = ["Voo Direto", "Voo Conexão"];
 export const DESCONTO_OPTS_FORM = DESCONTO_OPTS;
 export const PARCELAS_OPTS_FORM = Array.from({ length: 20 }, (_, i) => `${i + 1}x`);
 export const NAVIOS_DEFAULT = [
-  // MSC Cruises (principais)
+  // ═══════════════════════════════════════════════════════
+  // MSC Cruises — 21 navios (principais primeiro)
+  // ═══════════════════════════════════════════════════════
+  "— MSC CRUISES —",
   "MSC Seashore",
   "MSC Grandiosa",
   "MSC Musica",
@@ -57,7 +60,10 @@ export const NAVIOS_DEFAULT = [
   "MSC Sinfonia",
   "MSC Lirica",
   "MSC Opera",
-  // Costa Cruises (principais)
+  // ═══════════════════════════════════════════════════════
+  // Costa Cruises — 11 navios (principais primeiro)
+  // ═══════════════════════════════════════════════════════
+  "— COSTA CRUISES —",
   "Costa Fascinosa",
   "Costa Diadema",
   "Costa Firenze",
@@ -69,7 +75,10 @@ export const NAVIOS_DEFAULT = [
   "Costa Venezia",
   "Costa Smeralda",
   "Costa Toscana",
-  // Norwegian Cruise Line (principais)
+  // ═══════════════════════════════════════════════════════
+  // Norwegian Cruise Line — 13 navios (principais primeiro)
+  // ═══════════════════════════════════════════════════════
+  "— NORWEGIAN —",
   "Norwegian Jade",
   "Norwegian Prima",
   "Norwegian Jewel",
@@ -84,7 +93,10 @@ export const NAVIOS_DEFAULT = [
   "Norwegian Escape",
   "Norwegian Bliss",
   "Norwegian Encore",
-  // Carnival Cruise Line (principais)
+  // ═══════════════════════════════════════════════════════
+  // Carnival Cruise Line — 13 navios (principais primeiro)
+  // ═══════════════════════════════════════════════════════
+  "— CARNIVAL —",
   "Carnival Jubilee",
   "Carnival Venezia",
   "Carnival Celebration",
@@ -99,7 +111,10 @@ export const NAVIOS_DEFAULT = [
   "Carnival Pride",
   "Carnival Legend",
   "Carnival Spirit",
-  // Royal Caribbean
+  // ═══════════════════════════════════════════════════════
+  // Royal Caribbean — 17 navios
+  // ═══════════════════════════════════════════════════════
+  "— ROYAL CARIBBEAN —",
   "Symphony of the Seas",
   "Harmony of the Seas",
   "Oasis of the Seas",
@@ -117,7 +132,10 @@ export const NAVIOS_DEFAULT = [
   "Freedom of the Seas",
   "Liberty of the Seas",
   "Independence of the Seas",
-  // Celebrity Cruises
+  // ═══════════════════════════════════════════════════════
+  // Celebrity Cruises — 8 navios
+  // ═══════════════════════════════════════════════════════
+  "— CELEBRITY —",
   "Celebrity Edge",
   "Celebrity Apex",
   "Celebrity Beyond",
@@ -126,7 +144,10 @@ export const NAVIOS_DEFAULT = [
   "Celebrity Solstice",
   "Celebrity Reflection",
   "Celebrity Silhouette",
-  // Princess Cruises
+  // ═══════════════════════════════════════════════════════
+  // Princess Cruises — 12 navios
+  // ═══════════════════════════════════════════════════════
+  "— PRINCESS —",
   "Royal Princess",
   "Regal Princess",
   "Majestic Princess",
@@ -273,7 +294,11 @@ export function SearchableSelect({
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return options;
-    return options.filter((o) => o.toLowerCase().includes(needle));
+    // Manter separadores mesmo quando filtrando
+    return options.filter((o) => {
+      if (o.startsWith("—")) return true; // sempre mostrar separadores
+      return o.toLowerCase().includes(needle);
+    });
   }, [q, options]);
 
   return (
@@ -297,17 +322,31 @@ export function SearchableSelect({
           className="absolute left-0 right-0 top-full z-30 mt-1 max-h-52 overflow-auto"
           style={{ background: "var(--bg1)", borderColor: "var(--bdr)", borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.15)", border: "1px solid var(--bdr)" }}
         >
-          {filtered.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { onChange(opt); setOpen(false); onBlur?.(opt); }}
-              className="block w-full px-3 py-1.5 text-left text-[12px] text-[var(--txt)] hover:bg-[var(--bg2)]"
-            >
-              {opt}
-            </button>
-          ))}
+          {filtered.map((opt) => {
+            const isSeparator = opt.startsWith("—");
+            if (isSeparator) {
+              return (
+                <div
+                  key={opt}
+                  className="px-3 py-2 text-[10px] font-bold text-[var(--txt3)] border-b border-[var(--bdr)] bg-[var(--bg2)]"
+                  style={{ letterSpacing: "0.5px" }}
+                >
+                  {opt}
+                </div>
+              );
+            }
+            return (
+              <button
+                key={opt}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { onChange(opt); setOpen(false); onBlur?.(opt); }}
+                className="block w-full px-3 py-1.5 text-left text-[12px] text-[var(--txt)] hover:bg-[var(--bg2)]"
+              >
+                {opt}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
