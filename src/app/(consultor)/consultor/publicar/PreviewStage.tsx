@@ -325,9 +325,11 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
   }
 
   if (el.type === "text") {
+    // Textos estáticos (sem bindParam) não aparecem no preview do cliente — só no editor
+    if (!el.bindParam) return null;
+
     let txt = resolveText(el, values);
-    // Reforço da regra: texto com bindParam mas sem valor resolvido não renderiza nada
-    if (el.bindParam && !txt) txt = el.text || "";
+    // Se tem bindParam mas valor está vazio, não renderiza
     if (!txt) return null;
     const baseFont = el.fontSize ?? 24;
     const fSize = el.linhas
