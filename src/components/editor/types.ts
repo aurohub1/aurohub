@@ -1,5 +1,7 @@
 /* ══ Editor Types ══════════════════════════════════ */
 
+import { BINDS_POR_FORM, getAllBindsForForm } from "@/lib/template-binds";
+
 export type AnimationType = "none"|"fadeIn"|"fadeOut"|"slideUp"|"slideDown"|"slideLeft"|"slideRight"|"zoomIn"|"zoomOut"|"bounce"|"rotate360"|"typewriter"|"pulse"|"shake"|"float"|"blurIn"|"flipX"|"flipY";
 export type EasingType = "linear"|"easeIn"|"easeOut"|"easeInOut"|"bounce"|"elastic";
 export type BlendMode = "source-over"|"multiply"|"screen"|"overlay"|"darken"|"lighten"|"color-dodge"|"color-burn"|"hard-light"|"soft-light"|"difference"|"exclusion";
@@ -154,6 +156,22 @@ export interface EditorSchema {
   formType?: string;
 }
 
+/** Converte BINDS_POR_FORM para formato BindGroups usado pelo editor */
+function convertToBindGroups(formType: string): { group: string; fields: string[] }[] {
+  const binds = BINDS_POR_FORM[formType];
+  if (!binds) return BIND_GROUPS;
+
+  const groups: { group: string; fields: string[] }[] = [];
+  for (const [category, bindDefs] of Object.entries(binds)) {
+    groups.push({
+      group: category,
+      fields: bindDefs.map(b => b.id),
+    });
+  }
+  return groups;
+}
+
+/** BIND_GROUPS genérico — fallback para formTypes não mapeados */
 export const BIND_GROUPS = [
   { group: "Imagens", fields: ["imgfundo","imghotel","imgaviao","imgciamaritima","imgloja"] },
   { group: "Selos",   fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
@@ -166,59 +184,6 @@ export const BIND_GROUPS = [
   { group: "Loja", fields: ["loja","agente","fone"] },
   { group: "Genérico", fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
 ];
-
-export const BIND_GROUPS_BY_FORM: Record<string, typeof BIND_GROUPS> = {
-  pacote: [
-    { group: "Imagens",   fields: ["imgfundo","imghotel","imgloja"] },
-    { group: "Selos",     fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
-    { group: "Destino",   fields: ["destino","saida","tipovoo"] },
-    { group: "Período",   fields: ["dataperiodo","noites","feriado"] },
-    { group: "Hotel",     fields: ["hotel"] },
-    { group: "Serviços",  fields: ["servico1","servico2","servico3","servico4","servico5","servico6","servicoslista"] },
-    { group: "Pagamento", fields: ["formapagamento","entrada","parcelas","valorint","valdec","valorparcela","desconto","totalduplo","valortotalfmt","textopagamento"] },
-    { group: "Loja",      fields: ["imgloja","loja","agente","fone"] },
-    { group: "Genérico",  fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
-  ],
-  campanha: [
-    { group: "Imagens",   fields: ["imgfundo","imghotel","imgloja"] },
-    // Campanha NÃO tem "ofertas" (nem "ofertas_azul_badge") — diferença crítica vs pacote.
-    { group: "Selos",     fields: ["badge","allinclusive","ultimachamada","ultimoslugares","numerodesconto","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","feriado_badge","desconto_badge"] },
-    { group: "Destino",   fields: ["destino","saida","tipovoo"] },
-    { group: "Período",   fields: ["dataperiodo","dataida_fmt","datavolta_fmt","noites","feriado"] },
-    { group: "Hotel",     fields: ["hotel"] },
-    { group: "Serviços",  fields: ["servico1","servico2","servico3","servico4","servico5","servico6","servicoslista"] },
-    { group: "Pagamento", fields: ["formapagamento","entrada","parcelas","valorint","valdec","valorparcela","valortotal","desconto","totalduplo","valortotalfmt","textopagamento"] },
-    { group: "Loja",      fields: ["imgloja","loja","agente","fone"] },
-    { group: "Genérico",  fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
-  ],
-  passagem: [
-    { group: "Imagens",   fields: ["imgaviao","imgloja"] },
-    { group: "Selos",     fields: ["badge","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
-    { group: "Destino",   fields: ["destino","saida","tipovoo"] },
-    { group: "Período",   fields: ["dataperiodo","noites"] },
-    { group: "Pagamento", fields: ["formapagamento","parcelas","valorint","valdec","valorparcela","desconto","totalduplo","valortotalfmt"] },
-    { group: "Loja",      fields: ["imgloja","loja","agente","fone"] },
-    { group: "Genérico",  fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
-  ],
-  cruzeiro: [
-    { group: "Imagens",   fields: ["imgfundo","imgciamaritima","imgloja"] },
-    { group: "Selos",     fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
-    { group: "Navio",     fields: ["navio","categoria","itinerario","incluso"] },
-    { group: "Período",   fields: ["dataperiodo","dataida_fmt","datavolta_fmt","noites"] },
-    { group: "Pagamento", fields: ["formapagamento","entrada","parcelas","valorint","valdec","valorparcela","valortotal","desconto","totalcruzeiro","valortotalfmt","textopagamento"] },
-    { group: "Loja",      fields: ["imgloja","loja","agente","fone"] },
-    { group: "Genérico",  fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
-  ],
-  anoiteceu: [
-    { group: "Imagens",   fields: ["imgfundo","imgloja"] },
-    { group: "Selos",     fields: ["badge","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
-    { group: "Destino",   fields: ["destino"] },
-    { group: "Desconto",  fields: ["desconto","desconto_anoit"] },
-    { group: "Evento",    fields: ["inicio","fim","inicio_iso","fim_iso","dataperiodo","paraviagens","paraviagens_iso"] },
-    { group: "Loja",      fields: ["imgloja","loja","agente","fone"] },
-    { group: "Genérico",  fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
-  ],
-};
 
 export const BADGE_FOLDERS: Record<string, string> = {
   ultimos_lugares_badge: "aurohubv2/badges/ultimos_lugares",
@@ -238,8 +203,8 @@ export function getBindGroups(formType?: string, qtdDestinos: number = 4): typeo
   // Card WhatsApp (Lâmina) tem binds dinâmicos por destino (lam_d{n}_*) —
   // delega pra getLaminaBindGroups. Sem isso, caía no fallback genérico
   // e o dropdown mostrava badge/allinclusive/ofertas/destino etc de outros formTypes.
-  if (formType === "lamina") return getLaminaBindGroups(qtdDestinos);
-  return BIND_GROUPS_BY_FORM[formType] ?? BIND_GROUPS;
+  if (formType === "lamina" || formType === "card_whatsapp") return getLaminaBindGroups(qtdDestinos);
+  return convertToBindGroups(formType);
 }
 
 /** Retorna campos do formulário que contêm imagens (prefixo "img", selos e fotos). */
