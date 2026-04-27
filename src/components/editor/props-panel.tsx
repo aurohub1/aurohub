@@ -39,19 +39,6 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, allElements,
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
         {activeTab === "design" ? <DesignTab s={s} u={u} allElements={allElements} onAlign={onAlign} onOpenCrop={onOpenCrop} formType={formType} /> : <AnimateTab s={s} u={u} />}
       </div>
-      <style>{`
-        input[type="text"]:focus,
-        input[type="number"]:focus,
-        select:focus,
-        textarea:focus {
-          border-color: var(--ed-accent) !important;
-          outline: none;
-        }
-        .ah-sbtn:hover {
-          opacity: 0.9;
-          transform: translateY(-1px);
-        }
-      `}</style>
     </div>
   );
 }
@@ -633,21 +620,21 @@ const selS: React.CSSProperties = { ...inpS, cursor: "pointer" };
 
 function Sec({ t, children }: { t: string; children: React.ReactNode }) {
   const [o, setO] = useState(true);
-  return <div style={{ marginBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: 10 }}>
-    <button onClick={() => setO(!o)} style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", padding: "8px 8px", background: "rgba(255,255,255,0.04)", borderLeft: "3px solid var(--ed-bind)", border: "none", borderLeft: "3px solid var(--ed-bind)", cursor: "pointer", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "var(--ed-txt)", marginBottom: o ? 8 : 0 }}>
+  return <div style={{ marginBottom: 8, borderBottom: "2px solid var(--ed-bdr)", paddingBottom: 8 }}>
+    <button onClick={() => setO(!o)} style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", padding: "6px 0", background: "none", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "var(--ed-txt)" }}>
       <span style={{ transform: o ? "rotate(90deg)" : "none", transition: "transform 0.15s", fontSize: 10 }}>›</span>{t}
     </button>
-    {o && <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 8, paddingRight: 8 }}>{children}</div>}
+    {o && <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 6 }}>{children}</div>}
   </div>;
 }
 
-function F({ l, children }: { l: string; children: React.ReactNode }) { return <div><div style={{ fontSize: 10, color: "var(--ed-txt)", marginBottom: 3, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8 }}>{l}</div>{children}</div>; }
+function F({ l, children }: { l: string; children: React.ReactNode }) { return <div><div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2 }}>{l}</div>{children}</div>; }
 function Num({ v, c, step, min, max }: { v: number; c: (v: number) => void; step?: number; min?: number; max?: number }) { return <input type="number" value={v} onChange={e => c(+e.target.value)} step={step} min={min} max={max} style={inpS} />; }
 function Inp({ v, c }: { v: string; c: (v: string) => void }) { return <input type="text" value={v} onChange={e => c(e.target.value)} style={inpS} />; }
 function G2({ children }: { children: React.ReactNode }) { return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>{children}</div>; }
 
 function SBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button onClick={onClick} className="ah-sbtn" style={{ flex: 1, height: 30, borderRadius: 6, border: "1px solid transparent", background: active ? "#3B82F6" : "rgba(255,255,255,0.08)", color: active ? "#FFFFFF" : "var(--ed-txt2)", fontSize: 10, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>{children}</button>;
+  return <button onClick={onClick} style={{ flex: 1, height: 28, borderRadius: 6, border: "none", background: active ? "var(--ed-active)" : "var(--ed-input)", color: active ? "var(--ed-accent)" : "var(--ed-txt2)", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{children}</button>;
 }
 
 function AlBtn({ active, onClick, children, italic }: { active: boolean; onClick: () => void; children: React.ReactNode; italic?: boolean }) {
