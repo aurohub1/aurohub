@@ -1494,8 +1494,8 @@ export function CruzeiroForm({
       const logo = detectCompaniaLogo(navio);
       if (logo) set("logo_cia", logo);
 
-      // Imagem de fundo padrão de cruzeiro
-      set("imgfundo", "https://res.cloudinary.com/dxgj4bcch/image/upload/BARRETOS_-_BULK_CRUZEIRO_1_s6xcdn.png");
+      // Imagem de fundo padrão de cruzeiro (Rio de Janeiro - porto de embarque)
+      set("imgfundo", "https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750739/rio_de_janiero_rrhh6q.png");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.navio]);
