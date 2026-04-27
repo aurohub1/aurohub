@@ -166,11 +166,11 @@ export default function EditorTemplatesPage() {
           template_key: string;
           licensee_id: string;
           store_id: string | null;
-          licensees: { name: string } | null;
-          stores: { name: string } | null;
+          licensees: { name: string }[] | null;
+          stores: { name: string }[] | null;
         }[]) {
           const key = rec.template_key;
-          const licName = rec.licensees?.name ?? "Cliente desconhecido";
+          const licName = rec.licensees?.[0]?.name ?? "Cliente desconhecido";
 
           if (!accessMap.has(key)) accessMap.set(key, []);
 
@@ -179,7 +179,7 @@ export default function EditorTemplatesPage() {
             accessMap.get(key)!.push(`${licName} (todas)`);
           } else {
             // Loja específica
-            const storeName = rec.stores?.name ?? "Loja";
+            const storeName = rec.stores?.[0]?.name ?? "Loja";
             accessMap.get(key)!.push(`${licName} - ${storeName}`);
           }
         }

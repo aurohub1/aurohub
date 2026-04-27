@@ -354,8 +354,8 @@ export const OPERADOR_SECTIONS: NavSection[] = [
     title: "Operações",
     items: [
       { label: "Início", href: "/operador/inicio", icon: I.home },
-      { label: "Editor de Templates", href: "/editor-de-templates", icon: I.template },
-      { label: "Biblioteca", href: "/biblioteca", icon: I.image },
+      { label: "Editor de Templates", href: "/editor-de-templates", icon: I.templates },
+      { label: "Biblioteca", href: "/biblioteca", icon: I.templates },
       { label: "Clientes", href: "/operador/clientes", icon: I.stores },
       { label: "Usuários", href: "/operador/usuarios", icon: I.users },
       { label: "Logs", href: "/operador/logs", icon: I.settings },

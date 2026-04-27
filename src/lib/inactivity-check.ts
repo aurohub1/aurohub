@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface InactiveStore {
   storeId: string;
@@ -7,7 +7,7 @@ export interface InactiveStore {
 }
 
 export async function getInactiveStores(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient<any>,
   licenseeId: string
 ): Promise<InactiveStore[]> {
   try {

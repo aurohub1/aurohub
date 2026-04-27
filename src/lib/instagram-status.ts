@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type InstagramStatus = "valid" | "invalid" | "network-error" | "no-token";
 
@@ -9,7 +9,7 @@ export interface InstagramStatusResult {
 
 export async function checkInstagramToken(
   storeId: string,
-  supabase: ReturnType<typeof createClient>
+  supabase: SupabaseClient<any>
 ): Promise<InstagramStatusResult> {
   try {
     const { data: cred, error } = await supabase
