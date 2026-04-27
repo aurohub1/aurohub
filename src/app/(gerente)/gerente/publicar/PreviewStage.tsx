@@ -532,6 +532,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
 
   if (el.type === "imageBind") {
     const bp = el.bindParam;
+    console.log('[imageBind]', { bp, value: values[bp], src: el.src });
     if (!bp) return null;
     if (DYNAMIC_BADGES.has(bp)) {
       // Badges dinâmicos: condição vem de shouldRenderBadge (servicos, desconto, feriado).
