@@ -1785,7 +1785,7 @@ export function CruzeiroForm({
           </Field>
         )}
 
-        {/* Parcelas e Valor (ambos cartão e boleto) */}
+        {/* Parcelas e Valor da Parcela (ambos cartão e boleto) */}
         <div className="grid grid-cols-2 gap-2">
           <Field label="Parcelas *">
             <select
@@ -1801,43 +1801,27 @@ export function CruzeiroForm({
             </select>
           </Field>
 
-          {fields.formapagamento === 'cartao' && (
-            <Field label="Valor da Parcela *">
-              <input
-                type="text"
-                value={(fields.valorparcela as string) || ''}
-                onChange={(e) => set('valorparcela', e.target.value)}
-                placeholder="239,30"
-                className={INPUT_CLASS}
-              />
-            </Field>
-          )}
-
-          {fields.formapagamento === 'entrada' && (
-            <Field label="Valor Total *">
-              <input
-                type="text"
-                value={(fields.valortotal as string) || ''}
-                onChange={(e) => set('valortotal', e.target.value)}
-                placeholder="12.345,67"
-                className={INPUT_CLASS}
-              />
-            </Field>
-          )}
-        </div>
-
-        {/* Valor Total (só cartão) */}
-        {fields.formapagamento === 'cartao' && (
-          <Field label="Valor Total *">
+          <Field label="Valor da Parcela *">
             <input
               type="text"
-              value={(fields.valortotal as string) || ''}
-              onChange={(e) => set('valortotal', e.target.value)}
-              placeholder="12.345,67"
+              value={(fields.valorparcela as string) || ''}
+              onChange={(e) => set('valorparcela', e.target.value)}
+              placeholder="239,30"
               className={INPUT_CLASS}
             />
           </Field>
-        )}
+        </div>
+
+        {/* Valor Total (ambos cartão e boleto) */}
+        <Field label="Valor Total *">
+          <input
+            type="text"
+            value={(fields.valortotal as string) || ''}
+            onChange={(e) => set('valortotal', e.target.value)}
+            placeholder="12.345,67"
+            className={INPUT_CLASS}
+          />
+        </Field>
       </Section>
 
       <LegendaPostSection

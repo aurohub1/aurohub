@@ -112,6 +112,8 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
     } else {
       f.forma_de_pagamento = values.forma_de_pagamento || values.forma_pgto || "";
     }
+    // Bind inteiro → valorparcela (para templates Cruzeiro)
+    f.inteiro = values.inteiro || values.valorparcela || "";
     return f;
   }, [values, badges]);
 
@@ -182,6 +184,11 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
         if (s) {
           setFieldRef.current("forma_de_pagamento", `Entrada de R$ ${s} +`);
         }
+        return;
+      case "valorparcela":
+        setFieldRef.current("valorparcela", s);
+        // Atualizar bind inteiro (usado em templates Cruzeiro)
+        setFieldRef.current("inteiro", s);
         return;
       default:
         setFieldRef.current(k, s);
