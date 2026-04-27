@@ -1749,8 +1749,8 @@ export function CruzeiroForm({
         <Field label="Forma de Pagamento *">
           <div className="flex gap-1">
             {[
-              { value: 'cartao', label: 'Cartão' },
-              { value: 'entrada', label: 'Boleto' }
+              { value: 'cartao', label: 'No Cartão de Crédito' },
+              { value: 'entrada', label: 'Boleto' },
             ].map((opt) => {
               const sel = fields.formapagamento === opt.value;
               return (
@@ -1758,12 +1758,11 @@ export function CruzeiroForm({
                   key={opt.value}
                   type="button"
                   onClick={() => set('formapagamento', opt.value)}
-                  className="flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all"
-                  style={
+                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
                     sel
-                      ? { background: 'var(--orange)', color: '#fff', borderColor: 'var(--orange)' }
-                      : { background: 'transparent', color: 'var(--txt3)', borderColor: 'var(--bdr)' }
-                  }
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white border border-gray-200 text-gray-600'
+                  }`}
                 >
                   {opt.label}
                 </button>
@@ -1772,22 +1771,37 @@ export function CruzeiroForm({
           </div>
         </Field>
 
-        {fields.formapagamento === 'cartao' ? (
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Parcelas *">
-              <select
-                value={(fields.parcelas as string) || ''}
-                onChange={(e) => set('parcelas', e.target.value)}
-                className={SELECT_CLASS}
-                style={SELECT_STYLE}
-              >
-                <option value="">— nenhum —</option>
-                {Array.from({ length: 25 }, (_, i) => `${i + 1}x`).map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </Field>
+        {/* Entrada (Boleto) */}
+        {fields.formapagamento === 'entrada' && (
+          <Field label="Valor da Entrada (R$)">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={(fields.entrada as string) || ''}
+              onChange={(e) => set('entrada', e.target.value)}
+              placeholder="1.500,00"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        )}
 
+        {/* Parcelas e Valor (ambos cartão e boleto) */}
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Parcelas *">
+            <select
+              value={(fields.parcelas as string) || ''}
+              onChange={(e) => set('parcelas', e.target.value)}
+              className={SELECT_CLASS}
+              style={SELECT_STYLE}
+            >
+              <option value="">— nenhum —</option>
+              {Array.from({ length: 25 }, (_, i) => `${i + 1}x`).map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </Field>
+
+          {fields.formapagamento === 'cartao' && (
             <Field label="Valor da Parcela *">
               <input
                 type="text"
@@ -1797,28 +1811,33 @@ export function CruzeiroForm({
                 className={INPUT_CLASS}
               />
             </Field>
-          </div>
-        ) : (
-          <Field label="Valor da Entrada *">
+          )}
+
+          {fields.formapagamento === 'entrada' && (
+            <Field label="Valor Total *">
+              <input
+                type="text"
+                value={(fields.valortotal as string) || ''}
+                onChange={(e) => set('valortotal', e.target.value)}
+                placeholder="12.345,67"
+                className={INPUT_CLASS}
+              />
+            </Field>
+          )}
+        </div>
+
+        {/* Valor Total (só cartão) */}
+        {fields.formapagamento === 'cartao' && (
+          <Field label="Valor Total *">
             <input
               type="text"
-              value={(fields.valorparcela as string) || ''}
-              onChange={(e) => set('valorparcela', e.target.value)}
-              placeholder="239,30"
+              value={(fields.valortotal as string) || ''}
+              onChange={(e) => set('valortotal', e.target.value)}
+              placeholder="12.345,67"
               className={INPUT_CLASS}
             />
           </Field>
         )}
-
-        <Field label="Valor Total *">
-          <input
-            type="text"
-            value={(fields.valortotal as string) || ''}
-            onChange={(e) => set('valortotal', e.target.value)}
-            placeholder="12.345,67"
-            className={INPUT_CLASS}
-          />
-        </Field>
       </Section>
 
       <LegendaPostSection

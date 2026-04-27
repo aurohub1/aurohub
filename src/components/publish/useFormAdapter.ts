@@ -102,6 +102,16 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
     f.paraviagens_iso = values.paraviagens || "";
     // Forma pagamento legacy → spec
     f.formapagamento = formaPgtoLegacyToSpec(values.formapagamento || "");
+    f.forma_pgto = values.forma_pgto || "";
+    // Forma de pagamento derivado: "Entrada de R$ {valor} +" quando Boleto, senão "Cartão de Crédito"
+    const formaSpec = formaPgtoLegacyToSpec(values.formapagamento || "");
+    if (formaSpec === "entrada" && values.entrada) {
+      f.forma_de_pagamento = `Entrada de R$ ${values.entrada} +`;
+    } else if (formaSpec === "cartao") {
+      f.forma_de_pagamento = "Cartão de Crédito";
+    } else {
+      f.forma_de_pagamento = values.forma_de_pagamento || values.forma_pgto || "";
+    }
     return f;
   }, [values, badges]);
 
@@ -161,6 +171,17 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
       case "logo_cia":
         console.log('[useFormAdapter] Setando logo_cia:', s);
         setFieldRef.current("logo_cia", s);
+        return;
+      case "forma_pgto":
+        console.log('[SET forma_pgto]', s);
+        setFieldRef.current("forma_pgto", s);
+        return;
+      case "entrada":
+        setFieldRef.current("entrada", s);
+        // Atualizar forma_de_pagamento derivado
+        if (s) {
+          setFieldRef.current("forma_de_pagamento", `Entrada de R$ ${s} +`);
+        }
         return;
       default:
         setFieldRef.current(k, s);

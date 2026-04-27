@@ -149,7 +149,18 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     case "itinerario":
       return values.itinerario || "";
     case "forma_pgto":
-      return values.forma_pgto || values.formapagamento || "";
+    case "forma_de_pagamento": {
+      // Prioriza forma_de_pagamento derivado, depois forma_pgto, depois formapagamento
+      const derivado = values.forma_de_pagamento || "";
+      if (derivado) return derivado;
+      const forma = values.forma_pgto || values.formapagamento || "";
+      // Se for "entrada" e tem valor de entrada, gera texto
+      if (forma === "entrada" && values.entrada) {
+        return `Entrada de R$ ${values.entrada} +`;
+      }
+      if (forma === "cartao") return "Cartão de Crédito";
+      return forma;
+    }
     case "valortotaltexto":
       return values.valortotaltexto || "";
     case "logo_cia":
