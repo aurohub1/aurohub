@@ -37,7 +37,7 @@ export const DESCONTO_OPTS_FORM = DESCONTO_OPTS;
 export const PARCELAS_OPTS_FORM = Array.from({ length: 20 }, (_, i) => `${i + 1}x`);
 export const NAVIOS_DEFAULT = [
   // ═══════════════════════════════════════════════════════
-  // MSC Cruises — 21 navios (principais primeiro)
+  // MSC Cruises — 21 navios
   // ═══════════════════════════════════════════════════════
   "— MSC CRUISES —",
   "MSC Seashore",
@@ -47,137 +47,149 @@ export const NAVIOS_DEFAULT = [
   "MSC Magnifica",
   "MSC Seascape",
   "MSC World Europa",
-  "MSC Seaside",
-  "MSC Seaview",
+  "MSC Virtuosa",
   "MSC Bellissima",
   "MSC Meraviglia",
-  "MSC Virtuosa",
-  "MSC Preziosa",
-  "MSC Divina",
   "MSC Fantasia",
   "MSC Splendida",
-  "MSC Poesia",
+  "MSC Opera",
+  "MSC Lirica",
   "MSC Orchestra",
   "MSC Sinfonia",
-  "MSC Lirica",
-  "MSC Opera",
+  "MSC Preziosa",
+  "MSC Divina",
+  "MSC Seaside",
+  "MSC Seaview",
+  "MSC Poesia",
   // ═══════════════════════════════════════════════════════
-  // Costa Cruises — 11 navios (principais primeiro)
+  // Costa Cruises — 9 navios
   // ═══════════════════════════════════════════════════════
   "— COSTA CRUISES —",
   "Costa Fascinosa",
   "Costa Diadema",
   "Costa Firenze",
-  "Costa Favolosa",
   "Costa Luminosa",
+  "Costa Deliziosa",
   "Costa Pacifica",
   "Costa Fortuna",
+  "Costa Serena",
   "Costa Magica",
-  "Costa Venezia",
-  "Costa Smeralda",
-  "Costa Toscana",
   // ═══════════════════════════════════════════════════════
-  // Norwegian Cruise Line — 13 navios (principais primeiro)
+  // Norwegian Cruise Line — 16 navios
   // ═══════════════════════════════════════════════════════
   "— NORWEGIAN —",
   "Norwegian Jade",
   "Norwegian Prima",
-  "Norwegian Jewel",
+  "Norwegian Encore",
+  "Norwegian Bliss",
+  "Norwegian Joy",
+  "Norwegian Escape",
+  "Norwegian Getaway",
+  "Norwegian Breakaway",
+  "Norwegian Epic",
+  "Norwegian Star",
+  "Norwegian Dawn",
+  "Norwegian Sun",
+  "Norwegian Spirit",
   "Norwegian Pearl",
   "Norwegian Gem",
-  "Norwegian Star",
-  "Norwegian Sun",
-  "Norwegian Sky",
-  "Norwegian Epic",
-  "Norwegian Breakaway",
-  "Norwegian Getaway",
-  "Norwegian Escape",
-  "Norwegian Bliss",
-  "Norwegian Encore",
+  "Norwegian Jewel",
   // ═══════════════════════════════════════════════════════
-  // Carnival Cruise Line — 13 navios (principais primeiro)
+  // Carnival Cruise Line — 12 navios
   // ═══════════════════════════════════════════════════════
   "— CARNIVAL —",
   "Carnival Jubilee",
   "Carnival Venezia",
   "Carnival Celebration",
-  "Carnival Mardi Gras",
-  "Carnival Panorama",
-  "Carnival Horizon",
-  "Carnival Vista",
-  "Carnival Breeze",
+  "Carnival Conquest",
+  "Carnival Glory",
+  "Carnival Valor",
+  "Carnival Liberty",
+  "Carnival Freedom",
   "Carnival Dream",
   "Carnival Magic",
-  "Carnival Splendor",
-  "Carnival Pride",
-  "Carnival Legend",
-  "Carnival Spirit",
+  "Carnival Breeze",
+  "Carnival Sunshine",
   // ═══════════════════════════════════════════════════════
-  // Royal Caribbean — 17 navios
+  // Royal Caribbean — 18 navios
   // ═══════════════════════════════════════════════════════
   "— ROYAL CARIBBEAN —",
+  "Wonder of the Seas",
+  "Utopia of the Seas",
+  "Icon of the Seas",
   "Symphony of the Seas",
   "Harmony of the Seas",
-  "Oasis of the Seas",
   "Allure of the Seas",
-  "Wonder of the Seas",
-  "Quantum of the Seas",
-  "Anthem of the Seas",
-  "Ovation of the Seas",
-  "Spectrum of the Seas",
+  "Oasis of the Seas",
   "Navigator of the Seas",
-  "Mariner of the Seas",
-  "Adventure of the Seas",
   "Explorer of the Seas",
+  "Adventure of the Seas",
   "Voyager of the Seas",
-  "Freedom of the Seas",
-  "Liberty of the Seas",
-  "Independence of the Seas",
+  "Mariner of the Seas",
+  "Serenade of the Seas",
+  "Jewel of the Seas",
+  "Brilliance of the Seas",
+  "Vision of the Seas",
+  "Enchantment of the Seas",
+  "Grandeur of the Seas",
   // ═══════════════════════════════════════════════════════
-  // Celebrity Cruises — 8 navios
+  // Celebrity Cruises — 13 navios
   // ═══════════════════════════════════════════════════════
   "— CELEBRITY —",
+  "Celebrity Beyond",
+  "Celebrity Ascent",
   "Celebrity Edge",
   "Celebrity Apex",
-  "Celebrity Beyond",
-  "Celebrity Equinox",
-  "Celebrity Eclipse",
-  "Celebrity Solstice",
   "Celebrity Reflection",
   "Celebrity Silhouette",
+  "Celebrity Solstice",
+  "Celebrity Eclipse",
+  "Celebrity Equinox",
+  "Celebrity Infinity",
+  "Celebrity Summit",
+  "Celebrity Constellation",
+  "Celebrity Millennium",
   // ═══════════════════════════════════════════════════════
-  // Princess Cruises — 12 navios
+  // Princess Cruises — 18 navios
   // ═══════════════════════════════════════════════════════
   "— PRINCESS —",
-  "Royal Princess",
-  "Regal Princess",
-  "Majestic Princess",
-  "Sky Princess",
-  "Enchanted Princess",
+  "Sun Princess",
   "Discovery Princess",
+  "Enchanted Princess",
+  "Sky Princess",
+  "Regal Princess",
+  "Royal Princess",
   "Crown Princess",
-  "Emerald Princess",
   "Ruby Princess",
-  "Sapphire Princess",
+  "Emerald Princess",
   "Caribbean Princess",
+  "Coral Princess",
   "Island Princess",
+  "Pacific Princess",
+  "Golden Princess",
+  "Sapphire Princess",
+  "Diamond Princess",
+  "Star Princess",
+  "Grand Princess",
   // ═══════════════════════════════════════════════════════
-  // Oceania Cruises — 6 navios
+  // Oceania Cruises — 7 navios
   // ═══════════════════════════════════════════════════════
   "— OCEANIA —",
+  "Oceania Vista",
   "Oceania Riviera",
   "Oceania Marina",
-  "Oceania Vista",
+  "Oceania Sirena",
+  "Oceania Regatta",
   "Oceania Insignia",
   "Oceania Nautica",
-  "Oceania Regatta",
   // ═══════════════════════════════════════════════════════
-  // Disney Cruise Line — 5 navios
+  // Disney Cruise Line — 6 navios
   // ═══════════════════════════════════════════════════════
   "— DISNEY —",
   "Disney Wish",
-  "Disney Fantasy",
+  "Disney Treasure",
   "Disney Dream",
+  "Disney Fantasy",
   "Disney Magic",
   "Disney Wonder",
 ];
@@ -1479,8 +1491,11 @@ export function CruzeiroForm({
     const navio = (fields.navio as string || '').trim();
     if (!navio) return;
 
+    console.log('[CruzeiroForm] Navio selecionado:', navio);
+
     // 1. Logo da companhia
     const logo = detectCompaniaLogo(navio);
+    console.log('[CruzeiroForm] Logo detectado:', logo);
     if (logo) set('logo_cia', logo);
 
     // 2. img_fundo: buscar na tabela imgfundo pelo nome do navio
@@ -1493,10 +1508,13 @@ export function CruzeiroForm({
         .single();
 
       if (!error && data?.url) {
+        console.log('[CruzeiroForm] img_fundo encontrado no DB:', data.url);
         set('img_fundo', data.url);
       } else {
+        const fallbackUrl = 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750739/rio_de_janiero_rrhh6q.png';
+        console.log('[CruzeiroForm] img_fundo fallback (Rio):', fallbackUrl);
         // Fallback: imagem padrão de cruzeiro (Rio de Janeiro)
-        set('img_fundo', 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750739/rio_de_janiero_rrhh6q.png');
+        set('img_fundo', fallbackUrl);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
