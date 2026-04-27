@@ -19,7 +19,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import type { ReactNode } from "react";
 import { supabase as _sb_for_lamina } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
-import { Tag, CreditCard, FileText } from "lucide-react";
+import { Tag, CreditCard, FileText, Ship } from "lucide-react";
 import SugerirLegenda from "./SugerirLegenda";
 
 export { SugerirLegenda };
@@ -37,161 +37,145 @@ export const DESCONTO_OPTS_FORM = DESCONTO_OPTS;
 export const PARCELAS_OPTS_FORM = Array.from({ length: 20 }, (_, i) => `${i + 1}x`);
 export const NAVIOS_DEFAULT = [
   // ═══════════════════════════════════════════════════════
-  // MSC Cruises — 21 navios
-  // ═══════════════════════════════════════════════════════
-  "— MSC CRUISES —",
-  "MSC Seashore",
-  "MSC Grandiosa",
-  "MSC Musica",
-  "MSC Armonia",
-  "MSC Magnifica",
-  "MSC Seascape",
-  "MSC World Europa",
-  "MSC Virtuosa",
-  "MSC Bellissima",
-  "MSC Meraviglia",
-  "MSC Fantasia",
-  "MSC Splendida",
-  "MSC Opera",
-  "MSC Lirica",
-  "MSC Orchestra",
-  "MSC Sinfonia",
-  "MSC Preziosa",
-  "MSC Divina",
-  "MSC Seaside",
-  "MSC Seaview",
-  "MSC Poesia",
-  // ═══════════════════════════════════════════════════════
   // Costa Cruises — 9 navios
   // ═══════════════════════════════════════════════════════
   "— COSTA CRUISES —",
-  "Costa Fascinosa",
   "Costa Diadema",
-  "Costa Firenze",
-  "Costa Luminosa",
   "Costa Deliziosa",
-  "Costa Pacifica",
+  "Costa Fascinosa",
+  "Costa Firenze",
   "Costa Fortuna",
-  "Costa Serena",
+  "Costa Luminosa",
   "Costa Magica",
-  // ═══════════════════════════════════════════════════════
-  // Norwegian Cruise Line — 16 navios
-  // ═══════════════════════════════════════════════════════
-  "— NORWEGIAN —",
-  "Norwegian Jade",
-  "Norwegian Prima",
-  "Norwegian Encore",
-  "Norwegian Bliss",
-  "Norwegian Joy",
-  "Norwegian Escape",
-  "Norwegian Getaway",
-  "Norwegian Breakaway",
-  "Norwegian Epic",
-  "Norwegian Star",
-  "Norwegian Dawn",
-  "Norwegian Sun",
-  "Norwegian Spirit",
-  "Norwegian Pearl",
-  "Norwegian Gem",
-  "Norwegian Jewel",
-  // ═══════════════════════════════════════════════════════
-  // Carnival Cruise Line — 12 navios
-  // ═══════════════════════════════════════════════════════
-  "— CARNIVAL —",
-  "Carnival Jubilee",
-  "Carnival Venezia",
-  "Carnival Celebration",
-  "Carnival Conquest",
-  "Carnival Glory",
-  "Carnival Valor",
-  "Carnival Liberty",
-  "Carnival Freedom",
-  "Carnival Dream",
-  "Carnival Magic",
-  "Carnival Breeze",
-  "Carnival Sunshine",
-  // ═══════════════════════════════════════════════════════
-  // Royal Caribbean — 18 navios
-  // ═══════════════════════════════════════════════════════
-  "— ROYAL CARIBBEAN —",
-  "Wonder of the Seas",
-  "Utopia of the Seas",
-  "Icon of the Seas",
-  "Symphony of the Seas",
-  "Harmony of the Seas",
-  "Allure of the Seas",
-  "Oasis of the Seas",
-  "Navigator of the Seas",
-  "Explorer of the Seas",
-  "Adventure of the Seas",
-  "Voyager of the Seas",
-  "Mariner of the Seas",
-  "Serenade of the Seas",
-  "Jewel of the Seas",
-  "Brilliance of the Seas",
-  "Vision of the Seas",
-  "Enchantment of the Seas",
-  "Grandeur of the Seas",
-  // ═══════════════════════════════════════════════════════
-  // Celebrity Cruises — 13 navios
-  // ═══════════════════════════════════════════════════════
-  "— CELEBRITY —",
-  "Celebrity Beyond",
-  "Celebrity Ascent",
-  "Celebrity Edge",
-  "Celebrity Apex",
-  "Celebrity Reflection",
-  "Celebrity Silhouette",
-  "Celebrity Solstice",
-  "Celebrity Eclipse",
-  "Celebrity Equinox",
-  "Celebrity Infinity",
-  "Celebrity Summit",
-  "Celebrity Constellation",
-  "Celebrity Millennium",
-  // ═══════════════════════════════════════════════════════
-  // Princess Cruises — 18 navios
-  // ═══════════════════════════════════════════════════════
-  "— PRINCESS —",
-  "Sun Princess",
-  "Discovery Princess",
-  "Enchanted Princess",
-  "Sky Princess",
-  "Regal Princess",
-  "Royal Princess",
-  "Crown Princess",
-  "Ruby Princess",
-  "Emerald Princess",
-  "Caribbean Princess",
-  "Coral Princess",
-  "Island Princess",
-  "Pacific Princess",
-  "Golden Princess",
-  "Sapphire Princess",
-  "Diamond Princess",
-  "Star Princess",
-  "Grand Princess",
-  // ═══════════════════════════════════════════════════════
-  // Oceania Cruises — 7 navios
-  // ═══════════════════════════════════════════════════════
-  "— OCEANIA —",
-  "Oceania Vista",
-  "Oceania Riviera",
-  "Oceania Marina",
-  "Oceania Sirena",
-  "Oceania Regatta",
-  "Oceania Insignia",
-  "Oceania Nautica",
+  "Costa Pacifica",
+  "Costa Serena",
   // ═══════════════════════════════════════════════════════
   // Disney Cruise Line — 6 navios
   // ═══════════════════════════════════════════════════════
   "— DISNEY —",
-  "Disney Wish",
-  "Disney Treasure",
   "Disney Dream",
   "Disney Fantasy",
   "Disney Magic",
+  "Disney Treasure",
+  "Disney Wish",
   "Disney Wonder",
+  // ═══════════════════════════════════════════════════════
+  // MSC Cruises — 21 navios
+  // ═══════════════════════════════════════════════════════
+  "— MSC CRUISES —",
+  "MSC Armonia",
+  "MSC Bellissima",
+  "MSC Divina",
+  "MSC Fantasia",
+  "MSC Grandiosa",
+  "MSC Lirica",
+  "MSC Magnifica",
+  "MSC Meraviglia",
+  "MSC Musica",
+  "MSC Opera",
+  "MSC Orchestra",
+  "MSC Poesia",
+  "MSC Preziosa",
+  "MSC Seascape",
+  "MSC Seashore",
+  "MSC Seaside",
+  "MSC Seaview",
+  "MSC Sinfonia",
+  "MSC Splendida",
+  "MSC Virtuosa",
+  "MSC World Europa",
+  // ═══════════════════════════════════════════════════════
+  // Norwegian Cruise Line — 16 navios
+  // ═══════════════════════════════════════════════════════
+  "— NORWEGIAN —",
+  "Norwegian Bliss",
+  "Norwegian Breakaway",
+  "Norwegian Dawn",
+  "Norwegian Encore",
+  "Norwegian Epic",
+  "Norwegian Escape",
+  "Norwegian Gem",
+  "Norwegian Getaway",
+  "Norwegian Jade",
+  "Norwegian Jewel",
+  "Norwegian Joy",
+  "Norwegian Pearl",
+  "Norwegian Prima",
+  "Norwegian Spirit",
+  "Norwegian Star",
+  "Norwegian Sun",
+  // ═══════════════════════════════════════════════════════
+  // Oceania Cruises — 7 navios
+  // ═══════════════════════════════════════════════════════
+  "— OCEANIA —",
+  "Oceania Insignia",
+  "Oceania Marina",
+  "Oceania Nautica",
+  "Oceania Regatta",
+  "Oceania Riviera",
+  "Oceania Sirena",
+  "Oceania Vista",
+  // ═══════════════════════════════════════════════════════
+  // Princess Cruises — 18 navios
+  // ═══════════════════════════════════════════════════════
+  "— PRINCESS —",
+  "Caribbean Princess",
+  "Coral Princess",
+  "Crown Princess",
+  "Diamond Princess",
+  "Discovery Princess",
+  "Emerald Princess",
+  "Enchanted Princess",
+  "Golden Princess",
+  "Grand Princess",
+  "Island Princess",
+  "Pacific Princess",
+  "Regal Princess",
+  "Royal Princess",
+  "Ruby Princess",
+  "Sapphire Princess",
+  "Sky Princess",
+  "Star Princess",
+  "Sun Princess",
+  // ═══════════════════════════════════════════════════════
+  // Royal Caribbean — 18 navios
+  // ═══════════════════════════════════════════════════════
+  "— ROYAL CARIBBEAN —",
+  "Adventure of the Seas",
+  "Allure of the Seas",
+  "Brilliance of the Seas",
+  "Enchantment of the Seas",
+  "Explorer of the Seas",
+  "Grandeur of the Seas",
+  "Harmony of the Seas",
+  "Icon of the Seas",
+  "Jewel of the Seas",
+  "Mariner of the Seas",
+  "Navigator of the Seas",
+  "Oasis of the Seas",
+  "Serenade of the Seas",
+  "Symphony of the Seas",
+  "Utopia of the Seas",
+  "Vision of the Seas",
+  "Voyager of the Seas",
+  "Wonder of the Seas",
+  // ═══════════════════════════════════════════════════════
+  // Celebrity Cruises — 13 navios
+  // ═══════════════════════════════════════════════════════
+  "— CELEBRITY —",
+  "Celebrity Apex",
+  "Celebrity Ascent",
+  "Celebrity Beyond",
+  "Celebrity Constellation",
+  "Celebrity Eclipse",
+  "Celebrity Edge",
+  "Celebrity Equinox",
+  "Celebrity Infinity",
+  "Celebrity Millennium",
+  "Celebrity Reflection",
+  "Celebrity Silhouette",
+  "Celebrity Solstice",
+  "Celebrity Summit",
 ];
 
 /* ── Helpers ─────────────────────────────────────────── */
@@ -1444,6 +1428,126 @@ export function CampanhaForm({
 
 /* ── CruzeiroForm ───────────────────────────────────── */
 
+// Mapa de imagens de navios (URLs do Cloudinary)
+const NAVIOS_IMAGENS: Record<string, string[]> = {
+  'COSTA DELICIOZA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750765/costa_delicioza1_mgyc19.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750765/costa_deliziosa_vfs70t.png'],
+  'COSTA DIADEMA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750765/costa_diadema_adxsj1.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750766/costa_didadema_bxgazw.png'],
+  'COSTA FASCINOSA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750770/costa_fascinosa_yascek.png'],
+  'COSTA FAVOLOSA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750771/costa_favolosa_2_sed3lb.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750771/costa_favolosa_luecz4.png'],
+  'COSTA FORTUNA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750771/costa_fortuna_v5c7ql.png'],
+  'COSTA PACIFICA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750775/costa_pacifica_ipb6tb.png'],
+  'COSTA SERENA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750776/costa_serena_jhtijo.png'],
+  'COSTA SMERALDA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750777/costa_smeralda_bnimi3.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750780/costa_smeralda1_eg9c15.png'],
+  'COSTA TOSCANA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750780/costa_toscana_pf6qev.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750781/costa_toscana1_djko2y.png'],
+  'COSTA VENEZIA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750784/costa_venezia_m3tlww.png'],
+  'DISNEY ADVENTURE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750785/disney_adventure_uidfkw.png'],
+  'DISNEY DREAM': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750793/disney_dream_pmzq8r.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750793/disney_dream11_u8b4wz.png'],
+  'DISNEY FANTASY': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750798/disney_fantasy1_dssyvk.png'],
+  'DISNEY MAGIC': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750799/disney_magic_vsuhhw.png'],
+  'DISNEY TREASURE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750800/disney_treadure34_kpbbfm.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750802/disney_treasure_zajhpl.png'],
+  'DISNEY WISH': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750804/disney_wish_mzftq9.png'],
+  'DISNEY WONDER': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750805/disney_wonder_pju13s.png'],
+  'MSC ARMONIA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750832/mscarmonia_bef1zv.png'],
+  'MSC BELLISSIMA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750817/msc_belissima_kqy4bn.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750818/msc_belissima1_ap0dok.png'],
+  'MSC DIVINA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750818/msc_divina_a1fjf2.png'],
+  'MSC EURIBIA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750819/msc_euribia_u4aqfk.png'],
+  'MSC FANTASIA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750819/msc_fantasia_zm8zbp.png'],
+  'MSC GRANDIOSA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750820/msc_grandiosa_maun7t.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750820/msc_grandiosa1_jiwqhu.png'],
+  'MSC LIRICA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750821/msc_lirica_1_xnwvwx.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750822/msc_lirica_2_bvlqkn.png'],
+  'MSC MAGNIFICA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750823/msc_magnifica_i5cssz.png'],
+  'MSC MERAVIGLIA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750823/msc_meraviglia_hsf4qn.png'],
+  'MSC MUSICA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750823/msc_musica11_gvf1vf.png'],
+  'MSC OPERA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750824/msc_opera_hqijth.png'],
+  'MSC ORCHESTRA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750824/msc_orchestra_gg6ak5.png'],
+  'MSC POESIA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750825/msc_poesia_kldjnp.png'],
+  'MSC PREZIOSA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750825/msc_preciosa_2_kguvwk.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750826/msc_preciosa_znxixl.png'],
+  'MSC SEASCAPE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750827/msc_seascape_ktrdwh.png'],
+  'MSC SEASHORE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750827/msc_seashore_uhhjsy.png'],
+  'MSC SEASIDE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750828/msc_seaside_hodp84.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750828/msc_seaside_2_qpc3yp.png'],
+  'MSC SEAVIEW': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750828/msc_seaview_2_kwvpgu.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750829/msc_seaview_ekacm5.png'],
+  'MSC SINFONIA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750829/msc_sinfonia_tnzrua.png'],
+  'MSC SPLENDIDA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750830/msc_splendida_odittb.png'],
+  'MSC VIRTUOSA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750831/msc_virtuosa_xmfjs4.png'],
+  'MSC WORLD AMERICA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750831/msc_world_america_taiav7.png'],
+  'MSC WORLD EUROPA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750832/msc_world_of_europa_mfsjfq.png'],
+  'NORWEGIAN AQUA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750832/norwegian_aqua_2_gtudqi.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750833/norwegian_aqua_n6wlod.png'],
+  'NORWEGIAN BLISS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750833/NORWEGIAN_BLISS_gyostg.png'],
+  'NORWEGIAN BREAKAWAY': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750834/NORWEGIAN_BREAKAWAY_dtb99u.png'],
+  'NORWEGIAN DAWN': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750835/NORWEGIAN_DAWN_j65a6t.png'],
+  'NORWEGIAN ENCORE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750836/NORWEGIAN_ENCORE1_anaozz.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750837/NORWEGIAN_ENCORE2_elm4ic.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750837/NORWEGIAN_ENCORE3_jfuszp.png'],
+  'NORWEGIAN ESCAPE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750838/NORWEGIAN_ESCAPE_tgnhkg.png'],
+  'NORWEGIAN GEM': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750839/NORWEGIAN_GEM_rhewip.png'],
+  'NORWEGIAN GETAWAY': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750840/NORWEGIAN_GETAWAY1_rl7hoh.png'],
+  'NORWEGIAN JOY': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750841/NORWEGIAN_JOY1_pah8dg.png'],
+  'NORWEGIAN PEARL': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750843/Norwegian_Pearl1_ga3vsh.png'],
+  'NORWEGIAN SKY': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750843/NORWEGIAN_SKY_ezvqe9.png'],
+  'NORWEGIAN SPIRIT': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750843/NORWEGIAN_SPIRIT1_yrl0va.png'],
+  'NORWEGIAN STAR': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750846/NORWEGIAN_STAR1_mkamfq.png'],
+  'NORWEGIAN SUN': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750845/NORWEGIAN_SUN1_uxsvri.png'],
+  'NORWEGIAN VIVA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750846/norwegian_viva_zymx5e.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750847/NORWEGIAN_VIVA2_cjbk11.png'],
+  'OCEANIA CRUISES ALLURA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750848/OCEANIA_CRUISES_ALLURA_o3ul30.png'],
+  'OCEANIA CRUISES INSIGNIA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750848/OCEANIA_CRUISES_INSIGNIA_e8smg3.png'],
+  'OCEANIA CRUISES MARINA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750849/OCEANIA_CRUISES_MARINA1_i3kdlo.png'],
+  'OCEANIA CRUISES NAUTICA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750850/OCEANIA_CRUISES_NAUTICA1_p84w6a.png'],
+  'OCEANIA CRUISES REGATTA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750851/OCEANIA_CRUISES_REGATTA1_dpz5zt.png'],
+  'OCEANIA CRUISES RIVIERA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750852/OCEANIA_CRUISES_RIVIERA_xr2wrz.png'],
+  'OCEANIA CRUISES SIRENA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750853/OCEANIA_CRUISES_SIRENA1_zo6ssk.png'],
+  'OCEANIA CRUISES VISTA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750854/OCEANIA_CRUISES_VISTA_c664v5.png'],
+  'PRINCESS CRUISE - CARIBBEAN PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750857/PRINCESS_CRUISE_-_CARIBBEAN_PRINCESS_uynwi5.png'],
+  'PRINCESS CRUISE - CROWN PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750857/PRINCESS_CRUISE_-_CROWN_PRINCESS_vgax76.png'],
+  'PRINCESS CRUISE - DIAMOND PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750857/PRINCESS_CRUISE_-_DIAMOND_PRINCESS1_lb1dn4.png'],
+  'PRINCESS CRUISE - DISCOVERY PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750858/PRINCESS_CRUISE_-_DISCOVERY_PRINCESS_kxn1ed.png'],
+  'PRINCESS CRUISE - ENCHANTED PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750859/PRINCESS_CRUISE_-_ENCHANTED_PRINCESS1_i7sslc.png'],
+  'PRINCESS CRUISE - MAJESTIC PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750861/PRINCESS_CRUISE_-_MAJESTIC_PRINCESS_rtr9ut.png'],
+  'PRINCESS CRUISE - REGAL PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750862/PRINCESS_CRUISE_-_REGAL_PRINCESS_lmpp6e.png'],
+  'PRINCESS CRUISE - ROYAL PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750855/PRINCESS_-_ROYAL_otim8d.png'],
+  'PRINCESS CRUISE - SKY PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750863/PRINCESS_CRUISE_-_SKY_PRINCESS_ojiptu.png'],
+  'PRINCESS CRUISE - STAR PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750863/PRINCESS_CRUISE_-_STAR_PRINCESS_waowes.png'],
+  'PRINCESS CRUISE - SUN PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750864/PRINCESS_CRUISE_-_SUN_PRINCESS1_xeyjy1.png'],
+  'ROYAL CARIBBEAN - ADVENTURE OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750866/ROYAL_CARIBBEAN_-_ADVENTURE_OF_THE_SEAS1_vsb4oz.png'],
+  'ROYAL CARIBBEAN - ALLURE OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750867/ROYAL_CARIBBEAN_-_ALLURE_OF_THE_SEAS1_m521oo.png'],
+  'ROYAL CARIBBEAN - ANTHEM OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750869/ROYAL_CARIBBEAN_-_ANTHEM_OF_THE_SEAS2_2_xkxddi.png'],
+  'ROYAL CARIBBEAN - ENCHANTMENT OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750870/ROYAL_CARIBBEAN_-_ENCHANTMENT_OF_THE_SEAS_c4quxw.png'],
+  'ROYAL CARIBBEAN - EXPLORER OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750871/ROYAL_CARIBBEAN_-_EXPLORER_OF_THE_SEAS_oiqsau.png'],
+  'ROYAL CARIBBEAN - FREEDOM OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750872/ROYAL_CARIBBEAN_-_FREEDOM_OF_THE_SEAS1_ousev8.png'],
+  'ROYAL CARIBBEAN - HARMONY OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750874/ROYAL_CARIBBEAN_-_HARMONY_OF_THE_SEAS_zho9fv.png'],
+  'ROYAL CARIBBEAN - ICON OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750865/ROYAL_ICON_letim6.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750876/ROYAL_CARIBBEAN_-_ICON_OF_THE_SEAS5_krepgf.png'],
+  'ROYAL CARIBBEAN - INDEPENDENCE OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750877/ROYAL_CARIBBEAN_-_INDEPENDENCE_OF_THE_SEAS_hwya8x.png'],
+  'ROYAL CARIBBEAN - JEWEL OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750878/ROYAL_CARIBBEAN_-_JEWEL_OF_THE_SEAS_rfnjgv.png'],
+  'ROYAL CARIBBEAN - LEGEND OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750902/ROYAL_Legend_of_the_Seas_i4ubju.png'],
+  'ROYAL CARIBBEAN - LIBERTY OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750879/ROYAL_CARIBBEAN_-_LIBERTY_OF_THE_SEAS_orqyk3.png'],
+  'ROYAL CARIBBEAN - MARINER OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750882/ROYAL_CARIBBEAN_-_MARINER_OF_THE_SEAS1_nsgxfg.png'],
+  'ROYAL CARIBBEAN - NAVIGATOR OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750885/ROYAL_CARIBBEAN_-_NAVIGATOR_OF_THE_SEAS1_ighkhh.png'],
+  'ROYAL CARIBBEAN - OASIS OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750886/ROYAL_CARIBBEAN_-_OASIS_OF_THE_SEAS_qvtyhj.png'],
+  'ROYAL CARIBBEAN - ODYSSEY OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750887/ROYAL_CARIBBEAN_-_ODYSSEY_OF_THE_SEAS1_cregdp.png'],
+  'ROYAL CARIBBEAN - OVATION OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750889/ROYAL_CARIBBEAN_-_OVATION_OF_THE_SEAS2_izlkor.png'],
+  'ROYAL CARIBBEAN - QUANTUM OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750890/ROYAL_CARIBBEAN_-_QUANTUM_OF_THE_SEAS_uqcb2j.png'],
+  'ROYAL CARIBBEAN - RADIANCE OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750891/ROYAL_CARIBBEAN_-_RADIANCE_OF_THE_SEAS1_xvewft.png'],
+  'ROYAL CARIBBEAN - RHAPSODY OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750893/ROYAL_CARIBBEAN_-_RHAPSODY_OF_THE_SEAS1_xcjed0.png'],
+  'ROYAL CARIBBEAN - SERENADE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750902/ROYAL_SERENADE_fjpgga.png'],
+  'ROYAL CARIBBEAN - SPECTRUM OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750894/ROYAL_CARIBBEAN_-_SPECTRUM_OF_THE_SEAS_qxxv5f.png'],
+  'ROYAL CARIBBEAN - STARS OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750903/ROYAL_Star_of_the_Seas_xag66h.png'],
+  'ROYAL CARIBBEAN - SYMPHONY OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750897/ROYAL_CARIBBEAN_-_SYMPHONY_OF_THE_SEAS_jijt1j.png'],
+  'ROYAL CARIBBEAN - VISION OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750904/ROYAL_VISION_vwnrjl.png'],
+  'ROYAL CARIBBEAN - VOYAGER OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750898/ROYAL_CARIBBEAN_-_VOYAGER_OF_THE_SEAS2_au1e9r.png'],
+  'ROYAL CARIBBEAN - WONDER OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750900/ROYAL_CARIBBEAN_-_WONDER_OF_THE_SEAS2_r384rb.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750904/ROYAL_Wonder_of_the_Seas_dqrgmr.png'],
+  'X CELEBRITY CRUISE - APEX': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750906/X_Celebrity_Apex_fvq5qk.png'],
+  'X CELEBRITY CRUISE - ASCENT': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750907/X_Celebrity_Ascent_wkuqws.png'],
+  'X CELEBRITY CRUISE - BOUNDLESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750908/X_Celebrity_Boundless_pxbakr.png'],
+  'CELEBRITY COMPASS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750909/X_Celebrity_Compass_d7q0fu.png'],
+  'X CELEBRITY CRUISE - CONSTELLATION': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750910/X_Celebrity_Constellation_lpypwj.png'],
+  'X CELEBRITY CRUISE - ECLIPSE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750910/X_Celebrity_Eclipse_q2erw0.png'],
+  'X CELEBRITY CRUISE - EDGE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750911/X_Celebrity_Edge_ckhwxd.png'],
+  'X CELEBRITY CRUISE - EQUINOX': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750912/X_Celebrity_Equinox_u9qg3o.png'],
+  'X CELEBRITY CRUISE - FLORA': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750913/X_Celebrity_Flora_v0jtzf.png'],
+  'X CELEBRITY CRUISE - INFINITY': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750913/X_Celebrity_Infinity_lsjww6.png'],
+  'X CELEBRITY CRUISE - REFLECTION': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750914/X_Celebrity_Reflection_fs3shu.png'],
+  'X CELEBRITY CRUISE - SILHOUETTE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750918/X_Celebrity_Silhouette_mngyov.png'],
+  'X CELEBRITY CRUISE - SOLSTICE': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750918/X_Celebrity_Solstice_qin5da.png'],
+  'X CELEBRITY CRUISE - SUMMIT': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750919/X_Celebrity_Summit_u7mlf5.png'],
+  'X CELEBRITY CRUISE - XCEL': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750921/X_Celebrity_Xcel_f4ur5j.png'],
+};
+
 // URLs exatas dos logos das companhias marítimas (V1 client.js linha 1708-1716)
 const CIA_LOGOS: Record<string, string> = {
   'MSC':       'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106669/msc_uqiqji.png',
@@ -1491,49 +1595,58 @@ export function CruzeiroForm({
     const navio = (fields.navio as string || '').trim();
     if (!navio) return;
 
-    console.log('[CruzeiroForm] Navio selecionado:', navio);
-
     // 1. Logo da companhia
     const logo = detectCompaniaLogo(navio);
-    console.log('[CruzeiroForm] Logo detectado:', logo);
     if (logo) set('logo_cia', logo);
 
-    // 2. img_fundo: buscar na tabela imgfundo pelo nome do navio
-    (async () => {
-      const { data, error } = await supabase
-        .from('imgfundo')
-        .select('url')
-        .ilike('nome', `%${navio}%`)
-        .limit(1)
-        .single();
+    // 2. img_fundo via lookup no mapa (sem query ao banco)
+    const navioUpper = navio.toUpperCase();
 
-      if (!error && data?.url) {
-        console.log('[CruzeiroForm] img_fundo encontrado no DB:', data.url);
-        set('img_fundo', data.url);
-      } else {
-        const fallbackUrl = 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750739/rio_de_janiero_rrhh6q.png';
-        console.log('[CruzeiroForm] img_fundo fallback (Rio):', fallbackUrl);
-        // Fallback: imagem padrão de cruzeiro (Rio de Janeiro)
-        set('img_fundo', fallbackUrl);
-      }
-    })();
+    // Busca exata primeiro
+    let imagens = NAVIOS_IMAGENS[navioUpper];
+
+    // Se não encontrar, busca por substring
+    if (!imagens) {
+      const chave = Object.keys(NAVIOS_IMAGENS).find(k =>
+        navioUpper.includes(k) || k.includes(navioUpper)
+      );
+      if (chave) imagens = NAVIOS_IMAGENS[chave];
+    }
+
+    if (imagens && imagens.length > 0) {
+      // Pega a primeira imagem disponível
+      set('img_fundo', imagens[0]);
+    }
+    // Se não encontrar, não seta fallback — mantém o que estava
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.navio]);
 
-  // ═══ BIND: data_correta (formatPeriodo) ═══
+  // ═══ BIND: data_periodo (formatPeriodo) ═══
   useEffect(() => {
     if (dataIda && dataVolta) {
-      set('data_correta', formatPeriodo(dataIda, dataVolta));
+      set('data_periodo', formatPeriodo(dataIda, dataVolta));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataIda, dataVolta]);
 
-  // ═══ BIND: forma_de_pagamento (sincronizar com formapagamento) ═══
+  // ═══ BIND: forma_pgto (texto formatado conforme forma de pagamento) ═══
   useEffect(() => {
-    const fp = fields.formapagamento as string;
-    if (fp) set('forma_de_pagamento', fp);
+    const fp = (fields.formapagamento as string) || '';
+    const valorparcela = (fields.valorparcela as string) || '';
+
+    let texto = '';
+
+    if (fp === 'cartao') {
+      texto = 'No Cartão de Crédito Sem Juros';
+    } else if (fp === 'entrada') {
+      if (valorparcela) {
+        texto = `Entrada de R$ ${valorparcela} +`;
+      }
+    }
+
+    set('forma_pgto', texto);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields.formapagamento]);
+  }, [fields.formapagamento, fields.valorparcela]);
 
   // ═══ BINDS: parcela (inteiro + centavos) ═══
   useEffect(() => {
@@ -1568,7 +1681,7 @@ export function CruzeiroForm({
 
   return (
     <>
-      <Section title="Cruzeiro" icon="🚢">
+      <Section title="Cruzeiro" icon={<Ship size={13} />}>
         <Field label="Navio *">
           <SearchableSelect
             value={(fields.navio as string) || ''}
@@ -1659,31 +1772,43 @@ export function CruzeiroForm({
           </div>
         </Field>
 
-        {fields.formapagamento === 'cartao' && (
-          <Field label="Quantas Vezes *">
-            <select
-              value={(fields.parcelas as string) || ''}
-              onChange={(e) => set('parcelas', e.target.value)}
-              className={SELECT_CLASS}
-              style={SELECT_STYLE}
-            >
-              <option value="">— nenhum —</option>
-              {['1x', '2x', '3x', '4x', '5x', '6x', '7x', '8x', '9x', '10x', '11x', '12x', '18x', '24x'].map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+        {fields.formapagamento === 'cartao' ? (
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Parcelas *">
+              <select
+                value={(fields.parcelas as string) || ''}
+                onChange={(e) => set('parcelas', e.target.value)}
+                className={SELECT_CLASS}
+                style={SELECT_STYLE}
+              >
+                <option value="">— nenhum —</option>
+                {Array.from({ length: 25 }, (_, i) => `${i + 1}x`).map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Valor da Parcela *">
+              <input
+                type="text"
+                value={(fields.valorparcela as string) || ''}
+                onChange={(e) => set('valorparcela', e.target.value)}
+                placeholder="239,30"
+                className={INPUT_CLASS}
+              />
+            </Field>
+          </div>
+        ) : (
+          <Field label="Valor da Entrada *">
+            <input
+              type="text"
+              value={(fields.valorparcela as string) || ''}
+              onChange={(e) => set('valorparcela', e.target.value)}
+              placeholder="239,30"
+              className={INPUT_CLASS}
+            />
           </Field>
         )}
-
-        <Field label="Valor da Parcela *">
-          <input
-            type="text"
-            value={(fields.valorparcela as string) || ''}
-            onChange={(e) => set('valorparcela', e.target.value)}
-            placeholder="1.234,56"
-            className={INPUT_CLASS}
-          />
-        </Field>
 
         <Field label="Valor Total *">
           <input

@@ -8,6 +8,7 @@ import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
 import InstagramStatusBadge from "@/components/InstagramStatusBadge";
 import InactivityAlert from "@/components/InactivityAlert";
+import { PostCounters } from "@/components/PostCounters";
 import { getInactiveStores, type InactiveStore } from "@/lib/inactivity-check";
 import { useCountUp } from "@/hooks/useCountUp";
 import {
@@ -451,6 +452,16 @@ export default function GerenteInicioPage() {
         </div>
 
       </div>
+
+      {/* ═══ Contadores de Posts por Formato ══════════════════ */}
+      {profile?.id && (
+        <div className="card-glass px-6 py-4">
+          <div className="mb-3 text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">
+            Posts do mês por formato
+          </div>
+          <PostCounters userId={profile.id} />
+        </div>
+      )}
 
       {/* ═══ Consultores + Últimas + Notícias — alturas alinhadas ═══ */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
