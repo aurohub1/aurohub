@@ -620,11 +620,11 @@ const selS: React.CSSProperties = { ...inpS, cursor: "pointer" };
 
 function Sec({ t, children }: { t: string; children: React.ReactNode }) {
   const [o, setO] = useState(true);
-  return <div style={{ marginBottom: 6, borderBottom: "1px solid var(--ed-bdr)", paddingBottom: 6 }}>
-    <button onClick={() => setO(!o)} style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", padding: "4px 0", background: "none", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: "var(--ed-txt2)" }}>
+  return <div style={{ marginBottom: 8, borderBottom: "2px solid var(--ed-bdr)", paddingBottom: 8 }}>
+    <button onClick={() => setO(!o)} style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", padding: "6px 0", background: "none", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "var(--ed-txt)" }}>
       <span style={{ transform: o ? "rotate(90deg)" : "none", transition: "transform 0.15s", fontSize: 10 }}>›</span>{t}
     </button>
-    {o && <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 4 }}>{children}</div>}
+    {o && <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 6 }}>{children}</div>}
   </div>;
 }
 

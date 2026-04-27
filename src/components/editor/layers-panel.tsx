@@ -12,14 +12,14 @@ interface Props {
 }
 
 function TypeIcon({ el }: { el: EditorElement }) {
-  const color = el.bindParam ? "var(--ed-bind)" : "var(--ed-txt2)";
-  const size = 12;
-  if (el.type === "text") return <Type size={size} color={color} />;
-  if (el.type === "rect") return <Square size={size} color={color} />;
-  if (el.type === "circle") return <Circle size={size} color={color} />;
-  if (el.type === "image") return <ImgIcon size={size} color={color} />;
-  if (el.type === "imageBind") return <ImgIcon size={size} color="#3B82F6" />;
-  if (el.type === "qrcode") return <QrCode size={size} color={color} />;
+  const color = el.bindParam ? "var(--ed-bind)" : "var(--ed-txt)";
+  const size = 15;
+  if (el.type === "text") return <Type size={size} color={color} strokeWidth={2.5} />;
+  if (el.type === "rect") return <Square size={size} color={color} strokeWidth={2.5} />;
+  if (el.type === "circle") return <Circle size={size} color={color} strokeWidth={2.5} />;
+  if (el.type === "image") return <ImgIcon size={size} color={color} strokeWidth={2.5} />;
+  if (el.type === "imageBind") return <ImgIcon size={size} color="#3B82F6" strokeWidth={2.5} />;
+  if (el.type === "qrcode") return <QrCode size={size} color={color} strokeWidth={2.5} />;
   return null;
 }
 

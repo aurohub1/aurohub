@@ -112,12 +112,22 @@ export default function ToolsPanel(p: Props) {
         <TB icon={<Maximize2 size={14} />} t="Fit Screen" o={p.onFit} />
       </div>
 
+      <style>{`
+        .ah-tool-btn:hover {
+          background: var(--ed-active) !important;
+          border-color: var(--ed-accent) !important;
+          transform: scale(1.05);
+        }
+        .ah-tool-btn:active {
+          transform: scale(0.95);
+        }
+      `}</style>
     </div>
   );
 }
 
 function TB({ icon, t, o, gold }: { icon: React.ReactNode; t: string; o: () => void; gold?: boolean }) {
-  return <button onClick={o} title={t} style={{ width: 30, height: 30, borderRadius: 6, border: "none", background: "var(--ed-hover)", color: gold ? "var(--ed-bind)" : "var(--ed-txt2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</button>;
+  return <button onClick={o} title={t} className="ah-tool-btn" style={{ width: 30, height: 30, borderRadius: 6, border: "2px solid transparent", background: "var(--ed-hover)", color: gold ? "var(--ed-bind)" : "var(--ed-txt2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>{icon}</button>;
 }
 function GL({ children }: { children: string }) {
   return <div style={{ fontSize: 6, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--ed-txt3)", margin: "4px 0 1px", textAlign: "center", width: "100%" }}>{children}</div>;
