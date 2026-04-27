@@ -18,6 +18,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { ReactNode } from "react";
 import { supabase as _sb_for_lamina } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { Tag, CreditCard, FileText } from "lucide-react";
 import SugerirLegenda from "./SugerirLegenda";
 
@@ -1433,13 +1434,14 @@ export function CampanhaForm({
 
 // URLs exatas dos logos das companhias marítimas (V1 client.js linha 1708-1716)
 const CIA_LOGOS: Record<string, string> = {
+  'MSC':       'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106669/msc_uqiqji.png',
+  'COSTA':     'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106668/costa_rzno1p.png',
+  'NORWEGIAN': 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106667/norwegian_ugg7j9.png',
+  'CARNIVAL':  'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106661/carnival_logo.png',
   'ROYAL':     'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106662/royal_madqky.png',
   'CELEBRITY': 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106665/xcruise_blcv45.png',
   'PRINCESS':  'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106664/princess_xteony.png',
   'OCEANIA':   'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106671/ocean_mccpbc.png',
-  'NORWEGIAN': 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106667/norwegian_ugg7j9.png',
-  'MSC':       'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106669/msc_uqiqji.png',
-  'COSTA':     'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106668/costa_rzno1p.png',
   'DISNEY':    'https://res.cloudinary.com/dxgj4bcch/image/upload/v1774106663/disney_ttcdgq.png',
 };
 
@@ -1452,7 +1454,7 @@ function detectCompaniaLogo(navio: string): string {
 }
 
 export function CruzeiroForm({
-  fields, set, today, binds, formato, nomeLoja, onImgFundo,
+  fields, set, today, binds, formato, nomeLoja,
 }: {
   fields: Fields;
   set: Setter;
@@ -1460,135 +1462,207 @@ export function CruzeiroForm({
   binds?: Set<string>;
   formato?: string;
   nomeLoja?: string;
-  onImgFundo?: (url: string) => void;
 }) {
-  const showNavio = hasBind(binds, "navio");
-  const showItin = hasBind(binds, "itinerario");
-  const showIda = hasBind(binds, "dataida");
-  const showVolta = hasBind(binds, "datavolta");
-  const showIncluso = hasBind(binds, "incluso");
-  const showCruz = showNavio || showItin || showIda || showVolta;
+  // ═══ CÁLCULO AUTOMÁTICO: QUANTAS NOITES ═══
+  const dataIda = (fields.dataida as string) || '';
+  const dataVolta = (fields.datavolta as string) || '';
+  const quantasNoites = useMemo(() => {
+    if (!dataIda || !dataVolta) return 0;
+    const d1 = new Date(dataIda);
+    const d2 = new Date(dataVolta);
+    const diff = Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  }, [dataIda, dataVolta]);
 
-  // Bind derivado - valortotaltexto
+  // ═══ AUTO-DETECTAR: logo_cia + img_fundo ═══
   useEffect(() => {
-    const valortotal = fields.valortotal as string;
-    if (valortotal) {
-      set("valortotaltexto", `R$ ${valortotal}`);
-    }
-  }, [fields.valortotal, set]);
+    const navio = (fields.navio as string || '').trim();
+    if (!navio) return;
 
-  // Sincronizar forma_pgto com formapagamento (template usa forma_pgto)
-  useEffect(() => {
-    const formapagamento = fields.formapagamento as string;
-    if (formapagamento) {
-      set("forma_pgto", formapagamento);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields.formapagamento]);
+    // 1. Logo da companhia
+    const logo = detectCompaniaLogo(navio);
+    if (logo) set('logo_cia', logo);
 
-  // Auto-detectar logo da companhia e imgfundo pelo nome do navio
-  useEffect(() => {
-    const navio = fields.navio as string;
-    if (navio) {
-      // Logo da companhia
-      const logo = detectCompaniaLogo(navio);
-      if (logo) set("logo_cia", logo);
+    // 2. img_fundo: buscar na tabela imgfundo pelo nome do navio
+    (async () => {
+      const { data, error } = await supabase
+        .from('imgfundo')
+        .select('url')
+        .ilike('nome', `%${navio}%`)
+        .limit(1)
+        .single();
 
-      // Imagem de fundo padrão de cruzeiro (Rio de Janeiro - porto de embarque)
-      set("imgfundo", "https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750739/rio_de_janiero_rrhh6q.png");
-    }
+      if (!error && data?.url) {
+        set('img_fundo', data.url);
+      } else {
+        // Fallback: imagem padrão de cruzeiro (Rio de Janeiro)
+        set('img_fundo', 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750739/rio_de_janiero_rrhh6q.png');
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.navio]);
 
+  // ═══ BIND: data_correta (formatPeriodo) ═══
+  useEffect(() => {
+    if (dataIda && dataVolta) {
+      set('data_correta', formatPeriodo(dataIda, dataVolta));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataIda, dataVolta]);
+
+  // ═══ BIND: forma_de_pagamento (sincronizar com formapagamento) ═══
+  useEffect(() => {
+    const fp = fields.formapagamento as string;
+    if (fp) set('forma_de_pagamento', fp);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.formapagamento]);
+
+  // ═══ BINDS: parcela (inteiro + centavos) ═══
+  useEffect(() => {
+    const vp = (fields.valorparcela as string) || '';
+    if (vp) {
+      const nums = vp.replace(/\D/g, '');
+      if (nums) {
+        const n = parseInt(nums, 10);
+        set('inteiro', Math.floor(n / 100).toLocaleString('pt-BR'));
+        set('centavos', ',' + String(n % 100).padStart(2, '0'));
+      } else {
+        set('inteiro', '');
+        set('centavos', '');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.valorparcela]);
+
+  // ═══ BIND: q_vezes (parcelas) ═══
+  useEffect(() => {
+    const p = fields.parcelas as string;
+    if (p) set('q_vezes', p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.parcelas]);
+
+  // ═══ BIND: valor_total ═══
+  useEffect(() => {
+    const vt = fields.valortotal as string;
+    if (vt) set('valor_total', vt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.valortotal]);
+
   return (
     <>
-      {showCruz && (
-        <Section title="Cruzeiro" icon="🚢">
-          {showNavio && (
-            <Field label="Navio *">
-              <SearchableSelect
-                value={(fields.navio as string) || ""}
-                onChange={(v) => set("navio", v)}
-                options={NAVIOS_DEFAULT}
-                placeholder="Buscar navio..."
-                allowCustom
-              />
-            </Field>
-          )}
-
-          {showItin && (
-            <Field label="Itinerário">
-              <textarea
-                value={(fields.itinerario as string) || ""}
-                onChange={(e) => set("itinerario", e.target.value)}
-                placeholder="Santos / Navegação / Búzios / Navegação / Santos"
-                className={`${INPUT_CLASS} h-auto resize-none py-2`}
-                rows={2}
-              />
-            </Field>
-          )}
-
-          <DatasField
-            fields={fields}
-            set={set}
-            today={today}
-            binds={binds}
-            labels={{ ida: "Embarque", volta: "Desembarque" }}
-            showNoites={false}
-            onIdaChange={(v) => {
-              set("dataida", v);
-              set("dataida_fmt", fmtDate(v));
-              const volta = (fields.datavolta as string) || "";
-              if (volta) set("dataperiodo", formatPeriodo(v, volta));
-            }}
-            onVoltaChange={(v) => {
-              set("datavolta", v);
-              set("datavolta_fmt", fmtDate(v));
-              const ida = (fields.dataida as string) || "";
-              if (ida) set("dataperiodo", formatPeriodo(ida, v));
-            }}
+      <Section title="Cruzeiro" icon="🚢">
+        <Field label="Navio *">
+          <SearchableSelect
+            value={(fields.navio as string) || ''}
+            onChange={(v) => set('navio', v)}
+            options={NAVIOS_DEFAULT}
+            placeholder="Buscar navio..."
+            allowCustom
           />
+        </Field>
 
-          {calcularNoites((fields.dataida as string) || "", (fields.datavolta as string) || "") > 0 && (
-            <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2">
-              <span className="text-[14px] text-[var(--orange)]">🌙</span>
-              <span className="text-[12px] font-bold text-[var(--txt)]">
-                {calcularNoites((fields.dataida as string) || "", (fields.datavolta as string) || "")} noites
-              </span>
-              <span className="text-[10px] text-[var(--txt3)]">calculado automaticamente</span>
-            </div>
-          )}
-        </Section>
-      )}
+        <Field label="Data Ida *">
+          <input
+            type="date"
+            value={dataIda}
+            onChange={(e) => set('dataida', e.target.value)}
+            min={today}
+            className={INPUT_CLASS}
+          />
+        </Field>
 
-      {showIncluso && (
-        <Section title="Incluso" icon="🎒">
-          <Field label="O que está incluso *">
-            <textarea
-              value={(fields.incluso as string) || ""}
-              onChange={(e) => set("incluso", e.target.value)}
-              placeholder="ex. Cabine Interna, Pensão Completa, Bebidas"
-              className={`${INPUT_CLASS} h-auto resize-none py-2`}
-              rows={3}
-            />
-          </Field>
-        </Section>
-      )}
+        <Field label="Data Volta *">
+          <input
+            type="date"
+            value={dataVolta}
+            onChange={(e) => set('datavolta', e.target.value)}
+            min={dataIda || today}
+            className={INPUT_CLASS}
+          />
+        </Field>
 
-      {hasBind(binds, "numerodesconto") && (
-        <Section title="Desconto" icon="💰">
-          <Field label="% Desconto (opcional)">
+        {quantasNoites > 0 && (
+          <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2">
+            <span className="text-[14px] text-[var(--orange)]">🌙</span>
+            <span className="text-[12px] font-bold text-[var(--txt)]">
+              {quantasNoites} {quantasNoites === 1 ? 'noite' : 'noites'}
+            </span>
+            <span className="text-[10px] text-[var(--txt3)]">calculado automaticamente</span>
+          </div>
+        )}
+
+        <Field label="Itinerário *">
+          <textarea
+            value={(fields.itinerario as string) || ''}
+            onChange={(e) => set('itinerario', e.target.value)}
+            placeholder="ex: Santos / Navegação / Búzios / Navegação / Santos"
+            className={`${INPUT_CLASS} h-auto resize-none py-2`}
+            rows={2}
+          />
+        </Field>
+
+        <Field label="Incluso (opcional)">
+          <textarea
+            value={(fields.incluso as string) || ''}
+            onChange={(e) => set('incluso', e.target.value)}
+            placeholder="ex: Cabine Interna, Pensão Completa, Bebidas"
+            className={`${INPUT_CLASS} h-auto resize-none py-2`}
+            rows={2}
+          />
+        </Field>
+      </Section>
+
+      <Section title="Pagamento" icon="💳">
+        <Field label="Forma de Pagamento *">
+          <div className="flex gap-2">
+            {['cartao', 'entrada', 'debito'].map((forma) => (
+              <button
+                key={forma}
+                type="button"
+                onClick={() => set('formapagamento', forma)}
+                className={`flex-1 rounded-lg border px-3 py-2 text-[13px] font-semibold transition-all ${
+                  fields.formapagamento === forma
+                    ? 'border-[var(--orange)] bg-[var(--orange)] text-white'
+                    : 'border-[var(--bdr)] bg-[var(--bg2)] text-[var(--txt)] hover:border-[var(--orange)]'
+                }`}
+              >
+                {forma === 'cartao' ? 'Cartão' : forma === 'entrada' ? 'Boleto' : 'Débito'}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        {fields.formapagamento === 'cartao' && (
+          <Field label="Quantas Vezes *">
             <SearchableSelect
-              value={(fields.numerodesconto as string) || ""}
-              onChange={(v) => set("numerodesconto", v)}
-              options={["– nenhum –", ...DESCONTO_OPTS_FORM]}
+              value={(fields.parcelas as string) || ''}
+              onChange={(v) => set('parcelas', v)}
+              options={PARCELAS_OPTS_FORM}
               placeholder="Selecionar..."
             />
           </Field>
-        </Section>
-      )}
+        )}
 
-      <PagamentoSection fields={fields} set={set} totalLabel="por pessoa" binds={binds} />
+        <Field label="Valor da Parcela *">
+          <input
+            type="text"
+            value={(fields.valorparcela as string) || ''}
+            onChange={(e) => set('valorparcela', e.target.value)}
+            placeholder="1.234,56"
+            className={INPUT_CLASS}
+          />
+        </Field>
+
+        <Field label="Valor Total *">
+          <input
+            type="text"
+            value={(fields.valortotal as string) || ''}
+            onChange={(e) => set('valortotal', e.target.value)}
+            placeholder="12.345,67"
+            className={INPUT_CLASS}
+          />
+        </Field>
+      </Section>
 
       <LegendaPostSection
         fields={fields}
@@ -1596,7 +1670,7 @@ export function CruzeiroForm({
         formato={formato}
         nomeLoja={nomeLoja}
         tipoArte="cruzeiro"
-        destino={(fields.destino as string) || (fields.navio as string) || (fields.itinerario as string) || "Cruzeiro"}
+        destino={(fields.navio as string) || (fields.itinerario as string) || 'Cruzeiro'}
       />
     </>
   );
