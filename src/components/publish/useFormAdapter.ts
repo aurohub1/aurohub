@@ -106,6 +106,7 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
   }, [values, badges]);
 
   const set: Setter = useCallback((k, v) => {
+    console.log('[useFormAdapter set]', { tab, k, v });
     // Boolean → badge legada
     if (typeof v === "boolean") {
       const badgeKey = BADGE_MAP[k];
