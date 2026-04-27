@@ -101,7 +101,7 @@ const FORMAT_LABELS: Record<Format, string> = {
   tv: "TV",
 };
 const DEFAULTS = {
-  formapagamento: "Cartão de Crédito",
+  formapagamento: "cartao",
   tipovoo: "( Voo Direto )",
 };
 
@@ -177,6 +177,8 @@ export default function PublicarPageBase({
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [feriados, setFeriados] = useState<string[]>([]);
+  const [postCounts, setPostCounts] = useState({ stories: 0, feed: 0, reels: 0, tv: 0 });
+  const [postLimits, setPostLimits] = useState({ stories: 0, feed: 0, reels: 0, tv: 0 });
   const [tab, setTab] = useState<FormType>("pacote");
   const [format, setFormat] = useState<Format>("stories");
   const [phase, setPhase] = useState<"selector" | "form">("selector");
@@ -260,9 +262,55 @@ export default function PublicarPageBase({
   }, [tab, phase]);
 
   useEffect(() => {
-    getProfile(supabase).then((p) => {
+    getProfile(supabase).then(async (p) => {
       setProfile(p);
       if (p?.licensee_id) loadTemplates(p.licensee_id);
+
+      // Buscar contadores de posts do mês atual
+      if (p?.id) {
+        const inicioMes = new Date();
+        inicioMes.setDate(1);
+        inicioMes.setHours(0, 0, 0, 0);
+
+        try {
+          const { data: logs } = await supabase
+            .from("activity_logs")
+            .select("metadata")
+            .gte("created_at", inicioMes.toISOString())
+            .in("event_type", ["post_instagram", "post_scheduled"]);
+
+          const counts = { stories: 0, feed: 0, reels: 0, tv: 0 };
+          (logs ?? []).forEach((log: any) => {
+            if (log.metadata?.user_id === p.id) {
+              const fmt = log.metadata?.format as Format;
+              if (fmt && fmt in counts) counts[fmt]++;
+            }
+          });
+          setPostCounts(counts);
+        } catch (err) {
+          console.error("[Post counts]", err);
+        }
+
+        // Buscar limites do plano
+        try {
+          const { data: limits } = await supabase
+            .from("profiles")
+            .select("limit_stories, limit_feed, limit_reels, limit_tv")
+            .eq("id", p.id)
+            .single();
+
+          if (limits) {
+            setPostLimits({
+              stories: limits.limit_stories ?? 0,
+              feed: limits.limit_feed ?? 0,
+              reels: limits.limit_reels ?? 0,
+              tv: limits.limit_tv ?? 0,
+            });
+          }
+        } catch (err) {
+          console.error("[Post limits]", err);
+        }
+      }
     });
     supabase
       .from("feriados")
@@ -618,34 +666,40 @@ export default function PublicarPageBase({
           </div>
           <div style={{ marginLeft: "auto", display: "flex", gap: "24px" }}>
             {[
-              { l: "Stories", v: "∞", c: "var(--brand-primary)" },
-              { l: "Feed", v: "0/5", c: "#f59e0b" },
-              { l: "Reels", v: "0/10", c: "#22c55e" },
-            ].map((x) => (
-              <div key={x.l} style={{ textAlign: "center" }}>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 800,
-                    color: x.c,
-                    lineHeight: 1,
-                  }}
-                >
-                  {x.v}
+              { l: "Stories", k: "stories" as Format, c: "var(--brand-primary)" },
+              { l: "Feed", k: "feed" as Format, c: "#f59e0b" },
+              { l: "Reels", k: "reels" as Format, c: "#22c55e" },
+              { l: "TV", k: "tv" as Format, c: "#a855f7" },
+            ].map((x) => {
+              const usado = postCounts[x.k];
+              const limite = postLimits[x.k];
+              const display = limite > 0 ? `${usado}/${limite}` : "∞";
+              return (
+                <div key={x.l} style={{ textAlign: "center" }}>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 800,
+                      color: x.c,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {display}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "9px",
+                      color: "var(--txt3)",
+                      textTransform: "uppercase",
+                      letterSpacing: ".06em",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {x.l}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: "9px",
-                    color: "var(--txt3)",
-                    textTransform: "uppercase",
-                    letterSpacing: ".06em",
-                    marginTop: "2px",
-                  }}
-                >
-                  {x.l}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
         <div
