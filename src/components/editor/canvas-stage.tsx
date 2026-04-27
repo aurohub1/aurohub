@@ -225,7 +225,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           displayText || el.text || "",
           el.width,
           el.linhas,
-          el.fontFamily || "DM Sans",
+          el.fontFamily || "Helvetica Neue",
           el.fontStyle || "normal",
           baseFont,
           el.lineHeight || 1.2
@@ -241,7 +241,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
       wrap="word"
       ellipsis={!!el.linhas}
-      text={displayText} fontSize={fSize} fontFamily={el.fontFamily || "DM Sans"} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+      text={displayText} fontSize={fSize} fontFamily={el.fontFamily || "Helvetica Neue"} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "rect") {
     const linkedText = el.autoHeightRef
@@ -363,7 +363,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           align="center"
           text={label}
           fontSize={14}
-          fontFamily="DM Sans"
+          fontFamily="Helvetica Neue"
           fontStyle="bold"
           fill="#3B82F6"
           listening={false}

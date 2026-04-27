@@ -436,7 +436,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
           txt,
           el.width,
           el.linhas,
-          el.fontFamily ?? "DM Sans",
+          el.fontFamily ?? "Helvetica Neue",
           el.fontStyle ?? "normal",
           baseFont
         )
@@ -454,7 +454,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
           <KText
             text={intPart}
             fontSize={fSize}
-            fontFamily={el.fontFamily ?? "DM Sans"}
+            fontFamily={el.fontFamily ?? "Helvetica Neue"}
             fontStyle={resolveKonvaFontStyle(el)}
             {...fillProps}
             align={el.align ?? "left"}
@@ -465,7 +465,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             x={intPart.length * fSize * 0.6}
             text={`,${decPart}`}
             fontSize={decSize}
-            fontFamily={el.fontFamily ?? "DM Sans"}
+            fontFamily={el.fontFamily ?? "Helvetica Neue"}
             fontStyle={resolveKonvaFontStyle(el)}
             {...fillProps}
             letterSpacing={el.letterSpacing ?? 0}
@@ -485,7 +485,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
       const intPart = (parts[0] || "").trim() || "—";
       const decPart = "," + ((parts[1] || "00").trim() || "00");
       const smallSize = Math.round(fSize * 26 / 44);  // V1 ratio 26/44
-      const ff = el.fontFamily ?? "DM Sans";
+      const ff = el.fontFamily ?? "Helvetica Neue";
       const textHeight = Math.ceil(fSize * (el.lineHeight ?? 1.2));
       const accentFillProps = getFillProps(el.fill, el.width, textHeight);
       // Branco real — colorMap substitui #ffffff → P.text se paleta tiver .text
@@ -549,7 +549,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
         rotation={el.rotation ?? 0}
         text={txt}
         fontSize={fSize}
-        fontFamily={el.fontFamily ?? "DM Sans"}
+        fontFamily={el.fontFamily ?? "Helvetica Neue"}
         fontStyle={resolveKonvaFontStyle(el)}
         textDecoration={el.textDecoration ?? ""}
         {...textFillProps}
