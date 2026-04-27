@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Stage, Layer, Rect, Circle, Text, Image as KImage, Transformer, Line, Group } from "react-konva";
 import type Konva from "konva";
 import QRCode from "qrcode";
-import { EditorElement, EditorSchema, SnapLine, calcSnapLines, applySmartLinks } from "./types";
+import { EditorElement, EditorSchema, SnapLine, calcSnapLines, applySmartLinks, GradientFill } from "./types";
 
 interface Props {
   width: number; height: number;
@@ -41,6 +41,40 @@ function useQrImage(url: string, fg: string, bg: string, size: number): HTMLImag
     return () => { cancel = true; };
   }, [url, fg, bg, size]);
   return img;
+}
+
+/* ── Gradient helper ──────────────────────────────── */
+function getFillProps(fill: string | GradientFill | undefined, width: number, height: number) {
+  if (!fill || typeof fill === "string") {
+    return { fill: fill || "#FFFFFF" };
+  }
+  // Gradiente
+  const { colors, direction } = fill;
+  let startPoint = { x: 0, y: 0 };
+  let endPoint = { x: 0, y: 0 };
+  switch (direction) {
+    case "horizontal":
+      startPoint = { x: 0, y: 0 };
+      endPoint = { x: width, y: 0 };
+      break;
+    case "vertical":
+      startPoint = { x: 0, y: 0 };
+      endPoint = { x: 0, y: height };
+      break;
+    case "diagonal-down":
+      startPoint = { x: 0, y: 0 };
+      endPoint = { x: width, y: height };
+      break;
+    case "diagonal-up":
+      startPoint = { x: 0, y: height };
+      endPoint = { x: width, y: 0 };
+      break;
+  }
+  return {
+    fillLinearGradientStartPoint: startPoint,
+    fillLinearGradientEndPoint: endPoint,
+    fillLinearGradientColorStops: [0, colors[0], 1, colors[1]],
+  };
 }
 
 /* ── Fit-font helper ─────────────────────────────── */
@@ -197,6 +231,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           el.lineHeight || 1.2
         )
       : baseFont;
+    const textFillProps = getFillProps(el.fill || "#FFF", el.width, el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : fSize * (el.lineHeight || 1.2));
     return <Text ref={shapeRef as React.RefObject<Konva.Text>}
       x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
       shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled}
@@ -206,7 +241,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
       wrap="word"
       ellipsis={!!el.linhas}
-      text={displayText} fontSize={fSize} fontFamily={el.fontFamily || "DM Sans"} fontStyle={el.fontStyle || "normal"} fill={el.fill || "#FFF"} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+      text={displayText} fontSize={fSize} fontFamily={el.fontFamily || "DM Sans"} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "rect") {
     const linkedText = el.autoHeightRef
@@ -215,7 +250,8 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     const rectHeight = linkedText?.linhas
       ? Math.ceil((linkedText.fontSize || 32) * (linkedText.lineHeight || 1.2) * linkedText.linhas)
       : el.height;
-    return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={rectHeight} fill={el.fill} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+    const rectFillProps = getFillProps(el.fill, el.width, rectHeight);
+    return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={rectHeight} {...rectFillProps} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "circle") {
     return <Circle {...common} ref={shapeRef as React.RefObject<Konva.Circle>} onClick={(e) => onClick(e)} radius={Math.min(el.width, el.height) / 2} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;

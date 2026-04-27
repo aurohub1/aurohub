@@ -7,6 +7,13 @@ export type EasingType = "linear"|"easeIn"|"easeOut"|"easeInOut"|"bounce"|"elast
 export type BlendMode = "source-over"|"multiply"|"screen"|"overlay"|"darken"|"lighten"|"color-dodge"|"color-burn"|"hard-light"|"soft-light"|"difference"|"exclusion";
 export type TextCase = "none"|"uppercase"|"lowercase"|"capitalize";
 export type ImageFit = "contain"|"cover"|"fill";
+export type GradientDirection = "horizontal"|"vertical"|"diagonal-down"|"diagonal-up";
+
+export interface GradientFill {
+  type: "gradient";
+  colors: [string, string];
+  direction: GradientDirection;
+}
 
 export interface ShadowConfig { color: string; offsetX: number; offsetY: number; blur: number; spread?: number; }
 
@@ -18,7 +25,7 @@ export interface EditorElement {
   rotation?: number; opacity?: number;
   // Text
   text?: string; fontSize?: number; fontFamily?: string; fontStyle?: string; priceDisplay?: boolean; hideIfEmpty?: boolean;
-  fill?: string; align?: string; verticalAlign?: string;
+  fill?: string | GradientFill; align?: string; verticalAlign?: string;
   letterSpacing?: number; lineHeight?: number;
   linhas?: number;  // número fixo de linhas — limita altura do texto (0/undefined = livre)
   textDecoration?: string; textTransform?: TextCase;

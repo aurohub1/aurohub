@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { HexColorPicker } from "react-colorful";
-import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec, getImageBindFields } from "./types";
+import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec, getImageBindFields, GradientFill, GradientDirection } from "./types";
 
 interface Props {
   selected: EditorElement | null;
@@ -90,7 +90,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
       {/* Fill — hide for lines, images and qrcode */}
       {s.type !== "image" && s.type !== "qrcode" && !isLine(s) && (
         <Sec t="Preenchimento">
-          <ColorField value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
+          <FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
         </Sec>
       )}
 
@@ -188,7 +188,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
             <F l="Tamanho"><Num v={s.fontSize || 32} c={v => u({ fontSize: v })} /></F>
             <F l="Peso"><select value={(s.fontStyle || "normal").includes("bold") ? "bold" : "normal"} onChange={e => u({ fontStyle: e.target.value })} style={selS}><option value="normal">Normal</option><option value="bold">Bold</option></select></F>
           </G2>
-          <F l="Cor texto"><ColorField value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
+          <F l="Cor texto"><FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
           <F l="Split R$"><input type="checkbox" checked={!!s.priceDisplay} onChange={e => u({ priceDisplay: e.target.checked })} /></F>
           <F l="Ocultar vazio"><input type="checkbox" checked={!!s.hideIfEmpty} onChange={e => u({ hideIfEmpty: e.target.checked })} /></F>
           <div style={{ display: "flex", gap: 3 }}>
@@ -511,6 +511,48 @@ function AnimateTab({ s, u }: { s: EditorElement; u: (up: Partial<EditorElement>
         </Sec>
       )}
     </>
+  );
+}
+
+/* ══ FILL EDITOR (Sólido / Gradiente) ═════════ */
+function FillEditor({ value, onChange }: { value: string | GradientFill; onChange: (v: string | GradientFill) => void }) {
+  const isGradient = typeof value === "object" && value.type === "gradient";
+  const solidColor = typeof value === "string" ? value : "#FFFFFF";
+  const gradientData = isGradient ? value : { type: "gradient" as const, colors: ["#FFFFFF", "#000000"] as [string, string], direction: "vertical" as GradientDirection };
+
+  return (
+    <div>
+      {/* Toggle Sólido / Gradiente */}
+      <div style={{ display: "flex", gap: 3, marginBottom: 6 }}>
+        <SBtn active={!isGradient} onClick={() => onChange(solidColor)}>Sólido</SBtn>
+        <SBtn active={isGradient} onClick={() => onChange(gradientData)}>Gradiente</SBtn>
+      </div>
+
+      {/* Sólido: 1 color picker */}
+      {!isGradient && (
+        <ColorField value={solidColor} onChange={c => onChange(c)} />
+      )}
+
+      {/* Gradiente: 2 color pickers + direção */}
+      {isGradient && (
+        <>
+          <F l="Cor 1">
+            <ColorSwatch value={gradientData.colors[0]} onChange={c => onChange({ ...gradientData, colors: [c, gradientData.colors[1]] })} />
+          </F>
+          <F l="Cor 2">
+            <ColorSwatch value={gradientData.colors[1]} onChange={c => onChange({ ...gradientData, colors: [gradientData.colors[0], c] })} />
+          </F>
+          <F l="Direção">
+            <select value={gradientData.direction} onChange={e => onChange({ ...gradientData, direction: e.target.value as GradientDirection })} style={selS}>
+              <option value="horizontal">Horizontal →</option>
+              <option value="vertical">Vertical ↓</option>
+              <option value="diagonal-down">Diagonal ↘</option>
+              <option value="diagonal-up">Diagonal ↗</option>
+            </select>
+          </F>
+        </>
+      )}
+    </div>
   );
 }
 
