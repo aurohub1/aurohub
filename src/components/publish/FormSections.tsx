@@ -1615,7 +1615,7 @@ export function CruzeiroForm({
       <Section title="Pagamento" icon="💳">
         <Field label="Forma de Pagamento *">
           <div className="flex gap-2">
-            {['cartao', 'entrada', 'debito'].map((forma) => (
+            {['cartao', 'entrada'].map((forma) => (
               <button
                 key={forma}
                 type="button"
@@ -1626,7 +1626,7 @@ export function CruzeiroForm({
                     : 'border-[var(--bdr)] bg-[var(--bg2)] text-[var(--txt)] hover:border-[var(--orange)]'
                 }`}
               >
-                {forma === 'cartao' ? 'Cartão' : forma === 'entrada' ? 'Boleto' : 'Débito'}
+                {forma === 'cartao' ? 'Cartão' : 'Boleto'}
               </button>
             ))}
           </div>
