@@ -75,19 +75,26 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
 
   cruzeiro: {
     Imagens: [
-      { id: 'img_fundo', label: 'Imagem Navio', type: 'image' },
-      { id: 'logo_cia', label: 'Logo Cia Marítima', type: 'image' },
+      { id: 'imgfundo', label: 'Imagem de Fundo', type: 'image' },
+      { id: 'logo_cia', label: 'Logo CIA Marítima', type: 'image' },
     ],
-    Cruzeiro: [
+    Destino: [
       { id: 'navio', label: 'Nome do Navio', type: 'text' },
+    ],
+    Datas: [
+      { id: 'dataperiodo', label: 'Período (23 a 28/03)', type: 'text' },
+      { id: 'dataida', label: 'Data Ida', type: 'text' },
+      { id: 'datavolta', label: 'Data Volta', type: 'text' },
+    ],
+    Hotel: [
       { id: 'itinerario', label: 'Itinerário', type: 'text' },
-      { id: 'periodo', label: 'Período', type: 'text' },
       { id: 'incluso', label: 'Incluso', type: 'text' },
     ],
-    Valor: [
-      { id: 'valorparcela', label: 'Valor da Parcela', type: 'text' },
-      { id: 'parcelas', label: 'Parcelas', type: 'text' },
-      { id: 'valortotal', label: 'Valor Total', type: 'text' },
+    Preco: [
+      { id: 'forma_pgto', label: 'Forma Pagamento', type: 'text' },
+      { id: 'parcelas', label: 'Parcelas (ex: 12x)', type: 'text' },
+      { id: 'valorparcela', label: 'Valor Inteiro (grande)', type: 'text' },
+      { id: 'valortotaltexto', label: 'Valor Total Texto', type: 'text' },
     ],
     Loja: [
       { id: 'logo_loja', label: 'Logo Azul Viagens', type: 'image' },
