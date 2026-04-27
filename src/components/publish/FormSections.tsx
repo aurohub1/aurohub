@@ -1483,7 +1483,8 @@ export function CruzeiroForm({
     if (formapagamento) {
       set("forma_pgto", formapagamento);
     }
-  }, [fields.formapagamento, set]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.formapagamento]);
 
   // Auto-detectar logo da companhia e imgfundo pelo nome do navio
   useEffect(() => {
@@ -1496,7 +1497,8 @@ export function CruzeiroForm({
       // Imagem de fundo padrão de cruzeiro
       set("imgfundo", "https://res.cloudinary.com/dxgj4bcch/image/upload/BARRETOS_-_BULK_CRUZEIRO_1_s6xcdn.png");
     }
-  }, [fields.navio, set]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.navio]);
 
   return (
     <>
