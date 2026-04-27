@@ -1561,25 +1561,27 @@ export function CruzeiroForm({
           />
         </Field>
 
-        <Field label="Data Ida *">
-          <input
-            type="date"
-            value={dataIda}
-            onChange={(e) => set('dataida', e.target.value)}
-            min={today}
-            className={INPUT_CLASS}
-          />
-        </Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Data Ida *">
+            <input
+              type="date"
+              value={dataIda}
+              onChange={(e) => set('dataida', e.target.value)}
+              min={today}
+              className={INPUT_CLASS}
+            />
+          </Field>
 
-        <Field label="Data Volta *">
-          <input
-            type="date"
-            value={dataVolta}
-            onChange={(e) => set('datavolta', e.target.value)}
-            min={dataIda || today}
-            className={INPUT_CLASS}
-          />
-        </Field>
+          <Field label="Data Volta *">
+            <input
+              type="date"
+              value={dataVolta}
+              onChange={(e) => set('datavolta', e.target.value)}
+              min={dataIda || today}
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </div>
 
         {quantasNoites > 0 && (
           <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2">
@@ -1614,32 +1616,44 @@ export function CruzeiroForm({
 
       <Section title="Pagamento" icon="💳">
         <Field label="Forma de Pagamento *">
-          <div className="flex gap-2">
-            {['cartao', 'entrada'].map((forma) => (
-              <button
-                key={forma}
-                type="button"
-                onClick={() => set('formapagamento', forma)}
-                className={`flex-1 rounded-lg border px-3 py-2 text-[13px] font-semibold transition-all ${
-                  fields.formapagamento === forma
-                    ? 'border-[var(--orange)] bg-[var(--orange)] text-white'
-                    : 'border-[var(--bdr)] bg-[var(--bg2)] text-[var(--txt)] hover:border-[var(--orange)]'
-                }`}
-              >
-                {forma === 'cartao' ? 'Cartão' : 'Boleto'}
-              </button>
-            ))}
+          <div className="flex gap-1">
+            {[
+              { value: 'cartao', label: 'Cartão' },
+              { value: 'entrada', label: 'Boleto' }
+            ].map((opt) => {
+              const sel = fields.formapagamento === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => set('formapagamento', opt.value)}
+                  className="flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all"
+                  style={
+                    sel
+                      ? { background: 'var(--orange)', color: '#fff', borderColor: 'var(--orange)' }
+                      : { background: 'transparent', color: 'var(--txt3)', borderColor: 'var(--bdr)' }
+                  }
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </Field>
 
         {fields.formapagamento === 'cartao' && (
           <Field label="Quantas Vezes *">
-            <SearchableSelect
+            <select
               value={(fields.parcelas as string) || ''}
-              onChange={(v) => set('parcelas', v)}
-              options={PARCELAS_OPTS_FORM}
-              placeholder="Selecionar..."
-            />
+              onChange={(e) => set('parcelas', e.target.value)}
+              className={SELECT_CLASS}
+              style={SELECT_STYLE}
+            >
+              <option value="">— nenhum —</option>
+              {['1x', '2x', '3x', '4x', '5x', '6x', '7x', '8x', '9x', '10x', '11x', '12x', '18x', '24x'].map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
           </Field>
         )}
 
