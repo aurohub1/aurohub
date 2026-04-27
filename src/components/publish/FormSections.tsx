@@ -1491,16 +1491,10 @@ export function CruzeiroForm({
     if (navio) {
       // Logo da companhia
       const logo = detectCompaniaLogo(navio);
-      if (logo) {
-        set("logo_cia", logo);
-      }
+      if (logo) set("logo_cia", logo);
 
-      // Imagem de fundo: usar overlay padrão do cruzeiro (mesmo do V1)
-      // V1 usa API.getImgCruise(navio) mas não há imagens de navios na tabela imgfundo
-      // Usar imagem padrão do template Cruzeiro Stories
-      if (!fields.imgfundo) {
-        set("imgfundo", "https://res.cloudinary.com/dxgj4bcch/image/upload/BARRETOS_-_BULK_CRUZEIRO_1_s6xcdn.png");
-      }
+      // Imagem de fundo padrão de cruzeiro
+      set("imgfundo", "https://res.cloudinary.com/dxgj4bcch/image/upload/BARRETOS_-_BULK_CRUZEIRO_1_s6xcdn.png");
     }
   }, [fields.navio, set]);
 
