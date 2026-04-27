@@ -1488,12 +1488,10 @@ export function CruzeiroForm({
 
   // Auto-detectar logo da companhia e imgfundo pelo nome do navio
   useEffect(() => {
-    console.log('[CruzeiroForm useEffect]', { navio: fields.navio });
     const navio = fields.navio as string;
     if (navio) {
       // Logo da companhia
       const logo = detectCompaniaLogo(navio);
-      console.log('[CruzeiroForm] logo_cia:', logo);
       if (logo) set("logo_cia", logo);
 
       // Imagem de fundo padrão de cruzeiro (Rio de Janeiro - porto de embarque)

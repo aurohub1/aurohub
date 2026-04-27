@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useEffect } from "react";
 
 /**
  * Adapter bidirecional entre o estado legado dos publicar/page.tsx
@@ -105,23 +105,28 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
     return f;
   }, [values, badges]);
 
+  // Fix closure stale: usar ref para garantir setField sempre atualizado
+  const setFieldRef = useRef(setField);
+  useEffect(() => {
+    setFieldRef.current = setField;
+  }, [setField]);
+
   const set: Setter = useCallback((k, v) => {
-    console.log('[useFormAdapter set]', { tab, k, v });
     // Boolean → badge legada
     if (typeof v === "boolean") {
       const badgeKey = BADGE_MAP[k];
       if (badgeKey) { setBadge(badgeKey, v); return; }
-      setField(k, v ? "1" : "");
+      setFieldRef.current(k, v ? "1" : "");
       return;
     }
     const s = v == null ? "" : String(v);
 
     switch (k) {
       case "numerodesconto":
-        setField("desconto", s);
+        setFieldRef.current("desconto", s);
         return;
       case "desconto_anoit":
-        setField("desconto", s);
+        setFieldRef.current("desconto", s);
         return;
       case "dataida_fmt":
       case "datavolta_fmt":
@@ -129,30 +134,30 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
         // de dataida/datavolta, mas nosso adapter produz os _fmt no read automaticamente)
         return;
       case "inicio_iso":
-        setField("inicio", dateToDt(s, values.inicio));
+        setFieldRef.current("inicio", dateToDt(s, values.inicio));
         return;
       case "fim_iso":
-        setField("fim", dateToDt(s, values.fim));
+        setFieldRef.current("fim", dateToDt(s, values.fim));
         return;
       case "paraviagens_iso":
-        setField("paraviagens", s);
+        setFieldRef.current("paraviagens", s);
         return;
       case "inicio":
-        setField("inicio", s);
+        setFieldRef.current("inicio", s);
         return;
       case "fim":
-        setField("fim", s);
+        setFieldRef.current("fim", s);
         return;
       case "paraviagens":
-        setField("paraviagens", s);
+        setFieldRef.current("paraviagens", s);
         return;
       case "formapagamento":
-        setField("formapagamento", formaPgtoSpecToLegacy(s));
+        setFieldRef.current("formapagamento", formaPgtoSpecToLegacy(s));
         return;
       default:
-        setField(k, s);
+        setFieldRef.current(k, s);
     }
-  }, [tab, values, setField, setBadge]);
+  }, [tab, setBadge, values]);
 
   // Serviços como array (CampanhaForm espera servicos/setServicos)
   const servicos = useMemo(() => {
