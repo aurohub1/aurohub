@@ -224,6 +224,7 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
 
     case "inteiro": {
       const raw = values.inteiro || "";
+      console.log('[PreviewStage inteiro] raw:', raw, 'values.inteiro:', values.inteiro, 'all inteiro-related:', { inteiro: values.inteiro, valorparcela: values.valorparcela });
       if (!raw) return "";
       // Valor vem como '321,12' ou '321.12' — pegar só a parte inteira
       const parteInteira = raw.replace(",", ".").split(".")[0];
