@@ -34,7 +34,7 @@ export const VOO_OPTS = ["Voo Direto", "Voo Conexão"];
 
 // Legados (manter compat temporária)
 export const DESCONTO_OPTS_FORM = DESCONTO_OPTS;
-export const PARCELAS_OPTS_FORM = Array.from({ length: 20 }, (_, i) => `${i + 1}x`);
+export const PARCELAS_OPTS_FORM = Array.from({ length: 19 }, (_, i) => `${i + 2}x`); // 2x-20x
 export const NAVIOS_DEFAULT = [
   // ═══════════════════════════════════════════════════════
   // Costa Cruises — 9 navios
@@ -1867,7 +1867,7 @@ export function CruzeiroForm({
                 set('parcelas', v);
                 set('q_vezes', v);
               }}
-              options={Array.from({ length: 25 }, (_, i) => `${i + 1}x`)}
+              options={Array.from({ length: 24 }, (_, i) => `${i + 2}x`)}
               placeholder="Selecione..."
               readOnly={true}
             />
