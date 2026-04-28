@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { HexColorPicker } from "react-colorful";
 import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec, getImageBindFields, GradientFill, GradientDirection } from "./types";
 
@@ -103,7 +103,12 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         <G2><F l="W"><Num v={Math.round(s.width)} c={v => u({ width: v })} /></F><F l="H"><Num v={Math.round(s.height)} c={v => u({ height: v })} /></F></G2>
         <G2>
           <F l="Rotação"><Num v={Math.round(s.rotation || 0)} c={v => u({ rotation: v })} /></F>
-          <F l="Opacidade"><input type="range" min={0} max={1} step={0.05} value={s.opacity ?? 1} onChange={e => u({ opacity: +e.target.value })} style={{ width: "100%", accentColor: "var(--ed-accent)", marginTop: 6 }} /></F>
+          <F l="Opacidade">
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <input type="range" min={0} max={1} step={0.05} value={s.opacity ?? 1} onChange={e => u({ opacity: +e.target.value })} style={{ flex: 1, accentColor: "var(--ed-accent)" }} />
+              <span style={{ fontSize: 9, color: "var(--ed-txt3)", fontVariantNumeric: "tabular-nums", minWidth: 28, textAlign: "right" }}>{Math.round((s.opacity ?? 1) * 100)}%</span>
+            </div>
+          </F>
         </G2>
         <div style={{ display: "flex", gap: 3 }}>
           <SBtn active={!!s.flipX} onClick={() => u({ flipX: !s.flipX })}>↔ Flip H</SBtn>
@@ -236,7 +241,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {/* Borda — hide for lines */}
         {!isLine(s) && (
           <>
-            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Borda</div>
+            <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
+            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Borda</div>
             <G2>
               <F l="Cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
               <F l="Espessura"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} /></F>
@@ -254,7 +260,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {/* Cantos */}
         {s.type === "rect" && (
           <>
-            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Cantos</div>
+            <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
+            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Cantos</div>
             <F l="Raio global"><input type="range" min={0} max={200} value={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} onChange={e => u({ cornerRadius: +e.target.value })} style={{ width: "100%", accentColor: "var(--ed-accent)" }} /></F>
             <Num v={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} c={v => u({ cornerRadius: v })} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, marginTop: 4 }}>
@@ -275,7 +282,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         )}
 
         {/* Sombra */}
-        <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Sombra</div>
+        <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
+        <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Sombra</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <span style={{ fontSize: 10, color: "var(--ed-txt2)" }}>Ativa</span>
           <SBtn active={!!s.shadow} onClick={() => u({ shadow: s.shadow ? undefined : { color: "rgba(0,0,0,0.4)", offsetX: 4, offsetY: 4, blur: 12 } })}>{s.shadow ? "ON" : "OFF"}</SBtn>
@@ -523,7 +531,53 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
 }
 
 /* ══ ANIMATE TAB ═════════════════════════════════ */
+function getPreviewAnimation(animation?: string): string {
+  if (!animation || animation === "none") return "none";
+  const map: Record<string, string> = {
+    fadeIn: "ahPrevFadeIn 1.4s ease-out infinite",
+    slideLeft: "ahPrevSlideLeft 1.4s ease-out infinite",
+    slideRight: "ahPrevSlideRight 1.4s ease-out infinite",
+    slideUp: "ahPrevSlideUp 1.4s ease-out infinite",
+    slideDown: "ahPrevSlideDown 1.4s ease-out infinite",
+    zoomIn: "ahPrevZoomIn 1.4s ease-out infinite",
+    bounce: "ahPrevBounce 1.4s ease-out infinite",
+    rotate360: "ahPrevRotate 1.6s linear infinite",
+    typewriter: "ahPrevFadeIn 1.4s ease-out infinite",
+    blurIn: "ahPrevBlurIn 1.4s ease-out infinite",
+    pulse: "ahPrevPulse 1.4s ease-in-out infinite",
+    float: "ahPrevFloat 1.6s ease-in-out infinite",
+    shake: "ahPrevShake 0.6s ease-in-out infinite",
+    flipX: "ahPrevFlipX 1.6s ease-in-out infinite",
+  };
+  return map[animation] || "none";
+}
+
 function AnimateTab({ s, u }: { s: EditorElement; u: (up: Partial<EditorElement>) => void }) {
+  const [previewKey, setPreviewKey] = useState(0);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aurohub-anim-preview-styles")) return;
+    const style = document.createElement("style");
+    style.id = "aurohub-anim-preview-styles";
+    style.textContent = `
+@keyframes ahPrevFadeIn { 0% { opacity: 0 } 60%, 100% { opacity: 1 } }
+@keyframes ahPrevSlideLeft { 0% { transform: translateX(-30px); opacity: 0 } 60%, 100% { transform: translateX(0); opacity: 1 } }
+@keyframes ahPrevSlideRight { 0% { transform: translateX(30px); opacity: 0 } 60%, 100% { transform: translateX(0); opacity: 1 } }
+@keyframes ahPrevSlideUp { 0% { transform: translateY(20px); opacity: 0 } 60%, 100% { transform: translateY(0); opacity: 1 } }
+@keyframes ahPrevSlideDown { 0% { transform: translateY(-20px); opacity: 0 } 60%, 100% { transform: translateY(0); opacity: 1 } }
+@keyframes ahPrevZoomIn { 0% { transform: scale(0.4); opacity: 0 } 60%, 100% { transform: scale(1); opacity: 1 } }
+@keyframes ahPrevBounce { 0% { transform: scale(0.5) } 40% { transform: scale(1.15) } 60% { transform: scale(0.95) } 80% { transform: scale(1.05) } 100% { transform: scale(1) } }
+@keyframes ahPrevRotate { 0% { transform: rotate(0deg) } 100% { transform: rotate(360deg) } }
+@keyframes ahPrevBlurIn { 0% { filter: blur(8px); opacity: 0 } 60%, 100% { filter: blur(0); opacity: 1 } }
+@keyframes ahPrevPulse { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.15) } }
+@keyframes ahPrevFloat { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+@keyframes ahPrevShake { 0%, 100% { transform: translateX(0) } 25% { transform: translateX(-4px) } 75% { transform: translateX(4px) } }
+@keyframes ahPrevFlipX { 0% { transform: rotateY(0deg) } 100% { transform: rotateY(360deg) } }
+`;
+    document.head.appendChild(style);
+  }, []);
+
   const anims = [
     { v: "none", l: "None" },{ v: "fadeIn", l: "Fade In" },{ v: "slideLeft", l: "Slide ←" },
     { v: "slideRight", l: "Slide →" },{ v: "slideUp", l: "Slide ↑" },{ v: "slideDown", l: "Slide ↓" },
@@ -531,12 +585,52 @@ function AnimateTab({ s, u }: { s: EditorElement; u: (up: Partial<EditorElement>
     { v: "typewriter", l: "Typewriter" },{ v: "blurIn", l: "Blur In" },{ v: "pulse", l: "Pulse" },
     { v: "float", l: "Float" },{ v: "shake", l: "Shake" },{ v: "flipX", l: "Flip X" },
   ];
+
+  const previewColor = s.type === "text"
+    ? (typeof s.fill === "string" ? s.fill : "#D4A843")
+    : (typeof s.fill === "string" ? s.fill : "#D4A843");
+
   return (
     <>
       <Sec t="Enter Animation">
+        {/* Mini preview */}
+        <div style={{
+          height: 80,
+          background: "var(--ed-input)",
+          borderRadius: 8,
+          marginBottom: 8,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          position: "relative",
+          border: "1px solid var(--ed-bdr)",
+        }}>
+          <div
+            key={(s.animation || "none") + "-" + previewKey}
+            style={{
+              width: s.type === "text" ? "80%" : 40,
+              height: s.type === "text" ? "auto" : 40,
+              background: s.type === "text" ? "transparent" : previewColor,
+              borderRadius: s.cornerRadius ? 6 : (s.type === "circle" ? "50%" : 4),
+              fontSize: s.type === "text" ? 12 : undefined,
+              color: s.type === "text" ? previewColor : undefined,
+              fontWeight: 700,
+              textAlign: "center",
+              padding: s.type === "text" ? "0 4px" : undefined,
+              animation: getPreviewAnimation(s.animation),
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {s.type === "text" ? (s.text?.slice(0, 20) || "Texto") : ""}
+          </div>
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3 }}>
           {anims.map(a => (
-            <button key={a.v} onClick={() => u({ animation: a.v as EditorElement["animation"] })} style={{
+            <button key={a.v} onClick={() => { u({ animation: a.v as EditorElement["animation"] }); setPreviewKey(k => k + 1); }} style={{
               padding: "7px 2px", borderRadius: 6, fontSize: 8, fontWeight: 600, cursor: "pointer",
               border: s.animation === a.v ? "1.5px solid var(--ed-accent)" : "1px solid var(--ed-bdr)",
               background: s.animation === a.v ? "var(--ed-active)" : "var(--ed-input)",
@@ -725,30 +819,46 @@ function ColorSwatch({ value, onChange, label }: { value: string; onChange: (v: 
 }
 
 /* ══ UI ATOMS ═════════════════════════════════════ */
-const inpS: React.CSSProperties = { width: "100%", height: 32, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", padding: "0 8px", fontSize: 11, color: "var(--ed-txt)", outline: "none", boxSizing: "border-box" };
-const selS: React.CSSProperties = { ...inpS, cursor: "pointer" };
+const inpS: React.CSSProperties = { width: "100%", height: 28, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", padding: "0 8px", fontSize: 11, color: "var(--ed-txt)", outline: "none", boxSizing: "border-box", textAlign: "center", transition: "border-color 0.15s" };
+const selS: React.CSSProperties = { ...inpS, cursor: "pointer", textAlign: "left" };
 
 function Sec({ t, children }: { t: string; children: React.ReactNode }) {
   const [o, setO] = useState(true);
-  return <div style={{ marginBottom: 8, borderBottom: "2px solid var(--ed-bdr)", paddingBottom: 8 }}>
-    <button onClick={() => setO(!o)} style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", padding: "6px 0", background: "none", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "var(--ed-txt)" }}>
+  return <div style={{ marginBottom: 6, padding: "10px 12px", borderBottom: "1px solid var(--ed-bdr)", marginLeft: -12, marginRight: -12 }}>
+    <button onClick={() => setO(!o)} style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", padding: "0 0 6px 0", background: "none", border: "none", borderBottom: o ? "1px solid var(--ed-bdr)" : "none", cursor: "pointer", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ed-txt3)" }}>
       <span style={{ transform: o ? "rotate(90deg)" : "none", transition: "transform 0.15s", fontSize: 10 }}>›</span>{t}
     </button>
-    {o && <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 6 }}>{children}</div>}
+    {o && <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingTop: 8 }}>{children}</div>}
   </div>;
 }
 
-function F({ l, children }: { l: string; children: React.ReactNode }) { return <div><div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2 }}>{l}</div>{children}</div>; }
-function Num({ v, c, step, min, max }: { v: number; c: (v: number) => void; step?: number; min?: number; max?: number }) { return <input type="number" value={v} onChange={e => c(+e.target.value)} step={step} min={min} max={max} style={inpS} />; }
-function Inp({ v, c }: { v: string; c: (v: string) => void }) { return <input type="text" value={v} onChange={e => c(e.target.value)} style={inpS} />; }
+function F({ l, children }: { l: string; children: React.ReactNode }) { return <div><div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 3, fontWeight: 500 }}>{l}</div>{children}</div>; }
+
+function Num({ v, c, step, min, max }: { v: number; c: (v: number) => void; step?: number; min?: number; max?: number }) {
+  const [hover, setHover] = useState(false);
+  const [focus, setFocus] = useState(false);
+  return <input
+    type="number"
+    value={v}
+    onChange={e => c(+e.target.value)}
+    step={step} min={min} max={max}
+    onMouseEnter={() => setHover(true)}
+    onMouseLeave={() => setHover(false)}
+    onFocus={() => setFocus(true)}
+    onBlur={() => setFocus(false)}
+    style={{ ...inpS, borderColor: (hover || focus) ? "var(--ed-accent)" : "var(--ed-bdr)" }}
+  />;
+}
+
+function Inp({ v, c }: { v: string; c: (v: string) => void }) { return <input type="text" value={v} onChange={e => c(e.target.value)} style={{ ...inpS, textAlign: "left" }} />; }
 function G2({ children }: { children: React.ReactNode }) { return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>{children}</div>; }
 
 function SBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button onClick={onClick} style={{ flex: 1, height: 28, borderRadius: 6, border: "none", background: active ? "var(--ed-active)" : "var(--ed-input)", color: active ? "var(--ed-accent)" : "var(--ed-txt2)", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{children}</button>;
+  return <button onClick={onClick} style={{ flex: 1, height: 26, borderRadius: 6, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "var(--ed-active-txt)" : "var(--ed-txt2)", fontSize: 10, fontWeight: 600, cursor: "pointer", transition: "background 0.15s" }}>{children}</button>;
 }
 
 function AlBtn({ active, onClick, children, italic }: { active: boolean; onClick: () => void; children: React.ReactNode; italic?: boolean }) {
-  return <button onClick={onClick} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "#fff" : "var(--ed-txt2)", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontStyle: italic ? "italic" : "normal" }}>{children}</button>;
+  return <button onClick={onClick} style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "#fff" : "var(--ed-txt2)", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontStyle: italic ? "italic" : "normal", transition: "background 0.15s" }}>{children}</button>;
 }
 
 function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
