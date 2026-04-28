@@ -180,11 +180,16 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       if (forma === "entrada" && values.entrada) {
         return `Entrada de R$ ${values.entrada} +`;
       }
-      if (forma === "cartao") return "Cartão de Crédito";
+      if (forma === "cartao") return "No Cartão de Crédito Sem Juros";
       return forma;
     }
-    case "valortotaltexto":
-      return values.valortotaltexto || "";
+    case "valor_total_texto":
+    case "valortotaltexto": {
+      const vt = ((values.valortotal as string) || "").replace(/\./g, "").replace(",", ".");
+      const n = parseFloat(vt);
+      if (isNaN(n)) return (values.valortotal as string) || "";
+      return "ou R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) + " por pessoa cabine dupla.";
+    }
     case "logo_cia":
       return values.logo_cia || "";
 

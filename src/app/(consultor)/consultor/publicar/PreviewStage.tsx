@@ -119,8 +119,13 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return values.itinerario || "";
     case "forma_pgto":
       return values.forma_pgto || values.formapagamento || "";
-    case "valortotaltexto":
-      return values.valortotaltexto || "";
+    case "valor_total_texto":
+    case "valortotaltexto": {
+      const vt = ((values.valortotal as string) || "").replace(/\./g, "").replace(",", ".");
+      const n = parseFloat(vt);
+      if (isNaN(n)) return (values.valortotal as string) || "";
+      return "ou R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) + " por pessoa cabine dupla.";
+    }
     case "logo_cia":
       return values.logo_cia || "";
 

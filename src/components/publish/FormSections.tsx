@@ -1771,7 +1771,7 @@ export function CruzeiroForm({
                     set('formapagamento', opt.value);
                     // Setar forma_de_pagamento derivado
                     if (opt.value === 'cartao') {
-                      set('forma_de_pagamento', 'Cartão de Crédito');
+                      set('forma_de_pagamento', 'No Cartão de Crédito Sem Juros');
                     } else if (opt.value === 'entrada') {
                       const entrada = (fields.entrada as string) || '';
                       set('forma_de_pagamento', entrada ? `Entrada de R$ ${entrada} +` : 'Boleto');
@@ -1929,17 +1929,17 @@ export function PassagemForm({
     const fp = fields.formapagamento as string;
     if (fp === "cartao") {
       set("forma_pgto", "No Cartão de Crédito Sem Juros");
-      set("forma_de_pagamento", "Cartão de Crédito");
+      set("forma_de_pagamento", "No Cartão de Crédito Sem Juros");
     } else if (fp === "entrada") {
       const ent = (fields.entrada as string) || "";
       set("forma_pgto", ent ? `Entrada de R$ ${ent} +` : "Entrada +");
       set("forma_de_pagamento", ent ? `Entrada de R$ ${ent} +` : "Entrada +");
     } else if (fp === "debito") {
       set("forma_pgto", "No Débito");
-      set("forma_de_pagamento", "Débito");
+      set("forma_de_pagamento", "No Débito");
     } else if (fp === "pix") {
       set("forma_pgto", "No Pix");
-      set("forma_de_pagamento", "Pix");
+      set("forma_de_pagamento", "No Pix");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.formapagamento, fields.entrada]);
