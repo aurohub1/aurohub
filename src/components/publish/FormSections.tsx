@@ -1805,48 +1805,54 @@ export function CruzeiroForm({
           </Field>
         )}
 
-        {/* Parcelas */}
-        <Field label="Parcelas *">
-          <select
-            value={(fields.parcelas as string) || ''}
-            onChange={(e) => {
-              set('parcelas', e.target.value);
-              set('q_vezes', e.target.value);
-            }}
-            className={SELECT_CLASS}
-            style={SELECT_STYLE}
-          >
-            <option value="">— nenhum —</option>
-            {Array.from({ length: 25 }, (_, i) => `${i + 1}x`).map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </Field>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {/* Parcelas */}
+          <Field label="Parcelas *">
+            <select
+              value={(fields.parcelas as string) || ''}
+              onChange={(e) => {
+                set('parcelas', e.target.value);
+                set('q_vezes', e.target.value);
+              }}
+              className={SELECT_CLASS}
+              style={SELECT_STYLE}
+            >
+              <option value="">— nenhum —</option>
+              {Array.from({ length: 25 }, (_, i) => `${i + 1}x`).map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </Field>
 
-        {/* Valor da Parcela */}
-        <Field label="Valor da Parcela *">
-          <input
-            type="text"
-            value={(fields.valorparcela as string) || ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              console.log('[CruzeiroForm] valor parcela:', val);
-              set('valorparcela', val);
-              // Extrair inteiro e centavos para binds separados
-              const nums = val.replace(/\D/g, '');
-              if (nums) {
-                const n = parseInt(nums, 10);
-                set('valorint', Math.floor(n / 100).toLocaleString('pt-BR'));
-                set('valdec', ',' + String(n % 100).padStart(2, '0'));
-              } else {
-                set('valorint', '');
-                set('valdec', '');
-              }
-            }}
-            placeholder="0,00"
-            className={INPUT_CLASS}
-          />
-        </Field>
+          {/* Valor da Parcela */}
+          <Field label="Valor da Parcela *">
+            <input
+              type="text"
+              value={(fields.valorparcela as string) || ''}
+              onChange={(e) => {
+                // Remove tudo que não é dígito
+                const raw = e.target.value.replace(/\D/g, '');
+                if (!raw) {
+                  set('valorparcela', '');
+                  set('valorint', '');
+                  set('valdec', '');
+                  return;
+                }
+                // Formata como moeda brasileira (centavos implícitos)
+                const num = parseInt(raw, 10);
+                const formatted = (num / 100).toLocaleString('pt-BR', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                });
+                set('valorparcela', formatted);
+                set('valorint', Math.floor(num / 100).toLocaleString('pt-BR'));
+                set('valdec', ',' + String(num % 100).padStart(2, '0'));
+              }}
+              placeholder="0,00"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </div>
 
         {/* Valor Total */}
         <Field label="Valor Total *">
@@ -1854,8 +1860,21 @@ export function CruzeiroForm({
             type="text"
             value={(fields.valortotal as string) || ''}
             onChange={(e) => {
-              set('valortotal', e.target.value);
-              set('valor_total', e.target.value);
+              // Remove tudo que não é dígito
+              const raw = e.target.value.replace(/\D/g, '');
+              if (!raw || parseInt(raw, 10) === 0) {
+                set('valortotal', '');
+                set('valor_total', '');
+                return;
+              }
+              // Formata como moeda brasileira (centavos implícitos)
+              const num = parseInt(raw, 10);
+              const formatted = (num / 100).toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              });
+              set('valortotal', formatted);
+              set('valor_total', formatted);
             }}
             placeholder="0,00"
             className={INPUT_CLASS}
@@ -1897,19 +1916,25 @@ export function PassagemForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handlers com formatação especial (igual PacoteForm)
+  // Handlers com formatação especial (máscara moeda brasileira)
   const onValorParcelaChange = (raw: string) => {
-    const clean = raw.replace(/[^\d,.]/g, "");
-    set("valorparcela", clean);
-    const nums = clean.replace(/\D/g, "");
-    if (nums) {
-      const n = parseInt(nums, 10);
-      set("valorint", Math.floor(n / 100).toLocaleString("pt-BR"));
-      set("valdec", "," + String(n % 100).padStart(2, "0"));
-    } else {
+    // Remove tudo que não é dígito
+    const nums = raw.replace(/\D/g, "");
+    if (!nums) {
+      set("valorparcela", "");
       set("valorint", "");
       set("valdec", "");
+      return;
     }
+    // Formata como moeda brasileira (centavos implícitos)
+    const num = parseInt(nums, 10);
+    const formatted = (num / 100).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    set("valorparcela", formatted);
+    set("valorint", Math.floor(num / 100).toLocaleString("pt-BR"));
+    set("valdec", "," + String(num % 100).padStart(2, "0"));
   };
 
   const showDestino = hasBind(binds, "destino");
