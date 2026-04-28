@@ -1648,18 +1648,18 @@ export function CruzeiroForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.formapagamento, fields.valorparcela]);
 
-  // ═══ BINDS: parcela (inteiro + centavos) ═══
+  // ═══ BINDS: parcela (valorint + valdec) ═══
   useEffect(() => {
     const vp = (fields.valorparcela as string) || '';
     if (vp) {
       const nums = vp.replace(/\D/g, '');
       if (nums) {
         const n = parseInt(nums, 10);
-        set('inteiro', Math.floor(n / 100).toLocaleString('pt-BR'));
-        set('centavos', ',' + String(n % 100).padStart(2, '0'));
+        set('valorint', Math.floor(n / 100).toLocaleString('pt-BR'));
+        set('valdec', ',' + String(n % 100).padStart(2, '0'));
       } else {
-        set('inteiro', '');
-        set('centavos', '');
+        set('valorint', '');
+        set('valdec', '');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1831,15 +1831,16 @@ export function CruzeiroForm({
             onChange={(e) => {
               const val = e.target.value;
               console.log('[CruzeiroForm] valor parcela:', val);
-              set('inteiro', val);
-              // Extrair centavos para bind separado
-              const normalized = val.replace(/\./g, '').replace(',', '.');
-              const num = parseFloat(normalized);
-              if (!isNaN(num)) {
-                const cents = Math.round((num % 1) * 100);
-                set('centavos', String(cents).padStart(2, '0'));
+              set('valorparcela', val);
+              // Extrair inteiro e centavos para binds separados
+              const nums = val.replace(/\D/g, '');
+              if (nums) {
+                const n = parseInt(nums, 10);
+                set('valorint', Math.floor(n / 100).toLocaleString('pt-BR'));
+                set('valdec', ',' + String(n % 100).padStart(2, '0'));
               } else {
-                set('centavos', '00');
+                set('valorint', '');
+                set('valdec', '');
               }
             }}
             placeholder="0,00"
@@ -1922,6 +1923,32 @@ export function PassagemForm({
   const showValorTotal = hasBind(binds, "valortotal", "valor_total");
   const showFormaPgto = hasBind(binds, "formapagamento");
   const showEntrada = fields.formapagamento === "entrada";
+
+  // ═══ BIND: forma_pgto / forma_de_pagamento (derivados) ═══
+  useEffect(() => {
+    const fp = fields.formapagamento as string;
+    if (fp === "cartao") {
+      set("forma_pgto", "No Cartão de Crédito Sem Juros");
+      set("forma_de_pagamento", "Cartão de Crédito");
+    } else if (fp === "entrada") {
+      const ent = (fields.entrada as string) || "";
+      set("forma_pgto", ent ? `Entrada de R$ ${ent} +` : "Entrada +");
+      set("forma_de_pagamento", ent ? `Entrada de R$ ${ent} +` : "Entrada +");
+    } else if (fp === "debito") {
+      set("forma_pgto", "No Débito");
+      set("forma_de_pagamento", "Débito");
+    } else if (fp === "pix") {
+      set("forma_pgto", "No Pix");
+      set("forma_de_pagamento", "Pix");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.formapagamento, fields.entrada]);
+
+  // ═══ BIND: q_vezes (espelha parcelas) ═══
+  useEffect(() => {
+    if (fields.parcelas) set("q_vezes", fields.parcelas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.parcelas]);
 
   return (
     <>
