@@ -42,6 +42,7 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     }
 
     // Parte inteira do valor parcela
+    case "valor_preco":
     case "valorint": {
       const raw = values.valorparcela || values.totalduplo || values.totalcruzeiro || "";
       const nums = raw.replace(/\D/g, "");
