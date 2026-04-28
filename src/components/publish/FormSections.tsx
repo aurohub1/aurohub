@@ -1217,17 +1217,12 @@ export function PacoteForm({
             <div className="grid grid-cols-2 gap-2">
               {showParcelas && (
                 <Field label="Parcelas *">
-                  <select
+                  <SearchableSelect
                     value={(fields.parcelas as string) || ""}
-                    onChange={(e) => set("parcelas", e.target.value)}
-                    className={SELECT_CLASS}
-                    style={SELECT_STYLE}
-                  >
-                    <option value="">— nenhum —</option>
-                    {PARCELAS_OPTS.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("parcelas", v)}
+                    options={PARCELAS_OPTS}
+                    placeholder="Selecione..."
+                  />
                 </Field>
               )}
               {showValorParc && (
@@ -1791,20 +1786,15 @@ export function CruzeiroForm({
         <div style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: '12px' }}>
           {/* Parcelas */}
           <Field label="Parcelas *">
-            <select
+            <SearchableSelect
               value={(fields.parcelas as string) || ''}
-              onChange={(e) => {
-                set('parcelas', e.target.value);
-                set('q_vezes', e.target.value);
+              onChange={(v) => {
+                set('parcelas', v);
+                set('q_vezes', v);
               }}
-              className={SELECT_CLASS}
-              style={SELECT_STYLE}
-            >
-              <option value="">— nenhum —</option>
-              {Array.from({ length: 25 }, (_, i) => `${i + 1}x`).map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+              options={Array.from({ length: 25 }, (_, i) => `${i + 1}x`)}
+              placeholder="Selecione..."
+            />
           </Field>
 
           {/* Valor da Parcela */}
@@ -2089,19 +2079,12 @@ export function PassagemForm({
         {/* Parcelas (dropdown 2x-24x) */}
         {showParcelas && (
           <Field label="Parcelas *">
-            <select
+            <SearchableSelect
               value={(fields.parcelas as string) || ""}
-              onChange={(e) => set("parcelas", e.target.value)}
-              className={SELECT_CLASS}
-              style={SELECT_STYLE}
-            >
-              <option value="">– nenhum –</option>
-              {PARCELAS_OPTS_PASSAGEM.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => set("parcelas", v)}
+              options={PARCELAS_OPTS_PASSAGEM}
+              placeholder="Selecione..."
+            />
           </Field>
         )}
 
