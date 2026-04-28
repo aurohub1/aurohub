@@ -40,6 +40,8 @@ function EditorInner() {
   const [loadedNome, setLoadedNome] = useState<string>("");
   const [loadedLicenseeId, setLoadedLicenseeId] = useState<string | undefined>(undefined);
   const [loadedLojaId, setLoadedLojaId] = useState<string | undefined>(undefined);
+  const [loadedLicenseeNome, setLoadedLicenseeNome] = useState<string | undefined>(undefined);
+  const [loadedLojaNome, setLoadedLojaNome] = useState<string | undefined>(undefined);
   const [loadedThumbnail, setLoadedThumbnail] = useState<string | null>(null);
   const [loadedAccessSelections, setLoadedAccessSelections] = useState<Map<string, Set<string>>>(new Map());
   const FMTS: Record<string, [number,number]> = { stories: [1080,1920], reels: [1080,1920], feed: [1080,1350], tv: [1920,1080] };
@@ -75,6 +77,8 @@ function EditorInner() {
             if (parsed.nome) setLoadedNome(parsed.nome);
             if (parsed.licenseeId) setLoadedLicenseeId(parsed.licenseeId);
             if (parsed.lojaId) setLoadedLojaId(parsed.lojaId);
+            if (parsed.licenseeNome) setLoadedLicenseeNome(parsed.licenseeNome);
+            if (parsed.lojaNome) setLoadedLojaNome(parsed.lojaNome);
             setLoadedThumbnail(parsed.thumbnail ?? parsed.thumb ?? parsed.schema?.thumbnail ?? null);
 
             // Busca acessos existentes em template_access
@@ -90,6 +94,11 @@ function EditorInner() {
                 if (rec.store_id) selMap.get(rec.licensee_id)!.add(rec.store_id);
               }
               setLoadedAccessSelections(selMap);
+            } else if (parsed.licenseeId) {
+              // Fallback: montar mapa a partir do JSON (template órfão sem template_access)
+              const fallbackMap = new Map<string, Set<string>>();
+              fallbackMap.set(parsed.licenseeId, parsed.lojaId ? new Set([parsed.lojaId]) : new Set());
+              setLoadedAccessSelections(fallbackMap);
             }
           }
         }
@@ -297,7 +306,8 @@ function EditorInner() {
                 is_base: meta.isBase ?? false,
                 licenseeId: meta.licenseeId || (meta.accessSelections && meta.accessSelections.size > 0 ? [...meta.accessSelections.keys()][0] : undefined),
                 lojaId: meta.lojaId,
-                licenseeNome: meta.licenseeNome, lojaNome: meta.lojaNome,
+                licenseeNome: meta.licenseeNome || loadedLicenseeNome,
+                lojaNome: meta.lojaNome || loadedLojaNome,
                 thumbnail: thumbnail || null,
               };
               console.log("[Editor][save] system_config upsert:", { key: `tmpl_${key}`, hasThumbnail: !!thumbnail, thumbnailLen: thumbnail?.length ?? 0 });
@@ -334,6 +344,7 @@ function EditorInner() {
               try {
                 console.log("[ACCESS] meta.isBase:", meta.isBase);
                 console.log("[ACCESS] meta.accessSelections size:", meta.accessSelections?.size);
+                console.log("[ACCESS] payload.licenseeId:", payload.licenseeId);
                 console.log("[ACCESS] key:", `tmpl_${key}`);
 
                 await supabase.from("template_access").delete().eq("template_key", `tmpl_${key}`);
@@ -353,6 +364,17 @@ function EditorInner() {
                   const { error } = await supabase.from("template_access").insert(accessRows);
                   if (error) console.error("[ACCESS] insert error:", error);
                   else console.log("[ACCESS] insert OK");
+                } else if (!meta.isBase && payload.licenseeId) {
+                  // Fallback: template tem licenseeId mas accessSelections vazio → criar registro órfão
+                  const fallbackRow = {
+                    template_key: `tmpl_${key}`,
+                    licensee_id: payload.licenseeId,
+                    store_id: payload.lojaId || null,
+                  };
+                  console.log("[ACCESS] fallback row (órfão):", JSON.stringify(fallbackRow));
+                  const { error } = await supabase.from("template_access").insert([fallbackRow]);
+                  if (error) console.error("[ACCESS] fallback insert error:", error);
+                  else console.log("[ACCESS] fallback insert OK");
                 }
               } catch (err) {
                 console.error("[ACCESS] catch:", err);

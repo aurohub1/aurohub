@@ -588,7 +588,7 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
       setLicenseeStores(storesMap);
 
       // Backward compat: se initialLicenseeId existe, pré-popular accessSelections
-      if (initialLicenseeId && !initialAccessSelections) {
+      if (initialLicenseeId && (!initialAccessSelections || initialAccessSelections.size === 0)) {
         const initMap = new Map<string, Set<string>>();
         if (initialLojaId) {
           initMap.set(initialLicenseeId, new Set([initialLojaId]));
