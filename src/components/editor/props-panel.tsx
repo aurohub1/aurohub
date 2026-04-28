@@ -61,8 +61,24 @@ function isLine(el: EditorElement): boolean {
 function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; allElements: EditorElement[]; onAlign: (a: string) => void; onOpenCrop?: () => void; formType?: string }) {
   return (
     <>
-      {/* Align 3x3 SVG grid */}
-      <Sec t="Alinhar ao Canvas">
+      {/* ═══ 1. CAMPO BIND ═══ */}
+      <Sec t="Campo Bind">
+        {s.bindParam && <div style={{ borderRadius: 6, background: "rgba(212,168,67,0.1)", padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "var(--ed-bind)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>⬡ {s.bindParam}</div>}
+        <select value={s.bindParam || ""} onChange={e => {
+          const bp = e.target.value;
+          const up: Partial<EditorElement> = { bindParam: bp };
+          if (s.type === "text" && bp) { up.text = `[${bp}]`; up.fill = "#D4A843"; up.name = `[${bp}]`; }
+          u(up);
+        }} style={selS}>
+          <option value="">Nenhum</option>
+          {getBindGroups(formType).map(g => <optgroup key={g.group} label={g.group}>{g.fields.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>)}
+        </select>
+      </Sec>
+
+      {/* ═══ 2. LAYOUT ═══ */}
+      <Sec t="Layout">
+        {/* Alinhar ao Canvas */}
+        <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Alinhar ao Canvas</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3 }}>
           {[
             { k: "left", d: "M4 4v10M7 6h7M7 9h5" },
@@ -80,10 +96,9 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
           <SBtn active={!!s.locked} onClick={() => u({ locked: !s.locked })}>{s.locked ? "🔒 Travado" : "🔓 Travar"}</SBtn>
         </div>
-      </Sec>
 
-      {/* Position */}
-      <Sec t="Posição & Tamanho">
+        {/* Posição & Tamanho */}
+        <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Posição & Tamanho</div>
         <G2><F l="X"><Num v={Math.round(s.x)} c={v => u({ x: v })} /></F><F l="Y"><Num v={Math.round(s.y)} c={v => u({ y: v })} /></F></G2>
         <G2><F l="W"><Num v={Math.round(s.width)} c={v => u({ width: v })} /></F><F l="H"><Num v={Math.round(s.height)} c={v => u({ height: v })} /></F></G2>
         <G2>
@@ -96,91 +111,9 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         </div>
       </Sec>
 
-      {/* Fill — hide for lines, images and qrcode */}
-      {s.type !== "image" && s.type !== "qrcode" && !isLine(s) && (
-        <Sec t="Preenchimento">
-          <FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
-        </Sec>
-      )}
-
-      {/* Line-specific section */}
-      {isLine(s) && (
-        <Sec t="Linha">
-          <F l="Cor"><ColorField value={typeof s.fill === "string" ? s.fill : "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
-          <F l="Espessura"><Num v={s.height} c={v => u({ height: Math.max(1, Math.min(100, v)) })} /></F>
-          <F l="Estilo">
-            <div style={{ display: "flex", gap: 3 }}>
-              <SBtn active={!s.strokeDashArray || s.strokeDashArray.length === 0} onClick={() => u({ strokeDashArray: undefined })}>Sólido</SBtn>
-              <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 6} onClick={() => u({ strokeDashArray: [6, 4] })}>Tracejado</SBtn>
-              <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 2} onClick={() => u({ strokeDashArray: [2, 3] })}>Pontilhado</SBtn>
-            </div>
-          </F>
-        </Sec>
-      )}
-
-      {/* Border — hide for lines */}
-      {!isLine(s) && <Sec t="Borda">
-        <G2>
-          <F l="Cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
-          <F l="Espessura"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} /></F>
-        </G2>
-        <F l="Estilo">
-          <div style={{ display: "flex", gap: 3 }}>
-            <SBtn active={!s.strokeDashArray || s.strokeDashArray.length === 0} onClick={() => u({ strokeDashArray: undefined })}>Sólido</SBtn>
-            <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 6} onClick={() => u({ strokeDashArray: [6, 4] })}>Tracejado</SBtn>
-            <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 2} onClick={() => u({ strokeDashArray: [2, 3] })}>Pontilhado</SBtn>
-          </div>
-        </F>
-      </Sec>}
-
-      {/* Corners */}
-      {s.type === "rect" && (
-        <Sec t="Cantos">
-          <F l="Raio global"><input type="range" min={0} max={200} value={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} onChange={e => u({ cornerRadius: +e.target.value })} style={{ width: "100%", accentColor: "var(--ed-accent)" }} /></F>
-          <Num v={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} c={v => u({ cornerRadius: v })} />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, marginTop: 4 }}>
-            <F l="↖ TL"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[0] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[0] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
-            <F l="↗ TR"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[1] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[1] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
-            <F l="↙ BL"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[3] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[3] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
-            <F l="↘ BR"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[2] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[2] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
-          </div>
-          <F l="Seguir texto">
-            <select value={s.autoHeightRef || ""} onChange={e => u({ autoHeightRef: e.target.value || undefined })} style={selS}>
-              <option value="">— nenhum —</option>
-              {allElements.filter(e => e.type === "text" && e.id !== s.id).map(e => (
-                <option key={e.id} value={e.id}>{e.name || e.id}</option>
-              ))}
-            </select>
-          </F>
-        </Sec>
-      )}
-
-      {/* Shadow */}
-      <Sec t="Sombra">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "var(--ed-txt2)" }}>Ativa</span>
-          <SBtn active={!!s.shadow} onClick={() => u({ shadow: s.shadow ? undefined : { color: "rgba(0,0,0,0.4)", offsetX: 4, offsetY: 4, blur: 12 } })}>{s.shadow ? "ON" : "OFF"}</SBtn>
-        </div>
-        {s.shadow && <>
-          <ColorSwatch value={s.shadow.color} onChange={v => u({ shadow: { ...s.shadow!, color: v } })} label="Cor" />
-          <G2><F l="Off X"><Num v={s.shadow.offsetX} c={v => u({ shadow: { ...s.shadow!, offsetX: v } })} /></F><F l="Off Y"><Num v={s.shadow.offsetY} c={v => u({ shadow: { ...s.shadow!, offsetY: v } })} /></F></G2>
-          <F l="Blur"><Num v={s.shadow.blur} c={v => u({ shadow: { ...s.shadow!, blur: v } })} /></F>
-        </>}
-      </Sec>
-
-      {/* Effects */}
-      <Sec t="Efeitos">
-        <F l="Blend Mode">
-          <select value={s.blendMode || "source-over"} onChange={e => u({ blendMode: e.target.value as BlendMode })} style={selS}>
-            {BLEND_MODES.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </F>
-        <G2><F l="Skew X"><Num v={s.skewX || 0} c={v => u({ skewX: v })} /></F><F l="Skew Y"><Num v={s.skewY || 0} c={v => u({ skewY: v })} /></F></G2>
-      </Sec>
-
-      {/* Text */}
+      {/* ═══ 3. TIPOGRAFIA ═══ */}
       {s.type === "text" && (
-        <Sec t="Texto">
+        <Sec t="Tipografia">
           <F l="Conteúdo"><textarea value={s.text || ""} onChange={e => u({ text: e.target.value })} rows={3} style={{ ...inpS, height: "auto", resize: "vertical", padding: "6px 8px" }} /></F>
           <F l="Fonte"><select value={s.fontFamily && s.fontStyle && s.fontStyle.match(/^\d+$/) ? `Helvetica Neue ${({"100":"Thin","300":"Light","400":"","500":"Medium","700":"Bold","800":"Heavy","900":"Black"} as Record<string,string>)[s.fontStyle] || ""}`.trim() || s.fontFamily : (s.fontFamily || FONTS[0])} onChange={e => {
             const picked = e.target.value;
@@ -239,7 +172,87 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         </Sec>
       )}
 
-      {/* Image */}
+      {/* ═══ 4. APARÊNCIA ═══ */}
+      <Sec t="Aparência">
+        {/* Preenchimento — hide for lines, images and qrcode */}
+        {s.type !== "image" && s.type !== "qrcode" && !isLine(s) && (
+          <>
+            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Preenchimento</div>
+            <FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
+          </>
+        )}
+
+        {/* Linha — line-specific section */}
+        {isLine(s) && (
+          <>
+            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Linha</div>
+            <F l="Cor"><ColorField value={typeof s.fill === "string" ? s.fill : "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
+            <F l="Espessura"><Num v={s.height} c={v => u({ height: Math.max(1, Math.min(100, v)) })} /></F>
+            <F l="Estilo">
+              <div style={{ display: "flex", gap: 3 }}>
+                <SBtn active={!s.strokeDashArray || s.strokeDashArray.length === 0} onClick={() => u({ strokeDashArray: undefined })}>Sólido</SBtn>
+                <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 6} onClick={() => u({ strokeDashArray: [6, 4] })}>Tracejado</SBtn>
+                <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 2} onClick={() => u({ strokeDashArray: [2, 3] })}>Pontilhado</SBtn>
+              </div>
+            </F>
+          </>
+        )}
+
+        {/* Borda — hide for lines */}
+        {!isLine(s) && (
+          <>
+            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Borda</div>
+            <G2>
+              <F l="Cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
+              <F l="Espessura"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} /></F>
+            </G2>
+            <F l="Estilo">
+              <div style={{ display: "flex", gap: 3 }}>
+                <SBtn active={!s.strokeDashArray || s.strokeDashArray.length === 0} onClick={() => u({ strokeDashArray: undefined })}>Sólido</SBtn>
+                <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 6} onClick={() => u({ strokeDashArray: [6, 4] })}>Tracejado</SBtn>
+                <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 2} onClick={() => u({ strokeDashArray: [2, 3] })}>Pontilhado</SBtn>
+              </div>
+            </F>
+          </>
+        )}
+
+        {/* Cantos */}
+        {s.type === "rect" && (
+          <>
+            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Cantos</div>
+            <F l="Raio global"><input type="range" min={0} max={200} value={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} onChange={e => u({ cornerRadius: +e.target.value })} style={{ width: "100%", accentColor: "var(--ed-accent)" }} /></F>
+            <Num v={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} c={v => u({ cornerRadius: v })} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, marginTop: 4 }}>
+              <F l="↖ TL"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[0] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[0] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
+              <F l="↗ TR"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[1] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[1] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
+              <F l="↙ BL"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[3] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[3] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
+              <F l="↘ BR"><Num v={Array.isArray(s.cornerRadius) ? s.cornerRadius[2] : (s.cornerRadius || 0)} c={v => { const r = Array.isArray(s.cornerRadius) ? [...s.cornerRadius] : [s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0, s.cornerRadius || 0]; r[2] = v; u({ cornerRadius: r as unknown as number }); }} /></F>
+            </div>
+            <F l="Seguir texto">
+              <select value={s.autoHeightRef || ""} onChange={e => u({ autoHeightRef: e.target.value || undefined })} style={selS}>
+                <option value="">— nenhum —</option>
+                {allElements.filter(e => e.type === "text" && e.id !== s.id).map(e => (
+                  <option key={e.id} value={e.id}>{e.name || e.id}</option>
+                ))}
+              </select>
+            </F>
+          </>
+        )}
+
+        {/* Sombra */}
+        <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Sombra</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <span style={{ fontSize: 10, color: "var(--ed-txt2)" }}>Ativa</span>
+          <SBtn active={!!s.shadow} onClick={() => u({ shadow: s.shadow ? undefined : { color: "rgba(0,0,0,0.4)", offsetX: 4, offsetY: 4, blur: 12 } })}>{s.shadow ? "ON" : "OFF"}</SBtn>
+        </div>
+        {s.shadow && <>
+          <ColorSwatch value={s.shadow.color} onChange={v => u({ shadow: { ...s.shadow!, color: v } })} label="Cor" />
+          <G2><F l="Off X"><Num v={s.shadow.offsetX} c={v => u({ shadow: { ...s.shadow!, offsetX: v } })} /></F><F l="Off Y"><Num v={s.shadow.offsetY} c={v => u({ shadow: { ...s.shadow!, offsetY: v } })} /></F></G2>
+          <F l="Blur"><Num v={s.shadow.blur} c={v => u({ shadow: { ...s.shadow!, blur: v } })} /></F>
+        </>}
+      </Sec>
+
+      {/* ═══ 5. IMAGEM ═══ */}
       {s.type === "image" && (
         <Sec t="Imagem">
           <F l="URL"><Inp v={s.src || ""} c={v => u({ src: v })} /></F>
@@ -349,8 +362,18 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         </Sec>
       )}
 
-      {/* Smart Links */}
-      <Sec t="Smart Links">
+      {/* ═══ 6. EFEITOS ═══ */}
+      <Sec t="Efeitos">
+        <F l="Blend Mode">
+          <select value={s.blendMode || "source-over"} onChange={e => u({ blendMode: e.target.value as BlendMode })} style={selS}>
+            {BLEND_MODES.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </F>
+        <G2><F l="Skew X"><Num v={s.skewX || 0} c={v => u({ skewX: v })} /></F><F l="Skew Y"><Num v={s.skewY || 0} c={v => u({ skewY: v })} /></F></G2>
+      </Sec>
+
+      {/* ═══ 7. SMART FEATURES ═══ */}
+      <Sec t="Smart Features">
         <div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 4, lineHeight: 1.4 }}>
           Vincule este elemento para seguir/acompanhar outro automaticamente.
         </div>
@@ -459,20 +482,6 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
             </G2>
           )}
         </div>
-      </Sec>
-
-      {/* Bind */}
-      <Sec t="Campo Bind">
-        {s.bindParam && <div style={{ borderRadius: 6, background: "rgba(212,168,67,0.1)", padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "var(--ed-bind)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>⬡ {s.bindParam}</div>}
-        <select value={s.bindParam || ""} onChange={e => {
-          const bp = e.target.value;
-          const up: Partial<EditorElement> = { bindParam: bp };
-          if (s.type === "text" && bp) { up.text = `[${bp}]`; up.fill = "#D4A843"; up.name = `[${bp}]`; }
-          u(up);
-        }} style={selS}>
-          <option value="">Nenhum</option>
-          {getBindGroups(formType).map(g => <optgroup key={g.group} label={g.group}>{g.fields.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>)}
-        </select>
       </Sec>
     </>
   );
