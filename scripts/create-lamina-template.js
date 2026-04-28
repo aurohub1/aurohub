@@ -12,12 +12,13 @@ const sb = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Cores do V1 (paleta Verde — default)
-const BG_COLOR = '#0B1D3A';        // Fundo escuro
-const ACCENT = '#D4E600';          // Verde limão (destaque)
+// Cores do V1 (paleta padrão — azul vibrante + amarelo)
+const BG_COLOR = '#1A56C4';        // Fundo azul vibrante
+const CARD_BG = '#1648A8';         // Fundo dos cards (azul médio)
+const ACCENT = '#D4E600';          // Amarelo (destaque, ícones, total)
 const TEXT_WHITE = '#FFFFFF';
 const TEXT_SUB = 'rgba(255,255,255,0.7)';
-const BORDER = 'rgba(255,255,255,0.4)';
+const TEXT_BLACK = '#000000';      // Texto do label destino
 
 // URLs dos ícones fixos do V1 (lamina.html:294-296)
 const IC_L = 'https://res.cloudinary.com/dxgj4bcch/image/upload/v1773982256/icones_51_3_suuhzf.png';
@@ -40,16 +41,26 @@ function gerarCardDestino(n, x, y) {
   const elements = [];
   let id = 0;
 
-  // Badge com nome do destino (borda + texto)
+  // Fundo do card (azul médio)
   elements.push({
-    id: `d${n}_badge_border`,
+    id: `d${n}_card_bg`,
     type: 'rect',
-    name: `D${n} Badge Border`,
+    name: `D${n} Card Background`,
+    x, y,
+    width: 465, height: 360,
+    fill: CARD_BG,
+    cornerRadius: 16,
+    opacity: 1,
+  });
+
+  // Badge com nome do destino: fundo amarelo + texto preto
+  elements.push({
+    id: `d${n}_badge_bg`,
+    type: 'rect',
+    name: `D${n} Badge Fundo`,
     x, y,
     width: 300, height: 36,
-    fill: 'transparent',
-    stroke: BORDER,
-    strokeWidth: 1.5,
+    fill: ACCENT,
     cornerRadius: 18,
     opacity: 1,
   });
@@ -63,7 +74,7 @@ function gerarCardDestino(n, x, y) {
     text: '[destino]',
     fontSize: 20,
     fontFamily: 'Helvetica Neue Bold',
-    fill: ACCENT,
+    fill: TEXT_BLACK,
     align: 'left',
     verticalAlign: 'middle',
     bindParam: `${prefix}destino`,
@@ -253,7 +264,7 @@ function gerarCardDestino(n, x, y) {
     opacity: 1,
   });
 
-  // Total (à vista)
+  // Total (à vista) — cor amarelo
   elements.push({
     id: `d${n}_total`,
     type: 'text',
@@ -263,7 +274,7 @@ function gerarCardDestino(n, x, y) {
     text: '[total]',
     fontSize: 15,
     fontFamily: 'Helvetica Neue',
-    fill: TEXT_SUB,
+    fill: ACCENT,
     align: 'left',
     bindParam: `${prefix}total`,
     opacity: 1,
