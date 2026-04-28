@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin } from "lucide-react";
+import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin, Users } from "lucide-react";
 
 export interface CanvasTemplate {
   key: string;
@@ -46,6 +46,7 @@ export function TemplateCard({
 }: TemplateCardProps) {
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(t.nome);
+  const [tooltip, setTooltip] = useState<string | null>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
 
   const handleNameBlur = () => {
@@ -180,7 +181,7 @@ export function TemplateCard({
         )}
 
         {/* Access badge (se template tem acesso compartilhado) */}
-        {t.accessLicensees && t.accessLicensees.length > 0 && (
+        {t.isBase && t.accessLicensees && t.accessLicensees.length > 0 && (
           <div className="mt-2 border-t border-[var(--bdr)] pt-2">
             <div className="flex flex-wrap gap-1">
               {t.accessLicensees.slice(0, 2).map((name, i) => (
@@ -216,46 +217,76 @@ export function TemplateCard({
       </div>
 
       {/* Actions */}
-      <div className="flex border-t border-[var(--bdr)] text-[11px]">
+      <div className="relative flex border-t border-[var(--bdr)]">
+        {/* Tooltip customizado */}
+        {tooltip && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "100%",
+              left: "50%",
+              transform: "translateX(-50%) translateY(-4px)",
+              background: "#0E1520",
+              border: "0.5px solid #D4A843",
+              color: "#D4A843",
+              fontSize: "10px",
+              fontWeight: 500,
+              borderRadius: "6px",
+              padding: "4px 8px",
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
+              zIndex: 50,
+              opacity: 1,
+              transition: "opacity 0.15s",
+            }}
+          >
+            {tooltip}
+          </div>
+        )}
+
         <button
           onClick={() => onEdit(t.key)}
-          className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+          onMouseEnter={() => setTooltip("Editar")}
+          onMouseLeave={() => setTooltip(null)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(212,168,67,0.08)] hover:text-[var(--txt)]"
         >
-          <Pencil size={12} />
-          <span>Editar</span>
+          <Pencil size={16} />
         </button>
         {onAccess && (
           <button
             onClick={() => onAccess(t.key)}
-            className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
-            title="Gerenciar acesso"
+            onMouseEnter={() => setTooltip("Acesso")}
+            onMouseLeave={() => setTooltip(null)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(212,168,67,0.08)] hover:text-[var(--txt)]"
           >
-            <span className="text-xs">👥</span>
-            <span>Acesso</span>
+            <Users size={16} />
           </button>
         )}
         {t.isBase && onClone && (
           <button
             onClick={() => onClone(t.key)}
-            className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+            onMouseEnter={() => setTooltip("Clonar")}
+            onMouseLeave={() => setTooltip(null)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(212,168,67,0.08)] hover:text-[var(--txt)]"
           >
-            <Copy size={12} />
-            <span>Clonar</span>
+            <Copy size={16} />
           </button>
         )}
         <button
           onClick={() => onDuplicate(t.key)}
-          className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+          onMouseEnter={() => setTooltip("Duplicar")}
+          onMouseLeave={() => setTooltip(null)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(212,168,67,0.08)] hover:text-[var(--txt)]"
         >
-          <CopyPlus size={12} />
-          <span>Duplicar</span>
+          <CopyPlus size={16} />
         </button>
         <button
           onClick={() => onDelete(t.key)}
-          className="flex flex-1 items-center justify-center gap-1 py-2 font-medium text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-red-500"
+          onMouseEnter={() => setTooltip("Excluir")}
+          onMouseLeave={() => setTooltip(null)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(212,168,67,0.08)] hover:text-[#ef4444]"
         >
-          <Trash2 size={12} />
-          <span>Excluir</span>
+          <Trash2 size={16} />
         </button>
       </div>
     </div>

@@ -170,7 +170,8 @@ export default function EditorTemplatesPage() {
           stores: { name: string }[] | null;
         }[]) {
           const key = rec.template_key;
-          const licName = rec.licensees?.[0]?.name ?? "Cliente desconhecido";
+          const licName = rec.licensees?.[0]?.name;
+          if (!licName) continue; // pula registros órfãos (FK quebrada)
 
           if (!accessMap.has(key)) accessMap.set(key, []);
 
