@@ -1780,7 +1780,7 @@ export function CruzeiroForm({
               inputMode="decimal"
               value={(fields.entrada as string) || ''}
               onChange={(e) => set('entrada', e.target.value)}
-              placeholder="1.500,00"
+              placeholder="0,00"
               className={INPUT_CLASS}
             />
           </Field>
@@ -1810,7 +1810,7 @@ export function CruzeiroForm({
               console.log('[CruzeiroForm] valor parcela:', e.target.value);
               set('inteiro', e.target.value);
             }}
-            placeholder="239,30"
+            placeholder="0,00"
             className={INPUT_CLASS}
           />
         </Field>
@@ -1821,7 +1821,7 @@ export function CruzeiroForm({
             type="text"
             value={(fields.valortotal as string) || ''}
             onChange={(e) => set('valortotal', e.target.value)}
-            placeholder="12.345,67"
+            placeholder="0,00"
             className={INPUT_CLASS}
           />
         </Field>
