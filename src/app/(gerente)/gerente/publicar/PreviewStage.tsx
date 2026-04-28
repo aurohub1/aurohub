@@ -87,18 +87,21 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     // Parte inteira do valor parcela
     case "valor_preco":
     case "valorint": {
-      const raw = values.valorparcela || values.totalduplo || values.totalcruzeiro || "";
-      const nums = raw.replace(/\D/g, "");
-      if (!nums) return "";
-      return Math.floor(parseInt(nums, 10) / 100).toLocaleString("pt-BR");
+      const raw = (values.valorparcela as string) || (values.valorint as string) || '';
+      const normalized = raw.replace(/\./g, '').replace(',', '.');
+      const num = parseFloat(normalized);
+      if (isNaN(num)) return raw;
+      return Math.floor(num).toLocaleString('pt-BR');
     }
 
     // Parte decimal do valor parcela — prefixada com vírgula (substitui elemento estático ",")
     case "valdec": {
-      const raw = values.valorparcela || values.totalduplo || values.totalcruzeiro || "";
-      const nums = raw.replace(/\D/g, "");
-      if (!nums) return "";
-      return "," + String(parseInt(nums, 10) % 100).padStart(2, "0");
+      const raw = (values.valorparcela as string) || '';
+      const normalized = raw.replace(/\./g, '').replace(',', '.');
+      const num = parseFloat(normalized);
+      if (isNaN(num)) return (values.valdec as string) || '';
+      const dec = Math.round((num - Math.floor(num)) * 100);
+      return ',' + String(dec).padStart(2, '0');
     }
 
     // Valor total formatado: "ou R$ X.XXX,XX por pessoa apto. duplo"

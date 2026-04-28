@@ -1813,23 +1813,24 @@ export function CruzeiroForm({
               type="text"
               value={(fields.valorparcela as string) || ''}
               onChange={(e) => {
-                // Remove tudo que não é dígito
-                const raw = e.target.value.replace(/\D/g, '');
-                if (!raw) {
-                  set('valorparcela', '');
+                // Permite dígitos, vírgula e ponto
+                const clean = e.target.value.replace(/[^\d.,]/g, '');
+                set('valorparcela', clean);
+
+                // Normaliza para cálculo: troca ponto de milhar, vírgula decimal → ponto
+                const normalized = clean.replace(/\./g, '').replace(',', '.');
+                const num = parseFloat(normalized);
+
+                if (!clean || isNaN(num)) {
                   set('valorint', '');
                   set('valdec', '');
                   return;
                 }
-                // Formata como moeda brasileira (centavos implícitos)
-                const num = parseInt(raw, 10);
-                const formatted = (num / 100).toLocaleString('pt-BR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                });
-                set('valorparcela', formatted);
-                set('valorint', Math.floor(num / 100).toLocaleString('pt-BR'));
-                set('valdec', ',' + String(num % 100).padStart(2, '0'));
+
+                const intPart = Math.floor(num);
+                const decPart = Math.round((num - intPart) * 100);
+                set('valorint', intPart.toLocaleString('pt-BR'));
+                set('valdec', ',' + String(decPart).padStart(2, '0'));
               }}
               placeholder="0,00"
               className={INPUT_CLASS}
@@ -1843,21 +1844,20 @@ export function CruzeiroForm({
             type="text"
             value={(fields.valortotal as string) || ''}
             onChange={(e) => {
-              // Remove tudo que não é dígito
-              const raw = e.target.value.replace(/\D/g, '');
-              if (!raw || parseInt(raw, 10) === 0) {
-                set('valortotal', '');
+              // Permite dígitos, vírgula e ponto
+              const clean = e.target.value.replace(/[^\d.,]/g, '');
+              set('valortotal', clean);
+
+              // Normaliza para cálculo: troca ponto de milhar, vírgula decimal → ponto
+              const normalized = clean.replace(/\./g, '').replace(',', '.');
+              const num = parseFloat(normalized);
+
+              if (!clean || isNaN(num)) {
                 set('valor_total', '');
                 return;
               }
-              // Formata como moeda brasileira (centavos implícitos)
-              const num = parseInt(raw, 10);
-              const formatted = (num / 100).toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              });
-              set('valortotal', formatted);
-              set('valor_total', formatted);
+
+              set('valor_total', clean);
             }}
             placeholder="0,00"
             className={INPUT_CLASS}
@@ -1901,23 +1901,24 @@ export function PassagemForm({
 
   // Handlers com formatação especial (máscara moeda brasileira)
   const onValorParcelaChange = (raw: string) => {
-    // Remove tudo que não é dígito
-    const nums = raw.replace(/\D/g, "");
-    if (!nums) {
-      set("valorparcela", "");
-      set("valorint", "");
-      set("valdec", "");
+    // Permite dígitos, vírgula e ponto
+    const clean = raw.replace(/[^\d.,]/g, '');
+    set('valorparcela', clean);
+
+    // Normaliza para cálculo: troca ponto de milhar, vírgula decimal → ponto
+    const normalized = clean.replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(normalized);
+
+    if (!clean || isNaN(num)) {
+      set('valorint', '');
+      set('valdec', '');
       return;
     }
-    // Formata como moeda brasileira (centavos implícitos)
-    const num = parseInt(nums, 10);
-    const formatted = (num / 100).toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-    set("valorparcela", formatted);
-    set("valorint", Math.floor(num / 100).toLocaleString("pt-BR"));
-    set("valdec", "," + String(num % 100).padStart(2, "0"));
+
+    const intPart = Math.floor(num);
+    const decPart = Math.round((num - intPart) * 100);
+    set('valorint', intPart.toLocaleString('pt-BR'));
+    set('valdec', ',' + String(decPart).padStart(2, '0'));
   };
 
   const showDestino = hasBind(binds, "destino");
