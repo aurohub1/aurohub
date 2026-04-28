@@ -1806,7 +1806,10 @@ export function CruzeiroForm({
           <input
             type="text"
             value={(fields.valorparcela as string) || ''}
-            onChange={(e) => set('valorparcela', e.target.value)}
+            onChange={(e) => {
+              console.log('[CruzeiroForm] valor parcela:', e.target.value);
+              set('inteiro', e.target.value);
+            }}
             placeholder="239,30"
             className={INPUT_CLASS}
           />
