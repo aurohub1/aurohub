@@ -1009,6 +1009,10 @@ export function PacoteForm({
     set("valorparcela", f.formatted);
     set("valorint", f.valorint);
     set("valdec", f.valdec);
+    // Prefixados
+    set("pct_valorparcela", f.formatted);
+    set("pct_valorint", f.valorint);
+    set("pct_valdec", f.valdec);
   };
   const onValorTotalChange = (raw: string) => {
     const f = applyPriceMask(raw);
@@ -1016,10 +1020,16 @@ export function PacoteForm({
     set("totalduplo", f.formatted); // compat com PreviewStage.resolveBindParam("valortotalfmt")
     set("valortotalfmt", textoTotalApto(f.formatted));
     set("valor_total_texto", textoTotalApto(f.formatted));
+    // Prefixados
+    set("pct_valortotal", f.formatted);
+    set("pct_totalduplo", f.formatted);
+    set("pct_valortotalfmt", textoTotalApto(f.formatted));
+    set("pct_valor_total_texto", textoTotalApto(f.formatted));
   };
   const onEntradaChange = (raw: string) => {
     const f = applyPriceMask(raw);
     set("entrada", f.formatted);
+    set("pct_entrada", f.formatted); // Prefixado
   };
 
   function updateServicos(n: string[]) {
@@ -1240,7 +1250,10 @@ export function PacoteForm({
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => set("formapagamento", opt.value)}
+                      onClick={() => {
+                        set("formapagamento", opt.value);
+                        set("pct_formapagamento", opt.value); // Prefixado
+                      }}
                       className="flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all"
                       style={
                         sel
@@ -1277,7 +1290,10 @@ export function PacoteForm({
                 <Field label="Parcelas *">
                   <SearchableSelect
                     value={(fields.parcelas as string) || ""}
-                    onChange={(v) => set("parcelas", v)}
+                    onChange={(v) => {
+                      set("parcelas", v);
+                      set("pct_parcelas", v); // Prefixado
+                    }}
                     options={PARCELAS_OPTS}
                     placeholder="Selecione..."
                   />
@@ -1711,20 +1727,27 @@ export function CruzeiroForm({
     }
 
     set('forma_pgto', texto);
+    set('crz_forma_pgto', texto); // Prefixado
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.formapagamento, fields.valorparcela]);
 
   // ═══ BIND: q_vezes (parcelas) ═══
   useEffect(() => {
     const p = fields.parcelas as string;
-    if (p) set('q_vezes', p);
+    if (p) {
+      set('q_vezes', p);
+      set('crz_q_vezes', p); // Prefixado
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.parcelas]);
 
   // ═══ BIND: valor_total ═══
   useEffect(() => {
     const vt = fields.valortotal as string;
-    if (vt) set('valor_total', vt);
+    if (vt) {
+      set('valor_total', vt);
+      set('crz_valor_total', vt); // Prefixado
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.valortotal]);
 
@@ -1851,6 +1874,7 @@ export function CruzeiroForm({
               onBlur={(e) => {
                 const f = applyPriceMask(e.target.value);
                 set('entrada', f.formatted || e.target.value);
+                set('crz_entrada', f.formatted || e.target.value); // Prefixado
               }}
               placeholder="0,00"
               className={INPUT_CLASS}
@@ -1866,6 +1890,9 @@ export function CruzeiroForm({
               onChange={(v) => {
                 set('parcelas', v);
                 set('q_vezes', v);
+                // Prefixados
+                set('crz_parcelas', v);
+                set('crz_q_vezes', v);
               }}
               options={Array.from({ length: 24 }, (_, i) => `${i + 2}x`)}
               placeholder="Selecione..."
@@ -1884,6 +1911,10 @@ export function CruzeiroForm({
                 set('valorparcela', f.formatted || e.target.value);
                 set('valorint', f.valorint);
                 set('valdec', f.valdec);
+                // Prefixados para isolamento entre forms
+                set('crz_valorparcela', f.formatted || e.target.value);
+                set('crz_valorint', f.valorint);
+                set('crz_valdec', f.valdec);
               }}
               placeholder="0,00"
               className={INPUT_CLASS}
@@ -1904,6 +1935,12 @@ export function CruzeiroForm({
               set('cruzeiro_total', textoTotalCabine(f.formatted));
               set('valortotal_cruzeiro', textoTotalCabine(f.formatted));
               set('valor_total_texto', textoTotalCabine(f.formatted));
+              // Prefixados para isolamento entre forms
+              set('crz_valortotal', f.formatted || e.target.value);
+              set('crz_valor_total', f.formatted || e.target.value);
+              set('crz_cruzeiro_total', textoTotalCabine(f.formatted));
+              set('crz_valortotal_cruzeiro', textoTotalCabine(f.formatted));
+              set('crz_valor_total_texto', textoTotalCabine(f.formatted));
             }}
             placeholder="0,00"
             className={INPUT_CLASS}
@@ -1971,23 +2008,34 @@ export function PassagemForm({
     if (fp === "cartao") {
       set("forma_pgto", "No Cartão de Crédito Sem Juros");
       set("forma_de_pagamento", "No Cartão de Crédito Sem Juros");
+      set("psg_forma_pgto", "No Cartão de Crédito Sem Juros"); // Prefixado
+      set("psg_forma_de_pagamento", "No Cartão de Crédito Sem Juros"); // Prefixado
     } else if (fp === "entrada") {
       const ent = (fields.entrada as string) || "";
       set("forma_pgto", ent ? `Entrada de R$ ${ent} +` : "Entrada +");
       set("forma_de_pagamento", ent ? `Entrada de R$ ${ent} +` : "Entrada +");
+      set("psg_forma_pgto", ent ? `Entrada de R$ ${ent} +` : "Entrada +"); // Prefixado
+      set("psg_forma_de_pagamento", ent ? `Entrada de R$ ${ent} +` : "Entrada +"); // Prefixado
     } else if (fp === "debito") {
       set("forma_pgto", "No Débito");
       set("forma_de_pagamento", "No Débito");
+      set("psg_forma_pgto", "No Débito"); // Prefixado
+      set("psg_forma_de_pagamento", "No Débito"); // Prefixado
     } else if (fp === "pix") {
       set("forma_pgto", "No Pix");
       set("forma_de_pagamento", "No Pix");
+      set("psg_forma_pgto", "No Pix"); // Prefixado
+      set("psg_forma_de_pagamento", "No Pix"); // Prefixado
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.formapagamento, fields.entrada]);
 
   // ═══ BIND: q_vezes (espelha parcelas) ═══
   useEffect(() => {
-    if (fields.parcelas) set("q_vezes", fields.parcelas);
+    if (fields.parcelas) {
+      set("q_vezes", fields.parcelas);
+      set("psg_q_vezes", fields.parcelas); // Prefixado
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.parcelas]);
 
@@ -2117,6 +2165,10 @@ export function PassagemForm({
                 set("valorparcela", f.formatted || e.target.value);
                 set("valorint", f.valorint);
                 set("valdec", f.valdec);
+                // Prefixados
+                set("psg_valorparcela", f.formatted || e.target.value);
+                set("psg_valorint", f.valorint);
+                set("psg_valdec", f.valdec);
               }}
               placeholder="ex: 890,00"
               className={INPUT_CLASS}
@@ -2129,7 +2181,10 @@ export function PassagemForm({
           <Field label="Parcelas *">
             <SearchableSelect
               value={(fields.parcelas as string) || ""}
-              onChange={(v) => set("parcelas", v)}
+              onChange={(v) => {
+                set("parcelas", v);
+                set("psg_parcelas", v); // Prefixado
+              }}
               options={PARCELAS_OPTS_PASSAGEM}
               placeholder="Selecione..."
               readOnly={true}
@@ -2149,6 +2204,9 @@ export function PassagemForm({
                 const f = applyPriceMask(e.target.value);
                 set("valortotal", f.formatted || e.target.value);
                 set("valor_total_texto", textoTotalApto(f.formatted));
+                // Prefixados
+                set("psg_valortotal", f.formatted || e.target.value);
+                set("psg_valor_total_texto", textoTotalApto(f.formatted));
               }}
               placeholder="ex: 841,49"
               className={INPUT_CLASS}
@@ -2161,7 +2219,10 @@ export function PassagemForm({
           <Field label="Forma de Pagamento *">
             <select
               value={(fields.formapagamento as string) || ""}
-              onChange={(e) => set("formapagamento", e.target.value)}
+              onChange={(e) => {
+                set("formapagamento", e.target.value);
+                set("psg_formapagamento", e.target.value); // Prefixado
+              }}
               className={SELECT_CLASS}
               style={SELECT_STYLE}
             >
@@ -2185,6 +2246,7 @@ export function PassagemForm({
               onBlur={(e) => {
                 const f = applyPriceMask(e.target.value);
                 set("entrada", f.formatted || e.target.value);
+                set("psg_entrada", f.formatted || e.target.value); // Prefixado
               }}
               placeholder="ex: 1.500,00"
               className={INPUT_CLASS}
