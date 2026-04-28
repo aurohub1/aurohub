@@ -111,11 +111,11 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     case "incluso":
       return values.incluso || "";
     case "valorparcela":
-      return values.valorparcela || "";
+      return (values.valorparcela as string) || '';
     case "valortotal":
-    case "cruzeiro_total":
-    case "valortotal_cruzeiro":
-      return values.valortotal || "";
+      return (values.valortotal as string) || '';
+    case "entrada":
+      return (values.entrada as string) || '';
     case "parcelas":
       return values.parcelas || "";
 
@@ -125,13 +125,21 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     case "itinerario":
       return values.itinerario || "";
     case "forma_pgto":
-      return values.forma_pgto || values.formapagamento || "";
+    case "forma_de_pagamento":
+      return values.forma_pgto || values.forma_de_pagamento || values.formapagamento || "";
+    case "q_vezes":
+      return values.q_vezes || "";
+    case "data_correta":
+      return values.data_correta || "";
     case "valor_total_texto":
     case "valortotaltexto": {
-      const vt = ((values.valortotal as string) || "").replace(/\./g, "").replace(",", ".");
-      const n = parseFloat(vt);
-      if (isNaN(n)) return (values.valortotal as string) || "";
-      return "ou R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) + " por pessoa cabine dupla.";
+      const v = (values.valortotal as string) || '';
+      return v ? `ou R$ ${v} por pessoa apto. duplo.` : '';
+    }
+    case "cruzeiro_total":
+    case "valortotal_cruzeiro": {
+      const v = (values.valortotal as string) || '';
+      return v ? `ou R$ ${v} por pessoa cabine dupla.` : '';
     }
     case "logo_cia":
       return values.logo_cia || "";

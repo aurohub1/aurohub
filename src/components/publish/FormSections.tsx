@@ -279,6 +279,46 @@ const SELECT_STYLE = {
   background: "var(--bg2) url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjOEE5QkJGIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==') right 12px center/12px no-repeat"
 } as const;
 
+/* ── Funções utilitárias de preço ─────────────────────── */
+
+function applyPriceMask(raw: string): {
+  formatted: string;
+  valorint: string;
+  valdec: string;
+} {
+  const clean = raw.replace(/[^\d.,]/g, '');
+  const normalized = clean.replace(/\./g, '').replace(',', '.');
+  const num = parseFloat(normalized);
+
+  if (!clean || isNaN(num) || num === 0) {
+    return { formatted: '', valorint: '', valdec: '' };
+  }
+
+  const formatted = num.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+  const intPart = Math.floor(num);
+  const decPart = Math.round((num - intPart) * 100);
+  return {
+    formatted,
+    valorint: intPart.toLocaleString('pt-BR'),
+    valdec: ',' + String(decPart).padStart(2, '0'),
+  };
+}
+
+function textoTotalApto(valorFormatado: string): string {
+  return valorFormatado
+    ? `ou R$ ${valorFormatado} por pessoa apto. duplo.`
+    : '';
+}
+
+function textoTotalCabine(valorFormatado: string): string {
+  return valorFormatado
+    ? `ou R$ ${valorFormatado} por pessoa cabine dupla.`
+    : '';
+}
+
 /* ── SearchableSelect ─────────────────────────────────── */
 
 export function SearchableSelect({
@@ -795,7 +835,10 @@ export function PagamentoSection({
           <input
             type="text"
             value={(fields.entrada as string) || ""}
-            onChange={(e) => set("entrada", e.target.value)}
+            onChange={(e) => {
+              const f = applyPriceMask(e.target.value);
+              set("entrada", f.formatted);
+            }}
             placeholder="ex. 1.200,00"
             className={INPUT_CLASS}
           />
@@ -819,7 +862,12 @@ export function PagamentoSection({
               <input
                 type="text"
                 value={(fields.valorparcela as string) || ""}
-                onChange={(e) => set("valorparcela", e.target.value)}
+                onChange={(e) => {
+                  const f = applyPriceMask(e.target.value);
+                  set("valorparcela", f.formatted);
+                  set("valorint", f.valorint);
+                  set("valdec", f.valdec);
+                }}
                 placeholder="ex. 890,00"
                 className={INPUT_CLASS}
               />
@@ -833,7 +881,12 @@ export function PagamentoSection({
           <input
             type="text"
             value={(fields.valortotal as string) || ""}
-            onChange={(e) => set("valortotal", e.target.value)}
+            onChange={(e) => {
+              const f = applyPriceMask(e.target.value);
+              set("valortotal", f.formatted);
+              set("totalduplo", f.formatted);
+              set("valor_total_texto", textoTotalApto(f.formatted));
+            }}
             placeholder="ex. 8.900,00"
             className={INPUT_CLASS}
           />
@@ -949,27 +1002,21 @@ export function PacoteForm({
     set("noites", n > 0 ? String(n) : "");
   };
   const onValorParcelaChange = (raw: string) => {
-    const clean = raw.replace(/[^\d,.]/g, "");
-    set("valorparcela", clean);
-    const nums = clean.replace(/\D/g, "");
-    if (nums) {
-      const n = parseInt(nums, 10);
-      set("valorint", Math.floor(n / 100).toLocaleString("pt-BR"));
-      set("valdec", "," + String(n % 100).padStart(2, "0"));
-    } else {
-      set("valorint", "");
-      set("valdec", "");
-    }
+    const f = applyPriceMask(raw);
+    set("valorparcela", f.formatted);
+    set("valorint", f.valorint);
+    set("valdec", f.valdec);
   };
   const onValorTotalChange = (raw: string) => {
-    const clean = raw.replace(/[^\d,.]/g, "");
-    set("valortotal", clean);
-    set("totalduplo", clean); // compat com PreviewStage.resolveBindParam("valortotalfmt")
-    const fmt = pacoteFormatReal(clean);
-    set("valortotalfmt", fmt ? `ou R$ ${fmt} por pessoa apto. duplo` : "");
+    const f = applyPriceMask(raw);
+    set("valortotal", f.formatted);
+    set("totalduplo", f.formatted); // compat com PreviewStage.resolveBindParam("valortotalfmt")
+    set("valortotalfmt", textoTotalApto(f.formatted));
+    set("valor_total_texto", textoTotalApto(f.formatted));
   };
   const onEntradaChange = (raw: string) => {
-    set("entrada", raw.replace(/[^\d,.]/g, ""));
+    const f = applyPriceMask(raw);
+    set("entrada", f.formatted);
   };
 
   function updateServicos(n: string[]) {
@@ -1780,7 +1827,10 @@ export function CruzeiroForm({
               type="text"
               inputMode="decimal"
               value={(fields.entrada as string) || ''}
-              onChange={(e) => set('entrada', e.target.value)}
+              onChange={(e) => {
+                const f = applyPriceMask(e.target.value);
+                set('entrada', f.formatted);
+              }}
               placeholder="0,00"
               className={INPUT_CLASS}
             />
@@ -1808,24 +1858,10 @@ export function CruzeiroForm({
               type="text"
               value={(fields.valorparcela as string) || ''}
               onChange={(e) => {
-                // Permite dígitos, vírgula e ponto
-                const clean = e.target.value.replace(/[^\d.,]/g, '');
-                set('valorparcela', clean);
-
-                // Normaliza para cálculo: troca ponto de milhar, vírgula decimal → ponto
-                const normalized = clean.replace(/\./g, '').replace(',', '.');
-                const num = parseFloat(normalized);
-
-                if (!clean || isNaN(num)) {
-                  set('valorint', '');
-                  set('valdec', '');
-                  return;
-                }
-
-                const intPart = Math.floor(num);
-                const decPart = Math.round((num - intPart) * 100);
-                set('valorint', intPart.toLocaleString('pt-BR'));
-                set('valdec', ',' + String(decPart).padStart(2, '0'));
+                const f = applyPriceMask(e.target.value);
+                set('valorparcela', f.formatted);
+                set('valorint', f.valorint);
+                set('valdec', f.valdec);
               }}
               placeholder="0,00"
               className={INPUT_CLASS}
@@ -1839,20 +1875,12 @@ export function CruzeiroForm({
             type="text"
             value={(fields.valortotal as string) || ''}
             onChange={(e) => {
-              // Permite dígitos, vírgula e ponto
-              const clean = e.target.value.replace(/[^\d.,]/g, '');
-              set('valortotal', clean);
-
-              // Normaliza para cálculo: troca ponto de milhar, vírgula decimal → ponto
-              const normalized = clean.replace(/\./g, '').replace(',', '.');
-              const num = parseFloat(normalized);
-
-              if (!clean || isNaN(num)) {
-                set('valor_total', '');
-                return;
-              }
-
-              set('valor_total', clean);
+              const f = applyPriceMask(e.target.value);
+              set('valortotal', f.formatted);
+              set('valor_total', f.formatted);
+              set('cruzeiro_total', textoTotalCabine(f.formatted));
+              set('valortotal_cruzeiro', textoTotalCabine(f.formatted));
+              set('valor_total_texto', textoTotalCabine(f.formatted));
             }}
             placeholder="0,00"
             className={INPUT_CLASS}
@@ -1896,24 +1924,10 @@ export function PassagemForm({
 
   // Handlers com formatação especial (máscara moeda brasileira)
   const onValorParcelaChange = (raw: string) => {
-    // Permite dígitos, vírgula e ponto
-    const clean = raw.replace(/[^\d.,]/g, '');
-    set('valorparcela', clean);
-
-    // Normaliza para cálculo: troca ponto de milhar, vírgula decimal → ponto
-    const normalized = clean.replace(/\./g, '').replace(',', '.');
-    const num = parseFloat(normalized);
-
-    if (!clean || isNaN(num)) {
-      set('valorint', '');
-      set('valdec', '');
-      return;
-    }
-
-    const intPart = Math.floor(num);
-    const decPart = Math.round((num - intPart) * 100);
-    set('valorint', intPart.toLocaleString('pt-BR'));
-    set('valdec', ',' + String(decPart).padStart(2, '0'));
+    const f = applyPriceMask(raw);
+    set('valorparcela', f.formatted);
+    set('valorint', f.valorint);
+    set('valdec', f.valdec);
   };
 
   const showDestino = hasBind(binds, "destino");
@@ -2101,7 +2115,11 @@ export function PassagemForm({
               type="text"
               inputMode="decimal"
               value={(fields.valortotal as string) || ""}
-              onChange={(e) => set("valortotal", e.target.value)}
+              onChange={(e) => {
+                const f = applyPriceMask(e.target.value);
+                set("valortotal", f.formatted);
+                set("valor_total_texto", textoTotalApto(f.formatted));
+              }}
               placeholder="ex: 841,49"
               className={INPUT_CLASS}
             />
@@ -2133,7 +2151,10 @@ export function PassagemForm({
               type="text"
               inputMode="decimal"
               value={(fields.entrada as string) || ""}
-              onChange={(e) => set("entrada", e.target.value.replace(/[^\d,.]/g, ""))}
+              onChange={(e) => {
+                const f = applyPriceMask(e.target.value);
+                set("entrada", f.formatted);
+              }}
               placeholder="ex: 1.500,00"
               className={INPUT_CLASS}
             />
@@ -2647,7 +2668,10 @@ export function CardWhatsAppForm({
           <Field label="Valor da Entrada (R$)">
             <input
               value={d.entrada}
-              onChange={(e) => updateDest(curDest, { entrada: e.target.value })}
+              onChange={(e) => {
+                const f = applyPriceMask(e.target.value);
+                updateDest(curDest, { entrada: f.formatted });
+              }}
               placeholder="1.500,00"
               className={INPUT_CLASS}
             />
@@ -2665,7 +2689,10 @@ export function CardWhatsAppForm({
           <Field label="Valor Parcela">
             <input
               value={d.valor}
-              onChange={(e) => updateDest(curDest, { valor: e.target.value })}
+              onChange={(e) => {
+                const f = applyPriceMask(e.target.value);
+                updateDest(curDest, { valor: f.formatted });
+              }}
               placeholder="890,00"
               className={INPUT_CLASS}
             />
@@ -2674,7 +2701,10 @@ export function CardWhatsAppForm({
         <Field label="À Vista (por pessoa)">
           <input
             value={d.total}
-            onChange={(e) => updateDest(curDest, { total: e.target.value })}
+            onChange={(e) => {
+              const f = applyPriceMask(e.target.value);
+              updateDest(curDest, { total: f.formatted });
+            }}
             placeholder="8.900,00"
             className={INPUT_CLASS}
           />
