@@ -835,9 +835,10 @@ export function PagamentoSection({
           <input
             type="text"
             value={(fields.entrada as string) || ""}
-            onChange={(e) => {
+            onChange={(e) => set("entrada", e.target.value)}
+            onBlur={(e) => {
               const f = applyPriceMask(e.target.value);
-              set("entrada", f.formatted);
+              set("entrada", f.formatted || e.target.value);
             }}
             placeholder="ex. 1.200,00"
             className={INPUT_CLASS}
@@ -862,9 +863,10 @@ export function PagamentoSection({
               <input
                 type="text"
                 value={(fields.valorparcela as string) || ""}
-                onChange={(e) => {
+                onChange={(e) => set("valorparcela", e.target.value)}
+                onBlur={(e) => {
                   const f = applyPriceMask(e.target.value);
-                  set("valorparcela", f.formatted);
+                  set("valorparcela", f.formatted || e.target.value);
                   set("valorint", f.valorint);
                   set("valdec", f.valdec);
                 }}
@@ -881,10 +883,11 @@ export function PagamentoSection({
           <input
             type="text"
             value={(fields.valortotal as string) || ""}
-            onChange={(e) => {
+            onChange={(e) => set("valortotal", e.target.value)}
+            onBlur={(e) => {
               const f = applyPriceMask(e.target.value);
-              set("valortotal", f.formatted);
-              set("totalduplo", f.formatted);
+              set("valortotal", f.formatted || e.target.value);
+              set("totalduplo", f.formatted || e.target.value);
               set("valor_total_texto", textoTotalApto(f.formatted));
             }}
             placeholder="ex. 8.900,00"
@@ -1258,7 +1261,11 @@ export function PacoteForm({
                 type="text"
                 inputMode="decimal"
                 value={(fields.entrada as string) || ""}
-                onChange={(e) => onEntradaChange(e.target.value)}
+                onChange={(e) => set("entrada", e.target.value)}
+                onBlur={(e) => {
+                  const f = applyPriceMask(e.target.value);
+                  set("entrada", f.formatted || e.target.value);
+                }}
                 placeholder="ex. 1.500,00"
                 className={INPUT_CLASS}
               />
@@ -1282,7 +1289,13 @@ export function PacoteForm({
                     type="text"
                     inputMode="decimal"
                     value={(fields.valorparcela as string) || ""}
-                    onChange={(e) => onValorParcelaChange(e.target.value)}
+                    onChange={(e) => set("valorparcela", e.target.value)}
+                    onBlur={(e) => {
+                      const f = applyPriceMask(e.target.value);
+                      set("valorparcela", f.formatted || e.target.value);
+                      set("valorint", f.valorint);
+                      set("valdec", f.valdec);
+                    }}
                     placeholder="ex. 890,00"
                     className={INPUT_CLASS}
                   />
@@ -1311,7 +1324,14 @@ export function PacoteForm({
                 type="text"
                 inputMode="decimal"
                 value={(fields.valortotal as string) || ""}
-                onChange={(e) => onValorTotalChange(e.target.value)}
+                onChange={(e) => set("valortotal", e.target.value)}
+                onBlur={(e) => {
+                  const f = applyPriceMask(e.target.value);
+                  set("valortotal", f.formatted || e.target.value);
+                  set("totalduplo", f.formatted || e.target.value);
+                  set("valortotalfmt", textoTotalApto(f.formatted));
+                  set("valor_total_texto", textoTotalApto(f.formatted));
+                }}
                 placeholder="ex. 8.900,00"
                 className={INPUT_CLASS}
               />
@@ -1827,9 +1847,10 @@ export function CruzeiroForm({
               type="text"
               inputMode="decimal"
               value={(fields.entrada as string) || ''}
-              onChange={(e) => {
+              onChange={(e) => set('entrada', e.target.value)}
+              onBlur={(e) => {
                 const f = applyPriceMask(e.target.value);
-                set('entrada', f.formatted);
+                set('entrada', f.formatted || e.target.value);
               }}
               placeholder="0,00"
               className={INPUT_CLASS}
@@ -1857,9 +1878,10 @@ export function CruzeiroForm({
             <input
               type="text"
               value={(fields.valorparcela as string) || ''}
-              onChange={(e) => {
+              onChange={(e) => set('valorparcela', e.target.value)}
+              onBlur={(e) => {
                 const f = applyPriceMask(e.target.value);
-                set('valorparcela', f.formatted);
+                set('valorparcela', f.formatted || e.target.value);
                 set('valorint', f.valorint);
                 set('valdec', f.valdec);
               }}
@@ -1874,10 +1896,11 @@ export function CruzeiroForm({
           <input
             type="text"
             value={(fields.valortotal as string) || ''}
-            onChange={(e) => {
+            onChange={(e) => set('valortotal', e.target.value)}
+            onBlur={(e) => {
               const f = applyPriceMask(e.target.value);
-              set('valortotal', f.formatted);
-              set('valor_total', f.formatted);
+              set('valortotal', f.formatted || e.target.value);
+              set('valor_total', f.formatted || e.target.value);
               set('cruzeiro_total', textoTotalCabine(f.formatted));
               set('valortotal_cruzeiro', textoTotalCabine(f.formatted));
               set('valor_total_texto', textoTotalCabine(f.formatted));
@@ -2088,7 +2111,13 @@ export function PassagemForm({
               type="text"
               inputMode="decimal"
               value={(fields.valorparcela as string) || ""}
-              onChange={(e) => onValorParcelaChange(e.target.value)}
+              onChange={(e) => set("valorparcela", e.target.value)}
+              onBlur={(e) => {
+                const f = applyPriceMask(e.target.value);
+                set("valorparcela", f.formatted || e.target.value);
+                set("valorint", f.valorint);
+                set("valdec", f.valdec);
+              }}
               placeholder="ex: 890,00"
               className={INPUT_CLASS}
             />
@@ -2115,9 +2144,10 @@ export function PassagemForm({
               type="text"
               inputMode="decimal"
               value={(fields.valortotal as string) || ""}
-              onChange={(e) => {
+              onChange={(e) => set("valortotal", e.target.value)}
+              onBlur={(e) => {
                 const f = applyPriceMask(e.target.value);
-                set("valortotal", f.formatted);
+                set("valortotal", f.formatted || e.target.value);
                 set("valor_total_texto", textoTotalApto(f.formatted));
               }}
               placeholder="ex: 841,49"
@@ -2151,9 +2181,10 @@ export function PassagemForm({
               type="text"
               inputMode="decimal"
               value={(fields.entrada as string) || ""}
-              onChange={(e) => {
+              onChange={(e) => set("entrada", e.target.value)}
+              onBlur={(e) => {
                 const f = applyPriceMask(e.target.value);
-                set("entrada", f.formatted);
+                set("entrada", f.formatted || e.target.value);
               }}
               placeholder="ex: 1.500,00"
               className={INPUT_CLASS}
@@ -2668,9 +2699,10 @@ export function CardWhatsAppForm({
           <Field label="Valor da Entrada (R$)">
             <input
               value={d.entrada}
-              onChange={(e) => {
+              onChange={(e) => updateDest(curDest, { entrada: e.target.value })}
+              onBlur={(e) => {
                 const f = applyPriceMask(e.target.value);
-                updateDest(curDest, { entrada: f.formatted });
+                updateDest(curDest, { entrada: f.formatted || e.target.value });
               }}
               placeholder="1.500,00"
               className={INPUT_CLASS}
@@ -2689,9 +2721,10 @@ export function CardWhatsAppForm({
           <Field label="Valor Parcela">
             <input
               value={d.valor}
-              onChange={(e) => {
+              onChange={(e) => updateDest(curDest, { valor: e.target.value })}
+              onBlur={(e) => {
                 const f = applyPriceMask(e.target.value);
-                updateDest(curDest, { valor: f.formatted });
+                updateDest(curDest, { valor: f.formatted || e.target.value });
               }}
               placeholder="890,00"
               className={INPUT_CLASS}
@@ -2701,9 +2734,10 @@ export function CardWhatsAppForm({
         <Field label="À Vista (por pessoa)">
           <input
             value={d.total}
-            onChange={(e) => {
+            onChange={(e) => updateDest(curDest, { total: e.target.value })}
+            onBlur={(e) => {
               const f = applyPriceMask(e.target.value);
-              updateDest(curDest, { total: f.formatted });
+              updateDest(curDest, { total: f.formatted || e.target.value });
             }}
             placeholder="8.900,00"
             className={INPUT_CLASS}
