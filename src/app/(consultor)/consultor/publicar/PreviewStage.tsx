@@ -15,7 +15,7 @@ function getFillProps(fill: string | GradientFill | undefined, width: number, he
     return { fill: fill || "#FFFFFF" };
   }
   // Gradiente
-  const { colors, direction } = fill;
+  const { colors, direction, stops } = fill;
   let startPoint = { x: 0, y: 0 };
   let endPoint = { x: 0, y: 0 };
   switch (direction) {
@@ -39,7 +39,9 @@ function getFillProps(fill: string | GradientFill | undefined, width: number, he
   return {
     fillLinearGradientStartPoint: startPoint,
     fillLinearGradientEndPoint: endPoint,
-    fillLinearGradientColorStops: [0, colors[0], 1, colors[1]],
+    fillLinearGradientColorStops: stops
+      ? stops.flatMap(s => [s.offset, s.color])
+      : [0, colors[0], 1, colors[1]],
   };
 }
 

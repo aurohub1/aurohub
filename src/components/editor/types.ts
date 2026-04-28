@@ -13,6 +13,7 @@ export interface GradientFill {
   type: "gradient";
   colors: [string, string];
   direction: GradientDirection;
+  stops?: Array<{ offset: number; color: string }>;
 }
 
 export interface ShadowConfig { color: string; offsetX: number; offsetY: number; blur: number; spread?: number; }

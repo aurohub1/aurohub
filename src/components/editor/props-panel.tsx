@@ -573,6 +573,38 @@ function FillEditor({ value, onChange }: { value: string | GradientFill; onChang
   const solidColor = typeof value === "string" ? value : "#FFFFFF";
   const gradientData = isGradient ? value : { type: "gradient" as const, colors: ["#FFFFFF", "#000000"] as [string, string], direction: "vertical" as GradientDirection };
 
+  // Stops customizados ou padrão (início e fim)
+  const stops = gradientData.stops || [
+    { offset: 0, color: gradientData.colors[0] },
+    { offset: 1, color: gradientData.colors[1] }
+  ];
+
+  const updateStops = (newStops: Array<{ offset: number; color: string }>) => {
+    // Atualiza colors array com início e fim para compatibilidade
+    onChange({
+      ...gradientData,
+      colors: [newStops[0].color, newStops[newStops.length - 1].color],
+      stops: newStops.length > 2 ? newStops : undefined
+    });
+  };
+
+  const addStop = () => {
+    if (stops.length >= 5) return;
+    const newOffset = stops.length > 0 ? (stops[stops.length - 1].offset + 0.5) / 1.5 : 0.5;
+    updateStops([...stops, { offset: Math.min(1, newOffset), color: "#808080" }].sort((a, b) => a.offset - b.offset));
+  };
+
+  const removeStop = (index: number) => {
+    if (stops.length <= 2) return;
+    updateStops(stops.filter((_, i) => i !== index));
+  };
+
+  const updateStop = (index: number, update: Partial<{ offset: number; color: string }>) => {
+    const newStops = [...stops];
+    newStops[index] = { ...newStops[index], ...update };
+    updateStops(newStops.sort((a, b) => a.offset - b.offset));
+  };
+
   return (
     <div>
       {/* Toggle Sólido / Gradiente */}
@@ -586,15 +618,9 @@ function FillEditor({ value, onChange }: { value: string | GradientFill; onChang
         <ColorField value={solidColor} onChange={c => onChange(c)} />
       )}
 
-      {/* Gradiente: 2 color pickers + direção */}
+      {/* Gradiente: stops customizados + direção */}
       {isGradient && (
         <>
-          <F l="Cor 1">
-            <ColorSwatch value={gradientData.colors[0]} onChange={c => onChange({ ...gradientData, colors: [c, gradientData.colors[1]] })} />
-          </F>
-          <F l="Cor 2">
-            <ColorSwatch value={gradientData.colors[1]} onChange={c => onChange({ ...gradientData, colors: [gradientData.colors[0], c] })} />
-          </F>
           <F l="Direção">
             <select value={gradientData.direction} onChange={e => onChange({ ...gradientData, direction: e.target.value as GradientDirection })} style={selS}>
               <option value="horizontal">Horizontal →</option>
@@ -602,6 +628,37 @@ function FillEditor({ value, onChange }: { value: string | GradientFill; onChang
               <option value="diagonal-down">Diagonal ↘</option>
               <option value="diagonal-up">Diagonal ↗</option>
             </select>
+          </F>
+
+          <F l="Cores">
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {stops.map((stop, i) => (
+                <div key={i} style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                  <div onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "color";
+                    input.value = stop.color;
+                    input.onchange = () => updateStop(i, { color: input.value });
+                    input.click();
+                  }} style={{ width: 24, height: 24, borderRadius: 4, background: stop.color, border: "1px solid var(--ed-bdr)", cursor: "pointer", flexShrink: 0 }} />
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round(stop.offset * 100)}
+                    onChange={e => updateStop(i, { offset: +e.target.value / 100 })}
+                    style={{ flex: 1, accentColor: "var(--ed-accent)" }}
+                  />
+                  <span style={{ fontSize: 9, color: "var(--ed-txt3)", width: 30, textAlign: "right" }}>{Math.round(stop.offset * 100)}%</span>
+                  {stops.length > 2 && (
+                    <button onClick={() => removeStop(i)} style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "var(--ed-hover)", color: "var(--ed-txt3)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+                  )}
+                </div>
+              ))}
+              {stops.length < 5 && (
+                <button onClick={addStop} style={{ width: "100%", height: 24, borderRadius: 4, border: "1px solid var(--ed-bdr)", background: "var(--ed-hover)", color: "var(--ed-txt2)", fontSize: 9, fontWeight: 600, cursor: "pointer" }}>+ Cor</button>
+              )}
+            </div>
           </F>
         </>
       )}
