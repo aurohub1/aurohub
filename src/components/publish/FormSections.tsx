@@ -326,6 +326,7 @@ export function SearchableSelect({
         value={open ? q : value}
         placeholder={placeholder}
         readOnly={readOnly}
+        style={readOnly ? { cursor: 'pointer' } : undefined}
         onClick={() => { if (readOnly) { setOpen(true); setQ(''); } }}
         onFocus={() => { setOpen(true); setQ(value); }}
         onChange={(e) => { setQ(e.target.value); if (allowCustom) onChange(e.target.value); }}
