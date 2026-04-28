@@ -81,14 +81,14 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Alinhar ao Canvas</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3 }}>
           {[
-            { k: "left", d: "M4 4v10M7 6h7M7 9h5" },
-            { k: "center-h", d: "M9 4v10M5 6h8M6 9h6" },
-            { k: "right", d: "M14 4v10M5 6h7M7 9h5" },
-            { k: "top", d: "M4 4h10M6 7v7M9 7v5" },
-            { k: "center-v", d: "M4 9h10M6 5v8M9 6v6" },
-            { k: "bottom", d: "M4 14h10M6 5v7M9 7v5" },
+            { k: "left", d: "M4 4v10M7 6h7M7 9h5", t: "Alinhar à esquerda" },
+            { k: "center-h", d: "M9 4v10M5 6h8M6 9h6", t: "Centralizar horizontalmente" },
+            { k: "right", d: "M14 4v10M5 6h7M7 9h5", t: "Alinhar à direita" },
+            { k: "top", d: "M4 4h10M6 7v7M9 7v5", t: "Alinhar ao topo" },
+            { k: "center-v", d: "M4 9h10M6 5v8M9 6v6", t: "Centralizar verticalmente" },
+            { k: "bottom", d: "M4 14h10M6 5v7M9 7v5", t: "Alinhar à base" },
           ].map(a => (
-            <button key={a.k} onClick={() => onAlign(a.k)} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "var(--ed-input)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <button key={a.k} onClick={() => onAlign(a.k)} title={a.t} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "var(--ed-input)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg viewBox="0 0 18 18" width={14} height={14}><path d={a.d} stroke="var(--ed-txt2)" strokeWidth="1.5" fill="none" strokeLinecap="round" /></svg>
             </button>
           ))}
@@ -106,8 +106,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           <F l="Opacidade"><input type="range" min={0} max={1} step={0.05} value={s.opacity ?? 1} onChange={e => u({ opacity: +e.target.value })} style={{ width: "100%", accentColor: "var(--ed-accent)", marginTop: 6 }} /></F>
         </G2>
         <div style={{ display: "flex", gap: 3 }}>
-          <SBtn active={!!s.flipX} onClick={() => u({ flipX: !s.flipX })}>Flip H</SBtn>
-          <SBtn active={!!s.flipY} onClick={() => u({ flipY: !s.flipY })}>Flip V</SBtn>
+          <SBtn active={!!s.flipX} onClick={() => u({ flipX: !s.flipX })}>↔ Flip H</SBtn>
+          <SBtn active={!!s.flipY} onClick={() => u({ flipY: !s.flipY })}>↕ Flip V</SBtn>
         </div>
       </Sec>
 
