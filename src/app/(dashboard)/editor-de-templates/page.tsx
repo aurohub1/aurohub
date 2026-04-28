@@ -86,7 +86,31 @@ export default function EditorTemplatesPage() {
   }
 
   async function handleNameChange(key: string, nome: string) {
+    // Busca template atual para pegar nome antigo + metadata
+    const template = canvasTemplates.find(t => t.key === key);
+    if (!template) return;
+
+    const nomeAntigo = template.nome;
+
+    // Atualiza system_config
     await persistField(key, "nome", nome);
+
+    // Sync form_templates com novo nome
+    try {
+      const { error } = await supabase
+        .from("form_templates")
+        .update({ name: nome })
+        .eq("name", nomeAntigo)
+        .eq("form_type", template.formType)
+        .eq("format", template.format);
+
+      if (error) console.error("[handleNameChange] form_templates sync error:", error);
+      else console.log("[handleNameChange] ✅ form_templates sincronizado");
+    } catch (err) {
+      console.error("[handleNameChange] sync catch:", err);
+    }
+
+    // Atualiza estado local
     setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, nome } : t)));
   }
 
