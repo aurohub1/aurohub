@@ -128,14 +128,49 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           }} style={selS}>{FONTS.map(f => <option key={f} value={f}>{f}</option>)}</select></F>
           <G2>
             <F l="Tamanho"><Num v={s.fontSize || 32} c={v => u({ fontSize: v })} /></F>
-            <F l="Peso"><select value={(s.fontStyle || "normal").includes("bold") ? "bold" : "normal"} onChange={e => u({ fontStyle: e.target.value })} style={selS}><option value="normal">Normal</option><option value="bold">Bold</option></select></F>
+            <F l="Peso">
+              <select
+                value={
+                  s.fontStyle?.match(/^\d+$/)
+                    ? s.fontStyle
+                    : s.fontStyle === "bold"
+                    ? "700"
+                    : "400"
+                }
+                onChange={e => u({ fontStyle: e.target.value })}
+                style={selS}
+              >
+                <option value="100">100 · Thin</option>
+                <option value="300">300 · Light</option>
+                <option value="400">400 · Regular</option>
+                <option value="500">500 · Medium</option>
+                <option value="700">700 · Bold</option>
+                <option value="800">800 · Heavy</option>
+                <option value="900">900 · Black</option>
+              </select>
+            </F>
           </G2>
           <F l="Cor texto"><FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
           <F l="Split R$"><input type="checkbox" checked={!!s.priceDisplay} onChange={e => u({ priceDisplay: e.target.checked })} /></F>
           <F l="Ocultar vazio"><input type="checkbox" checked={!!s.hideIfEmpty} onChange={e => u({ hideIfEmpty: e.target.checked })} /></F>
           <div style={{ display: "flex", gap: 3 }}>
-            <AlBtn active={s.fontStyle === "bold"} onClick={() => u({ fontStyle: s.fontStyle === "bold" ? "normal" : "bold" })}>B</AlBtn>
-            <AlBtn active={s.fontStyle === "italic"} onClick={() => u({ fontStyle: s.fontStyle === "italic" ? "normal" : "italic" })} italic>I</AlBtn>
+            <AlBtn
+              active={
+                s.fontStyle?.match(/^\d+$/)
+                  ? parseInt(s.fontStyle) >= 700
+                  : s.fontStyle === "bold"
+              }
+              onClick={() => {
+                const currentWeight = s.fontStyle?.match(/^\d+$/)
+                  ? parseInt(s.fontStyle)
+                  : s.fontStyle === "bold"
+                  ? 700
+                  : 400;
+                u({ fontStyle: currentWeight >= 700 ? "400" : "700" });
+              }}
+            >
+              B
+            </AlBtn>
             <AlBtn active={s.textDecoration === "underline"} onClick={() => u({ textDecoration: s.textDecoration === "underline" ? "none" : "underline" })}>U</AlBtn>
             <AlBtn active={s.textDecoration === "line-through"} onClick={() => u({ textDecoration: s.textDecoration === "line-through" ? "none" : "line-through" })}>S</AlBtn>
           </div>
