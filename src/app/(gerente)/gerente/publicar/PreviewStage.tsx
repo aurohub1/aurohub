@@ -222,10 +222,25 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return forma;
     }
 
+    case "inteiro": {
+      const raw = values.inteiro || "";
+      if (!raw) return "";
+      // Valor vem como '321,12' ou '321.12' — pegar só a parte inteira
+      const parteInteira = raw.replace(",", ".").split(".")[0];
+      return parseInt(parteInteira).toLocaleString("pt-BR");
+    }
+
+    case "centavos": {
+      const raw = values.inteiro || "";
+      if (!raw) return "";
+      const partes = raw.replace(",", ".").split(".");
+      return partes[1] ? partes[1].padEnd(2, "0").substring(0, 2) : "00";
+    }
+
     default: {
       const raw = values[bindParam] ?? "";
       if (raw === "– nenhum –") return "";
-      if (["valorparcela","totalduplo","totalcruzeiro","entrada","inteiro"].includes(bindParam)) {
+      if (["valorparcela","totalduplo","totalcruzeiro","entrada"].includes(bindParam)) {
         const nums = raw.replace(/\D/g, "");
         if (!nums) return "";
         const n = parseInt(nums, 10);
