@@ -160,6 +160,20 @@ function EditorInner() {
           existingThumb={loadedThumbnail}
           onClose={() => { setPendingSave(null); setPendingVariants(null); }}
           onConfirm={async (meta: SaveTemplateData) => {
+            console.log('[SAVE DEBUG] meta completo:', JSON.stringify({
+              licenseeId: meta.licenseeId,
+              licenseeNome: meta.licenseeNome,
+              lojaId: meta.lojaId,
+              lojaNome: meta.lojaNome,
+              isBase: meta.isBase,
+              accessSelectionsSize: meta.accessSelections?.size,
+              accessSelectionsEntries: meta.accessSelections
+                ? [...meta.accessSelections.entries()].map(([k,v]) => ({
+                    licenseeId: k,
+                    storeIds: [...v]
+                  }))
+                : []
+            }));
             setSaving(true);
             // meta.thumbnail é o dataURL efetivo escolhido no modal (capture ou upload manual).
             // Fallback pro thumb capturado original apenas caso o modal não tenha mandado.

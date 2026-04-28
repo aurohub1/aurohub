@@ -158,9 +158,16 @@ body {
   border-color: var(--bdr2);
 }
 
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--txt3);
+  opacity: 0.45;
+}
+
 [data-theme="light"] input::placeholder,
 [data-theme="light"] textarea::placeholder {
   color: var(--txt3);
+  opacity: 0.6;
 }
 
 /* ── Light: modais, sidebar, topbar ────────────── */

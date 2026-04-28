@@ -270,7 +270,7 @@ export function Field({
 }
 
 const INPUT_CLASS =
-  "h-[34px] w-full rounded-lg border border-[var(--bdr)] bg-[var(--input-bg)] px-3 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--brand-primary,var(--orange))]";
+  "h-[34px] w-full rounded-lg border border-[var(--bdr)] bg-[var(--input-bg)] px-3 text-[13px] text-[var(--txt)] placeholder:text-[var(--txt3)] placeholder:opacity-45 outline-none focus:border-[var(--brand-primary,var(--orange))]";
 
 const SELECT_CLASS =
   "h-[34px] w-full rounded-lg border border-[var(--bdr)] px-3 pr-8 text-[13px] text-[var(--txt)] outline-none focus:border-[var(--brand-primary,var(--orange)] appearance-none";

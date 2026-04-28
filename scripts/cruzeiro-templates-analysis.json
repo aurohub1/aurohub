@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "total": 1,
+    "v1Compatible": 0,
+    "v2Incompatible": 1
+  },
+  "v1Templates": [],
+  "v2Templates": [
+    {
+      "id": "ee68a0d1-60ec-4049-b631-5a5771f39d9a",
+      "name": "Cruzeiro — Stories",
+      "created_at": "2026-04-27T02:20:52.297083+00:00",
+      "bindParams": [
+        "data_correta",
+        "forma_de_pagamento",
+        "img_fundo",
+        "incluso",
+        "inteiro",
+        "itinerario",
+        "logo_cia",
+        "loja",
+        "navio",
+        "q_vezes",
+        "valor_total"
+      ],
+      "wrongBinds": [
+        "data_correta",
+        "forma_de_pagamento",
+        "inteiro",
+        "loja",
+        "q_vezes",
+        "valor_total"
+      ],
+      "missingBinds": [
+        "data_periodo",
+        "forma_pgto",
+        "nome_loja",
+        "parcelas",
+        "valor_preco",
+        "valor_total_texto"
+      ],
+      "coverage": "5/11"
+    }
+  ],
+  "v1Reference": [
+    "data_periodo",
+    "forma_pgto",
+    "img_fundo",
+    "incluso",
+    "itinerario",
+    "logo_cia",
+    "navio",
+    "nome_loja",
+    "parcelas",
+    "valor_preco",
+    "valor_total_texto"
+  ]
+}

@@ -38,16 +38,32 @@ export function validateVaultToken(token: string): boolean {
   try {
     const decoded = Buffer.from(token, 'base64url').toString()
     const dot = decoded.lastIndexOf('.')
-    if (dot === -1) return false
+    if (dot === -1) {
+      console.log('[validateVaultToken] Formato inválido - sem ponto')
+      return false
+    }
     const payload = decoded.slice(0, dot)
     const sig = decoded.slice(dot + 1)
     const expected = signPayload(payload)
     const sigBuf = Buffer.from(sig, 'hex')
     const expBuf = Buffer.from(expected, 'hex')
-    if (sigBuf.length !== expBuf.length) return false
-    if (!timingSafeEqual(sigBuf, expBuf)) return false
-    return Date.now() < parseInt(payload.split(':')[1])
-  } catch { return false }
+    if (sigBuf.length !== expBuf.length) {
+      console.log('[validateVaultToken] Tamanho de assinatura diferente')
+      return false
+    }
+    if (!timingSafeEqual(sigBuf, expBuf)) {
+      console.log('[validateVaultToken] Assinatura não confere')
+      return false
+    }
+    const expires = parseInt(payload.split(':')[1])
+    const now = Date.now()
+    const isExpired = now >= expires
+    console.log('[validateVaultToken] Expiração:', new Date(expires).toISOString(), 'Agora:', new Date(now).toISOString(), 'Expirado?', isExpired)
+    return !isExpired
+  } catch (err) {
+    console.error('[validateVaultToken] Erro:', err)
+    return false
+  }
 }
 
 export async function setVaultCookie(token: string): Promise<void> {
@@ -57,7 +73,7 @@ export async function setVaultCookie(token: string): Promise<void> {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: VAULT_DURATION_MS / 1000,
-    path: '/adm/vault',
+    path: '/',
   })
 }
 
@@ -70,7 +86,16 @@ export async function isVaultAuthenticated(): Promise<boolean> {
   try {
     const store = await cookies()
     const token = store.get(VAULT_COOKIE)?.value
-    if (!token) return false
-    return validateVaultToken(token)
-  } catch { return false }
+    console.log('[isVaultAuthenticated] Cookie presente?', !!token)
+    if (!token) {
+      console.log('[isVaultAuthenticated] Cookie não encontrado')
+      return false
+    }
+    const valid = validateVaultToken(token)
+    console.log('[isVaultAuthenticated] Token válido?', valid)
+    return valid
+  } catch (err) {
+    console.error('[isVaultAuthenticated] Erro:', err)
+    return false
+  }
 }
