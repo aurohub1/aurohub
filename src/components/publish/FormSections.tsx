@@ -2402,6 +2402,7 @@ export function CardWhatsAppForm({
       set(`lam_d${n}_destino`, d.destino ? d.destino.toUpperCase() : "");
       set(`lam_d${n}_saida`, d.saida);
       set(`lam_d${n}_voo`, d.voo);
+      set(`lam_d${n}_saida_voo`, `Saída: ${d.saida || "—"}  ${d.voo || ""}`); // concatenado para template
       set(`lam_d${n}_periodo`, formatPeriodo(d.ida, d.volta));
       set(`lam_d${n}_hotel`, d.hotel);
       set(`lam_d${n}_incluso`, d.incluso);
@@ -2416,7 +2417,18 @@ export function CardWhatsAppForm({
       );
       // parcelas: adiciona "x" se não tiver
       set(`lam_d${n}_parcelas`, d.parc ? (/x$/i.test(d.parc) ? d.parc : `${d.parc}x`) : "");
+      set(`lam_d${n}_parc`, d.parc ? (/x$/i.test(d.parc) ? d.parc : `${d.parc}x`) : ""); // alias para template
       set(`lam_d${n}_valor`, d.valor);
+      // Dividir valor em inteiro + centavos para layout especial do template
+      const nums = (d.valor || "").replace(/\D/g, "");
+      if (nums) {
+        const cents = parseInt(nums, 10);
+        set(`lam_d${n}_valorint`, Math.floor(cents / 100).toLocaleString("pt-BR"));
+        set(`lam_d${n}_valdec`, "," + String(cents % 100).padStart(2, "0"));
+      } else {
+        set(`lam_d${n}_valorint`, "");
+        set(`lam_d${n}_valdec`, "");
+      }
       // total: "ou R$ X à vista por pessoa"
       set(`lam_d${n}_total`, d.total ? `ou R$ ${d.total} à vista por pessoa` : "");
     });
