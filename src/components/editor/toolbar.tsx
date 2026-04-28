@@ -4,7 +4,7 @@ import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, E
 interface Props {
   onUndo: () => void; onRedo: () => void;
   onCopy: () => void; onPaste: () => void; onDuplicate: () => void; onDelete: () => void;
-  onExport?: () => void; onSave?: () => void;
+  onExport?: () => void; onExportJpg?: () => void; onSave?: () => void;
   zoom: number; saving?: boolean;
   canUndo: boolean; canRedo: boolean;
   onToggleParamView?: () => void; paramViewActive?: boolean;
@@ -76,6 +76,7 @@ export default function Toolbar(p: Props) {
         <Btn icon={isLight ? <Moon size={14} /> : <Sun size={14} />} tip="Alternar tema" o={toggleTheme} />
         <span style={{ fontSize: 9, color: "var(--ed-txt3)", fontVariantNumeric: "tabular-nums" }}>{Math.round(p.zoom * 100)}%</span>
         {p.onExport && <Btn icon={<Download size={14} />} tip="Exportar PNG" o={p.onExport} gold label="PNG" />}
+        {p.onExportJpg && <Btn icon={<Download size={14} />} tip="Exportar JPG" o={p.onExportJpg} gold label="JPG" />}
         {(p.onNew || p.onSave) && <Sep />}
         {p.onNew && <button onClick={p.onNew} title="Novo template" style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-hover)", color: "var(--ed-txt)", fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
           <FilePlus size={12} />Novo

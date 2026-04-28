@@ -5,11 +5,12 @@ interface Props {
   schema: EditorSchema;
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
   onExport?: () => void;
+  onExportJpg?: () => void;
 }
 
 const IMAGE_BINDS = ["imgfundo", "imgdestino", "imghotel", "imgloja", "imgperfil", "imgbadge1", "imgbadge2", "imgbadge3", "img_fundo", "img_campanha", "img_aviao", "img_anoiteceu", "badge", "allinclusive", "ofertas"];
 
-export default function ParameterView({ schema, onUpdate, onExport }: Props) {
+export default function ParameterView({ schema, onUpdate, onExport, onExportJpg }: Props) {
   const bindElements = schema.elements.filter(el => el.bindParam);
   const isImageBind = (bp: string) => IMAGE_BINDS.includes(bp) || bp.startsWith("img");
 
@@ -41,6 +42,7 @@ export default function ParameterView({ schema, onUpdate, onExport }: Props) {
         <div style={{ display: "flex", gap: 3 }}>
           <button onClick={resetAll} title="Resetar campos" style={btnS}><RotateCcw size={12} /></button>
           {onExport && <button onClick={onExport} title="Exportar PNG" style={{ ...btnS, background: "var(--ed-active)", color: "var(--ed-active-txt)" }}><Download size={12} /></button>}
+          {onExportJpg && <button onClick={onExportJpg} title="Exportar JPG" style={{ ...btnS, background: "var(--ed-active)", color: "var(--ed-active-txt)" }}><Download size={12} /></button>}
         </div>
       </div>
 
@@ -115,11 +117,20 @@ export default function ParameterView({ schema, onUpdate, onExport }: Props) {
       </div>
 
       {/* Footer */}
-      {onExport && bindElements.length > 0 && (
+      {(onExport || onExportJpg) && bindElements.length > 0 && (
         <div style={{ padding: "8px 12px", borderTop: "1px solid var(--ed-bdr)", flexShrink: 0 }}>
-          <button onClick={onExport} style={{ width: "100%", padding: "8px 0", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-            <Download size={12} /> Exportar com estes dados
-          </button>
+          <div style={{ display: "flex", gap: 4 }}>
+            {onExport && (
+              <button onClick={onExport} style={{ flex: 1, padding: "8px 0", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                <Download size={12} /> PNG
+              </button>
+            )}
+            {onExportJpg && (
+              <button onClick={onExportJpg} style={{ flex: 1, padding: "8px 0", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                <Download size={12} /> JPG
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -146,6 +146,12 @@ function EditorInner() {
           a.download = `aurohub_${templateId || "novo"}_${Date.now()}.png`;
           a.click();
         }}
+        onExportJpg={(dataUrl) => {
+          const a = document.createElement("a");
+          a.href = dataUrl;
+          a.download = `aurohub_${templateId || "novo"}_${Date.now()}.jpg`;
+          a.click();
+        }}
       />
       {saved && <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "#22C55E", color: "#fff", padding: "8px 20px", borderRadius: 8, fontSize: 12, fontWeight: 700, zIndex: 9999, boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }}>Salvo!</div>}
       {pendingSave && (

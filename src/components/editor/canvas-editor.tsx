@@ -22,6 +22,7 @@ interface CanvasEditorProps {
   schema: EditorSchema;
   onChange: (s: EditorSchema) => void;
   onExport?: (dataUrl: string) => void;
+  onExportJpg?: (dataUrl: string) => void;
   onSave?: (thumbnail?: string) => void;
   saving?: boolean;
   format?: string; onFormatChange?: (f: string) => void;
@@ -33,7 +34,7 @@ interface CanvasEditorProps {
   onNew?: () => void;
 }
 
-export function CanvasEditor({ width, height, schema, onChange, onExport, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onNew }: CanvasEditorProps) {
+export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onNew }: CanvasEditorProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -193,7 +194,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
   const pause = useCallback(() => setPlaying(false), []);
   const reset = useCallback(() => { setPlaying(false); setCurrentTime(0); }, []);
 
-  // Export
+  // Export PNG
   const handleExport = useCallback(() => {
     if (!stageRef.current || !onExport) return;
     const old = stageRef.current.scaleX();
@@ -202,6 +203,16 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
     stageRef.current.scale({ x: old, y: old });
     onExport(uri);
   }, [width, height, onExport]);
+
+  // Export JPG
+  const handleExportJpg = useCallback(() => {
+    if (!stageRef.current || !onExportJpg) return;
+    const old = stageRef.current.scaleX();
+    stageRef.current.scale({ x: 1, y: 1 });
+    const uri = stageRef.current.toDataURL({ x: 0, y: 0, width, height, mimeType: 'image/jpeg', quality: 0.95, pixelRatio: 2 });
+    stageRef.current.scale({ x: old, y: old });
+    onExportJpg(uri);
+  }, [width, height, onExportJpg]);
 
   // Save com thumbnail JPEG do canvas real (pixelRatio 1, quality 0.85)
   const handleSaveClick = useCallback(() => {
@@ -358,6 +369,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
         onUndo={undo} onRedo={redo} onCopy={copySelected} onPaste={paste}
         onDuplicate={duplicateSelected} onDelete={deleteSelected}
         onExport={onExport ? handleExport : undefined}
+        onExportJpg={onExportJpg ? handleExportJpg : undefined}
         onSave={onSave ? handleSaveClick : undefined} saving={saving}
         zoom={stageScale} format={format} onFormatChange={onFormatChange}
         formType={formType} onFormTypeChange={onFormTypeChange}
@@ -405,7 +417,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onSave
         />
 
         {paramView ? (
-          <ParameterView schema={schema} onUpdate={updateElement} onExport={onExport ? handleExport : undefined} />
+          <ParameterView schema={schema} onUpdate={updateElement} onExport={onExport ? handleExport : undefined} onExportJpg={onExportJpg ? handleExportJpg : undefined} />
         ) : (
           <PropsPanel
             selected={selected} canvasW={width} canvasH={height} allElements={schema.elements}
