@@ -41,6 +41,7 @@ function EditorInner() {
   const [loadedLicenseeId, setLoadedLicenseeId] = useState<string | undefined>(undefined);
   const [loadedLojaId, setLoadedLojaId] = useState<string | undefined>(undefined);
   const [loadedThumbnail, setLoadedThumbnail] = useState<string | null>(null);
+  const [loadedAccessSelections, setLoadedAccessSelections] = useState<Map<string, Set<string>>>(new Map());
   const FMTS: Record<string, [number,number]> = { stories: [1080,1920], reels: [1080,1920], feed: [1080,1350], tv: [1920,1080] };
   const [cW, cH] = FMTS[format] || [1080, 1920];
 
@@ -75,6 +76,21 @@ function EditorInner() {
             if (parsed.licenseeId) setLoadedLicenseeId(parsed.licenseeId);
             if (parsed.lojaId) setLoadedLojaId(parsed.lojaId);
             setLoadedThumbnail(parsed.thumbnail ?? parsed.thumb ?? parsed.schema?.thumbnail ?? null);
+
+            // Busca acessos existentes em template_access
+            const { data: accessRows } = await supabase
+              .from("template_access")
+              .select("licensee_id,store_id")
+              .eq("template_key", `tmpl_${templateId}`);
+
+            if (accessRows && accessRows.length > 0) {
+              const selMap = new Map<string, Set<string>>();
+              for (const rec of accessRows as { licensee_id: string; store_id: string | null }[]) {
+                if (!selMap.has(rec.licensee_id)) selMap.set(rec.licensee_id, new Set());
+                if (rec.store_id) selMap.get(rec.licensee_id)!.add(rec.store_id);
+              }
+              setLoadedAccessSelections(selMap);
+            }
           }
         }
       } catch (err) { console.error("[Editor] load:", err); }
@@ -130,6 +146,7 @@ function EditorInner() {
           initialFormat={format}
           initialLicenseeId={loadedLicenseeId}
           initialLojaId={loadedLojaId}
+          initialAccessSelections={loadedAccessSelections}
           captureThumb={pendingSave.thumbnail ?? null}
           existingThumb={loadedThumbnail}
           onClose={() => { setPendingSave(null); setPendingVariants(null); }}
@@ -188,6 +205,7 @@ function EditorInner() {
                     if (scRow) {
                       const p = JSON.parse(scRow.value);
                       const ftData = {
+                        config_key: key,
                         name: p.nome || key,
                         form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
                         format: p.format || "stories",
@@ -199,7 +217,7 @@ function EditorInner() {
                         height: p.height || 1920,
                       };
                       console.log("[Editor][sync-variant] form_templates upsert:", ftData);
-                      const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "name,form_type,format" });
+                      const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
                       if (ftErr) console.error("[Editor][sync-variant] erro:", ftErr);
                       else console.log("[Editor][sync-variant] ✅ Variant sincronizado");
                     }
@@ -238,6 +256,7 @@ function EditorInner() {
                     if (scRow) {
                       const p = JSON.parse(scRow.value);
                       const ftData = {
+                        config_key: editingStarterId,
                         name: p.nome || editingStarterId,
                         form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
                         format: p.format || "stories",
@@ -249,7 +268,7 @@ function EditorInner() {
                         height: p.height || 1920,
                       };
                       console.log("[Editor][sync-starter] form_templates upsert:", ftData);
-                      const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "name,form_type,format" });
+                      const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
                       if (ftErr) console.error("[Editor][sync-starter] erro:", ftErr);
                       else console.log("[Editor][sync-starter] ✅ Starter sincronizado");
                     }
@@ -275,7 +294,9 @@ function EditorInner() {
                 ...schema, width: cW, height: cH,
                 format: meta.format, formType: meta.formType, qtdDestinos,
                 nome: meta.nome,
-                licenseeId: meta.licenseeId, lojaId: meta.lojaId,
+                is_base: meta.isBase ?? false,
+                licenseeId: meta.licenseeId || (meta.accessSelections && meta.accessSelections.size > 0 ? [...meta.accessSelections.keys()][0] : undefined),
+                lojaId: meta.lojaId,
                 licenseeNome: meta.licenseeNome, lojaNome: meta.lojaNome,
                 thumbnail: thumbnail || null,
               };
@@ -291,6 +312,7 @@ function EditorInner() {
                 if (scRow) {
                   const p = JSON.parse(scRow.value);
                   const ftData = {
+                    config_key: `tmpl_${key}`,
                     name: p.nome || key,
                     form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
                     format: p.format || "stories",
@@ -302,11 +324,40 @@ function EditorInner() {
                     height: p.height || 1920,
                   };
                   console.log("[Editor][sync] form_templates upsert:", ftData);
-                  const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "name,form_type,format" });
+                  const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
                   if (ftErr) console.error("[Editor][sync] form_templates erro:", ftErr);
                   else console.log("[Editor][sync] ✅ Template sincronizado com form_templates");
                 }
               } catch (syncErr) { console.error("[Editor][sync] catch:", syncErr); }
+
+              // Salva acesso em template_access
+              try {
+                console.log("[ACCESS] meta.isBase:", meta.isBase);
+                console.log("[ACCESS] meta.accessSelections size:", meta.accessSelections?.size);
+                console.log("[ACCESS] key:", `tmpl_${key}`);
+
+                await supabase.from("template_access").delete().eq("template_key", `tmpl_${key}`);
+
+                if (!meta.isBase && meta.accessSelections && meta.accessSelections.size > 0) {
+                  const accessRows: { template_key: string; licensee_id: string; store_id: string | null }[] = [];
+                  for (const [licId, storeIds] of meta.accessSelections.entries()) {
+                    if (storeIds.size === 0) {
+                      accessRows.push({ template_key: `tmpl_${key}`, licensee_id: licId, store_id: null });
+                    } else {
+                      for (const storeId of storeIds) {
+                        accessRows.push({ template_key: `tmpl_${key}`, licensee_id: licId, store_id: storeId });
+                      }
+                    }
+                  }
+                  console.log("[ACCESS] rows to insert:", JSON.stringify(accessRows));
+                  const { error } = await supabase.from("template_access").insert(accessRows);
+                  if (error) console.error("[ACCESS] insert error:", error);
+                  else console.log("[ACCESS] insert OK");
+                }
+              } catch (err) {
+                console.error("[ACCESS] catch:", err);
+              }
+
               try {
                 const { error: hErr } = await supabase.from("template_history").insert({
                   template_id: key,

@@ -393,6 +393,7 @@ export default function EditorTemplatesPage() {
 
       // 2. Inserir em form_templates
       await supabase.from("form_templates").insert({
+        config_key: newKey,
         name: cloneCustomName.trim(),
         form_type: parsed.formType,
         format: parsed.format,
