@@ -191,6 +191,7 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
         setFieldRef.current("inteiro", s);
         return;
       default:
+        console.log('[useFormAdapter default]', { k, s });
         setFieldRef.current(k, s);
     }
   }, [tab, setBadge, values]);
