@@ -502,6 +502,8 @@ export interface SaveTemplateData {
   lojaId?: string;
   licenseeNome?: string;
   lojaNome?: string;
+  isBase?: boolean;
+  accessSelections?: Map<string, Set<string>>;
 }
 
 const FORM_TYPES = [
@@ -541,12 +543,13 @@ function sortLojasPriority<T extends { name: string }>(rows: T[]): T[] {
   });
 }
 
-export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, captureThumb, existingThumb, onClose, onConfirm }: {
+export function SaveTemplateModal({ initialName, initialFormType, initialFormat, initialLicenseeId, initialLojaId, initialAccessSelections, captureThumb, existingThumb, onClose, onConfirm }: {
   initialName?: string;
   initialFormType: string;
   initialFormat: string;
   initialLicenseeId?: string;
   initialLojaId?: string;
+  initialAccessSelections?: Map<string, Set<string>>;
   /** dataURL capturado do canvas — usado no modo "capture" */
   captureThumb?: string | null;
   /** URL da thumb já salva do template (vinda do banco) — usado no modo "existing" (default em edição) */
@@ -557,32 +560,45 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
   const [nome, setNome] = useState(initialName || "");
   const [formType, setFormType] = useState(initialFormType);
   const [format, setFormat] = useState(initialFormat);
-  const [licenseeId, setLicenseeId] = useState(initialLicenseeId || "");
-  const [lojaId, setLojaId] = useState(initialLojaId || "");
   const [licensees, setLicensees] = useState<{id: string; name: string}[]>([]);
-  const [lojas, setLojas] = useState<{id: string; name: string}[]>([]);
+  const [licenseeStores, setLicenseeStores] = useState<Map<string, {id: string; name: string}[]>>(new Map());
+  const [isBase, setIsBase] = useState(false);
+  const [accessSelections, setAccessSelections] = useState<Map<string, Set<string>>>(
+    initialAccessSelections || new Map()
+  );
   const [saving, setSaving] = useState(false);
 
-  // Carregar licensees
+  // Carregar licensees e stores
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("licensees").select("id, name").order("name");
-      setLicensees((data as {id: string; name: string}[]) || []);
-    })();
-  }, []);
+      const lics = (data as {id: string; name: string}[]) || [];
+      setLicensees(lics);
 
-  // Carregar lojas quando licensee mudar
-  useEffect(() => {
-    if (!licenseeId) {
-      setLojas([]);
-      setLojaId("");
-      return;
-    }
-    (async () => {
-      const { data } = await supabase.from("stores").select("id, name").eq("licensee_id", licenseeId).order("name");
-      setLojas((data as {id: string; name: string}[]) || []);
+      // Carregar stores para cada licensee
+      const storesMap = new Map<string, {id: string; name: string}[]>();
+      for (const lic of lics) {
+        const { data: storeData } = await supabase
+          .from("stores")
+          .select("id, name")
+          .eq("licensee_id", lic.id)
+          .order("name");
+        storesMap.set(lic.id, (storeData as {id: string; name: string}[]) || []);
+      }
+      setLicenseeStores(storesMap);
+
+      // Backward compat: se initialLicenseeId existe, pré-popular accessSelections
+      if (initialLicenseeId && !initialAccessSelections) {
+        const initMap = new Map<string, Set<string>>();
+        if (initialLojaId) {
+          initMap.set(initialLicenseeId, new Set([initialLojaId]));
+        } else {
+          initMap.set(initialLicenseeId, new Set());
+        }
+        setAccessSelections(initMap);
+      }
     })();
-  }, [licenseeId]);
+  }, [initialLicenseeId, initialLojaId, initialAccessSelections]);
 
   // Thumbnail — 3 modos:
   //  existing: usa URL já salva no banco (default quando template tem thumb)
@@ -622,17 +638,30 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
     if (!canSave) return;
     setSaving(true);
     try {
-      const licenseeData = licensees.find(l => l.id === licenseeId);
-      const lojaData = lojas.find(l => l.id === lojaId);
+      // Sem seleção de cliente = Biblioteca Base automaticamente
+      let finalIsBase = isBase;
+      if (accessSelections.size === 0 && !isBase) {
+        finalIsBase = true;
+      }
+
+      // Backward compat: deriva licenseeId e lojaId do accessSelections
+      const firstLicId = accessSelections.size > 0 ? [...accessSelections.keys()][0] : undefined;
+      const firstLicData = licensees.find(l => l.id === firstLicId);
+      const firstStoreIds = firstLicId ? accessSelections.get(firstLicId) : undefined;
+      const firstStoreId = firstStoreIds && firstStoreIds.size === 1 ? [...firstStoreIds][0] : undefined;
+      const firstStoreData = firstStoreId ? licenseeStores.get(firstLicId!)?.find(s => s.id === firstStoreId) : undefined;
+
       await onConfirm({
         nome: nome.trim(),
         formType,
         format,
         thumbnail: effectiveThumb,
-        licenseeId: licenseeId || undefined,
-        lojaId: lojaId || undefined,
-        licenseeNome: licenseeData?.name || undefined,
-        lojaNome: lojaData?.name || undefined,
+        licenseeId: firstLicId,
+        lojaId: firstStoreId,
+        licenseeNome: firstLicData?.name,
+        lojaNome: firstStoreData?.name,
+        isBase: finalIsBase,
+        accessSelections,
       });
     } finally { setSaving(false); }
   };
@@ -644,20 +673,130 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
           <input autoFocus value={nome} onChange={e => setNome(e.target.value)} placeholder="ex: Pacote Rio Preto Verão"
             style={fieldS} onKeyDown={e => e.key === "Enter" && confirm()} />
         </L>
-        <L label="Cliente (deixe vazio para template base)">
-          <select value={licenseeId} onChange={e => setLicenseeId(e.target.value)} style={fieldS}>
-            <option value="">Todos (template base)</option>
-            {licensees.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
+        <L label="Acesso ao template">
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* Checkbox template base */}
+            <label style={{ display: "flex", alignItems: "center", gap: 8, padding: 10, border: "1px solid var(--ed-bdr)", borderRadius: 8, cursor: "pointer", background: isBase ? "rgba(255,122,26,0.1)" : "transparent" }}>
+              <input
+                type="checkbox"
+                checked={isBase}
+                onChange={(e) => {
+                  setIsBase(e.target.checked);
+                  if (e.target.checked) setAccessSelections(new Map());
+                }}
+                style={{ accentColor: "#FF7A1A" }}
+              />
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ed-txt)" }}>Biblioteca Base</span>
+                <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>Disponível para todos os clientes como template padrão</span>
+              </div>
+            </label>
+
+            {/* Lista de licensees com pills de lojas */}
+            {!isBase && licensees.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto", padding: 4 }}>
+                {licensees.map(lic => {
+                  const stores = licenseeStores.get(lic.id) || [];
+                  const selectedStores = accessSelections.get(lic.id) || new Set<string>();
+                  const hasAccess = accessSelections.has(lic.id);
+                  const allStoresSelected = hasAccess && selectedStores.size === 0;
+
+                  const toggleAllStores = () => {
+                    const next = new Map(accessSelections);
+                    if (allStoresSelected) {
+                      next.delete(lic.id);
+                    } else {
+                      next.set(lic.id, new Set());
+                    }
+                    setAccessSelections(next);
+                  };
+
+                  const toggleStore = (storeId: string) => {
+                    const next = new Map(accessSelections);
+                    const storeSet = new Set(selectedStores);
+                    if (storeSet.has(storeId)) {
+                      storeSet.delete(storeId);
+                    } else {
+                      storeSet.add(storeId);
+                    }
+                    if (storeSet.size === 0) {
+                      next.delete(lic.id);
+                    } else {
+                      next.set(lic.id, storeSet);
+                    }
+                    setAccessSelections(next);
+                  };
+
+                  return (
+                    <div key={lic.id} style={{ border: "1px solid var(--ed-bdr)", borderRadius: 8, padding: 10, background: hasAccess ? "rgba(255,122,26,0.05)" : "var(--ed-input)" }}>
+                      {/* Header do licensee */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: stores.length > 0 ? 8 : 0 }}>
+                        <div style={{
+                          width: 24, height: 24, borderRadius: "50%",
+                          background: "linear-gradient(135deg, #FF7A1A, #D4A843)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 9, fontWeight: 800, color: "#fff"
+                        }}>
+                          {lic.name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join("")}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ed-txt)" }}>{lic.name}</div>
+                          {hasAccess && (
+                            <div style={{ fontSize: 9, color: "#FF7A1A", fontWeight: 600 }}>
+                              {allStoresSelected ? "Todas as lojas" : `${selectedStores.size} loja${selectedStores.size !== 1 ? "s" : ""}`}
+                            </div>
+                          )}
+                        </div>
+                        {stores.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={toggleAllStores}
+                            style={{
+                              padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 600,
+                              border: "1px solid " + (allStoresSelected ? "#FF7A1A" : "var(--ed-bdr)"),
+                              background: allStoresSelected ? "#FF7A1A" : "transparent",
+                              color: allStoresSelected ? "#fff" : "var(--ed-txt2)",
+                              cursor: "pointer"
+                            }}
+                          >
+                            {allStoresSelected ? "✓ Todas" : "Todas"}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Pills das lojas */}
+                      {stores.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {stores.map(store => {
+                            const selected = selectedStores.has(store.id) || allStoresSelected;
+                            return (
+                              <button
+                                key={store.id}
+                                type="button"
+                                onClick={() => !allStoresSelected && toggleStore(store.id)}
+                                disabled={allStoresSelected}
+                                style={{
+                                  padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600,
+                                  border: "1px solid " + (selected ? "#FF7A1A" : "var(--ed-bdr)"),
+                                  background: selected ? "#FF7A1A" : "transparent",
+                                  color: selected ? "#fff" : "var(--ed-txt2)",
+                                  cursor: allStoresSelected ? "not-allowed" : "pointer",
+                                  opacity: allStoresSelected ? 0.6 : 1
+                                }}
+                              >
+                                {store.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </L>
-        {licenseeId && lojas.length > 0 && (
-          <L label="Loja (opcional)">
-            <select value={lojaId} onChange={e => setLojaId(e.target.value)} style={fieldS}>
-              <option value="">Todas as lojas</option>
-              {lojas.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-          </L>
-        )}
         <L label="Thumbnail">
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{
