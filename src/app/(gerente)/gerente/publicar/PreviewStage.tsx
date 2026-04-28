@@ -223,19 +223,22 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     }
 
     case "inteiro": {
-      const raw = values.inteiro || "";
-      console.log('[PreviewStage inteiro] raw:', raw, 'values.inteiro:', values.inteiro, 'all inteiro-related:', { inteiro: values.inteiro, valorparcela: values.valorparcela });
+      const raw = (values.inteiro || "").trim();
       if (!raw) return "";
-      // Valor vem como '321,12' ou '321.12' — pegar só a parte inteira
-      const parteInteira = raw.replace(",", ".").split(".")[0];
-      return parseInt(parteInteira).toLocaleString("pt-BR");
+      const normalized = raw.replace(/\./g, "").replace(",", ".");
+      const num = parseFloat(normalized);
+      if (isNaN(num)) return raw;
+      return Math.floor(num).toLocaleString("pt-BR");
     }
 
     case "centavos": {
-      const raw = values.inteiro || "";
+      const raw = (values.inteiro || "").trim();
       if (!raw) return "";
-      const partes = raw.replace(",", ".").split(".");
-      return partes[1] ? partes[1].padEnd(2, "0").substring(0, 2) : "00";
+      const normalized = raw.replace(/\./g, "").replace(",", ".");
+      const num = parseFloat(normalized);
+      if (isNaN(num)) return "00";
+      const cents = Math.round((num % 1) * 100);
+      return String(cents).padStart(2, "0");
     }
 
     default: {
