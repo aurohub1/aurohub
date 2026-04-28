@@ -96,10 +96,13 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
 
     // Parte decimal do valor parcela — prefixada com vírgula (substitui elemento estático ",")
     case "valdec": {
+      // Usa o valor já calculado pelo form (set('valdec', ...))
+      if (values.valdec) return values.valdec as string;
+      // Fallback: recalcular se necessário
       const raw = (values.valorparcela as string) || '';
       const normalized = raw.replace(/\./g, '').replace(',', '.');
       const num = parseFloat(normalized);
-      if (isNaN(num)) return (values.valdec as string) || '';
+      if (isNaN(num)) return '';
       const dec = Math.round((num - Math.floor(num)) * 100);
       return ',' + String(dec).padStart(2, '0');
     }
