@@ -1648,23 +1648,6 @@ export function CruzeiroForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.formapagamento, fields.valorparcela]);
 
-  // ═══ BINDS: parcela (valorint + valdec) ═══
-  useEffect(() => {
-    const vp = (fields.valorparcela as string) || '';
-    if (vp) {
-      const nums = vp.replace(/\D/g, '');
-      if (nums) {
-        const n = parseInt(nums, 10);
-        set('valorint', Math.floor(n / 100).toLocaleString('pt-BR'));
-        set('valdec', ',' + String(n % 100).padStart(2, '0'));
-      } else {
-        set('valorint', '');
-        set('valdec', '');
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields.valorparcela]);
-
   // ═══ BIND: q_vezes (parcelas) ═══
   useEffect(() => {
     const p = fields.parcelas as string;
@@ -1805,7 +1788,7 @@ export function CruzeiroForm({
           </Field>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: '12px' }}>
           {/* Parcelas */}
           <Field label="Parcelas *">
             <select
