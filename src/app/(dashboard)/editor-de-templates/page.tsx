@@ -185,6 +185,27 @@ export default function EditorTemplatesPage() {
         }
       }
 
+      // Mapa: template_key → { licenseeId, licenseeName }
+      const accessLicenseeMap = new Map<string, { id: string; name: string; storeId: string | null; storeName: string | null }>();
+      if (accessData) {
+        for (const rec of accessData as {
+          template_key: string;
+          licensee_id: string;
+          store_id: string | null;
+          licensees: { name: string }[] | null;
+          stores: { name: string }[] | null;
+        }[]) {
+          if (!accessLicenseeMap.has(rec.template_key)) {
+            accessLicenseeMap.set(rec.template_key, {
+              id: rec.licensee_id,
+              name: rec.licensees?.[0]?.name ?? "Cliente desconhecido",
+              storeId: rec.store_id,
+              storeName: rec.store_id ? (rec.stores?.[0]?.name ?? null) : null,
+            });
+          }
+        }
+      }
+
       const list: CanvasTemplate[] = (data || []).map((r: { key: string; value: string; updated_at: string }) => {
         let nome = "", format = "—", formType = "—", segmento = "Geral", licenseeId: string | null = null, licenseeNome = "Sem marca", lojaNome = "Sem loja", thumbnail: string | null = null, parsedIsBase = false;
         try {
@@ -195,10 +216,28 @@ export default function EditorTemplatesPage() {
           segmento = parsed.segmento || "Geral";
           licenseeId = parsed.licenseeId ?? null;
           licenseeNome = parsed.licenseeNome || "Sem marca";
-          lojaNome = parsed.lojaNome || "Sem loja";
+
+          // Primeiro tenta o join com template_access (fonte de verdade)
+          const accessEntry = accessLicenseeMap?.get(r.key);
+          if (accessEntry?.storeName) {
+            lojaNome = accessEntry.storeName;
+          } else {
+            // Fallback: tenta singular, depois primeiro item do array
+            lojaNome = parsed.lojaNome
+              || (Array.isArray(parsed.lojaNomes) && parsed.lojaNomes[0])
+              || "Sem loja";
+          }
+
           thumbnail = parsed.thumbnail || parsed.thumb || parsed.schema?.thumbnail || null;
           parsedIsBase = parsed.is_base === true;
         } catch {}
+
+        // Prioriza template_access como fonte de verdade para licenseeId
+        const accessLic = accessLicenseeMap.get(r.key);
+        if (accessLic && !parsedIsBase) {
+          licenseeId = accessLic.id;
+        }
+
         const isBase = parsedIsBase || r.key.startsWith("tmpl_base_");
         // Extrai tipo do slug da key. Aceita tanto `tmpl_base_{tipo}_{formato}`
         // quanto `tmpl_{tipo}_{formato}` (ex: tmpl_cards_stories).

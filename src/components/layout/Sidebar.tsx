@@ -83,7 +83,7 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "Editor de Templates",
+        label: "Estúdio de Templates",
         href: "/editor-de-templates",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
@@ -102,7 +102,7 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "Biblioteca",
+        label: "Banco de Imagens",
         href: "/biblioteca",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
@@ -354,8 +354,8 @@ export const OPERADOR_SECTIONS: NavSection[] = [
     title: "Operações",
     items: [
       { label: "Início", href: "/operador/inicio", icon: I.home },
-      { label: "Editor de Templates", href: "/editor-de-templates", icon: I.templates },
-      { label: "Biblioteca", href: "/biblioteca", icon: I.templates },
+      { label: "Estúdio de Templates", href: "/editor-de-templates", icon: I.templates },
+      { label: "Banco de Imagens", href: "/biblioteca", icon: I.templates },
       { label: "Clientes", href: "/operador/clientes", icon: I.stores },
       { label: "Usuários", href: "/operador/usuarios", icon: I.users },
       { label: "Logs", href: "/operador/logs", icon: I.settings },
