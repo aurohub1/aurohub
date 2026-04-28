@@ -47,14 +47,26 @@ export function TemplateCard({
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(t.nome);
   const [tooltip, setTooltip] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState(false);
   const thumbInputRef = useRef<HTMLInputElement>(null);
 
-  const handleNameBlur = () => {
-    setEditingName(false);
-    if (tempName.trim() && tempName !== t.nome) {
-      onNameChange(t.key, tempName.trim());
-    } else {
+  const handleNameBlur = async () => {
+    if (savingName) return;
+    const trimmed = tempName.trim();
+    if (!trimmed || trimmed === t.nome) {
       setTempName(t.nome);
+      setEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    try {
+      await onNameChange(t.key, trimmed);
+      setEditingName(false);
+    } catch (err) {
+      console.error("[TemplateCard] rename error:", err);
+      setTempName(t.nome);
+    } finally {
+      setSavingName(false);
     }
   };
 
@@ -114,28 +126,45 @@ export function TemplateCard({
       <div className="flex flex-1 flex-col gap-2 p-3">
         {/* Nome (editável) */}
         {editingName ? (
-          <input
-            autoFocus
-            value={tempName}
-            onChange={(e) => setTempName(e.target.value)}
-            onBlur={handleNameBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleNameBlur();
-              if (e.key === "Escape") {
-                setTempName(t.nome);
-                setEditingName(false);
-              }
-            }}
-            className="rounded border border-[var(--bdr)] bg-transparent px-2 py-1 text-sm font-medium text-[var(--txt)] outline-none focus:border-[var(--txt)]"
-          />
+          <div className="relative">
+            <input
+              autoFocus
+              disabled={savingName}
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              onBlur={handleNameBlur}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleNameBlur();
+                if (e.key === "Escape" && !savingName) {
+                  setTempName(t.nome);
+                  setEditingName(false);
+                }
+              }}
+              className="w-full rounded border border-[var(--orange)] bg-transparent px-2 py-1 text-sm font-medium text-[var(--txt)] outline-none disabled:opacity-50"
+            />
+            {savingName && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--orange)] border-t-transparent"></div>
+              </div>
+            )}
+          </div>
         ) : (
-          <h3
-            onClick={() => setEditingName(true)}
-            className="cursor-text text-sm font-medium text-[var(--txt)] line-clamp-2 hover:text-[var(--txt2)]"
-            title="Clique para editar"
-          >
-            {t.nome || "Sem nome"}
-          </h3>
+          <div className="group/name flex items-center gap-1.5">
+            <h3
+              onClick={() => setEditingName(true)}
+              className="flex-1 cursor-text text-sm font-medium text-[var(--txt)] line-clamp-2 hover:text-[var(--txt2)]"
+              title="Clique para editar"
+            >
+              {t.nome || "Sem nome"}
+            </h3>
+            <button
+              onClick={() => setEditingName(true)}
+              className="shrink-0 opacity-0 transition-opacity group-hover/name:opacity-100"
+              title="Editar nome"
+            >
+              <Pencil size={12} className="text-[var(--txt3)] hover:text-[var(--txt)]" />
+            </button>
+          </div>
         )}
 
         {/* Badges */}
