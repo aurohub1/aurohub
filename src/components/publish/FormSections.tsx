@@ -1590,6 +1590,9 @@ export function CruzeiroForm({
     return diff > 0 ? diff : 0;
   }, [dataIda, dataVolta]);
 
+  // ═══ DEBOUNCE TIMER ═══
+  const valorParcelaTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // ═══ AUTO-DETECTAR: logo_cia + img_fundo ═══
   useEffect(() => {
     const navio = (fields.navio as string || '').trim();
@@ -1807,8 +1810,13 @@ export function CruzeiroForm({
             type="text"
             value={(fields.valorparcela as string) || ''}
             onChange={(e) => {
-              console.log('[CruzeiroForm] valor parcela:', e.target.value);
-              set('inteiro', e.target.value);
+              const value = e.target.value;
+              if (valorParcelaTimerRef.current) {
+                clearTimeout(valorParcelaTimerRef.current);
+              }
+              valorParcelaTimerRef.current = setTimeout(() => {
+                set('inteiro', value);
+              }, 500);
             }}
             placeholder="239,30"
             className={INPUT_CLASS}
