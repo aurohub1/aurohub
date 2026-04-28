@@ -282,7 +282,7 @@ const SELECT_STYLE = {
 /* ── SearchableSelect ─────────────────────────────────── */
 
 export function SearchableSelect({
-  value, onChange, onBlur, options, placeholder, allowCustom = false,
+  value, onChange, onBlur, options, placeholder, allowCustom = false, readOnly = false,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -290,6 +290,7 @@ export function SearchableSelect({
   options: string[];
   placeholder?: string;
   allowCustom?: boolean;
+  readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -324,6 +325,7 @@ export function SearchableSelect({
         className={INPUT_CLASS}
         value={open ? q : value}
         placeholder={placeholder}
+        readOnly={readOnly}
         onFocus={() => { setOpen(true); setQ(value); }}
         onChange={(e) => { setQ(e.target.value); if (allowCustom) onChange(e.target.value); }}
         onBlur={(e) => {
@@ -1794,6 +1796,7 @@ export function CruzeiroForm({
               }}
               options={Array.from({ length: 25 }, (_, i) => `${i + 1}x`)}
               placeholder="Selecione..."
+              readOnly={true}
             />
           </Field>
 
@@ -2084,6 +2087,7 @@ export function PassagemForm({
               onChange={(v) => set("parcelas", v)}
               options={PARCELAS_OPTS_PASSAGEM}
               placeholder="Selecione..."
+              readOnly={true}
             />
           </Field>
         )}
