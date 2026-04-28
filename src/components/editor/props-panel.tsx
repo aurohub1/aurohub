@@ -79,18 +79,16 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
       <Sec t="Layout">
         {/* Alinhar ao Canvas */}
         <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Alinhar ao Canvas</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
           {[
             { k: "left", d: "M4 4v10M7 6h7M7 9h5", t: "Alinhar à esquerda" },
             { k: "center-h", d: "M9 4v10M5 6h8M6 9h6", t: "Centralizar horizontalmente" },
             { k: "right", d: "M14 4v10M5 6h7M7 9h5", t: "Alinhar à direita" },
             { k: "top", d: "M4 4h10M6 7v7M9 7v5", t: "Alinhar ao topo" },
-            { k: "center-v", d: "M4 9h10M6 5v8M9 6v6", t: "Centralizar verticalmente" },
+            { k: "center-v", d: "", t: "Centralizar verticalmente", center: true },
             { k: "bottom", d: "M4 14h10M6 5v7M9 7v5", t: "Alinhar à base" },
           ].map(a => (
-            <button key={a.k} onClick={() => onAlign(a.k)} title={a.t} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "var(--ed-input)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg viewBox="0 0 18 18" width={14} height={14}><path d={a.d} stroke="var(--ed-txt2)" strokeWidth="1.5" fill="none" strokeLinecap="round" /></svg>
-            </button>
+            <AlignBtn key={a.k} onClick={() => onAlign(a.k)} title={a.t} d={a.d} center={a.center} />
           ))}
         </div>
         <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
@@ -207,7 +205,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           </F>
           <G2>
             <F l="Stroke cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
-            <F l="Stroke W"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} /></F>
+            <F l="Stroke W"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} min={0} /></F>
           </G2>
         </Sec>
       )}
@@ -217,7 +215,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {/* Preenchimento — hide for lines, images and qrcode */}
         {s.type !== "image" && s.type !== "qrcode" && !isLine(s) && (
           <>
-            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Preenchimento</div>
+            <SubSec t="Preenchimento" icon="🎨" />
             <FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
           </>
         )}
@@ -225,9 +223,9 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {/* Linha — line-specific section */}
         {isLine(s) && (
           <>
-            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Linha</div>
+            <SubSec t="Linha" icon="—" />
             <F l="Cor"><ColorField value={typeof s.fill === "string" ? s.fill : "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
-            <F l="Espessura"><Num v={s.height} c={v => u({ height: Math.max(1, Math.min(100, v)) })} /></F>
+            <F l="Espessura"><Num v={s.height} c={v => u({ height: Math.max(1, Math.min(100, v)) })} min={1} /></F>
             <F l="Estilo">
               <div style={{ display: "flex", gap: 3 }}>
                 <SBtn active={!s.strokeDashArray || s.strokeDashArray.length === 0} onClick={() => u({ strokeDashArray: undefined })}>Sólido</SBtn>
@@ -242,10 +240,10 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {!isLine(s) && (
           <>
             <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
-            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Borda</div>
+            <SubSec t="Borda" icon="□" />
             <G2>
               <F l="Cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
-              <F l="Espessura"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} /></F>
+              <F l="Espessura"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} min={0} /></F>
             </G2>
             <F l="Estilo">
               <div style={{ display: "flex", gap: 3 }}>
@@ -261,7 +259,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {s.type === "rect" && (
           <>
             <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
-            <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Cantos</div>
+            <SubSec t="Cantos" icon="⌒" />
             <F l="Raio global"><input type="range" min={0} max={200} value={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} onChange={e => u({ cornerRadius: +e.target.value })} style={{ width: "100%", accentColor: "var(--ed-accent)" }} /></F>
             <Num v={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} c={v => u({ cornerRadius: v })} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, marginTop: 4 }}>
@@ -283,7 +281,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
 
         {/* Sombra */}
         <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
-        <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Sombra</div>
+        <SubSec t="Sombra" icon="◫" />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <span style={{ fontSize: 10, color: "var(--ed-txt2)" }}>Ativa</span>
           <SBtn active={!!s.shadow} onClick={() => u({ shadow: s.shadow ? undefined : { color: "rgba(0,0,0,0.4)", offsetX: 4, offsetY: 4, blur: 12 } })}>{s.shadow ? "ON" : "OFF"}</SBtn>
@@ -417,28 +415,26 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
 
       {/* ═══ 7. SMART FEATURES ═══ */}
       <Sec t="Smart Features">
-        <div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 4, lineHeight: 1.4 }}>
+        <div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 6, lineHeight: 1.4 }}>
           Vincule este elemento para seguir/acompanhar outro automaticamente.
         </div>
+
         {/* Smart Track — segue posição */}
-        <div style={{ marginBottom: 6 }}>
-          <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2, fontWeight: 600 }}>↔ Seguir posição</div>
-          <F l="Alvo">
-            <select
-              value={s.smartTrack?.targetId || ""}
-              onChange={e => {
-                const targetId = e.target.value;
-                if (!targetId) u({ smartTrack: undefined });
-                else u({ smartTrack: { targetId, direction: s.smartTrack?.direction || "right", gap: s.smartTrack?.gap ?? 8 } });
-              }}
-              style={selS}
-            >
-              <option value="">— nenhum —</option>
-              {allElements.filter(e => e.id !== s.id).map(e => (
-                <option key={e.id} value={e.id}>{e.name || e.id}</option>
-              ))}
-            </select>
-          </F>
+        <SmartCard icon="⟷" titulo="Seguir posição" subtitulo="Acompanha movimento de outro" temAlvo={!!s.smartTrack?.targetId}>
+          <select
+            value={s.smartTrack?.targetId || ""}
+            onChange={e => {
+              const targetId = e.target.value;
+              if (!targetId) u({ smartTrack: undefined });
+              else u({ smartTrack: { targetId, direction: s.smartTrack?.direction || "right", gap: s.smartTrack?.gap ?? 8 } });
+            }}
+            style={selS}
+          >
+            <option value="">— nenhum —</option>
+            {allElements.filter(e => e.id !== s.id).map(e => (
+              <option key={e.id} value={e.id}>{e.name || e.id}</option>
+            ))}
+          </select>
           {s.smartTrack && (
             <G2>
               <F l="Direção">
@@ -456,26 +452,24 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
               <F l="Gap"><Num v={s.smartTrack.gap} c={v => u({ smartTrack: { ...s.smartTrack!, gap: v } })} /></F>
             </G2>
           )}
-        </div>
+        </SmartCard>
+
         {/* Text Anchor — A termina onde B começa */}
-        <div style={{ marginBottom: 6 }}>
-          <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2, fontWeight: 600 }}>⊣ Âncora de texto</div>
-          <F l="Alvo (inicia onde ele termina)">
-            <select
-              value={s.textAnchor?.targetId || ""}
-              onChange={e => {
-                const targetId = e.target.value;
-                if (!targetId) u({ textAnchor: undefined });
-                else u({ textAnchor: { targetId, position: s.textAnchor?.position || "after" } });
-              }}
-              style={selS}
-            >
-              <option value="">— nenhum —</option>
-              {allElements.filter(e => e.id !== s.id).map(e => (
-                <option key={e.id} value={e.id}>{e.name || e.id}</option>
-              ))}
-            </select>
-          </F>
+        <SmartCard icon="⚓" titulo="Âncora de texto" subtitulo="Inicia onde outro termina" temAlvo={!!s.textAnchor?.targetId}>
+          <select
+            value={s.textAnchor?.targetId || ""}
+            onChange={e => {
+              const targetId = e.target.value;
+              if (!targetId) u({ textAnchor: undefined });
+              else u({ textAnchor: { targetId, position: s.textAnchor?.position || "after" } });
+            }}
+            style={selS}
+          >
+            <option value="">— nenhum —</option>
+            {allElements.filter(e => e.id !== s.id).map(e => (
+              <option key={e.id} value={e.id}>{e.name || e.id}</option>
+            ))}
+          </select>
           {s.textAnchor && (
             <F l="Posição">
               <select
@@ -488,27 +482,24 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
               </select>
             </F>
           )}
-        </div>
+        </SmartCard>
 
         {/* Smart Resize — ajusta tamanho */}
-        <div>
-          <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2, fontWeight: 600 }}>⇲ Ajustar tamanho</div>
-          <F l="Alvo">
-            <select
-              value={s.smartResize?.targetId || ""}
-              onChange={e => {
-                const targetId = e.target.value;
-                if (!targetId) u({ smartResize: undefined });
-                else u({ smartResize: { targetId, direction: s.smartResize?.direction || "vertical", padding: s.smartResize?.padding ?? 0 } });
-              }}
-              style={selS}
-            >
-              <option value="">— nenhum —</option>
-              {allElements.filter(e => e.id !== s.id).map(e => (
-                <option key={e.id} value={e.id}>{e.name || e.id}</option>
-              ))}
-            </select>
-          </F>
+        <SmartCard icon="⤢" titulo="Ajustar tamanho" subtitulo="Redimensiona conforme outro" temAlvo={!!s.smartResize?.targetId}>
+          <select
+            value={s.smartResize?.targetId || ""}
+            onChange={e => {
+              const targetId = e.target.value;
+              if (!targetId) u({ smartResize: undefined });
+              else u({ smartResize: { targetId, direction: s.smartResize?.direction || "vertical", padding: s.smartResize?.padding ?? 0 } });
+            }}
+            style={selS}
+          >
+            <option value="">— nenhum —</option>
+            {allElements.filter(e => e.id !== s.id).map(e => (
+              <option key={e.id} value={e.id}>{e.name || e.id}</option>
+            ))}
+          </select>
           {s.smartResize && (
             <G2>
               <F l="Eixo">
@@ -524,7 +515,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
               <F l="Padding"><Num v={s.smartResize.padding} c={v => u({ smartResize: { ...s.smartResize!, padding: v } })} /></F>
             </G2>
           )}
-        </div>
+        </SmartCard>
       </Sec>
     </>
   );
@@ -863,4 +854,79 @@ function AlBtn({ active, onClick, children, italic }: { active: boolean; onClick
 
 function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return <button onClick={onClick} style={{ flex: 1, padding: "10px 0", border: "none", borderBottom: active ? "2px solid var(--ed-accent)" : "2px solid transparent", background: "none", color: active ? "var(--ed-accent)" : "var(--ed-txt3)", fontSize: 10, fontWeight: 700, cursor: "pointer", textTransform: "uppercase", letterSpacing: 1 }}>{children}</button>;
+}
+
+function AlignBtn({ onClick, title, d, center }: { onClick: () => void; title: string; d: string; center?: boolean }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        border: "none",
+        background: hover ? "var(--ed-hover)" : "var(--ed-input)",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "background 0.15s",
+      }}
+    >
+      {center ? (
+        <svg viewBox="0 0 18 18" width={16} height={16}>
+          <path d="M9 3v12M3 9h12" stroke={hover ? "var(--ed-accent)" : "var(--ed-txt2)"} strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="9" cy="9" r="2" fill="none" stroke={hover ? "var(--ed-accent)" : "var(--ed-txt2)"} strokeWidth="1.2" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 18 18" width={16} height={16}>
+          <path d={d} stroke={hover ? "var(--ed-accent)" : "var(--ed-txt2)"} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function SubSec({ t, icon }: { t: string; icon?: string }) {
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      marginBottom: 6,
+      marginTop: 2,
+    }}>
+      {icon && <span style={{ fontSize: 12 }}>{icon}</span>}
+      <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ed-txt2)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{t}</span>
+      <div style={{ flex: 1, height: 1, background: "var(--ed-bdr)" }} />
+    </div>
+  );
+}
+
+function SmartCard({ icon, titulo, subtitulo, temAlvo, children }: { icon: string; titulo: string; subtitulo: string; temAlvo: boolean; children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: "var(--ed-input)",
+      borderRadius: 8,
+      padding: "8px 10px",
+      marginBottom: 4,
+      border: "1px solid var(--ed-bdr)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: temAlvo ? 8 : 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 14 }}>{icon}</span>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ed-txt)" }}>{titulo}</div>
+            <div style={{ fontSize: 9, color: "var(--ed-txt3)" }}>{subtitulo}</div>
+          </div>
+        </div>
+        {temAlvo && <span style={{ fontSize: 8, background: "var(--ed-accent)", color: "#000", padding: "2px 6px", borderRadius: 10, fontWeight: 700 }}>ON</span>}
+      </div>
+      {children}
+    </div>
+  );
 }
