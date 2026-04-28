@@ -15,7 +15,7 @@ function BokehCanvas() {
     type P = {x:number;y:number;r:number;color:string;alpha:number;sx:number;sy:number;p:number;ps:number}
     let pts: P[]=[], W=0, H=0
     const rand=(a:number,b:number)=>Math.random()*(b-a)+a
-    function resize(){W=cv.width=cv.offsetWidth;H=cv.height=cv.offsetHeight}
+    function resize(){if(!cv)return;W=cv.width=cv.offsetWidth;H=cv.height=cv.offsetHeight}
     function init(){
       pts=[]
       for(let i=0;i<12;i++)pts.push({x:rand(0,W),y:rand(0,H),r:rand(60,130),color:'rgba(180,90,10,',alpha:rand(0.12,0.22),sx:rand(-0.15,0.15),sy:rand(-0.1,0.1),p:rand(0,Math.PI*2),ps:rand(0.003,0.008)})

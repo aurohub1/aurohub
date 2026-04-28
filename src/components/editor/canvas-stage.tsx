@@ -254,7 +254,8 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={rectHeight} {...rectFillProps} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "circle") {
-    return <Circle {...common} ref={shapeRef as React.RefObject<Konva.Circle>} onClick={(e) => onClick(e)} radius={Math.min(el.width, el.height) / 2} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+    const circleFillProps = getFillProps(el.fill, el.width, el.height);
+    return <Circle {...common} ref={shapeRef as React.RefObject<Konva.Circle>} onClick={(e) => onClick(e)} radius={Math.min(el.width, el.height) / 2} {...circleFillProps} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "image") {
     if (!img) {

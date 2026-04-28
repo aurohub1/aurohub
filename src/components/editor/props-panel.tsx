@@ -11,18 +11,27 @@ interface Props {
   activeTab: "design" | "animate";
   onTabChange: (t: "design" | "animate") => void;
   selectedCount?: number;
+  selectedIds?: string[];
   onOpenCrop?: () => void;
   formType?: string;
 }
 
-export default function PropsPanel({ selected: s, canvasW, canvasH, allElements, onUpdate, onAlign, activeTab, onTabChange, selectedCount, onOpenCrop, formType }: Props) {
+export default function PropsPanel({ selected: s, canvasW, canvasH, allElements, onUpdate, onAlign, activeTab, onTabChange, selectedCount, selectedIds, onOpenCrop, formType }: Props) {
   if (!s) return (
     <div style={{ width: 232, background: "var(--ed-surface)", borderLeft: "1px solid var(--ed-bdr)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>Selecione um elemento</span>
     </div>
   );
 
-  const u = (up: Partial<EditorElement>) => onUpdate(s.id, up);
+  const u = (up: Partial<EditorElement>) => {
+    if (selectedIds && selectedIds.length > 1) {
+      // Batch update para seleção múltipla
+      selectedIds.forEach(id => onUpdate(id, up));
+    } else {
+      // Single update
+      onUpdate(s.id, up);
+    }
+  };
 
   return (
     <div style={{ width: 232, background: "var(--ed-surface)", borderLeft: "1px solid var(--ed-bdr)", overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column" }}>
@@ -97,7 +106,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
       {/* Line-specific section */}
       {isLine(s) && (
         <Sec t="Linha">
-          <F l="Cor"><ColorField value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
+          <F l="Cor"><ColorField value={typeof s.fill === "string" ? s.fill : "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
           <F l="Espessura"><Num v={s.height} c={v => u({ height: Math.max(1, Math.min(100, v)) })} /></F>
           <F l="Estilo">
             <div style={{ display: "flex", gap: 3 }}>

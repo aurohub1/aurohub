@@ -3,11 +3,45 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Rect, Circle, Text as KText, Image as KImage, Group } from "react-konva";
 import type Konva from "konva";
-import { applySmartLinks, type EditorElement, type EditorSchema } from "@/components/editor/types";
+import { applySmartLinks, type EditorElement, type EditorSchema, type GradientFill } from "@/components/editor/types";
 import { useBadges } from "@/hooks/useBadges";
 import { resolveBadgeUrl, shouldRenderBadge } from "@/lib/badges";
 
 /* ── Helpers ─────────────────────────────────────── */
+
+/* ── Gradient helper ──────────────────────────────── */
+function getFillProps(fill: string | GradientFill | undefined, width: number, height: number) {
+  if (!fill || typeof fill === "string") {
+    return { fill: fill || "#FFFFFF" };
+  }
+  // Gradiente
+  const { colors, direction } = fill;
+  let startPoint = { x: 0, y: 0 };
+  let endPoint = { x: 0, y: 0 };
+  switch (direction) {
+    case "horizontal":
+      startPoint = { x: 0, y: 0 };
+      endPoint = { x: width, y: 0 };
+      break;
+    case "vertical":
+      startPoint = { x: 0, y: 0 };
+      endPoint = { x: 0, y: height };
+      break;
+    case "diagonal-down":
+      startPoint = { x: 0, y: 0 };
+      endPoint = { x: width, y: height };
+      break;
+    case "diagonal-up":
+      startPoint = { x: 0, y: height };
+      endPoint = { x: width, y: 0 };
+      break;
+  }
+  return {
+    fillLinearGradientStartPoint: startPoint,
+    fillLinearGradientEndPoint: endPoint,
+    fillLinearGradientColorStops: [0, colors[0], 1, colors[1]],
+  };
+}
 
 function useImage(src?: string): HTMLImageElement | null {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
@@ -338,7 +372,8 @@ function remapColor(c: string | undefined, map: Record<string, string>): string 
 
 function applyLamColorMap(el: EditorElement, map: Record<string, string>): EditorElement {
   if (Object.keys(map).length === 0) return el;
-  const fill = remapColor(el.fill, map);
+  // Type guard: só remapeia se fill for string (não GradientFill)
+  const fill = typeof el.fill === "string" ? remapColor(el.fill, map) : el.fill;
   const stroke = remapColor(el.stroke, map);
   if (fill === el.fill && stroke === el.stroke) return el;
   return { ...el, fill: fill ?? el.fill, stroke: stroke ?? el.stroke };
@@ -368,7 +403,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
       <Rect
         x={el.x} y={el.y} width={el.width} height={el.height}
         rotation={el.rotation ?? 0}
-        fill={el.fill || "#000"}
+        {...getFillProps(el.fill, el.width, el.height)}
         opacity={el.opacity ?? 1}
         cornerRadius={el.cornerRadius ?? 0}
         stroke={el.stroke}
@@ -388,7 +423,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
         x={el.x + el.width / 2} y={el.y + el.height / 2}
         radius={Math.min(el.width, el.height) / 2}
         rotation={el.rotation ?? 0}
-        fill={el.fill || "#000"}
+        {...getFillProps(el.fill, el.width, el.height)}
         opacity={el.opacity ?? 1}
         stroke={el.stroke}
         strokeWidth={el.strokeWidth ?? 0}
@@ -429,7 +464,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             fontSize={fSize}
             fontFamily={el.fontFamily ?? "DM Sans"}
             fontStyle={resolveKonvaFontStyle(el)}
-            fill={el.fill || "#000"}
+            {...getFillProps(el.fill, el.width, el.height)}
             align={el.align ?? "left"}
             letterSpacing={el.letterSpacing ?? 0}
             lineHeight={el.lineHeight ?? 1.2}
@@ -440,7 +475,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             fontSize={decSize}
             fontFamily={el.fontFamily ?? "DM Sans"}
             fontStyle={resolveKonvaFontStyle(el)}
-            fill={el.fill || "#000"}
+            {...getFillProps(el.fill, el.width, el.height)}
             letterSpacing={el.letterSpacing ?? 0}
           />
         </Group>
@@ -486,7 +521,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             text="R$"
             fontSize={smallSize}
             fontFamily={ff}
-            fill={accent}
+            {...getFillProps(accent, el.width, el.height)}
           />
           <KText
             x={Math.round(wRS + 2)}
@@ -495,7 +530,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             fontSize={fSize}
             fontFamily={ff}
             fontStyle="bold"
-            fill={accent}
+            {...getFillProps(accent, el.width, el.height)}
           />
           <KText
             x={Math.round(wRS + wInt + 6)}
@@ -503,7 +538,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             text={decPart}
             fontSize={smallSize}
             fontFamily={ff}
-            fill={decFill}
+            {...getFillProps(decFill, el.width, el.height)}
           />
         </Group>
       );
@@ -522,7 +557,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
         fontFamily={el.fontFamily ?? "DM Sans"}
         fontStyle={resolveKonvaFontStyle(el)}
         textDecoration={el.textDecoration ?? ""}
-        fill={el.fill || "#000"}
+        {...getFillProps(el.fill, el.width, el.height)}
         stroke={el.stroke}
         strokeWidth={el.strokeWidth ?? 0}
         align={el.align ?? "left"}

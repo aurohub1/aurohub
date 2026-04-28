@@ -210,7 +210,7 @@ export default function AdmSaudePage() {
 
   const getModuleScore = (key: string): number => {
     if (!ultimoRelatorio) return -1;
-    const val = (ultimoRelatorio as Record<string, unknown>)[`score_${key}`];
+    const val = (ultimoRelatorio as unknown as Record<string, unknown>)[`score_${key}`];
     return val != null ? Number(val) : -1;
   };
 

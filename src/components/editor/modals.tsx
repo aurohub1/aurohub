@@ -385,8 +385,9 @@ export function VariantsModal({ schema, srcFormat, srcW, srcH, onClose, onConfir
                 const top = (el.y / v.height) * 100;
                 const w = (el.width / v.width) * 100;
                 const h = (el.height / v.height) * 100;
-                if (el.type === "text") return <div key={el.id} style={{ position: "absolute", left: `${left}%`, top: `${top}%`, width: `${w}%`, color: el.fill, fontSize: Math.max(6, (el.fontSize || 32) / (v.width / 200)), textAlign: (el.align as "left" | "center" | "right") || "left", lineHeight: 1, fontWeight: el.fontStyle === "bold" ? 700 : 400, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{el.text}</div>;
-                if (el.type === "rect") return <div key={el.id} style={{ position: "absolute", left: `${left}%`, top: `${top}%`, width: `${w}%`, height: `${h}%`, background: el.fill, borderRadius: el.cornerRadius || 0 }} />;
+                const fillStr = typeof el.fill === "string" ? el.fill : typeof el.fill === "object" && el.fill.type === "gradient" ? `linear-gradient(${el.fill.direction === "horizontal" ? "to right" : el.fill.direction === "vertical" ? "to bottom" : el.fill.direction === "diagonal-down" ? "to bottom right" : "to top right"}, ${el.fill.colors[0]}, ${el.fill.colors[1]})` : "#000";
+                if (el.type === "text") return <div key={el.id} style={{ position: "absolute", left: `${left}%`, top: `${top}%`, width: `${w}%`, color: fillStr, fontSize: Math.max(6, (el.fontSize || 32) / (v.width / 200)), textAlign: (el.align as "left" | "center" | "right") || "left", lineHeight: 1, fontWeight: el.fontStyle === "bold" ? 700 : 400, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{el.text}</div>;
+                if (el.type === "rect") return <div key={el.id} style={{ position: "absolute", left: `${left}%`, top: `${top}%`, width: `${w}%`, height: `${h}%`, background: fillStr, borderRadius: el.cornerRadius || 0 }} />;
                 return null;
               })}
             </div>

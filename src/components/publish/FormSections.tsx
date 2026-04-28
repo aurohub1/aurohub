@@ -1652,7 +1652,7 @@ function detectCompaniaLogo(navio: string): string {
 }
 
 export function CruzeiroForm({
-  fields, set, today, binds, formato, nomeLoja,
+  fields, set, today, binds, formato, nomeLoja, onImgFundo,
 }: {
   fields: Fields;
   set: Setter;
@@ -1660,7 +1660,9 @@ export function CruzeiroForm({
   binds?: Set<string>;
   formato?: string;
   nomeLoja?: string;
+  onImgFundo?: (nome: string) => Promise<void>;
 }) {
+  void onImgFundo;
   // ═══ CÁLCULO AUTOMÁTICO: QUANTAS NOITES ═══
   const dataIda = (fields.dataida as string) || '';
   const dataVolta = (fields.datavolta as string) || '';
@@ -2422,6 +2424,7 @@ function emptyLamDest(): LamDest {
 export function CardWhatsAppForm({
   fields, set, today,
   loadDestinos, loadHoteis, binds,
+  formato, nomeLoja, onImgFundo,
 }: {
   fields: Fields;
   set: Setter;
@@ -2429,7 +2432,11 @@ export function CardWhatsAppForm({
   loadDestinos?: () => Promise<string[]>;
   loadHoteis?: () => Promise<string[]>;
   binds?: Set<string>;
+  formato?: string;
+  nomeLoja?: string;
+  onImgFundo?: (nome: string) => Promise<void>;
 }) {
+  void formato; void nomeLoja; void onImgFundo;
   void binds;
   const [cab, setCab] = useState({
     titulo1: String(fields.lam_titulo1 ?? ""),

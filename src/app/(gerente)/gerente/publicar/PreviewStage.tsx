@@ -410,7 +410,8 @@ function remapColor(c: string | undefined, map: Record<string, string>): string 
 
 function applyLamColorMap(el: EditorElement, map: Record<string, string>): EditorElement {
   if (Object.keys(map).length === 0) return el;
-  const fill = remapColor(el.fill, map);
+  // Type guard: só remapeia se fill for string (não GradientFill)
+  const fill = typeof el.fill === "string" ? remapColor(el.fill, map) : el.fill;
   const stroke = remapColor(el.stroke, map);
   if (fill === el.fill && stroke === el.stroke) return el;
   return { ...el, fill: fill ?? el.fill, stroke: stroke ?? el.stroke };

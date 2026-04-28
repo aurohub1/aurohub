@@ -393,13 +393,13 @@ export default function ClienteInicioPage() {
         }
       `}</style>
       {/* ═══ HEADER ═════════════════════════════════ */}
-      <div className="card-glass relative overflow-hidden px-6 py-6">
+      <div className="card-glass relative overflow-hidden px-6 min-h-[100px]" style={{display:'flex', alignItems:'center'}}>
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
           style={{ background: "linear-gradient(135deg, var(--brand-primary) 0%, var(--orange) 50%, var(--gold) 100%)" }}
         />
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
-          <div className="min-w-0 flex-1" style={{ minWidth: 0 }}>
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 w-full">
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
               {greeting()}
             </p>
