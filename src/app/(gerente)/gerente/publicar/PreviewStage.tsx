@@ -150,8 +150,12 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return values.valorparcela || "";
     case "valortotal":
       return formatBRL(values.valortotal);
-    case "valor_total":
-      return formatBRL(values.valor_total);
+    case "valor_total": {
+      const vt = (values.valor_total || "").replace(/\./g, "").replace(",", ".");
+      const n = parseFloat(vt);
+      if (isNaN(n)) return values.valor_total || "";
+      return "ou R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) + " por pessoa cabine dupla.";
+    }
     case "parcelas":
       return values.parcelas || "";
 
@@ -160,6 +164,10 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return values.navio || "";
     case "itinerario":
       return values.itinerario || "";
+    case "q_vezes":
+      return values.q_vezes || "";
+    case "data_correta":
+      return values.data_correta || "";
     case "forma_pgto":
     case "forma_de_pagamento": {
       // Prioriza forma_de_pagamento derivado, depois forma_pgto, depois formapagamento

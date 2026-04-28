@@ -1697,7 +1697,12 @@ export function CruzeiroForm({
             <input
               type="date"
               value={dataIda}
-              onChange={(e) => set('dataida', e.target.value)}
+              onChange={(e) => {
+                set('dataida', e.target.value);
+                if (e.target.value && dataVolta) {
+                  set('data_correta', formatPeriodo(e.target.value, dataVolta));
+                }
+              }}
               min={today}
               className={INPUT_CLASS}
             />
@@ -1707,7 +1712,12 @@ export function CruzeiroForm({
             <input
               type="date"
               value={dataVolta}
-              onChange={(e) => set('datavolta', e.target.value)}
+              onChange={(e) => {
+                set('datavolta', e.target.value);
+                if (dataIda && e.target.value) {
+                  set('data_correta', formatPeriodo(dataIda, e.target.value));
+                }
+              }}
               min={dataIda || today}
               className={INPUT_CLASS}
             />
@@ -1757,7 +1767,16 @@ export function CruzeiroForm({
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => set('formapagamento', opt.value)}
+                  onClick={() => {
+                    set('formapagamento', opt.value);
+                    // Setar forma_de_pagamento derivado
+                    if (opt.value === 'cartao') {
+                      set('forma_de_pagamento', 'Cartão de Crédito');
+                    } else if (opt.value === 'entrada') {
+                      const entrada = (fields.entrada as string) || '';
+                      set('forma_de_pagamento', entrada ? `Entrada de R$ ${entrada} +` : 'Boleto');
+                    }
+                  }}
                   className="flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all"
                   style={
                     sel
@@ -1790,7 +1809,10 @@ export function CruzeiroForm({
         <Field label="Parcelas *">
           <select
             value={(fields.parcelas as string) || ''}
-            onChange={(e) => set('parcelas', e.target.value)}
+            onChange={(e) => {
+              set('parcelas', e.target.value);
+              set('q_vezes', e.target.value);
+            }}
             className={SELECT_CLASS}
             style={SELECT_STYLE}
           >
@@ -1807,8 +1829,18 @@ export function CruzeiroForm({
             type="text"
             value={(fields.valorparcela as string) || ''}
             onChange={(e) => {
-              console.log('[CruzeiroForm] valor parcela:', e.target.value);
-              set('inteiro', e.target.value);
+              const val = e.target.value;
+              console.log('[CruzeiroForm] valor parcela:', val);
+              set('inteiro', val);
+              // Extrair centavos para bind separado
+              const normalized = val.replace(/\./g, '').replace(',', '.');
+              const num = parseFloat(normalized);
+              if (!isNaN(num)) {
+                const cents = Math.round((num % 1) * 100);
+                set('centavos', String(cents).padStart(2, '0'));
+              } else {
+                set('centavos', '00');
+              }
             }}
             placeholder="0,00"
             className={INPUT_CLASS}
@@ -1820,7 +1852,10 @@ export function CruzeiroForm({
           <input
             type="text"
             value={(fields.valortotal as string) || ''}
-            onChange={(e) => set('valortotal', e.target.value)}
+            onChange={(e) => {
+              set('valortotal', e.target.value);
+              set('valor_total', e.target.value);
+            }}
             placeholder="0,00"
             className={INPUT_CLASS}
           />
