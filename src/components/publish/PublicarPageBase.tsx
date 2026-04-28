@@ -507,6 +507,7 @@ export default function PublicarPageBase({
   });
 
   const previewValues = useMemo(() => {
+    console.log('[previewValues] cruzeiro inteiro:', values?.inteiro, 'tab:', tab);
     const m: Record<string, string> = { ...(values ?? {}) };
     for (const [k, v] of Object.entries(badges ?? {}))
       m[k] = v ? "true" : "";
