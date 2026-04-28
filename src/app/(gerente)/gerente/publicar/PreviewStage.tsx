@@ -150,10 +150,12 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return values.valorparcela || "";
     case "valortotal":
       return formatBRL(values.valortotal);
-    case "valor_total": {
-      const vt = (values.valor_total || "").replace(/\./g, "").replace(",", ".");
+    case "valor_total":
+    case "cruzeiro_total":
+    case "valortotal_cruzeiro": {
+      const vt = ((values.valortotal as string) || "").replace(/\./g, "").replace(",", ".");
       const n = parseFloat(vt);
-      if (isNaN(n)) return values.valor_total || "";
+      if (isNaN(n)) return (values.valortotal as string) || "";
       return "ou R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) + " por pessoa cabine dupla.";
     }
     case "parcelas":

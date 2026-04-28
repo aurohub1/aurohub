@@ -106,6 +106,8 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     case "valorparcela":
       return values.valorparcela || "";
     case "valortotal":
+    case "cruzeiro_total":
+    case "valortotal_cruzeiro":
       return values.valortotal || "";
     case "parcelas":
       return values.parcelas || "";
