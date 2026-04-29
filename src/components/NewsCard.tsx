@@ -15,6 +15,15 @@ interface News {
 const BRAND_GRADIENT = 'linear-gradient(135deg, #1E3A6E 0%, #3B82F6 50%, #1E3A6E 100%)';
 const CARD_SHELL = 'relative aspect-[4/3] max-h-[280px] w-full max-w-[373px] overflow-hidden rounded-xl shadow-lg';
 
+function decodeHtml(str: string) {
+  return str.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&apos;/g, "'")
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>');
+}
+
 function hasImage(url: string | null | undefined): url is string {
   return typeof url === 'string' && url.trim().length > 0;
 }
@@ -213,12 +222,12 @@ export function NewsCard({ news, loading }: { news: News[]; loading?: boolean; h
             className="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white shadow-sm"
             style={{ background: '#3B82F6' }}
           >
-            {item.source}
+            {decodeHtml(item.source)}
           </span>
         )}
         <div className="flex items-end justify-between gap-3">
           <h3 className="line-clamp-2 text-[14px] font-bold leading-snug text-white drop-shadow-sm">
-            {item.title}
+            {decodeHtml(item.title)}
           </h3>
           <a
             href={item.url}
