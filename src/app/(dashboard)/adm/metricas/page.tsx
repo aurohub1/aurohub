@@ -138,7 +138,7 @@ export default function AdmMetricasPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-[180px_1fr_220px] gap-6 mt-6">
+          <div className="grid grid-cols-[180px_1fr_220px] items-start gap-6 mt-6">
             {/* Col 1: KPIs empilhados */}
             <div className="flex flex-col gap-2">
               <MetricCard label="Publicações hoje"  value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
@@ -149,7 +149,7 @@ export default function AdmMetricasPage() {
             </div>
 
             {/* Col 2: FiltersBar + BarsByDay */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 h-full">
               <FiltersBar
                 periodo={periodo}
                 onPeriodoChange={setPeriodo}
