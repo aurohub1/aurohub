@@ -109,9 +109,9 @@ export default function ClienteUsuariosPage() {
       setUsers((uR.data ?? []) as Profile[]);
       setStores((sR.data ?? []) as StoreRow[]);
 
-      // Carregar permissões de todos os consultores desta marca
+      // Carregar permissões de todos os consultores e gerentes desta marca
       const vendedorIds = ((uR.data ?? []) as Profile[])
-        .filter(u => u.role === "vendedor")
+        .filter(u => ['vendedor', 'gerente'].includes(u.role))
         .map(u => u.id);
       if (vendedorIds.length > 0) {
         const { data: permData } = await supabase
@@ -270,7 +270,7 @@ export default function ClienteUsuariosPage() {
                   const meta = roleMeta(u.role);
                   const active = u.status === "active";
                   const isReadOnly = u.role === "adm" || u.role === "cliente";
-                  const isVendedor = u.role === "vendedor";
+                  const isRestrito = ['vendedor', 'gerente', 'consultor'].includes(u.role);
                   const perms = allPermsMap[u.id];
                   return (
                     <tr key={u.id} className="border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)]">
@@ -280,7 +280,7 @@ export default function ClienteUsuariosPage() {
                             {(u.name || u.email || "?").charAt(0).toUpperCase()}
                           </div>
                           <span className="truncate font-semibold text-[var(--txt)]">{u.name || "Sem nome"}</span>
-                          {isVendedor && perms && (
+                          {isRestrito && perms && (
                             <ClienteRestritoBadge perms={perms} />
                           )}
                         </div>
@@ -320,7 +320,7 @@ export default function ClienteUsuariosPage() {
                           >
                             <Pencil size={12} />
                           </button>
-                          {isVendedor && (
+                          {isRestrito && (
                             <button
                               onClick={() => setPermUserId(u.id)}
                               title="Gerenciar permissões"

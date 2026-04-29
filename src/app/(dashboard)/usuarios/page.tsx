@@ -432,7 +432,7 @@ export default function UsuariosPage() {
                   const store = p.store_id ? storeMap[p.store_id] : null;
                   const isActive = p.status === "active";
                   const perms = allPermsMap[p.id];
-                  const isVendedor = p.role === "vendedor";
+                  const isRestrito = ['vendedor', 'gerente', 'consultor'].includes(p.role);
 
                   return (
                     <tr key={p.id} className="border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)]">
@@ -445,7 +445,7 @@ export default function UsuariosPage() {
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--bg3)] text-[11px] font-semibold text-[var(--txt2)]">{(p.name ?? "?").charAt(0).toUpperCase()}</div>
                           )}
                           <span className="font-medium text-[var(--txt)]">{p.name ?? "—"}</span>
-                          {isVendedor && perms && (
+                          {isRestrito && perms && (
                             <RestritoBadge perms={perms} />
                           )}
                         </div>
@@ -458,7 +458,7 @@ export default function UsuariosPage() {
                       <td className="whitespace-nowrap pr-5 pl-4 py-3">
                         <div className="flex justify-end gap-2">
                           <button onClick={() => openEdit(p)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]">Editar</button>
-                          {isVendedor && (
+                          {isRestrito && (
                             <button
                               onClick={() => {
                                 const licId = p.licensee_id ?? (p.store_id ? storeMap[p.store_id]?.licensee_id : "") ?? "";
