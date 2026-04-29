@@ -188,28 +188,50 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     if (!selectedId) return;
     const el = schemaRef.current.elements.find(e => e.id === selectedId);
     if (!el) return;
+
     const keysArr = Array.isArray(keys) ? keys : [keys];
     const u: Partial<EditorElement> = {};
 
-    const isCircle = el.type === "circle";
-    const offX = isCircle ? el.width  / 2 : 0;
-    const offY = isCircle ? el.height / 2 : 0;
+    // Tentar pegar o bounding box real via Konva
+    const stage = stageRef.current;
+    const node = stage?.findOne(`#${selectedId}`);
 
-    const rot = ((el.rotation || 0) * Math.PI) / 180;
-    const cos = Math.abs(Math.cos(rot));
-    const sin = Math.abs(Math.sin(rot));
-    const bboxW = el.width  * cos + el.height * sin;
-    const bboxH = el.width  * sin + el.height * cos;
+    if (node && stage) {
+      const scale = stage.scaleX();
+      // getClientRect retorna coordenadas absolutas (escaladas)
+      const box = node.getClientRect({ relativeTo: stage });
+      // Converter para coordenadas lógicas do canvas
+      const bx = box.x / scale;
+      const by = box.y / scale;
+      const bw = box.width / scale;
+      const bh = box.height / scale;
 
-    for (const key of keysArr) {
-      if (key === "left")     u.x = offX;
-      if (key === "center-h") u.x = (width  - el.width)  / 2;
-      if (key === "right")    u.x = width  - bboxW + offX;
-      if (key === "top")      u.y = offY;
-      if (key === "center-v") u.y = (height - el.height) / 2;
-      if (key === "bottom")   u.y = height - bboxH + offY;
+      // Diferença entre origem do elemento e origem do bbox
+      // (necessário porque rotação desloca o bbox)
+      const dx = el.x - bx;
+      const dy = el.y - by;
+
+      for (const key of keysArr) {
+        if (key === "left")     u.x = dx;
+        if (key === "right")    u.x = width - bw + dx;
+        if (key === "center-h") u.x = (width - bw) / 2 + dx;
+        if (key === "top")      u.y = dy;
+        if (key === "bottom")   u.y = height - bh + dy;
+        if (key === "center-v") u.y = (height - bh) / 2 + dy;
+      }
+    } else {
+      // Fallback sem rotação (elemento simples)
+      for (const key of keysArr) {
+        if (key === "left")     u.x = 0;
+        if (key === "right")    u.x = width - el.width;
+        if (key === "center-h") u.x = (width - el.width) / 2;
+        if (key === "top")      u.y = 0;
+        if (key === "bottom")   u.y = height - el.height;
+        if (key === "center-v") u.y = (height - el.height) / 2;
+      }
     }
-    updateElement(selectedId, u);
+
+    if (Object.keys(u).length > 0) updateElement(selectedId, u);
   }, [selectedId, width, height, updateElement]);
 
   const play = useCallback(() => { clearSelection(); setCurrentTime(0); setPlaying(true); }, [clearSelection]);
