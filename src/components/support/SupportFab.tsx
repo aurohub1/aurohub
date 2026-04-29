@@ -44,7 +44,7 @@ export default function SupportFab() {
         onClick={drawer.open}
         aria-label="Abrir suporte"
         data-ready={ready ? "true" : "false"}
-        className="ah-support-fab fixed bottom-6 right-6 z-[9997] flex h-[52px] w-[52px] items-center justify-center rounded-full text-white"
+        className="ah-support-fab fixed bottom-20 right-6 z-[9997] flex h-[52px] w-[52px] items-center justify-center rounded-full text-white"
         style={{ background: "var(--blue, #3B82F6)" }}
       >
         <MessageCircle size={22} />
