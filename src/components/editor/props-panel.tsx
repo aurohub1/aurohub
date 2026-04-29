@@ -45,6 +45,97 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, allElements,
           ✦ {selectedCount} selecionados
         </div>
       )}
+      {/* Mini preview do elemento */}
+      <div style={{
+        height: 60,
+        margin: "8px 8px 4px 8px",
+        background: "var(--ed-input)",
+        borderRadius: 8,
+        border: "1px solid var(--ed-bdr)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        position: "relative",
+        flexShrink: 0,
+      }}>
+        {/* Para texto: mostra o texto com a cor e fonte */}
+        {s.type === "text" && (
+          <span style={{
+            fontSize: Math.min(14, (s.fontSize || 32) / 8),
+            fontWeight: s.fontStyle?.match(/^\d+$/) ? parseInt(s.fontStyle) : 400,
+            color: typeof s.fill === "string" ? s.fill : "#D4A843",
+            maxWidth: "90%",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            textTransform: (s.textTransform as React.CSSProperties["textTransform"]) || "none",
+          }}>
+            {s.text?.slice(0, 24) || "[texto]"}
+          </span>
+        )}
+        {/* Para rect/circle: mostra a forma com a cor */}
+        {(s.type === "rect" || s.type === "circle") && (
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: s.type === "circle" ? "50%" : (s.cornerRadius ? 6 : 4),
+            background: typeof s.fill === "string" ? s.fill : "#D4A843",
+            border: s.stroke ? `${s.strokeWidth || 1}px solid ${s.stroke}` : "none",
+            opacity: s.opacity ?? 1,
+          }} />
+        )}
+        {/* Para imagem: mostra thumbnail */}
+        {s.type === "image" && s.src && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={s.src} alt="" style={{
+            maxHeight: 52,
+            maxWidth: "90%",
+            borderRadius: 4,
+            objectFit: "contain",
+          }} />
+        )}
+        {/* Para imagem sem src */}
+        {s.type === "image" && !s.src && (
+          <span style={{ fontSize: 9, color: "var(--ed-txt3)" }}>Sem imagem</span>
+        )}
+        {/* Para imageBind */}
+        {s.type === "imageBind" && (
+          <span style={{ fontSize: 9, color: "var(--ed-bind)", fontWeight: 700 }}>🖼 {s.bindParam || "bind"}</span>
+        )}
+        {/* Para QR code */}
+        {s.type === "qrcode" && (
+          <div style={{ width: 36, height: 36, background: s.qrBg || "#FFFFFF", border: `2px solid ${s.qrFg || "#000000"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>▦</div>
+        )}
+        {/* Label do tipo no canto */}
+        <span style={{
+          position: "absolute",
+          bottom: 4,
+          right: 6,
+          fontSize: 8,
+          color: "var(--ed-txt3)",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+        }}>
+          {s.type}
+        </span>
+        {/* Nome do elemento no canto esquerdo */}
+        <span style={{
+          position: "absolute",
+          bottom: 4,
+          left: 6,
+          fontSize: 8,
+          color: "var(--ed-txt3)",
+          fontWeight: 500,
+          maxWidth: "60%",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}>
+          {s.name || s.id}
+        </span>
+      </div>
       <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
         {activeTab === "design" ? <DesignTab s={s} u={u} allElements={allElements} onAlign={onAlign} onOpenCrop={onOpenCrop} formType={formType} /> : <AnimateTab s={s} u={u} />}
       </div>
@@ -79,7 +170,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
       <Sec t="Layout">
         {/* Alinhar ao Canvas */}
         <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Alinhar ao Canvas</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4, justifyItems: "center" }}>
           {[
             { k: "left", d: "M4 4v10M7 6h7M7 9h5", t: "Alinhar à esquerda" },
             { k: "center-h", d: "M9 4v10M5 6h8M6 9h6", t: "Centralizar horizontalmente" },
@@ -896,6 +987,8 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 
 function AlignBtn({ onClick, title, d, center }: { onClick: () => void; title: string; d: string; center?: boolean }) {
   const [hover, setHover] = useState(false);
+  const baseColor = center ? "var(--ed-txt)" : "var(--ed-txt2)";
+  const iconColor = hover ? "var(--ed-accent)" : baseColor;
   return (
     <button
       onClick={onClick}
@@ -903,26 +996,26 @@ function AlignBtn({ onClick, title, d, center }: { onClick: () => void; title: s
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
         borderRadius: 8,
-        border: "none",
+        border: "1px solid var(--ed-bdr)",
         background: hover ? "var(--ed-hover)" : "var(--ed-input)",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        transition: "background 0.15s",
+        transition: "background 0.15s, border-color 0.15s",
       }}
     >
       {center ? (
         <svg viewBox="0 0 18 18" width={16} height={16}>
-          <path d="M9 3v12M3 9h12" stroke={hover ? "var(--ed-accent)" : "var(--ed-txt2)"} strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="9" cy="9" r="2" fill="none" stroke={hover ? "var(--ed-accent)" : "var(--ed-txt2)"} strokeWidth="1.2" />
+          <path d="M9 3v12M3 9h12" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="9" cy="9" r="2" fill="none" stroke={iconColor} strokeWidth="1.2" />
         </svg>
       ) : (
         <svg viewBox="0 0 18 18" width={16} height={16}>
-          <path d={d} stroke={hover ? "var(--ed-accent)" : "var(--ed-txt2)"} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          <path d={d} stroke={iconColor} strokeWidth="1.5" fill="none" strokeLinecap="round" />
         </svg>
       )}
     </button>
