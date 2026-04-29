@@ -185,16 +185,28 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
 
   const alignSelected = useCallback((keys: string | string[]) => {
     if (!selectedId) return;
-    const el = schemaRef.current.elements.find(e => e.id === selectedId); if (!el) return;
+    const el = schemaRef.current.elements.find(e => e.id === selectedId);
+    if (!el) return;
     const keysArr = Array.isArray(keys) ? keys : [keys];
     const u: Partial<EditorElement> = {};
+
+    const isCircle = el.type === "circle";
+    const offX = isCircle ? el.width  / 2 : 0;
+    const offY = isCircle ? el.height / 2 : 0;
+
+    const rot = ((el.rotation || 0) * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(rot));
+    const sin = Math.abs(Math.sin(rot));
+    const bboxW = el.width  * cos + el.height * sin;
+    const bboxH = el.width  * sin + el.height * cos;
+
     for (const key of keysArr) {
-      if (key === "left")     u.x = 0;
-      if (key === "center-h") u.x = (width - el.width) / 2;
-      if (key === "right")    u.x = width - el.width;
-      if (key === "top")      u.y = 0;
+      if (key === "left")     u.x = offX;
+      if (key === "center-h") u.x = (width  - el.width)  / 2;
+      if (key === "right")    u.x = width  - bboxW + offX;
+      if (key === "top")      u.y = offY;
       if (key === "center-v") u.y = (height - el.height) / 2;
-      if (key === "bottom")   u.y = height - el.height;
+      if (key === "bottom")   u.y = height - bboxH + offY;
     }
     updateElement(selectedId, u);
   }, [selectedId, width, height, updateElement]);
