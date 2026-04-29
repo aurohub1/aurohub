@@ -6,9 +6,7 @@ import { Rocket, Download, CalendarDays, Globe2 } from "lucide-react";
 import MetricCard from "@/components/metrics/MetricCard";
 import BarsByDay from "@/components/metrics/BarsByDay";
 import PieByFormat from "@/components/metrics/PieByFormat";
-import HistoryTable from "@/components/metrics/HistoryTable";
 import FiltersBar from "@/components/metrics/FiltersBar";
-import ActivityFeed from "@/components/metrics/ActivityFeed";
 import type { Formato, Tipo, PeriodoDias, PublicationRow } from "@/components/metrics/types";
 
 interface Lic { id: string; name: string | null }
@@ -138,54 +136,30 @@ export default function AdmMetricasPage() {
           <div className="animate-pulse rounded-[20px] h-80 w-full" style={{ background: "var(--input-bg)" }} />
         </div>
       ) : (
-        <>
-          {/* Linha 1: KPIs + Gráfico principal + Filtros */}
-          <div className="grid grid-cols-[180px_1fr_200px] gap-3 mt-6">
-            {/* Col esquerda: KPIs empilhados */}
-            <div className="flex flex-col gap-2">
-              <MetricCard label="Publicações hoje"  value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
-              <MetricCard label="Esta semana"        value={kpis.week}           icon={<CalendarDays size={18} />} accent="green"  />
-              <MetricCard label="Este mês"           value={kpis.month}          icon={<CalendarDays size={18} />} accent="orange" />
-              <MetricCard label="Downloads (30d)"    value={kpis.downloadsMonth} icon={<Download size={18} />}     accent="gold"   />
-              <MetricCard label="Plataforma (30d)"   value={kpis.platformMonth}  icon={<Globe2 size={18} />}       accent="blue"   />
-            </div>
-
-            {/* Col centro: BarsByDay com destaque */}
-            <div
-              className="min-h-[300px] rounded-[20px] p-5"
-              style={{
-                background: "var(--input-bg)",
-                border: "2px solid var(--bdr2)",
-              }}
-            >
-              <h3 className="text-base font-bold mb-4" style={{ color: "var(--txt)" }}>
-                Publicações por dia
-              </h3>
-              <BarsByDay rows={filtered} days={periodo} />
-            </div>
-
-            {/* Col direita: Pizza + Filtros */}
-            <div className="flex flex-col gap-2">
-              <PieByFormat rows={filtered} />
-              <FiltersBar
-                periodo={periodo} onPeriodoChange={setPeriodo}
-                formato={formato} onFormatoChange={setFormato}
-                tipo={tipo} onTipoChange={setTipo}
-                extra={extraFilters}
-              />
-            </div>
+        <div className="grid grid-cols-[180px_1fr_220px] gap-6 mt-6">
+          {/* Col 1: KPIs empilhados */}
+          <div className="flex flex-col gap-2">
+            <MetricCard label="Publicações hoje"  value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
+            <MetricCard label="Esta semana"        value={kpis.week}           icon={<CalendarDays size={18} />} accent="green"  />
+            <MetricCard label="Este mês"           value={kpis.month}          icon={<CalendarDays size={18} />} accent="orange" />
+            <MetricCard label="Downloads (30d)"    value={kpis.downloadsMonth} icon={<Download size={18} />}     accent="gold"   />
+            <MetricCard label="Plataforma (30d)"   value={kpis.platformMonth}  icon={<Globe2 size={18} />}       accent="blue"   />
           </div>
 
-          {/* Linha 2: ActivityFeed horizontal */}
-          <div className="mt-4">
-            <ActivityFeed rows={filtered} />
-          </div>
+          {/* Col 2: BarsByDay */}
+          <BarsByDay rows={filtered} days={periodo} />
 
-          {/* Linha 3: HistoryTable */}
-          <div className="mt-4">
-            <HistoryTable rows={filtered} />
+          {/* Col 3: PieByFormat + FiltersBar */}
+          <div className="flex flex-col gap-4">
+            <PieByFormat rows={filtered} />
+            <FiltersBar
+              periodo={periodo} onPeriodoChange={setPeriodo}
+              formato={formato} onFormatoChange={setFormato}
+              tipo={tipo} onTipoChange={setTipo}
+              extra={extraFilters}
+            />
           </div>
-        </>
+        </div>
       )}
     </>
   );
