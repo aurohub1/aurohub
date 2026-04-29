@@ -14,9 +14,10 @@ interface Props {
   selectedIds?: string[];
   onOpenCrop?: () => void;
   formType?: string;
+  isAdm?: boolean;
 }
 
-export default function PropsPanel({ selected: s, canvasW, canvasH, allElements, onUpdate, onAlign, activeTab, onTabChange, selectedCount, selectedIds, onOpenCrop, formType }: Props) {
+export default function PropsPanel({ selected: s, canvasW, canvasH, allElements, onUpdate, onAlign, activeTab, onTabChange, selectedCount, selectedIds, onOpenCrop, formType, isAdm }: Props) {
   if (!s) return (
     <div style={{ width: 232, background: "var(--ed-surface)", borderLeft: "1px solid var(--ed-bdr)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>Selecione um elemento</span>
@@ -137,7 +138,7 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, allElements,
         </span>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
-        {activeTab === "design" ? <DesignTab s={s} u={u} allElements={allElements} onAlign={onAlign} onOpenCrop={onOpenCrop} formType={formType} /> : <AnimateTab s={s} u={u} />}
+        {activeTab === "design" ? <DesignTab s={s} u={u} allElements={allElements} onAlign={onAlign} onOpenCrop={onOpenCrop} formType={formType} isAdm={isAdm} /> : <AnimateTab s={s} u={u} />}
       </div>
     </div>
   );
@@ -149,22 +150,24 @@ function isLine(el: EditorElement): boolean {
 }
 
 /* ══ DESIGN TAB ═══════════════════════════════════ */
-function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; allElements: EditorElement[]; onAlign: (a: string) => void; onOpenCrop?: () => void; formType?: string }) {
+function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; allElements: EditorElement[]; onAlign: (a: string) => void; onOpenCrop?: () => void; formType?: string; isAdm?: boolean }) {
   return (
     <>
-      {/* ═══ 1. CAMPO BIND ═══ */}
-      <Sec t="Campo Bind">
-        {s.bindParam && <div style={{ borderRadius: 6, background: "rgba(212,168,67,0.1)", padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "var(--ed-bind)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>⬡ {s.bindParam}</div>}
-        <select value={s.bindParam || ""} onChange={e => {
-          const bp = e.target.value;
-          const up: Partial<EditorElement> = { bindParam: bp };
-          if (s.type === "text" && bp) { up.text = `[${bp}]`; up.fill = "#D4A843"; up.name = `[${bp}]`; }
-          u(up);
-        }} style={selS}>
-          <option value="">Nenhum</option>
-          {getBindGroups(formType).map(g => <optgroup key={g.group} label={g.group}>{g.fields.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>)}
-        </select>
-      </Sec>
+      {/* ═══ 1. CAMPO BIND ═══ (apenas ADM) */}
+      {isAdm && (
+        <Sec t="Campo Bind">
+          {s.bindParam && <div style={{ borderRadius: 6, background: "rgba(212,168,67,0.1)", padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "var(--ed-bind)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>⬡ {s.bindParam}</div>}
+          <select value={s.bindParam || ""} onChange={e => {
+            const bp = e.target.value;
+            const up: Partial<EditorElement> = { bindParam: bp };
+            if (s.type === "text" && bp) { up.text = `[${bp}]`; up.fill = "#D4A843"; up.name = `[${bp}]`; }
+            u(up);
+          }} style={selS}>
+            <option value="">Nenhum</option>
+            {getBindGroups(formType).map(g => <optgroup key={g.group} label={g.group}>{g.fields.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>)}
+          </select>
+        </Sec>
+      )}
 
       {/* ═══ 2. LAYOUT ═══ */}
       <Sec t="Layout">
@@ -569,7 +572,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         <G2><F l="Skew X"><Num v={s.skewX || 0} c={v => u({ skewX: v })} /></F><F l="Skew Y"><Num v={s.skewY || 0} c={v => u({ skewY: v })} /></F></G2>
       </Sec>
 
-      {/* ═══ 7. SMART FEATURES ═══ */}
+      {/* ═══ 7. SMART FEATURES ═══ (apenas ADM) */}
+      {isAdm && (
       <Sec t="Smart Features">
         <div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 6, lineHeight: 1.4 }}>
           Vincule este elemento para seguir/acompanhar outro automaticamente.
@@ -673,6 +677,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           )}
         </SmartCard>
       </Sec>
+      )}
     </>
   );
 }

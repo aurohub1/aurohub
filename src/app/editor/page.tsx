@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
+import { getProfile } from "@/lib/auth";
 
 import type { EditorSchema } from "@/components/editor/canvas-editor";
 import { QuickStartModal, STARTER_KEY_PREFIX, SaveTemplateModal, slugifyTemplateName } from "@/components/editor/modals";
@@ -44,8 +45,19 @@ function EditorInner() {
   const [loadedLojaNome, setLoadedLojaNome] = useState<string | undefined>(undefined);
   const [loadedThumbnail, setLoadedThumbnail] = useState<string | null>(null);
   const [loadedAccessSelections, setLoadedAccessSelections] = useState<Map<string, Set<string>>>(new Map());
+  const [isAdm, setIsAdm] = useState(false);
   const FMTS: Record<string, [number,number]> = { stories: [1080,1920], reels: [1080,1920], feed: [1080,1350], tv: [1920,1080] };
   const [cW, cH] = FMTS[format] || [1080, 1920];
+
+  // Carrega role do usuário
+  useEffect(() => {
+    (async () => {
+      try {
+        const profile = await getProfile(supabase);
+        if (profile?.role === "adm" || profile?.role === "operador") setIsAdm(true);
+      } catch {}
+    })();
+  }, []);
 
   // Quick start: abre modal se não houver id
   useEffect(() => {
@@ -117,6 +129,7 @@ function EditorInner() {
   return (
     <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
       <CanvasEditor
+        isAdm={isAdm}
         width={cW}
         height={cH}
         format={format}

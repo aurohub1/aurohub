@@ -32,9 +32,10 @@ interface CanvasEditorProps {
   variantsEnabled?: boolean;
   onSaveVariants?: (variants: { format: string; width: number; height: number; schema: EditorSchema }[]) => void;
   onNew?: () => void;
+  isAdm?: boolean;
 }
 
-export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onNew }: CanvasEditorProps) {
+export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onNew, isAdm }: CanvasEditorProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -427,6 +428,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
             selectedIds={selectedIds}
             onOpenCrop={selected?.type === "image" && selected.src ? () => setCropElementId(selected.id) : undefined}
             formType={formType || schema.formType}
+            isAdm={isAdm}
           />
         )}
       </div>
