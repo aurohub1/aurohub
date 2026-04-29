@@ -50,7 +50,7 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, allElements,
       <div style={{
         height: 60,
         margin: "8px 8px 4px 8px",
-        background: s.type === "text" ? "#0f1320" : "var(--ed-input)",
+        background: "rgba(0,0,0,0.05)",
         borderRadius: 8,
         border: "1px solid var(--ed-bdr)",
         display: "flex",
