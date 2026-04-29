@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import ImageCropModal from "@/components/ImageCropModal";
+import { PermissionsModal } from "@/components/users/PermissionsModal";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -12,6 +13,13 @@ interface Profile {
   status: string; licensee_id: string | null; store_id: string | null; created_at: string;
   avatar_url: string | null;
   stories_limit: number | null; feed_limit: number | null; reels_limit: number | null; tv_limit: number | null;
+}
+interface UserPerms {
+  user_id: string;
+  allowed_forms: string[];
+  store_ids: string[];
+  can_publish: boolean;
+  can_download: boolean;
 }
 interface Licensee { id: string; name: string; segment_id: string | null; }
 interface Store { id: string; name: string; licensee_id: string; }
@@ -75,23 +83,29 @@ export default function UsuariosPage() {
   const [cfgSaving, setCfgSaving] = useState(false);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [allPermsMap, setAllPermsMap] = useState<Record<string, UserPerms>>({});
+  const [permUser, setPermUser] = useState<{ userId: string; licenseeId: string; userName: string } | null>(null);
 
   /* ── Load ──────────────────────────────────────── */
 
   const loadData = useCallback(async () => {
     try {
-      const [pR, lR, sR, segR, plR] = await Promise.all([
+      const [pR, lR, sR, segR, plR, permR] = await Promise.all([
         supabase.from("profiles").select("id, name, role, sub_role, status, licensee_id, store_id, created_at, avatar_url, stories_limit, feed_limit, reels_limit, tv_limit").order("created_at", { ascending: false }),
         supabase.from("licensees").select("id, name, segment_id").order("name"),
         supabase.from("stores").select("id, name, licensee_id").order("name"),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, max_posts_day, max_stories_day, max_feed_reels_day, can_schedule, can_metrics, is_enterprise"),
+        supabase.from("user_permissions").select("user_id, allowed_forms, store_ids, can_publish, can_download"),
       ]);
       setProfiles((pR.data as Profile[]) ?? []);
       setLicensees((lR.data as Licensee[]) ?? []);
       setStores((sR.data as Store[]) ?? []);
       setSegments((segR.data as Segment[]) ?? []);
       setPlans((plR.data as Plan[]) ?? []);
+      const pm: Record<string, UserPerms> = {};
+      ((permR.data ?? []) as UserPerms[]).forEach(p => { pm[p.user_id] = p; });
+      setAllPermsMap(pm);
     } catch { /* silent */ } finally { setLoading(false); }
   }, []);
 
@@ -398,12 +412,12 @@ export default function UsuariosPage() {
       </div>
 
       {/* ── Table ────────────────────────────────── */}
-      <div className="overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
+      <div className="rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", overflow: "clip" }}>
         {loading ? <div className="py-16 text-center text-[13px] text-[var(--txt3)]">Carregando...</div>
         : filtered.length === 0 ? <div className="py-16 text-center text-[13px] text-[var(--txt3)]">Nenhum usuário encontrado</div>
         : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[13px]">
+          <div style={{ overflowX: "auto", width: "100%" }}>
+            <table className="w-full border-collapse text-[13px]" style={{ minWidth: 640 }}>
               <thead>
                 <tr className="border-b border-[var(--bdr)]">
                   {["Usuário", "Role", "Marca", "Loja", "Status", "Criado", "Ações"].map((h) => (
@@ -417,6 +431,8 @@ export default function UsuariosPage() {
                   const lic = p.licensee_id ? licMap[p.licensee_id] : (p.store_id ? licMap[storeMap[p.store_id]?.licensee_id ?? ""] : null);
                   const store = p.store_id ? storeMap[p.store_id] : null;
                   const isActive = p.status === "active";
+                  const perms = allPermsMap[p.id];
+                  const isVendedor = p.role === "vendedor";
 
                   return (
                     <tr key={p.id} className="border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)]">
@@ -429,6 +445,9 @@ export default function UsuariosPage() {
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--bg3)] text-[11px] font-semibold text-[var(--txt2)]">{(p.name ?? "?").charAt(0).toUpperCase()}</div>
                           )}
                           <span className="font-medium text-[var(--txt)]">{p.name ?? "—"}</span>
+                          {isVendedor && perms && (
+                            <RestritoBadge perms={perms} />
+                          )}
                         </div>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3"><span className="text-[12px] font-medium" style={{ color: rc.color }}>{rc.label}</span></td>
@@ -439,6 +458,17 @@ export default function UsuariosPage() {
                       <td className="whitespace-nowrap pr-5 pl-4 py-3">
                         <div className="flex justify-end gap-2">
                           <button onClick={() => openEdit(p)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]">Editar</button>
+                          {isVendedor && (
+                            <button
+                              onClick={() => {
+                                const licId = p.licensee_id ?? (p.store_id ? storeMap[p.store_id]?.licensee_id : "") ?? "";
+                                setPermUser({ userId: p.id, licenseeId: licId, userName: p.name ?? "Consultor" });
+                              }}
+                              className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]"
+                            >
+                              Permissões
+                            </button>
+                          )}
                           <button onClick={() => toggleStatus(p.id, p.status)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]">{isActive ? "Desativar" : "Ativar"}</button>
                           <button onClick={() => setDeleteId(p.id)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--red)]">Excluir</button>
                         </div>
@@ -676,6 +706,18 @@ export default function UsuariosPage() {
         </Ov>
       )}
 
+      {/* ── Permissions modal ────────────────────── */}
+      {permUser && (
+        <PermissionsModal
+          userId={permUser.userId}
+          licenseeId={permUser.licenseeId}
+          userName={permUser.userName}
+          stores={stores.filter(s => s.licensee_id === permUser.licenseeId)}
+          onClose={() => setPermUser(null)}
+          onSaved={loadData}
+        />
+      )}
+
       {/* ── Config modal ─────────────────────────── */}
       {cfgOpen && (
         <Ov onClose={() => setCfgOpen(false)}>
@@ -741,6 +783,28 @@ function KI({ label, value, accent }: { label: string; value: string; accent?: b
 
 function F({ label, value, onChange, placeholder, type }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
   return <div><label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">{label}</label><input type={type ?? "text"} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" /></div>;
+}
+
+const FORM_LABELS: Record<string, string> = {
+  pacote: "Pacote", campanha: "Campanha", passagem: "Passagem",
+  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu", card_whatsapp: "Card WA",
+};
+
+function RestritoBadge({ perms }: { perms: UserPerms }) {
+  const parts: string[] = [];
+  if (perms.allowed_forms?.length) parts.push("Forms: " + perms.allowed_forms.map(f => FORM_LABELS[f] ?? f).join(", "));
+  if (perms.store_ids?.length) parts.push(`${perms.store_ids.length} loja(s)`);
+  if (!perms.can_publish) parts.push("Sem publicação");
+  if (!perms.can_download) parts.push("Sem download");
+  const tooltip = parts.join(" · ");
+  return (
+    <span
+      className="shrink-0 cursor-default rounded-full border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.1)] px-1.5 py-0.5 text-[9px] font-bold text-[#EF4444]"
+      title={tooltip}
+    >
+      🔒 Restrito
+    </span>
+  );
 }
 
 function Toggle({ label, desc, checked, onChange }: { label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {

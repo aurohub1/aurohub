@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { Users, Plus, Pencil, Power, X, Check, RefreshCw, Copy } from "lucide-react";
+import { PermissionsModal } from "@/components/users/PermissionsModal";
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -21,6 +22,14 @@ interface Profile {
 interface StoreRow {
   id: string;
   name: string;
+}
+
+interface UserPerms {
+  user_id: string;
+  allowed_forms: string[];
+  store_ids: string[];
+  can_publish: boolean;
+  can_download: boolean;
 }
 
 interface PlanFull {
@@ -73,6 +82,8 @@ export default function ClienteUsuariosPage() {
 
   const [editing, setEditing] = useState<Profile | null>(null);
   const [creating, setCreating] = useState(false);
+  const [allPermsMap, setAllPermsMap] = useState<Record<string, UserPerms>>({});
+  const [permUserId, setPermUserId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -97,6 +108,22 @@ export default function ClienteUsuariosPage() {
 
       setUsers((uR.data ?? []) as Profile[]);
       setStores((sR.data ?? []) as StoreRow[]);
+
+      // Carregar permissões de todos os consultores desta marca
+      const vendedorIds = ((uR.data ?? []) as Profile[])
+        .filter(u => u.role === "vendedor")
+        .map(u => u.id);
+      if (vendedorIds.length > 0) {
+        const { data: permData } = await supabase
+          .from("user_permissions")
+          .select("user_id, allowed_forms, store_ids, can_publish, can_download")
+          .in("user_id", vendedorIds);
+        const pm: Record<string, UserPerms> = {};
+        ((permData ?? []) as UserPerms[]).forEach(up => { pm[up.user_id] = up; });
+        setAllPermsMap(pm);
+      } else {
+        setAllPermsMap({});
+      }
 
       // Plan completo para pegar max_users
       const slug = p.licensee?.plan_slug || p.licensee?.plan || p.plan?.slug;
@@ -224,9 +251,9 @@ export default function ClienteUsuariosPage() {
           </p>
         </div>
       ) : (
-        <div className="card-glass overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-[12px]">
+        <div className="card-glass" style={{ overflow: "clip" }}>
+          <div style={{ overflowX: "auto", width: "100%" }}>
+            <table className="w-full text-[12px]" style={{ minWidth: 600 }}>
               <thead>
                 <tr className="border-b border-[var(--bdr)] text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">
                   <th className="px-4 py-3 text-left">Nome</th>
@@ -243,6 +270,8 @@ export default function ClienteUsuariosPage() {
                   const meta = roleMeta(u.role);
                   const active = u.status === "active";
                   const isReadOnly = u.role === "adm" || u.role === "cliente";
+                  const isVendedor = u.role === "vendedor";
+                  const perms = allPermsMap[u.id];
                   return (
                     <tr key={u.id} className="border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)]">
                       <td className="px-4 py-3">
@@ -251,6 +280,9 @@ export default function ClienteUsuariosPage() {
                             {(u.name || u.email || "?").charAt(0).toUpperCase()}
                           </div>
                           <span className="truncate font-semibold text-[var(--txt)]">{u.name || "Sem nome"}</span>
+                          {isVendedor && perms && (
+                            <ClienteRestritoBadge perms={perms} />
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-[var(--txt2)]">{u.email || "—"}</td>
@@ -288,6 +320,15 @@ export default function ClienteUsuariosPage() {
                           >
                             <Pencil size={12} />
                           </button>
+                          {isVendedor && (
+                            <button
+                              onClick={() => setPermUserId(u.id)}
+                              title="Gerenciar permissões"
+                              className="flex h-7 items-center justify-center gap-1 rounded-md border border-[var(--bdr2)] px-2 text-[10px] font-semibold text-[var(--txt3)] transition-colors hover:border-[rgba(167,139,250,0.4)] hover:bg-[rgba(167,139,250,0.1)] hover:text-[#A78BFA]"
+                            >
+                              🔒
+                            </button>
+                          )}
                           <button
                             onClick={() => !isReadOnly && toggleStatus(u)}
                             disabled={isReadOnly}
@@ -305,6 +346,18 @@ export default function ClienteUsuariosPage() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* ═══ MODAL PERMISSÕES ═══ */}
+      {permUserId && profile?.licensee_id && (
+        <PermissionsModal
+          userId={permUserId}
+          licenseeId={profile.licensee_id}
+          userName={users.find(u => u.id === permUserId)?.name ?? "Consultor"}
+          stores={stores}
+          onClose={() => setPermUserId(null)}
+          onSaved={loadData}
+        />
       )}
 
       {/* ═══ MODAL CRIAR ═══ */}
@@ -384,6 +437,29 @@ export default function ClienteUsuariosPage() {
         />
       )}
     </>
+  );
+}
+
+/* ── Restrito badge ──────────────────────────────── */
+
+const FORM_LABELS_CL: Record<string, string> = {
+  pacote: "Pacote", campanha: "Campanha", passagem: "Passagem",
+  cruzeiro: "Cruzeiro", anoiteceu: "Anoiteceu", card_whatsapp: "Card WA",
+};
+
+function ClienteRestritoBadge({ perms }: { perms: UserPerms }) {
+  const parts: string[] = [];
+  if (perms.allowed_forms?.length) parts.push("Forms: " + perms.allowed_forms.map(f => FORM_LABELS_CL[f] ?? f).join(", "));
+  if (perms.store_ids?.length) parts.push(`${perms.store_ids.length} loja(s)`);
+  if (!perms.can_publish) parts.push("Sem publicação");
+  if (!perms.can_download) parts.push("Sem download");
+  return (
+    <span
+      className="shrink-0 cursor-default rounded-full border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.1)] px-1.5 py-0.5 text-[9px] font-bold text-[#EF4444]"
+      title={parts.join(" · ")}
+    >
+      🔒 Restrito
+    </span>
   );
 }
 
