@@ -34,18 +34,18 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, allElements,
   };
 
   return (
-    <div style={{ width: 232, background: "var(--ed-surface)", borderLeft: "1px solid var(--ed-bdr)", overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column" }}>
+    <div style={{ width: 232, background: "var(--ed-bg, #0f1218)", borderLeft: "1px solid var(--ed-bdr)", overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column" }}>
       {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: "1px solid var(--ed-bdr)", flexShrink: 0 }}>
+      <div style={{ display: "flex", borderBottom: "1px solid var(--ed-bdr)", flexShrink: 0, background: "var(--ed-surface)" }}>
         <TabBtn active={activeTab === "design"} onClick={() => onTabChange("design")}>Design</TabBtn>
         <TabBtn active={activeTab === "animate"} onClick={() => onTabChange("animate")}>Animate</TabBtn>
       </div>
       {selectedCount && selectedCount > 1 && (
-        <div style={{ padding: "8px 12px", fontSize: 10, color: "var(--ed-bind)", fontWeight: 700, borderBottom: "1px solid var(--ed-bdr)" }}>
+        <div style={{ padding: "8px 12px", fontSize: 10, color: "var(--ed-bind)", fontWeight: 700, borderBottom: "1px solid var(--ed-bdr)", background: "var(--ed-surface)" }}>
           ✦ {selectedCount} selecionados
         </div>
       )}
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
         {activeTab === "design" ? <DesignTab s={s} u={u} allElements={allElements} onAlign={onAlign} onOpenCrop={onOpenCrop} formType={formType} /> : <AnimateTab s={s} u={u} />}
       </div>
     </div>
@@ -815,15 +815,53 @@ const selS: React.CSSProperties = { ...inpS, cursor: "pointer", textAlign: "left
 
 function Sec({ t, children }: { t: string; children: React.ReactNode }) {
   const [o, setO] = useState(true);
-  return <div style={{ marginBottom: 6, padding: "10px 12px", borderBottom: "1px solid var(--ed-bdr)", marginLeft: -12, marginRight: -12 }}>
-    <button onClick={() => setO(!o)} style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", padding: "0 0 6px 0", background: "none", border: "none", borderBottom: o ? "1px solid var(--ed-bdr)" : "none", cursor: "pointer", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ed-txt3)" }}>
-      <span style={{ transform: o ? "rotate(90deg)" : "none", transition: "transform 0.15s", fontSize: 10 }}>›</span>{t}
-    </button>
-    {o && <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingTop: 8 }}>{children}</div>}
-  </div>;
+  return (
+    <div style={{
+      marginBottom: 4,
+      background: "var(--ed-surface, rgba(255,255,255,0.04))",
+      borderRadius: 8,
+      border: "1px solid var(--ed-bdr)",
+      overflow: "hidden",
+    }}>
+      <button onClick={() => setO(!o)} style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+        padding: "8px 12px",
+        background: "none",
+        border: "none",
+        borderBottom: o ? "1px solid var(--ed-bdr)" : "none",
+        cursor: "pointer",
+        fontSize: 9,
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: "var(--ed-txt2)",
+      }}>
+        {t}
+        <span style={{
+          transform: o ? "rotate(90deg)" : "none",
+          transition: "transform 0.15s",
+          fontSize: 10,
+          color: "var(--ed-txt3)",
+        }}>›</span>
+      </button>
+      {o && (
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+          padding: "10px 12px",
+        }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function F({ l, children }: { l: string; children: React.ReactNode }) { return <div><div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 3, fontWeight: 500 }}>{l}</div>{children}</div>; }
+function F({ l, children }: { l: string; children: React.ReactNode }) { return <div><div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 3, fontWeight: 500 }}>{l}</div>{children}</div>; }
 
 function Num({ v, c, step, min, max }: { v: number; c: (v: number) => void; step?: number; min?: number; max?: number }) {
   const [hover, setHover] = useState(false);
