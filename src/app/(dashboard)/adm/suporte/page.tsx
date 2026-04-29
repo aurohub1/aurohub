@@ -49,7 +49,7 @@ export default function AdmSuportePage() {
     const { data } = await supabase
       .from("support_tickets")
       .select("id, user_id, licensee_id, status, unread_adm, created_at, updated_at")
-      .in("status", ["bot", "human", "resolved"])
+      .in("status", ["bot", "human"])
       .order("updated_at", { ascending: false })
       .limit(200);
 

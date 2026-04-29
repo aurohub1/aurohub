@@ -21,13 +21,23 @@ export function useSupportDrawer(): SupportDrawerCtx | null {
 
 export function SupportDrawerProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const open = useCallback(() => setIsOpen(true), []);
-  const close = useCallback(() => setIsOpen(false), []);
+  const [minimized, setMinimized] = useState(false);
+  const open     = useCallback(() => { setIsOpen(true);  setMinimized(false); }, []);
+  const close    = useCallback(() => { setIsOpen(false); setMinimized(false); }, []);
+  const minimize = useCallback(() => setMinimized(true),  []);
+  const restore  = useCallback(() => setMinimized(false), []);
 
   return (
     <Ctx.Provider value={{ open, close, isOpen }}>
       {children}
-      {isOpen && <SupportChat onClose={close} />}
+      {/* Sempre montado — visibilidade controlada via display dentro do componente */}
+      <SupportChat
+        onClose={close}
+        isOpen={isOpen}
+        minimized={minimized}
+        onMinimize={minimize}
+        onRestore={restore}
+      />
     </Ctx.Provider>
   );
 }

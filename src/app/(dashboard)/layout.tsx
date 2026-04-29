@@ -13,6 +13,8 @@ import {
 } from "@/lib/adm-permissions";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
+import AdmSupportFab from "@/components/support/AdmSupportFab";
+import AdmSupportDrawer from "@/components/support/AdmSupportDrawer";
 
 export default function DashboardLayout({
   children,
@@ -26,6 +28,7 @@ export default function DashboardLayout({
   const [maintenanceActive, setMaintenanceActive] = useState(false);
   const [admPerms, setAdmPerms] = useState<AdmPermissions>(ADM_FULL_PERMISSIONS);
   const [admLevel, setAdmLevel] = useState<AdmLevel>(null);
+  const [admSupportOpen, setAdmSupportOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -89,6 +92,12 @@ export default function DashboardLayout({
         <span className="text-[var(--bdr2)]">&middot;</span>
         <span>Aurohub v6.0</span>
       </footer>
+      {profile?.role === "adm" && (
+        <>
+          <AdmSupportFab onClick={() => setAdmSupportOpen(true)} isOpen={admSupportOpen} />
+          {admSupportOpen && <AdmSupportDrawer onClose={() => setAdmSupportOpen(false)} />}
+        </>
+      )}
     </AdmContext.Provider>
   );
 }

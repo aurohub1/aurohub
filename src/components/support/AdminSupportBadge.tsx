@@ -21,6 +21,7 @@ export default function AdminSupportBadge() {
       const { count: n } = await supabase
         .from("support_tickets")
         .select("id", { count: "exact", head: true })
+        .in("status", ["bot", "human"])
         .eq("unread_adm", true);
       if (alive) setCount(n ?? 0);
     }
