@@ -239,7 +239,7 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
       role="dialog"
       aria-label="Chat Interno ADM"
       style={{ display: isOpen ? "flex" : "none", width: 360, height: minimized ? 48 : 560 }}
-      className="fixed bottom-4 right-[72px] z-[9998] flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+      className="fixed bottom-4 right-[118px] z-[9998] flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
     >
       {/* ── Header ── */}
       <div
