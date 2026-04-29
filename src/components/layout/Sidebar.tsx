@@ -114,6 +114,22 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
+        label: "QR Code",
+        href: "/adm/qrcode",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="13" y="13" width="2" height="2" fill="currentColor" />
+            <rect x="11" y="15" width="2" height="2" fill="currentColor" />
+            <rect x="15" y="11" width="2" height="2" fill="currentColor" />
+            <rect x="15" y="15" width="2" height="2" fill="currentColor" />
+            <rect x="11" y="11" width="2" height="2" fill="currentColor" />
+          </svg>
+        ),
+      },
+      {
         label: "Central de Publicação",
         href: "/central-de-publicacao",
         icon: (
