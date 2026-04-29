@@ -139,9 +139,10 @@ export default function AdmMetricasPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-[auto_1fr_auto] gap-3 mt-6">
-            {/* Col 1: KPIs empilhados */}
-            <div className="flex flex-col gap-2" style={{ minWidth: 180 }}>
+          {/* Linha 1: KPIs + Gráfico principal + Filtros */}
+          <div className="grid grid-cols-[180px_1fr_200px] gap-3 mt-6">
+            {/* Col esquerda: KPIs empilhados */}
+            <div className="flex flex-col gap-2">
               <MetricCard label="Publicações hoje"  value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
               <MetricCard label="Esta semana"        value={kpis.week}           icon={<CalendarDays size={18} />} accent="green"  />
               <MetricCard label="Este mês"           value={kpis.month}          icon={<CalendarDays size={18} />} accent="orange" />
@@ -149,14 +150,22 @@ export default function AdmMetricasPage() {
               <MetricCard label="Plataforma (30d)"   value={kpis.platformMonth}  icon={<Globe2 size={18} />}       accent="blue"   />
             </div>
 
-            {/* Col 2: Gráfico + Atividade */}
-            <div className="flex flex-col gap-4">
+            {/* Col centro: BarsByDay com destaque */}
+            <div
+              className="min-h-[300px] rounded-[20px] p-5"
+              style={{
+                background: "var(--input-bg)",
+                border: "2px solid var(--bdr2)",
+              }}
+            >
+              <h3 className="text-base font-bold mb-4" style={{ color: "var(--txt)" }}>
+                Publicações por dia
+              </h3>
               <BarsByDay rows={filtered} days={periodo} />
-              <ActivityFeed rows={filtered} />
             </div>
 
-            {/* Col 3: Pizza + Filtros */}
-            <div className="flex flex-col gap-2" style={{ minWidth: 220 }}>
+            {/* Col direita: Pizza + Filtros */}
+            <div className="flex flex-col gap-2">
               <PieByFormat rows={filtered} />
               <FiltersBar
                 periodo={periodo} onPeriodoChange={setPeriodo}
@@ -167,6 +176,12 @@ export default function AdmMetricasPage() {
             </div>
           </div>
 
+          {/* Linha 2: ActivityFeed horizontal */}
+          <div className="mt-4">
+            <ActivityFeed rows={filtered} />
+          </div>
+
+          {/* Linha 3: HistoryTable */}
           <div className="mt-4">
             <HistoryTable rows={filtered} />
           </div>
