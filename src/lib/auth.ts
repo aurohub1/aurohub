@@ -38,6 +38,7 @@ export interface FullProfile {
   adm_level: "super" | "operacional" | "suporte" | null;
   licensee_id: string | null;
   store_id: string | null;
+  tour_pages: string[] | null;
   licensee: ProfileLicensee | null;
   store: ProfileStore | null;
   plan: ProfilePlan | null;
@@ -54,7 +55,7 @@ export async function getProfile(client: SupabaseClient): Promise<FullProfile | 
 
   const { data: profile } = await client
     .from("profiles")
-    .select("id,name,email,role,adm_level,licensee_id,store_id")
+    .select("id,name,email,role,adm_level,licensee_id,store_id,tour_pages")
     .eq("id", user.id)
     .single();
 
@@ -68,6 +69,7 @@ export async function getProfile(client: SupabaseClient): Promise<FullProfile | 
     adm_level: (profile.adm_level as "super" | "operacional" | "suporte" | null) ?? null,
     licensee_id: profile.licensee_id,
     store_id: profile.store_id,
+    tour_pages: (profile.tour_pages as string[] | null) ?? null,
     licensee: null,
     store: null,
     plan: null,
