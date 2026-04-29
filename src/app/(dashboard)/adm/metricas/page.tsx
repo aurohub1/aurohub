@@ -7,6 +7,7 @@ import MetricCard from "@/components/metrics/MetricCard";
 import BarsByDay from "@/components/metrics/BarsByDay";
 import PieByFormat from "@/components/metrics/PieByFormat";
 import FiltersBar from "@/components/metrics/FiltersBar";
+import HistoryTable from "@/components/metrics/HistoryTable";
 import type { Formato, Tipo, PeriodoDias, PublicationRow } from "@/components/metrics/types";
 
 interface Lic { id: string; name: string | null }
@@ -136,30 +137,40 @@ export default function AdmMetricasPage() {
           <div className="animate-pulse rounded-[20px] h-80 w-full" style={{ background: "var(--input-bg)" }} />
         </div>
       ) : (
-        <div className="grid grid-cols-[180px_1fr_220px] gap-6 mt-6">
-          {/* Col 1: KPIs empilhados */}
-          <div className="flex flex-col gap-2">
-            <MetricCard label="Publicações hoje"  value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
-            <MetricCard label="Esta semana"        value={kpis.week}           icon={<CalendarDays size={18} />} accent="green"  />
-            <MetricCard label="Este mês"           value={kpis.month}          icon={<CalendarDays size={18} />} accent="orange" />
-            <MetricCard label="Downloads (30d)"    value={kpis.downloadsMonth} icon={<Download size={18} />}     accent="gold"   />
-            <MetricCard label="Plataforma (30d)"   value={kpis.platformMonth}  icon={<Globe2 size={18} />}       accent="blue"   />
-          </div>
+        <>
+          <div className="grid grid-cols-[180px_1fr_220px] gap-6 mt-6">
+            {/* Col 1: KPIs empilhados */}
+            <div className="flex flex-col gap-2">
+              <MetricCard label="Publicações hoje"  value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
+              <MetricCard label="Esta semana"        value={kpis.week}           icon={<CalendarDays size={18} />} accent="green"  />
+              <MetricCard label="Este mês"           value={kpis.month}          icon={<CalendarDays size={18} />} accent="orange" />
+              <MetricCard label="Downloads (30d)"    value={kpis.downloadsMonth} icon={<Download size={18} />}     accent="gold"   />
+              <MetricCard label="Plataforma (30d)"   value={kpis.platformMonth}  icon={<Globe2 size={18} />}       accent="blue"   />
+            </div>
 
-          {/* Col 2: BarsByDay */}
-          <BarsByDay rows={filtered} days={periodo} />
+            {/* Col 2: FiltersBar + BarsByDay */}
+            <div className="flex flex-col gap-4">
+              <FiltersBar
+                periodo={periodo}
+                onPeriodoChange={setPeriodo}
+                formato={formato}
+                onFormatoChange={setFormato}
+                tipo={tipo}
+                onTipoChange={setTipo}
+                extra={extraFilters}
+              />
+              <BarsByDay rows={filtered} days={periodo} />
+            </div>
 
-          {/* Col 3: PieByFormat + FiltersBar */}
-          <div className="flex flex-col gap-4">
+            {/* Col 3: PieByFormat */}
             <PieByFormat rows={filtered} />
-            <FiltersBar
-              periodo={periodo} onPeriodoChange={setPeriodo}
-              formato={formato} onFormatoChange={setFormato}
-              tipo={tipo} onTipoChange={setTipo}
-              extra={extraFilters}
-            />
           </div>
-        </div>
+
+          {/* HistoryTable */}
+          <div className="mt-6">
+            <HistoryTable rows={filtered} />
+          </div>
+        </>
       )}
     </>
   );
