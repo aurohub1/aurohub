@@ -6,7 +6,7 @@ import { createServerClient } from "@supabase/ssr";
  * Lê cookies → Supabase session → profiles.role → decide redirect.
  */
 
-const PUBLIC_PATHS = ["/login", "/manutencao"];
+const PUBLIC_PATHS = ["/manutencao", "/login", "/api", "/_next", "/favicon", "/public"];
 
 // Cache de manutenção (módulo-level, persiste por worker; ~30s TTL)
 let maintenanceCache: { active: boolean; ts: number } | null = null;
@@ -125,6 +125,11 @@ function isAllowed(role: string, pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Rotas públicas — nunca redirecionar, nunca lopar
+  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next({ request });
+  }
+
   // Supabase server client ligado aos cookies da request
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
@@ -150,7 +155,6 @@ export async function proxy(request: NextRequest) {
 
   // Não autenticado
   if (!user) {
-    if (PUBLIC_PATHS.includes(pathname)) return response;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("from", pathname);
