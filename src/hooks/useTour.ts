@@ -71,24 +71,25 @@ export function useTour({ pageKey, steps, autoStart = true, delay = 1000 }: UseT
 
   // Inicia o tour manualmente
   const startTour = () => {
-    if (!driverRef.current) {
-      driverRef.current = driver({
-        showProgress: true,
-        showButtons: ["next", "previous", "close"],
-        smoothScroll: true,
-        animate: true,
-        steps,
-        onDestroyed: () => {
-          markTourAsCompleted();
-        },
-        onDestroyStarted: () => {
-          // Salva mesmo se o usuário pular/fechar o tour
-          markTourAsCompleted();
-        },
-      });
+    if (driverRef.current) {
+      driverRef.current.destroy();
+      driverRef.current = null;
     }
 
-    driverRef.current.drive();
+    const d = driver({
+      showProgress: true,
+      showButtons: ["next", "previous", "close"],
+      smoothScroll: true,
+      animate: true,
+      steps,
+      onDestroyed: () => {
+        markTourAsCompleted();
+        driverRef.current = null;
+      },
+    });
+
+    driverRef.current = d;
+    d.drive();
   };
 
   useEffect(() => {
