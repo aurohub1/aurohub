@@ -28,7 +28,7 @@ export default function MetricCard({ label, value, icon, accent = "blue" }: Prop
   const colorHex = ACCENT_HEX[accent];
   return (
     <div
-      className="relative overflow-hidden p-6"
+      className="relative overflow-hidden p-4"
       style={{
         background: "var(--input-bg)",
         border: "1px solid var(--bdr2)",
@@ -41,7 +41,7 @@ export default function MetricCard({ label, value, icon, accent = "blue" }: Prop
         </span>
         {icon && (
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
             style={{
               background: `${colorHex}1A`,
               color: colorVar,
@@ -52,7 +52,7 @@ export default function MetricCard({ label, value, icon, accent = "blue" }: Prop
           </div>
         )}
       </div>
-      <div className="mt-4 text-[40px] font-bold leading-none tabular-nums" style={{ color: "var(--txt)" }}>
+      <div className="mt-3 text-3xl font-bold leading-none tabular-nums" style={{ color: "var(--txt)" }}>
         {value}
       </div>
     </div>
