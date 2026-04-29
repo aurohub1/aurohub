@@ -50,7 +50,7 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, allElements,
       <div style={{
         height: 60,
         margin: "8px 8px 4px 8px",
-        background: "var(--ed-input)",
+        background: s.type === "text" ? "#0f1320" : "var(--ed-input)",
         borderRadius: 8,
         border: "1px solid var(--ed-bdr)",
         display: "flex",
@@ -65,7 +65,10 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, allElements,
           <span style={{
             fontSize: Math.min(14, (s.fontSize || 32) / 8),
             fontWeight: s.fontStyle?.match(/^\d+$/) ? parseInt(s.fontStyle) : 400,
-            color: typeof s.fill === "string" ? s.fill : "#D4A843",
+            color: (() => {
+              const f = typeof s.fill === "string" ? s.fill : "#D4A843";
+              return f || "#D4A843";
+            })(),
             maxWidth: "90%",
             overflow: "hidden",
             textOverflow: "ellipsis",
