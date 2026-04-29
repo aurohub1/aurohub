@@ -183,7 +183,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           ))}
         </div>
         <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
-          <SBtn active={!!s.locked} onClick={() => u({ locked: !s.locked })}>{s.locked ? "🔒 Travado" : "🔓 Travar"}</SBtn>
+          <SBtn active={!!s.locked} onClick={() => u({ locked: !s.locked })} title="Travar posição — impede mover acidentalmente">{s.locked ? "🔒 Travado" : "🔓 Travar"}</SBtn>
         </div>
 
         {/* Posição & Tamanho */}
@@ -200,8 +200,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           </F>
         </G2>
         <div style={{ display: "flex", gap: 3 }}>
-          <SBtn active={!!s.flipX} onClick={() => u({ flipX: !s.flipX })}>↔ Flip H</SBtn>
-          <SBtn active={!!s.flipY} onClick={() => u({ flipY: !s.flipY })}>↕ Flip V</SBtn>
+          <SBtn active={!!s.flipX} onClick={() => u({ flipX: !s.flipX })} title="Espelhar horizontalmente">↔ Flip H</SBtn>
+          <SBtn active={!!s.flipY} onClick={() => u({ flipY: !s.flipY })} title="Espelhar verticalmente">↕ Flip V</SBtn>
         </div>
       </Sec>
 
@@ -251,6 +251,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           {/* 3. Formatação — B U S + transform Aa AA aa Ab */}
           <div style={{ display: "flex", gap: 3 }}>
             <AlBtn
+              title="Negrito"
               active={
                 s.fontStyle?.match(/^\d+$/)
                   ? parseInt(s.fontStyle) >= 700
@@ -267,12 +268,13 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
             >
               B
             </AlBtn>
-            <AlBtn active={s.textDecoration === "underline"} onClick={() => u({ textDecoration: s.textDecoration === "underline" ? "none" : "underline" })}>U</AlBtn>
-            <AlBtn active={s.textDecoration === "line-through"} onClick={() => u({ textDecoration: s.textDecoration === "line-through" ? "none" : "line-through" })}>S</AlBtn>
+            <AlBtn title="Sublinhado" active={s.textDecoration === "underline"} onClick={() => u({ textDecoration: s.textDecoration === "underline" ? "none" : "underline" })}>U</AlBtn>
+            <AlBtn title="Tachado" active={s.textDecoration === "line-through"} onClick={() => u({ textDecoration: s.textDecoration === "line-through" ? "none" : "line-through" })}>S</AlBtn>
           </div>
           <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
             {(["none","uppercase","lowercase","capitalize"] as const).map(tc => (
               <button key={tc}
+                title={tc === "none" ? "Normal" : tc === "uppercase" ? "MAIÚSCULAS" : tc === "lowercase" ? "minúsculas" : "Capitalizar"}
                 onClick={() => u({ textTransform: tc })}
                 style={{
                   flex: 1, height: 24, fontSize: 9, fontWeight: 700,
@@ -574,7 +576,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         </div>
 
         {/* Smart Track — segue posição */}
-        <SmartCard icon="⟷" titulo="Seguir posição" subtitulo="Acompanha movimento de outro" temAlvo={!!s.smartTrack?.targetId}>
+        <SmartCard icon="⟷" titulo="Seguir posição" subtitulo="Acompanha movimento de outro" temAlvo={!!s.smartTrack?.targetId} tooltip="Move junto com outro elemento. Configure direção (direita/esquerda/acima/abaixo) e distância em pixels.">
           <select
             value={s.smartTrack?.targetId || ""}
             onChange={e => {
@@ -609,7 +611,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         </SmartCard>
 
         {/* Text Anchor — A termina onde B começa */}
-        <SmartCard icon="⚓" titulo="Âncora de texto" subtitulo="Inicia onde outro termina" temAlvo={!!s.textAnchor?.targetId}>
+        <SmartCard icon="⚓" titulo="Âncora de texto" subtitulo="Inicia onde outro termina" temAlvo={!!s.textAnchor?.targetId} tooltip="Este elemento começa onde o alvo termina. Útil para empilhar elementos que variam de tamanho.">
           <select
             value={s.textAnchor?.targetId || ""}
             onChange={e => {
@@ -639,7 +641,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         </SmartCard>
 
         {/* Smart Resize — ajusta tamanho */}
-        <SmartCard icon="⤢" titulo="Ajustar tamanho" subtitulo="Redimensiona conforme outro" temAlvo={!!s.smartResize?.targetId}>
+        <SmartCard icon="⤢" titulo="Ajustar tamanho" subtitulo="Redimensiona conforme outro" temAlvo={!!s.smartResize?.targetId} tooltip="Este elemento cresce e encolhe junto com o alvo. Ideal para retângulos de fundo que envolvem textos dinâmicos.">
           <select
             value={s.smartResize?.targetId || ""}
             onChange={e => {
@@ -1045,12 +1047,12 @@ function Num({ v, c, step, min, max }: { v: number; c: (v: number) => void; step
 function Inp({ v, c }: { v: string; c: (v: string) => void }) { return <input type="text" value={v} onChange={e => c(e.target.value)} style={{ ...inpS, textAlign: "left" }} />; }
 function G2({ children }: { children: React.ReactNode }) { return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>{children}</div>; }
 
-function SBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button onClick={onClick} style={{ flex: 1, height: 26, borderRadius: 6, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "#000000" : "var(--ed-txt2)", fontSize: 10, fontWeight: active ? 700 : 600, cursor: "pointer", transition: "background 0.15s" }}>{children}</button>;
+function SBtn({ active, onClick, children, title }: { active: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
+  return <button onClick={onClick} title={title} style={{ flex: 1, height: 26, borderRadius: 6, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "#000000" : "var(--ed-txt2)", fontSize: 10, fontWeight: active ? 700 : 600, cursor: "pointer", transition: "background 0.15s" }}>{children}</button>;
 }
 
-function AlBtn({ active, onClick, children, italic }: { active: boolean; onClick: () => void; children: React.ReactNode; italic?: boolean }) {
-  return <button onClick={onClick} style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "#000000" : "var(--ed-txt2)", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontStyle: italic ? "italic" : "normal", transition: "background 0.15s" }}>{children}</button>;
+function AlBtn({ active, onClick, children, italic, title }: { active: boolean; onClick: () => void; children: React.ReactNode; italic?: boolean; title?: string }) {
+  return <button onClick={onClick} title={title} style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "#000000" : "var(--ed-txt2)", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontStyle: italic ? "italic" : "normal", transition: "background 0.15s" }}>{children}</button>;
 }
 
 function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -1117,9 +1119,9 @@ function SubSec({ t, right }: { t: string; right?: React.ReactNode }) {
   );
 }
 
-function SmartCard({ icon, titulo, subtitulo, temAlvo, children }: { icon: string; titulo: string; subtitulo: string; temAlvo: boolean; children: React.ReactNode }) {
+function SmartCard({ icon, titulo, subtitulo, temAlvo, tooltip, children }: { icon: string; titulo: string; subtitulo: string; temAlvo: boolean; tooltip?: string; children: React.ReactNode }) {
   return (
-    <div style={{
+    <div title={tooltip} style={{
       background: "var(--ed-input)",
       borderRadius: 8,
       padding: "8px 10px",

@@ -61,10 +61,10 @@ export default function Toolbar(p: Props) {
       <Btn icon={<Undo2 size={14} />} tip="Desfazer (Ctrl+Z)" o={p.onUndo} d={!p.canUndo} />
       <Btn icon={<Redo2 size={14} />} tip="Refazer (Ctrl+Y)" o={p.onRedo} d={!p.canRedo} />
       <Sep />
-      <Btn icon={<Copy size={14} />} tip="Copiar" o={p.onCopy} />
-      <Btn icon={<ClipboardPaste size={14} />} tip="Colar" o={p.onPaste} />
-      <Btn icon={<CopyPlus size={14} />} tip="Duplicar" o={p.onDuplicate} />
-      <Btn icon={<Trash2 size={14} />} tip="Deletar" o={p.onDelete} danger />
+      <Btn icon={<Copy size={14} />} tip="Copiar (Ctrl+C)" o={p.onCopy} />
+      <Btn icon={<ClipboardPaste size={14} />} tip="Colar (Ctrl+V)" o={p.onPaste} />
+      <Btn icon={<CopyPlus size={14} />} tip="Duplicar (Ctrl+D)" o={p.onDuplicate} />
+      <Btn icon={<Trash2 size={14} />} tip="Deletar (Del)" o={p.onDelete} danger />
       {p.onSaveComponent && <Btn icon={<Package size={14} />} tip="Salvar como componente" o={p.onSaveComponent} d={!p.canSaveComponent} />}
       {p.onToggleSnap && <Btn icon={<Magnet size={14} />} tip={p.snapEnabled ? "Smart Guides ativo" : "Smart Guides desativado"} o={p.onToggleSnap} active={p.snapEnabled} />}
       {p.onToggleParamView && <><Sep /><Btn icon={p.paramViewActive ? <EyeOff size={14} /> : <Eye size={14} />} tip="Parameter View (Ctrl+P)" o={p.onToggleParamView} active={p.paramViewActive} /></>}
@@ -75,13 +75,13 @@ export default function Toolbar(p: Props) {
         <Sep />
         <Btn icon={isLight ? <Moon size={14} /> : <Sun size={14} />} tip="Alternar tema" o={toggleTheme} />
         <span style={{ fontSize: 9, color: "var(--ed-txt3)", fontVariantNumeric: "tabular-nums" }}>{Math.round(p.zoom * 100)}%</span>
-        {p.onExport && <Btn icon={<Download size={14} />} tip="Exportar PNG" o={p.onExport} gold label="PNG" />}
-        {p.onExportJpg && <Btn icon={<Download size={14} />} tip="Exportar JPG" o={p.onExportJpg} gold label="JPG" />}
+        {p.onExport && <Btn icon={<Download size={14} />} tip="Exportar PNG em alta resolução" o={p.onExport} gold label="PNG" />}
+        {p.onExportJpg && <Btn icon={<Download size={14} />} tip="Exportar JPG (qualidade 95%)" o={p.onExportJpg} gold label="JPG" />}
         {(p.onNew || p.onSave) && <Sep />}
-        {p.onNew && <button onClick={p.onNew} title="Novo template" style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-hover)", color: "var(--ed-txt)", fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+        {p.onNew && <button onClick={p.onNew} title="Criar novo template" style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-hover)", color: "var(--ed-txt)", fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
           <FilePlus size={12} />Novo
         </button>}
-        {p.onSave && <button onClick={p.onSave} disabled={p.saving} style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", opacity: p.saving ? 0.5 : 1, display: "flex", alignItems: "center", gap: 4 }}>
+        {p.onSave && <button onClick={p.onSave} disabled={p.saving} title="Salvar template" style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", opacity: p.saving ? 0.5 : 1, display: "flex", alignItems: "center", gap: 4 }}>
           <Save size={12} />{p.saving ? "..." : "Salvar"}
         </button>}
       </div>
