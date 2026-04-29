@@ -10,9 +10,12 @@ export default function ClientePublicarPage() {
     pageKey: "cliente-publicar",
     steps: [
       {
+        element: "h1",
         popover: {
-          title: "Bem-vindo à página de Publicar! 🎨",
-          description: "Vamos fazer um tour rápido pelas principais funcionalidades. Clique em Próximo para continuar."
+          title: "Bem-vindo à página de Publicar!",
+          description: "Vamos fazer um tour rápido pelas principais funcionalidades.",
+          side: "bottom",
+          align: "start"
         }
       },
       {
