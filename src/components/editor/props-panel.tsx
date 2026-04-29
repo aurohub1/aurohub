@@ -359,16 +359,26 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
           <>
             <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
             <SubSec t="Borda" right={
-              <div style={{ display: "flex", gap: 3 }}>
-                <SBtn active={!s.strokeWidth || s.strokeWidth === 0}
-                  onClick={() => u({ strokeWidth: 0, stroke: undefined })}>
-                  Sem
-                </SBtn>
-                <SBtn active={!!s.strokeWidth && s.strokeWidth > 0}
-                  onClick={() => u({ strokeWidth: s.strokeWidth || 1, stroke: s.stroke || "#000000" })}>
-                  Com
-                </SBtn>
-              </div>
+              <button
+                onClick={() => u({
+                  strokeWidth: (s.strokeWidth && s.strokeWidth > 0) ? 0 : (s.strokeWidth || 1),
+                  stroke: s.stroke || "#000000"
+                })}
+                style={{
+                  height: 22,
+                  padding: "0 10px",
+                  borderRadius: 11,
+                  border: "none",
+                  background: (s.strokeWidth && s.strokeWidth > 0) ? "var(--ed-accent)" : "var(--ed-input)",
+                  color: (s.strokeWidth && s.strokeWidth > 0) ? "#000" : "var(--ed-txt3)",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "background 0.15s",
+                }}
+              >
+                {(s.strokeWidth && s.strokeWidth > 0) ? "ON" : "OFF"}
+              </button>
             } />
             {!!s.strokeWidth && s.strokeWidth > 0 && (
               <>
