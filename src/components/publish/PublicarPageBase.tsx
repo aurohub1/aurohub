@@ -175,6 +175,7 @@ export default function PublicarPageBase({
   getNomeLoja,
 }: PublicarPageBaseProps) {
   const [profile, setProfile] = useState<FullProfile | null>(null);
+  const [previewBgUrl, setPreviewBgUrl] = useState("");
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [feriados, setFeriados] = useState<string[]>([]);
   const [postCounts, setPostCounts] = useState({ stories: 0, feed: 0, reels: 0, tv: 0 });
@@ -264,7 +265,12 @@ export default function PublicarPageBase({
   useEffect(() => {
     getProfile(supabase).then(async (p) => {
       setProfile(p);
-      if (p?.licensee_id) loadTemplates(p.licensee_id);
+      if (p?.licensee_id) {
+        loadTemplates(p.licensee_id);
+        supabase.from("system_config").select("value").eq("key", `preview_bg_${p.licensee_id}`).single().then(({ data }) => {
+          if (data?.value) setPreviewBgUrl(data.value);
+        });
+      }
 
       // Buscar contadores de posts do mês atual
       if (p?.id) {
@@ -1307,8 +1313,11 @@ export default function PublicarPageBase({
           style={{
             flex: 1,
             backgroundColor: "#0a0f1a",
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
-            backgroundSize: "20px 20px",
+            backgroundImage: previewBgUrl
+              ? `url(${previewBgUrl})`
+              : "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
+            backgroundSize: previewBgUrl ? "cover" : "20px 20px",
+            backgroundPosition: previewBgUrl ? "center" : undefined,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",

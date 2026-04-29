@@ -65,7 +65,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "" });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -215,7 +215,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF" });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "" });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -223,11 +223,14 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", splash_texto_efeito: l.splash_texto_efeito ?? "typewriter", cor_primaria: l.cor_primaria ?? "#1E3A6E", cor_secundaria: l.cor_secundaria ?? "#3B82F6", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", splash_texto_efeito: l.splash_texto_efeito ?? "typewriter", cor_primaria: l.cor_primaria ?? "#1E3A6E", cor_secundaria: l.cor_secundaria ?? "#3B82F6", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF", preview_bg_url: "" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     getLicenseeOverrides(supabase, l.id).then(setFeatureOverrides).catch(() => setFeatureOverrides({}));
+    supabase.from("system_config").select("value").eq("key", `preview_bg_${l.id}`).single().then(({ data }) => {
+      setForm(f => ({ ...f, preview_bg_url: data?.value ?? "" }));
+    });
     setModalTab("dados"); setModalError(""); setModalOpen(true);
   }
 
@@ -289,13 +292,18 @@ export default function ClientesPage() {
           }
         }
       }
-      // Salva overrides de features
+      // Salva overrides de features e preview_bg_url
       if (persistedId) {
         try {
           await saveLicenseeOverrides(supabase, persistedId, featureOverrides);
         } catch (err) {
           setModalError(`Erro ao salvar features: ${err instanceof Error ? err.message : "desconhecido"}`);
           return;
+        }
+        if (form.preview_bg_url.trim()) {
+          await supabase.from("system_config").upsert({ key: `preview_bg_${persistedId}`, value: form.preview_bg_url.trim(), updated_at: new Date().toISOString() }, { onConflict: "key" });
+        } else {
+          await supabase.from("system_config").delete().eq("key", `preview_bg_${persistedId}`);
         }
       } else {
         // sem persistedId — overrides não salvas
@@ -1032,6 +1040,12 @@ export default function ClientesPage() {
                     <button type="button" onClick={extractFromLogo} disabled={extracting || !form.logo_url} className="rounded-lg border border-[var(--bdr)] px-4 py-2 text-[11px] font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                       {extracting ? "Extraindo..." : "Extrair cores do logo"}
                     </button>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Imagem de fundo do Preview (URL)</label>
+                    <input type="url" placeholder="https://..." value={form.preview_bg_url} onChange={e => setForm(f => ({ ...f, preview_bg_url: e.target.value }))} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]" />
+                    <p className="mt-1 text-[10px] text-[var(--txt3)]">Aparece atrás do canvas na página de publicação do cliente. Deixe vazio para usar o grid padrão.</p>
                   </div>
 
                   {/* Preview */}
