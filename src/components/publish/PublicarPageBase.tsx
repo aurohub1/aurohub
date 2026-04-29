@@ -1312,12 +1312,7 @@ export default function PublicarPageBase({
         <div
           style={{
             flex: 1,
-            backgroundColor: "#0a0f1a",
-            backgroundImage: previewBgUrl
-              ? `url(${previewBgUrl})`
-              : "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
-            backgroundSize: previewBgUrl ? "cover" : "20px 20px",
-            backgroundPosition: previewBgUrl ? "center" : undefined,
+            background: previewBgUrl ? `url(${previewBgUrl}) center/cover` : "var(--bg0)",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
@@ -1330,7 +1325,7 @@ export default function PublicarPageBase({
               alignItems: "center",
               justifyContent: "space-between",
               padding: "10px 16px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: "1px solid var(--bdr)",
               flexShrink: 0,
             }}
           >
@@ -1338,7 +1333,7 @@ export default function PublicarPageBase({
               style={{
                 fontSize: "10px",
                 fontWeight: 700,
-                color: "rgba(255,255,255,0.4)",
+                color: "var(--txt3)",
                 textTransform: "uppercase",
                 letterSpacing: ".1em",
               }}
@@ -1348,11 +1343,11 @@ export default function PublicarPageBase({
             <span
               style={{
                 fontSize: "10px",
-                color: "rgba(255,255,255,0.4)",
-                background: "rgba(255,255,255,0.05)",
+                color: "var(--txt3)",
+                background: "var(--bg2)",
                 padding: "3px 8px",
                 borderRadius: "6px",
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: "1px solid var(--bdr)",
               }}
             >
               {pw} × {ph}
@@ -1378,8 +1373,6 @@ export default function PublicarPageBase({
                 height: Math.round(winH * 0.82) + "px",
                 overflow: "hidden",
                 flexShrink: 0,
-                borderRadius: "8px",
-                boxShadow: "0 12px 48px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)",
               }}
             >
               <PreviewStage
