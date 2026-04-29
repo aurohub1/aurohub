@@ -82,14 +82,13 @@ export default function ManutencaoPage() {
   }, []);
 
   return (
-    <>
-      <style>{KEYFRAMES}</style>
-      <div style={{
-        minHeight: "100dvh",
+    <div style={{
+        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        textAlign: "center",
         backgroundColor: "#060D1A",
         backgroundImage: "radial-gradient(circle, rgba(26,86,196,0.08) 1px, transparent 1px)",
         backgroundSize: "28px 28px",
@@ -99,6 +98,7 @@ export default function ManutencaoPage() {
         overflow: "hidden",
         position: "relative",
       }}>
+        <style>{KEYFRAMES}</style>
 
         {/* Glow central */}
         <div style={{
@@ -251,6 +251,5 @@ export default function ManutencaoPage() {
           </div>
         </div>
       </div>
-    </>
   );
 }
