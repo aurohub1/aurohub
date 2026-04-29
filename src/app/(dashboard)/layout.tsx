@@ -29,6 +29,7 @@ export default function DashboardLayout({
   const [admPerms, setAdmPerms] = useState<AdmPermissions>(ADM_FULL_PERMISSIONS);
   const [admLevel, setAdmLevel] = useState<AdmLevel>(null);
   const [admSupportOpen, setAdmSupportOpen] = useState(false);
+  const [admSupportMinimized, setAdmSupportMinimized] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -94,8 +95,14 @@ export default function DashboardLayout({
       </footer>
       {profile?.role === "adm" && (
         <>
-          <AdmSupportFab onClick={() => setAdmSupportOpen(true)} isOpen={admSupportOpen} />
-          {admSupportOpen && <AdmSupportDrawer onClose={() => setAdmSupportOpen(false)} />}
+          <AdmSupportFab onClick={() => { setAdmSupportOpen(true); setAdmSupportMinimized(false); }} isOpen={admSupportOpen} />
+          <AdmSupportDrawer
+            isOpen={admSupportOpen}
+            minimized={admSupportMinimized}
+            onClose={() => { setAdmSupportOpen(false); setAdmSupportMinimized(false); }}
+            onMinimize={() => setAdmSupportMinimized(true)}
+            onRestore={() => setAdmSupportMinimized(false)}
+          />
         </>
       )}
     </AdmContext.Provider>

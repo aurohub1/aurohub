@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
-import { Send, Check, MessageCircle, RefreshCw, User, Bot, Headphones, X } from "lucide-react";
+import {
+  X, ChevronDown, ChevronUp, ArrowLeft, Send, Check,
+  Bot, User, Headphones, MessageCircle,
+} from "lucide-react";
 
 interface Ticket {
   id: string;
@@ -24,25 +27,52 @@ interface Message {
   created_at: string;
 }
 
-const STATUS_META: Record<string, { label: string; cls: string }> = {
-  bot:      { label: "Bot",               cls: "bg-blue-100 text-blue-700" },
-  human:    { label: "Aguardando equipe", cls: "bg-amber-100 text-amber-700" },
-  resolved: { label: "Resolvido",         cls: "bg-green-100 text-green-700" },
-};
+interface Props {
+  isOpen: boolean;
+  minimized: boolean;
+  onClose: () => void;
+  onMinimize: () => void;
+  onRestore: () => void;
+}
 
-export default function AdmSupportDrawer({ onClose }: { onClose: () => void }) {
-  const [profile, setProfile] = useState<FullProfile | null>(null);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [reply, setReply] = useState("");
-  const [sending, setSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+const STATUS_META = {
+  bot:      { label: "Bot",        cls: "bg-blue-100 text-blue-700"   },
+  human:    { label: "Aguardando", cls: "bg-amber-100 text-amber-700" },
+  resolved: { label: "Resolvido",  cls: "bg-green-100 text-green-700" },
+} as const;
+
+function initials(name: string | null): string {
+  if (!name) return "?";
+  const p = name.trim().split(/\s+/);
+  return p.length === 1 ? p[0][0].toUpperCase() : (p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
+
+function relTime(ts: string): string {
+  const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  if (mins < 1) return "agora";
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
+
+export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimize, onRestore }: Props) {
+  const [profile, setProfile]           = useState<FullProfile | null>(null);
+  const [tickets, setTickets]           = useState<Ticket[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [activeId, setActiveId]         = useState<string | null>(null);
+  const [messages, setMessages]         = useState<Message[]>([]);
+  const [reply, setReply]               = useState("");
+  const [sending, setSending]           = useState(false);
+  const bottomRef                       = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
   }, [messages.length]);
+
+  useEffect(() => {
+    getProfile(supabase).then(p => setProfile(p));
+  }, []);
 
   const loadTickets = useCallback(async () => {
     setLoading(true);
@@ -53,41 +83,34 @@ export default function AdmSupportDrawer({ onClose }: { onClose: () => void }) {
       .order("updated_at", { ascending: false })
       .limit(200);
 
-    const rows = (data ?? []) as Omit<Ticket, "user_name" | "licensee_name">[];
-    const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))] as string[];
-    const licenseeIds = [...new Set(rows.map(r => r.licensee_id).filter(Boolean))] as string[];
+    const rows      = (data ?? []) as Omit<Ticket, "user_name" | "licensee_name">[];
+    const userIds   = [...new Set(rows.map(r => r.user_id).filter(Boolean))]     as string[];
+    const licIds    = [...new Set(rows.map(r => r.licensee_id).filter(Boolean))] as string[];
 
-    const [usersRes, licenseesRes] = await Promise.all([
-      userIds.length > 0
-        ? supabase.from("profiles").select("id, name").in("id", userIds)
-        : Promise.resolve({ data: [] as { id: string; name: string | null }[] }),
-      licenseeIds.length > 0
-        ? supabase.from("licensees").select("id, name").in("id", licenseeIds)
-        : Promise.resolve({ data: [] as { id: string; name: string | null }[] }),
+    const [uRes, lRes] = await Promise.all([
+      userIds.length ? supabase.from("profiles").select("id, name").in("id", userIds)
+                     : Promise.resolve({ data: [] as { id: string; name: string | null }[] }),
+      licIds.length  ? supabase.from("licensees").select("id, name").in("id", licIds)
+                     : Promise.resolve({ data: [] as { id: string; name: string | null }[] }),
     ]);
-    const userMap = new Map((usersRes.data ?? []).map(u => [u.id, u.name]));
-    const licMap  = new Map((licenseesRes.data ?? []).map(l => [l.id, l.name]));
+
+    const uMap = new Map((uRes.data ?? []).map(u => [u.id, u.name]));
+    const lMap = new Map((lRes.data ?? []).map(l => [l.id, l.name]));
 
     setTickets(rows.map(r => ({
       ...r,
-      user_name:     r.user_id     ? (userMap.get(r.user_id)     ?? null) : null,
-      licensee_name: r.licensee_id ? (licMap.get(r.licensee_id)  ?? null) : null,
+      user_name:     r.user_id     ? (uMap.get(r.user_id)     ?? null) : null,
+      licensee_name: r.licensee_id ? (lMap.get(r.licensee_id) ?? null) : null,
     })));
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      const p = await getProfile(supabase);
-      setProfile(p);
-      await loadTickets();
-    })();
-  }, [loadTickets]);
+  useEffect(() => { loadTickets(); }, [loadTickets]);
 
   useEffect(() => {
     const ch = supabase
-      .channel("adm-drawer-tickets")
-      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, () => loadTickets())
+      .channel("adm-widget-tickets")
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, loadTickets)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [loadTickets]);
@@ -107,15 +130,14 @@ export default function AdmSupportDrawer({ onClose }: { onClose: () => void }) {
     })();
 
     const ch = supabase
-      .channel(`adm-drawer-msgs-${activeId}`)
+      .channel(`adm-widget-msgs-${activeId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "ticket_messages", filter: `ticket_id=eq.${activeId}` },
         (payload) => {
           setMessages(prev => {
             const m = payload.new as Message;
-            if (prev.some(x => x.id === m.id)) return prev;
-            return [...prev, m];
+            return prev.some(x => x.id === m.id) ? prev : [...prev, m];
           });
         },
       )
@@ -161,176 +183,187 @@ export default function AdmSupportDrawer({ onClose }: { onClose: () => void }) {
     await supabase.from("support_tickets")
       .update({ status: "resolved", unread_adm: false, updated_at: new Date().toISOString() })
       .eq("id", activeId);
+    setActiveId(null);
   }, [activeId]);
 
   const active = tickets.find(t => t.id === activeId) ?? null;
-  const counts = {
-    bot:   tickets.filter(t => t.status === "bot").length,
-    human: tickets.filter(t => t.status === "human").length,
-  };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-[9990] bg-black/50" onClick={onClose} />
-
-      {/* Panel */}
+    <div
+      role="dialog"
+      aria-label="Suporte ADM"
+      style={{ display: isOpen ? "flex" : "none", width: 360, height: minimized ? 48 : 560 }}
+      className="fixed bottom-4 right-4 z-[9999] flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+    >
+      {/* ── Header ── */}
       <div
-        role="dialog"
-        aria-label="Painel de suporte ADM"
-        className="fixed right-0 top-0 bottom-0 z-[9991] flex flex-col bg-white shadow-2xl"
-        style={{ width: "min(960px, calc(100vw - 220px))" }}
+        className={`flex shrink-0 items-center gap-2 border-b border-slate-200 px-3 ${minimized ? "h-12 cursor-pointer" : "py-2.5"}`}
+        onClick={minimized ? onRestore : undefined}
       >
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
-          <div>
-            <h3 className="text-base font-bold text-slate-800">Suporte</h3>
-            <p className="text-xs text-slate-500">{counts.human} aguardando · {counts.bot} no bot</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={loadTickets}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-            >
-              <RefreshCw size={13} /> Atualizar
-            </button>
-            <button
-              onClick={onClose}
-              aria-label="Fechar"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            >
-              <X size={16} />
-            </button>
-          </div>
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100">
+          <Headphones size={14} className="text-amber-600" />
         </div>
 
-        {/* Body */}
-        <div className="flex flex-1 overflow-hidden p-4">
-          {loading ? (
-            <div className="w-full animate-pulse rounded-lg bg-slate-200 h-20" />
-          ) : tickets.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
-              <MessageCircle className="w-8 h-8 text-slate-300 mb-3" />
-              <p className="text-sm text-slate-400">Nenhum ticket aberto.</p>
-            </div>
-          ) : (
-            <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-[320px_1fr] overflow-hidden">
-              {/* Lista */}
-              <div className="flex flex-col gap-2 overflow-y-auto pr-1">
-                {tickets.map(t => {
-                  const meta = STATUS_META[t.status] ?? STATUS_META.bot;
-                  const isActive = activeId === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setActiveId(t.id)}
-                      className={`flex flex-col gap-1.5 rounded-xl border p-3 text-left transition-colors ${
-                        isActive ? "border-blue-400 bg-blue-50" : "border-slate-200 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-semibold text-slate-800">
-                          {t.user_name || "(sem nome)"}
-                        </span>
-                        {t.unread_adm && (
-                          <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" aria-label="Não lido" />
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.cls}`}>
-                          {meta.label}
-                        </span>
-                        <span className="truncate">{t.licensee_name || "—"}</span>
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {new Date(t.updated_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Chat */}
-              <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
-                {!active ? (
-                  <div className="flex flex-1 items-center justify-center text-sm text-slate-400">
-                    Selecione um ticket
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-slate-800">{active.user_name || "(sem nome)"}</div>
-                        <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_META[active.status].cls}`}>
-                            {STATUS_META[active.status].label}
-                          </span>
-                          <span>{active.licensee_name || "—"}</span>
-                        </div>
-                      </div>
-                      {active.status !== "resolved" && (
-                        <button
-                          onClick={resolve}
-                          className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200"
-                        >
-                          <Check size={13} /> Resolver
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto px-4 py-3">
-                      <div className="flex flex-col gap-3">
-                        {messages.map(m => {
-                          const isHuman = m.sender === "human";
-                          const isBot   = m.sender === "bot";
-                          return (
-                            <div key={m.id} className={`flex gap-2 ${isHuman ? "flex-row-reverse" : "flex-row"}`}>
-                              <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                                isHuman ? "bg-amber-100 text-amber-700"
-                                : isBot  ? "bg-slate-100 text-slate-500"
-                                : "bg-blue-600 text-white"
-                              }`}>
-                                {isHuman ? <Headphones size={13} /> : isBot ? <Bot size={13} /> : <User size={13} />}
-                              </div>
-                              <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
-                                isHuman ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-700"
-                              }`}>
-                                <div className="whitespace-pre-wrap break-words">{m.message}</div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        <div ref={bottomRef} />
-                      </div>
-                    </div>
-
-                    {active.status !== "resolved" && (
-                      <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 p-3">
-                        <input
-                          type="text"
-                          value={reply}
-                          onChange={(e) => setReply(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && !sending && sendReply()}
-                          placeholder="Responder..."
-                          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
-                        />
-                        <button
-                          onClick={sendReply}
-                          disabled={sending || !reply.trim()}
-                          aria-label="Enviar"
-                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          <Send size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+        <div className="flex-1 min-w-0 flex items-center gap-1.5">
+          <span className="text-sm font-semibold text-slate-800 truncate">
+            {activeId && !minimized ? (active?.user_name || "(sem nome)") : "Suporte"}
+          </span>
+          {!activeId && !minimized && tickets.length > 0 && (
+            <span className="flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              {tickets.length > 9 ? "9+" : tickets.length}
+            </span>
+          )}
+          {activeId && !minimized && active && (
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_META[active.status].cls}`}>
+              {STATUS_META[active.status].label}
+            </span>
           )}
         </div>
+
+        {activeId && !minimized && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setActiveId(null); }}
+            aria-label="Voltar"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          >
+            <ArrowLeft size={14} />
+          </button>
+        )}
+        <button
+          onClick={(e) => { e.stopPropagation(); minimized ? onRestore() : onMinimize(); }}
+          aria-label={minimized ? "Expandir" : "Minimizar"}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+        >
+          {minimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          aria-label="Fechar"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+        >
+          <X size={14} />
+        </button>
       </div>
-    </>
+
+      {!minimized && (
+        <>
+          {/* ── VIEW 1: Lista de tickets ── */}
+          {!activeId && (
+            <div className="flex flex-1 flex-col overflow-hidden">
+              {loading ? (
+                <div className="flex flex-1 items-center justify-center">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500" />
+                </div>
+              ) : tickets.length === 0 ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-2">
+                  <MessageCircle size={28} className="text-slate-300" />
+                  <span className="text-sm text-slate-400">Nenhum ticket aberto</span>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto px-3 py-2">
+                  <div className="flex flex-col gap-1.5">
+                    {tickets.map(t => {
+                      const meta = STATUS_META[t.status] ?? STATUS_META.bot;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => setActiveId(t.id)}
+                          className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5 text-left transition-colors hover:bg-slate-50"
+                        >
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+                            {initials(t.user_name)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate text-sm font-semibold text-slate-800">
+                                {t.user_name || "(sem nome)"}
+                              </span>
+                              {t.unread_adm && (
+                                <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" aria-label="Não lido" />
+                              )}
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-1.5">
+                              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${meta.cls}`}>
+                                {meta.label}
+                              </span>
+                              <span className="truncate text-[11px] text-slate-400">
+                                {t.licensee_name || "—"}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="shrink-0 text-[10px] text-slate-400">{relTime(t.updated_at)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── VIEW 2: Conversa ── */}
+          {activeId && (
+            <>
+              <div className="flex-1 overflow-y-auto px-3 py-3">
+                <div className="flex flex-col gap-3">
+                  {messages.map(m => {
+                    const isHuman = m.sender === "human";
+                    const isBot   = m.sender === "bot";
+                    return (
+                      <div key={m.id} className={`flex gap-2 ${isHuman ? "flex-row-reverse" : "flex-row"}`}>
+                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                          isHuman ? "bg-amber-100 text-amber-700"
+                          : isBot  ? "bg-slate-100 text-slate-500"
+                          : "bg-blue-600 text-white"
+                        }`}>
+                          {isHuman ? <Headphones size={13} /> : isBot ? <Bot size={13} /> : <User size={13} />}
+                        </div>
+                        <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
+                          isHuman ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-700"
+                        }`}>
+                          <div className="whitespace-pre-wrap break-words">{m.message}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={bottomRef} />
+                </div>
+              </div>
+
+              {active?.status !== "resolved" && (
+                <>
+                  <div className="shrink-0 border-t border-slate-100 px-3 py-1.5">
+                    <button
+                      onClick={resolve}
+                      className="flex w-full items-center justify-center gap-1 rounded-lg bg-green-100 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200"
+                    >
+                      <Check size={12} /> Resolver ticket
+                    </button>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 p-3">
+                    <input
+                      type="text"
+                      value={reply}
+                      onChange={(e) => setReply(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && !sending && sendReply()}
+                      placeholder="Responder..."
+                      className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+                    />
+                    <button
+                      onClick={sendReply}
+                      disabled={sending || !reply.trim()}
+                      aria-label="Enviar"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      <Send size={14} />
+                    </button>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </div>
   );
 }
