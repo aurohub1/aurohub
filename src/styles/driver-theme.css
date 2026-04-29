@@ -58,6 +58,10 @@
   font-weight: 600 !important;
   cursor: pointer !important;
   font-family: inherit !important;
+  text-rendering: auto !important;
+  -webkit-font-smoothing: antialiased !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
 }
 
 /* Botão previous */
