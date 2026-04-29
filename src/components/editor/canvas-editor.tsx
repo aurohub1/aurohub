@@ -183,13 +183,21 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     changeSchema({ ...schema, elements: els });
   }, [selectedId, schema, changeSchema]);
 
-  const alignSelected = useCallback((align: string) => {
-    const el = schema.elements.find(e => e.id === selectedId); if (!el) return;
+  const alignSelected = useCallback((keys: string | string[]) => {
+    if (!selectedId) return;
+    const el = schemaRef.current.elements.find(e => e.id === selectedId); if (!el) return;
+    const keysArr = Array.isArray(keys) ? keys : [keys];
     const u: Partial<EditorElement> = {};
-    if (align === "left") u.x = 0; if (align === "center-h") u.x = (width - el.width) / 2; if (align === "right") u.x = width - el.width;
-    if (align === "top") u.y = 0; if (align === "center-v") u.y = (height - el.height) / 2; if (align === "bottom") u.y = height - el.height;
-    updateElement(el.id, u);
-  }, [selectedId, schema, width, height, updateElement]);
+    for (const key of keysArr) {
+      if (key === "left")     u.x = 0;
+      if (key === "center-h") u.x = (width - el.width) / 2;
+      if (key === "right")    u.x = width - el.width;
+      if (key === "top")      u.y = 0;
+      if (key === "center-v") u.y = (height - el.height) / 2;
+      if (key === "bottom")   u.y = height - el.height;
+    }
+    updateElement(selectedId, u);
+  }, [selectedId, width, height, updateElement]);
 
   const play = useCallback(() => { clearSelection(); setCurrentTime(0); setPlaying(true); }, [clearSelection]);
   const pause = useCallback(() => setPlaying(false), []);
