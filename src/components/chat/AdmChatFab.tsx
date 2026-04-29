@@ -47,7 +47,7 @@ export default function AdmChatFab({ onClick, isOpen, unreadCount }: Props) {
         onClick={onClick}
         aria-label="Abrir chat interno"
         data-ready={ready ? "true" : "false"}
-        className="ah-adm-chat-fab fixed bottom-4 right-[380px] z-[9988] flex h-[52px] w-[52px] items-center justify-center rounded-full bg-emerald-500 text-white"
+        className="ah-adm-chat-fab fixed bottom-4 right-[72px] z-[9988] flex h-[52px] w-[52px] items-center justify-center rounded-full bg-emerald-500 text-white"
       >
         <MessageCircle size={22} />
         {unreadCount > 0 && (

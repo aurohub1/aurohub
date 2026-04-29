@@ -10,66 +10,28 @@ export default function ClientePublicarPage() {
     pageKey: "cliente-publicar",
     steps: [
       {
-        element: "h1",
-        popover: {
-          title: "Bem-vindo à página de Publicar!",
-          description: "Vamos fazer um tour rápido pelas principais funcionalidades.",
-          side: "bottom",
-          align: "start"
-        }
-      },
-      {
         element: "[data-tour='template-tabs']",
         popover: {
-          title: "Seletor de Template",
-          description: "Escolha um template para criar sua arte. Cada template é personalizado para o seu negócio e pode ser usado em diferentes formatos (Stories, Feed, Reels, TV).",
-          side: "bottom",
-          align: "start"
-        }
-      },
-      {
-        element: "[data-tour='formulario']",
-        popover: {
-          title: "Formulário de Dados",
-          description: "Preencha os dados do pacote ou produto que deseja divulgar. Os campos mudam de acordo com o tipo de template selecionado.",
-          side: "right",
-          align: "start"
-        }
-      },
-      {
-        element: "[data-tour='store-selector']",
-        popover: {
-          title: "Seletor de Loja",
-          description: "Selecione qual loja receberá a publicação. Você pode publicar em múltiplas lojas ao mesmo tempo.",
-          side: "top",
-          align: "center"
-        }
-      },
-      {
-        element: "[data-tour='publish-button']",
-        popover: {
-          title: "Botão de Publicar",
-          description: "Clique aqui para publicar diretamente no Instagram ou fazer download da arte para publicar depois.",
-          side: "top",
-          align: "center"
-        }
-      },
-      {
-        element: "[data-tour='preview']",
-        popover: {
-          title: "Preview ao Vivo",
-          description: "Visualize em tempo real como ficará sua arte antes de publicar. O preview atualiza automaticamente conforme você preenche o formulário.",
-          side: "left",
-          align: "center"
+          title: "Escolha o tipo de arte",
+          description: "Selecione o tipo de conteúdo que deseja criar: Pacote, Campanha, Passagem, Cruzeiro ou Card WhatsApp. Depois escolha o formato (Stories, Feed, Reels ou TV).",
+          side: "bottom"
         }
       },
       {
         popover: {
-          title: "Pronto! 🎉",
-          description: "Agora você já conhece as principais funcionalidades. Clique no botão ? a qualquer momento para ver este tour novamente."
+          title: "Como funciona",
+          description: "Após escolher o template, você preencherá os dados do pacote (destino, preço, datas, etc) e poderá publicar diretamente no Instagram ou fazer download da arte."
+        }
+      },
+      {
+        popover: {
+          title: "Pronto!",
+          description: "Comece escolhendo um tipo de arte acima. O botão ? está disponível a qualquer momento para rever este tour."
         }
       }
-    ]
+    ],
+    autoStart: true,
+    delay: 1000
   });
 
   return (

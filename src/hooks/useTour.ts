@@ -75,6 +75,8 @@ export function useTour({ pageKey, steps, autoStart = true, delay = 1000 }: UseT
       driverRef.current = driver({
         showProgress: true,
         showButtons: ["next", "previous", "close"],
+        smoothScroll: true,
+        animate: true,
         steps,
         onDestroyed: () => {
           markTourAsCompleted();

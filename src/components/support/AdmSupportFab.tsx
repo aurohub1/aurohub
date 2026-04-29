@@ -65,7 +65,7 @@ export default function AdmSupportFab({ onClick, isOpen }: { onClick: () => void
         onClick={onClick}
         aria-label="Abrir painel de suporte"
         data-ready={ready ? "true" : "false"}
-        className="ah-adm-support-fab fixed bottom-14 right-6 z-[9989] flex h-[52px] w-[52px] items-center justify-center rounded-full bg-amber-500 text-white"
+        className="ah-adm-support-fab fixed bottom-4 right-4 z-[9989] flex h-[52px] w-[52px] items-center justify-center rounded-full bg-amber-500 text-white"
       >
         <Headphones size={22} />
         {unread > 0 && (
