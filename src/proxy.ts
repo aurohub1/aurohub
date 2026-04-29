@@ -2,11 +2,40 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 /**
- * Middleware de auth por role.
+ * Middleware de auth por role + manutenção.
  * Lê cookies → Supabase session → profiles.role → decide redirect.
  */
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/manutencao"];
+
+// Cache de manutenção (módulo-level, persiste por worker; ~30s TTL)
+let maintenanceCache: { active: boolean; ts: number } | null = null;
+const MAINTENANCE_TTL = 30_000;
+
+async function isMaintenanceActive(): Promise<boolean> {
+  const now = Date.now();
+  if (maintenanceCache && now - maintenanceCache.ts < MAINTENANCE_TTL) {
+    return maintenanceCache.active;
+  }
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/system_config?select=value&key=eq.maintenance_active&limit=1`,
+      {
+        headers: {
+          apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+        },
+        cache: "no-store",
+      }
+    );
+    const rows: { value: string }[] = await res.json();
+    const active = rows?.[0]?.value === "true";
+    maintenanceCache = { active, ts: now };
+    return active;
+  } catch {
+    return maintenanceCache ? maintenanceCache.active : false;
+  }
+}
 
 // Rotas ADM (grupo (dashboard) com URLs diretas)
 const ADM_ROUTES = [
@@ -137,6 +166,16 @@ export async function proxy(request: NextRequest) {
 
   const role = (profile?.role as string | null) ?? null;
   const myHome = homeForRole(role);
+
+  // Manutenção — bloqueia usuários não-ADM
+  if (role !== "adm" && !pathname.startsWith("/manutencao")) {
+    const inMaintenance = await isMaintenanceActive();
+    if (inMaintenance) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/manutencao";
+      return NextResponse.redirect(url);
+    }
+  }
 
   // Usuário logado em /login ou / → manda pra sua home (evita loop se myHome for /login)
   if ((pathname === "/" || pathname === "/login") && myHome !== pathname) {
