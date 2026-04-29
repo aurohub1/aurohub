@@ -997,11 +997,11 @@ function Inp({ v, c }: { v: string; c: (v: string) => void }) { return <input ty
 function G2({ children }: { children: React.ReactNode }) { return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>{children}</div>; }
 
 function SBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button onClick={onClick} style={{ flex: 1, height: 26, borderRadius: 6, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "var(--ed-active-txt)" : "var(--ed-txt2)", fontSize: 10, fontWeight: 600, cursor: "pointer", transition: "background 0.15s" }}>{children}</button>;
+  return <button onClick={onClick} style={{ flex: 1, height: 26, borderRadius: 6, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "#000000" : "var(--ed-txt2)", fontSize: 10, fontWeight: active ? 700 : 600, cursor: "pointer", transition: "background 0.15s" }}>{children}</button>;
 }
 
 function AlBtn({ active, onClick, children, italic }: { active: boolean; onClick: () => void; children: React.ReactNode; italic?: boolean }) {
-  return <button onClick={onClick} style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "#fff" : "var(--ed-txt2)", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontStyle: italic ? "italic" : "normal", transition: "background 0.15s" }}>{children}</button>;
+  return <button onClick={onClick} style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: active ? "var(--ed-accent)" : "var(--ed-input)", color: active ? "#000000" : "var(--ed-txt2)", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontStyle: italic ? "italic" : "normal", transition: "background 0.15s" }}>{children}</button>;
 }
 
 function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
