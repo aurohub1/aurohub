@@ -110,7 +110,7 @@ export default function BarsByDay({ rows, days }: Props) {
               iconType="circle"
             />
             <Area
-              type="natural"
+              type="linear"
               dataKey="publicado"
               name="Publicado"
               stroke="#3B82F6"
@@ -124,7 +124,7 @@ export default function BarsByDay({ rows, days }: Props) {
               style={{ filter: "drop-shadow(0 0 6px #3B82F6)" }}
             />
             <Area
-              type="natural"
+              type="linear"
               dataKey="download"
               name="Download"
               stroke="#FF7A1A"
