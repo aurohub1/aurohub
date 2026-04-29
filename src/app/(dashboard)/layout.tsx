@@ -17,6 +17,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [checking, setChecking] = useState(true);
+  const [maintenanceActive, setMaintenanceActive] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -31,6 +32,10 @@ export default function DashboardLayout({
       setProfile(p);
       setChecking(false);
     })();
+    fetch("/api/maintenance-status", { cache: "no-store" })
+      .then(r => r.json())
+      .then((d: { active: boolean }) => setMaintenanceActive(d.active))
+      .catch(() => {});
   }, [router]);
 
   async function handleLogout() {
@@ -53,6 +58,7 @@ export default function DashboardLayout({
         activePath={pathname}
         user={{ name: profile?.name || "Usuário", role: profile?.role || "adm" }}
         onLogout={handleLogout}
+        maintenanceActive={maintenanceActive}
       />
       <div className="ml-[220px] flex min-h-dvh flex-1 flex-col pb-10">
         <Topbar />

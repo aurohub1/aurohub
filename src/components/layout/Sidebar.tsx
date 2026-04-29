@@ -21,6 +21,8 @@ interface SidebarProps {
   extraPanel?: React.ReactNode;
   /** Se true, exibe ponto vermelho no item Início indicando lojas inativas */
   hasInactiveStores?: boolean;
+  /** Se true, exibe ponto vermelho no item Manutenção */
+  maintenanceActive?: boolean;
 }
 
 export interface NavItem {
@@ -291,6 +293,15 @@ const ADM_SECTIONS: NavSection[] = [
           </svg>
         ),
       },
+      {
+        label: "Manutenção",
+        href: "/adm/manutencao",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M14.7 5.3a4 4 0 00-5.4 5.4L3 17l1 1 6.3-6.3a4 4 0 005.4-5.4l-2.3 2.3-1.4-1.4 2.3-2.3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ),
+      },
       { label: "Suporte", href: "/adm/suporte", icon: I.support },
     ],
   },
@@ -421,7 +432,7 @@ function WeatherIconLucide({ code, size = 13 }: { code: number | null; size?: nu
 
 /* ── Component ───────────────────────────────────── */
 
-export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel, hasInactiveStores = false }: SidebarProps) {
+export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel, hasInactiveStores = false, maintenanceActive = false }: SidebarProps) {
   const supportDrawer = useSupportDrawer(); // null fora do provider (ex: ADM) → renderiza Link
   const rawSections = sections ?? ADM_SECTIONS;
   const navSections = activeFeatures
@@ -563,6 +574,9 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
                     <span className="truncate">{item.label}</span>
                     {item.label === "Início" && hasInactiveStores && (
                       <span className="ml-auto h-2 w-2 rounded-full bg-red-500" title="Lojas inativas" />
+                    )}
+                    {item.label === "Manutenção" && maintenanceActive && (
+                      <span className="ml-auto h-2 w-2 rounded-full bg-red-500" title="Sistema em manutenção" />
                     )}
                   </>
                 );
