@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { driver, DriveStep, type Driver } from "driver.js";
+import "driver.js/dist/driver.css";
 import "@/styles/driver-theme.css";
 import { supabase } from "@/lib/supabase";
 
