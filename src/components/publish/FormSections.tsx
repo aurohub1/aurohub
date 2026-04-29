@@ -1718,8 +1718,8 @@ export function CruzeiroForm({
     }
 
     if (imagens && imagens.length > 0) {
-      // Pega a primeira imagem disponível
-      set('img_fundo', imagens[0]);
+      // Escolhe uma imagem aleatória do array
+      set('img_fundo', imagens[Math.floor(Math.random() * imagens.length)]);
     }
     // Se não encontrar, não seta fallback — mantém o que estava
     // eslint-disable-next-line react-hooks/exhaustive-deps
