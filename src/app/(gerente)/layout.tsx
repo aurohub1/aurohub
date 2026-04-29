@@ -25,6 +25,7 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
   const [checking, setChecking] = useState(true);
   const [tickerItems, setTickerItems] = useState<{ title: string; url?: string }[]>([]);
   const [hasInactiveStores, setHasInactiveStores] = useState(false);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
   useBrandTheme(profile?.licensee_id);
   // useContentProtection();
@@ -67,6 +68,36 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
     })();
   }, [router]);
 
+  useEffect(() => {
+    if (!profile?.licensee_id || !profile?.id) return;
+    const licenseeId = profile.licensee_id;
+    const userId = profile.id;
+    let alive = true;
+
+    async function refreshUnread() {
+      const { data: rooms } = await supabase.from("chat_rooms").select("id").eq("licensee_id", licenseeId);
+      if (!rooms?.length) { if (alive) setChatUnreadCount(0); return; }
+      const roomIds = (rooms as { id: string }[]).map(r => r.id);
+      const { data: receipts } = await supabase.from("chat_read_receipts").select("room_id, last_read_at")
+        .eq("user_id", userId).eq("is_adm", false).in("room_id", roomIds);
+      const receiptMap = new Map(((receipts ?? []) as { room_id: string; last_read_at: string }[]).map(r => [r.room_id, r.last_read_at]));
+      let count = 0;
+      for (const room of rooms as { id: string }[]) {
+        const { count: c } = await supabase.from("chat_messages").select("id", { count: "exact", head: true })
+          .eq("room_id", room.id).neq("sender_id", userId).gt("created_at", receiptMap.get(room.id) ?? "1970-01-01");
+        if ((c ?? 0) > 0) count++;
+      }
+      if (alive) setChatUnreadCount(count);
+    }
+
+    refreshUnread();
+    const ch = supabase.channel(`gerente-unread-${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, refreshUnread)
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_read_receipts" }, refreshUnread)
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(ch); };
+  }, [profile?.licensee_id, profile?.id]);
+
   async function handleLogout() {
     try { await supabase.auth.signOut(); } catch (err) { console.error("[Logout]", err); }
     window.location.href = "/login";
@@ -87,6 +118,7 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
         activeFeatures={features}
         brandLabel={profile?.store?.name || "Central do Gerente"}
         hasInactiveStores={hasInactiveStores}
+        chatUnreadCount={chatUnreadCount}
       />
       <div className={`ml-[220px] flex flex-1 flex-col ${pathname === "/gerente/publicar" ? "h-dvh overflow-hidden" : "min-h-dvh pb-10"}`}>
         <MaintenanceBanner />
