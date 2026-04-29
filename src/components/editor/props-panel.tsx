@@ -178,14 +178,17 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Alinhar ao Canvas</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
           {[
-            { k: "left",     t: "Alinhar à esquerda",     d: "M3 9h12M3 5l4 4-4 4" },
-            { k: "center-h", t: "Centralizar horizontal", d: "M9 3v12M6 6l3-3 3 3M6 12l3 3 3-3" },
-            { k: "right",    t: "Alinhar à direita",      d: "M15 9H3M15 5l-4 4 4 4" },
-            { k: "top",      t: "Alinhar ao topo",        d: "M9 15V3M5 7l4-4 4 4" },
-            { k: "center-v", t: "Centralizar vertical",   d: "M3 9h12M6 6l3-3 3 3M6 12l3 3 3-3" },
-            { k: "bottom",   t: "Alinhar à base",         d: "M9 3v12M5 11l4 4 4-4" },
+            { k: "tl", t: "Topo + esquerda",      d: "M14 14L4 4M4 9V4h5",       actions: ["top", "left"] },
+            { k: "tc", t: "Topo + centralizado",  d: "M9 15V3M5 7l4-4 4 4",      actions: ["top", "center-h"] },
+            { k: "tr", t: "Topo + direita",       d: "M4 14L14 4M9 4h5v5",       actions: ["top", "right"] },
+            { k: "ml", t: "Meio + esquerda",      d: "M15 9H3M7 5l-4 4 4 4",     actions: ["center-v", "left"] },
+            { k: "mc", t: "Centralizar tudo",     d: "M3 9h12M9 3v12",           actions: ["center-v", "center-h"] },
+            { k: "mr", t: "Meio + direita",       d: "M3 9h12M11 5l4 4-4 4",     actions: ["center-v", "right"] },
+            { k: "bl", t: "Base + esquerda",      d: "M14 4L4 14M9 14H4v-5",     actions: ["bottom", "left"] },
+            { k: "bc", t: "Base + centralizado",  d: "M9 3v12M5 11l4 4 4-4",     actions: ["bottom", "center-h"] },
+            { k: "br", t: "Base + direita",       d: "M4 4L14 14M14 9v5h-5",     actions: ["bottom", "right"] },
           ].map(a => (
-            <AlignBtn key={a.k} onClick={() => onAlign(a.k)} title={a.t} d={a.d} />
+            <AlignBtn key={a.k} onClick={() => a.actions.forEach(act => onAlign(act))} title={a.t} d={a.d} />
           ))}
         </div>
         <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
