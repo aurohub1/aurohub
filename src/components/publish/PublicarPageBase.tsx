@@ -1078,6 +1078,7 @@ export default function PublicarPageBase({
         />
         <div
           ref={tabsWrapRef}
+          data-tour="template-tabs"
           style={{
             position: "relative",
             background: "color-mix(in srgb, var(--brand-primary) 8%, var(--bg2))",
@@ -1288,7 +1289,7 @@ export default function PublicarPageBase({
           )}
 
           {/* Formulários */}
-          <div style={{ padding: "14px" }}>
+          <div data-tour="formulario" style={{ padding: "14px" }}>
             {!currentTemplate ? (
               <div
                 style={{
@@ -1397,6 +1398,7 @@ export default function PublicarPageBase({
 
         {/* PREVIEW */}
         <div
+          data-tour="preview"
           style={{
             flex: 1,
             background: previewBgUrl ? `url(${previewBgUrl}) center/cover` : "var(--bg0)",

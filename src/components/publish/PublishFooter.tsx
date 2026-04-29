@@ -52,7 +52,7 @@ export function PublishFooter({
       }}
     >
       {enablePublishing && role !== "consultor" && publishTargets.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div data-tour="store-selector" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <label
             style={{
               fontSize: "10px",
@@ -162,6 +162,7 @@ export function PublishFooter({
       {canPublish && format !== "tv" && (
         <>
           <button
+            data-tour="publish-button"
             onClick={onPublish}
             disabled={!enablePublishing || busy || !currentTemplate}
             style={{
