@@ -23,7 +23,7 @@ interface Room {
 interface ChatMsg {
   id: string;
   sender_id: string;
-  sender_name: string;
+  sender_name: string | null;
   content: string;
   created_at: string;
 }
@@ -223,7 +223,7 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
       await supabase.from("chat_messages").insert({
         room_id: activeRoomId,
         sender_id: profile.id,
-        sender_name: profile.name ?? "ADM",
+        sender_name: "Equipe Aurovista",
         content: text,
       });
     } finally {

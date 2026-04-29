@@ -17,7 +17,7 @@ interface Room {
 interface ChatMsg {
   id: string;
   sender_id: string;
-  sender_name: string;
+  sender_name: string | null;
   content: string;
   created_at: string;
 }
@@ -45,6 +45,7 @@ export default function GerenteChatPage() {
   const [messages, setMessages]         = useState<ChatMsg[]>([]);
   const [input, setInput]               = useState("");
   const [sending, setSending]           = useState(false);
+  const [senderNames, setSenderNames]   = useState<Map<string, string>>(new Map());
   const bottomRef                       = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -141,7 +142,13 @@ export default function GerenteChatPage() {
         .select("id, sender_id, sender_name, content, created_at")
         .eq("room_id", activeRoomId)
         .order("created_at", { ascending: true });
-      if (alive) setMessages((data ?? []) as ChatMsg[]);
+      const msgs = (data ?? []) as ChatMsg[];
+      if (alive) setMessages(msgs);
+      const unknownIds = [...new Set(msgs.filter(m => !m.sender_name && m.sender_id !== profile.id).map(m => m.sender_id))];
+      if (unknownIds.length) {
+        const { data: profs } = await supabase.from("profiles").select("id, name").in("id", unknownIds);
+        if (alive) setSenderNames(new Map(((profs ?? []) as { id: string; name: string }[]).map(p => [p.id, p.name])));
+      }
     })();
 
     const ch = supabase
@@ -183,6 +190,12 @@ export default function GerenteChatPage() {
   }, [input, activeRoomId, profile, sending]);
 
   const activeRoom = rooms.find(r => r.id === activeRoomId) ?? null;
+
+  function displayName(m: ChatMsg): string {
+    if (m.sender_name) return m.sender_name;
+    if (m.sender_id === profile?.id) return "Você";
+    return senderNames.get(m.sender_id) ?? "Usuário";
+  }
 
   return (
     <div
@@ -267,13 +280,13 @@ export default function GerenteChatPage() {
                     <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
                       isMe ? "bg-blue-500 text-white" : "bg-slate-200 text-slate-600"
                     }`}>
-                      {initials(m.sender_name)}
+                      {initials(displayName(m))}
                     </div>
                     <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
                       isMe ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-700"
                     }`}>
                       {!isMe && (
-                        <div className="mb-0.5 text-[10px] font-semibold opacity-60">{m.sender_name}</div>
+                        <div className="mb-0.5 text-[10px] font-semibold opacity-60">{displayName(m)}</div>
                       )}
                       <div className="whitespace-pre-wrap break-words">{m.content}</div>
                       <div className={`mt-0.5 text-[9px] ${isMe ? "text-right text-blue-100" : "text-slate-400"}`}>
