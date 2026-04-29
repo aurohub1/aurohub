@@ -312,11 +312,17 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
 
           {/* 8. Comportamento */}
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--ed-txt2)", cursor: "pointer" }}>
+            <label
+              title="Divide o valor em inteiro (grande) e centavos (pequeno) no canvas. Ex: R$ 1.234 ,56"
+              style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--ed-txt2)", cursor: "pointer" }}
+            >
               <input type="checkbox" checked={!!s.priceDisplay} onChange={e => u({ priceDisplay: e.target.checked })} />
               Split R$
             </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--ed-txt2)", cursor: "pointer" }}>
+            <label
+              title="Se o bind não tiver valor preenchido no formulário, o elemento some da arte final"
+              style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--ed-txt2)", cursor: "pointer" }}
+            >
               <input type="checkbox" checked={!!s.hideIfEmpty} onChange={e => u({ hideIfEmpty: e.target.checked })} />
               Ocultar vazio
             </label>
