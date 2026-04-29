@@ -664,6 +664,33 @@ export default function PublicarPageBase({
   // nomeLoja para PacoteForm
   const nomeLoja = getNomeLoja(profile!, effectiveSelectedTargetIds, effectivePublishTargets);
 
+  // Guard: aguardar profile e permissões antes de qualquer render
+  if (!profile || !permsLoaded) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        color: 'var(--txt3)',
+        fontSize: 13,
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 32,
+            height: 32,
+            border: '2px solid var(--bdr)',
+            borderTopColor: 'var(--accent, #D4A843)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+            margin: '0 auto 12px',
+          }} />
+          Carregando...
+        </div>
+      </div>
+    );
+  }
+
   // ===== SELEÇÃO DE TIPO =====
   if (phase === "selector")
     return (
@@ -991,32 +1018,6 @@ export default function PublicarPageBase({
         </div>
       </div>
     );
-
-  // Guard: aguardar carregamento do profile e permissões
-  if (!profile || !permsLoaded) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        color: 'var(--txt3)',
-        fontSize: 13,
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: 32, height: 32,
-            border: '2px solid var(--bdr)',
-            borderTopColor: 'var(--accent)',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-            margin: '0 auto 12px',
-          }} />
-          Carregando...
-        </div>
-      </div>
-    );
-  }
 
   // ===== FORMULÁRIO =====
   return (
