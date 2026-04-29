@@ -1599,6 +1599,7 @@ const NAVIOS_IMAGENS: Record<string, string[]> = {
   'PRINCESS CRUISE - GRAND PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1777487779/Grand_Princess_ceani6.png'],
   'PRINCESS CRUISE - ISLAND PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1777487783/Island_Princess_jtqund.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1777487773/Island_Princess_2_lmbjvp.png'],
   'PRINCESS CRUISE - PACIFIC PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1777487782/Pacific_Princess_fzof7v.png'],
+  'PRINCESS CRUISE - RUBY PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1777488761/Ruby_Princess_1_yntbyu.png','https://res.cloudinary.com/dxgj4bcch/image/upload/v1777488763/Ruby_Princess_tkuu6x.png'],
   'PRINCESS CRUISE - SAPPHIRE PRINCESS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1777487784/Sapphire_Princess_jkq4br.png'],
   'ROYAL CARIBBEAN - ADVENTURE OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750866/ROYAL_CARIBBEAN_-_ADVENTURE_OF_THE_SEAS1_vsb4oz.png'],
   'ROYAL CARIBBEAN - ALLURE OF THE SEAS': ['https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750867/ROYAL_CARIBBEAN_-_ALLURE_OF_THE_SEAS1_m521oo.png'],
