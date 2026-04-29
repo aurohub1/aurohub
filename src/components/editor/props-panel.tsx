@@ -991,9 +991,18 @@ function Sec({ t, children }: { t: string; children: React.ReactNode }) {
         fontWeight: 700,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
-        color: "var(--ed-txt2)",
+        color: "var(--ed-txt)",
       }}>
-        {t}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{
+            width: 4,
+            height: 4,
+            borderRadius: "50%",
+            background: "var(--ed-accent)",
+            flexShrink: 0,
+          }} />
+          <span style={{ color: "var(--ed-txt)", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{t}</span>
+        </div>
         <span style={{
           transform: o ? "rotate(90deg)" : "none",
           transition: "transform 0.15s",
