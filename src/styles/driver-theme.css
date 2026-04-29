@@ -1,0 +1,166 @@
+/* ══════════════════════════════════════════════════════════════
+   Driver.js - Tema customizado Aurohub
+   ══════════════════════════════════════════════════════════════ */
+
+/* Overlay escuro por trás */
+.driver-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+}
+
+/* Popover principal */
+.driver-popover {
+  background: var(--bg1);
+  border: 1px solid var(--bdr);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  max-width: 320px;
+  z-index: 9999;
+}
+
+/* Seta do popover */
+.driver-popover-arrow {
+  border-color: var(--bg1);
+}
+
+.driver-popover-arrow-side-top {
+  border-top-color: var(--bg1);
+}
+
+.driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--bg1);
+}
+
+.driver-popover-arrow-side-left {
+  border-left-color: var(--bg1);
+}
+
+.driver-popover-arrow-side-right {
+  border-right-color: var(--bg1);
+}
+
+/* Título */
+.driver-popover-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--txt);
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+/* Descrição */
+.driver-popover-description {
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+
+/* Container dos botões */
+.driver-popover-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Contador de progresso */
+.driver-popover-progress-text {
+  font-size: 11px;
+  color: var(--txt3);
+  font-weight: 500;
+}
+
+/* Botões */
+.driver-popover-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  outline: none;
+}
+
+/* Botão primário (Next) */
+.driver-popover-next-btn {
+  background: var(--orange);
+  color: #fff;
+  border: none;
+}
+
+.driver-popover-next-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.driver-popover-next-btn:active {
+  transform: translateY(0);
+}
+
+/* Botão secundário (Previous) */
+.driver-popover-prev-btn {
+  background: transparent;
+  color: var(--txt3);
+  border: 1px solid var(--bdr);
+}
+
+.driver-popover-prev-btn:hover {
+  background: var(--bg2);
+  color: var(--txt2);
+}
+
+.driver-popover-prev-btn:active {
+  background: var(--bg2);
+}
+
+/* Botão de fechar */
+.driver-popover-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--txt3);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.driver-popover-close-btn:hover {
+  background: var(--bg2);
+  color: var(--txt);
+}
+
+.driver-popover-close-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Highlight do elemento ativo */
+.driver-active-element {
+  position: relative;
+  z-index: 9999;
+}
+
+/* Remove animações exageradas padrão */
+.driver-popover {
+  animation: none !important;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 480px) {
+  .driver-popover {
+    max-width: calc(100vw - 32px);
+    margin: 0 16px;
+  }
+}
