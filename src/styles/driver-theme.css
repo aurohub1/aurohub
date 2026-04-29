@@ -55,13 +55,16 @@
   border-radius: 8px !important;
   padding: 8px 16px !important;
   font-size: 12px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   cursor: pointer !important;
   font-family: inherit !important;
   text-rendering: auto !important;
   -webkit-font-smoothing: antialiased !important;
   letter-spacing: normal !important;
   word-spacing: normal !important;
+  text-shadow: none !important;
+  -webkit-text-stroke: 0 !important;
+  filter: none !important;
 }
 
 /* Botão previous */
