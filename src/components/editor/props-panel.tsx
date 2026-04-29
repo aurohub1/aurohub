@@ -335,7 +335,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {/* Preenchimento — hide for lines, images and qrcode */}
         {s.type !== "image" && s.type !== "qrcode" && !isLine(s) && (
           <>
-            <SubSec t="Preenchimento" icon="🎨" />
+            <SubSec t="Preenchimento" />
             <FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
           </>
         )}
@@ -343,7 +343,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {/* Linha — line-specific section */}
         {isLine(s) && (
           <>
-            <SubSec t="Linha" icon="—" />
+            <SubSec t="Linha" />
             <F l="Cor"><ColorField value={typeof s.fill === "string" ? s.fill : "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
             <F l="Espessura"><Num v={s.height} c={v => u({ height: Math.max(1, Math.min(100, v)) })} min={1} /></F>
             <F l="Estilo">
@@ -360,18 +360,36 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {!isLine(s) && (
           <>
             <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
-            <SubSec t="Borda" icon="□" />
-            <G2>
-              <F l="Cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
-              <F l="Espessura"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} min={0} /></F>
-            </G2>
-            <F l="Estilo">
+            <SubSec t="Borda" right={
               <div style={{ display: "flex", gap: 3 }}>
-                <SBtn active={!s.strokeDashArray || s.strokeDashArray.length === 0} onClick={() => u({ strokeDashArray: undefined })}>Sólido</SBtn>
-                <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 6} onClick={() => u({ strokeDashArray: [6, 4] })}>Tracejado</SBtn>
-                <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 2} onClick={() => u({ strokeDashArray: [2, 3] })}>Pontilhado</SBtn>
+                <SBtn active={!s.strokeWidth || s.strokeWidth === 0}
+                  onClick={() => u({ strokeWidth: 0, stroke: undefined })}>
+                  Sem
+                </SBtn>
+                <SBtn active={!!s.strokeWidth && s.strokeWidth > 0}
+                  onClick={() => u({ strokeWidth: s.strokeWidth || 1, stroke: s.stroke || "#000000" })}>
+                  Com
+                </SBtn>
               </div>
-            </F>
+            } />
+            {!!s.strokeWidth && s.strokeWidth > 0 && (
+              <>
+                <G2>
+                  <F l="Cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
+                  <F l="Espessura"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} min={0} /></F>
+                </G2>
+                <F l="Estilo">
+                  <div style={{ display: "flex", gap: 3 }}>
+                    <SBtn active={!s.strokeDashArray || s.strokeDashArray.length === 0}
+                      onClick={() => u({ strokeDashArray: undefined })}>Sólido</SBtn>
+                    <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 6}
+                      onClick={() => u({ strokeDashArray: [6, 4] })}>Tracejado</SBtn>
+                    <SBtn active={!!s.strokeDashArray && s.strokeDashArray[0] === 2}
+                      onClick={() => u({ strokeDashArray: [2, 3] })}>Pontilhado</SBtn>
+                  </div>
+                </F>
+              </>
+            )}
           </>
         )}
 
@@ -379,7 +397,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
         {s.type === "rect" && (
           <>
             <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
-            <SubSec t="Cantos" icon="⌒" />
+            <SubSec t="Cantos" />
             <F l="Raio global"><input type="range" min={0} max={200} value={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} onChange={e => u({ cornerRadius: +e.target.value })} style={{ width: "100%", accentColor: "var(--ed-accent)" }} /></F>
             <Num v={typeof s.cornerRadius === "number" ? s.cornerRadius : 0} c={v => u({ cornerRadius: v })} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, marginTop: 4 }}>
@@ -401,16 +419,22 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
 
         {/* Sombra */}
         <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
-        <SubSec t="Sombra" icon="◫" />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "var(--ed-txt2)" }}>Ativa</span>
-          <SBtn active={!!s.shadow} onClick={() => u({ shadow: s.shadow ? undefined : { color: "rgba(0,0,0,0.4)", offsetX: 4, offsetY: 4, blur: 12 } })}>{s.shadow ? "ON" : "OFF"}</SBtn>
-        </div>
-        {s.shadow && <>
-          <ColorSwatch value={s.shadow.color} onChange={v => u({ shadow: { ...s.shadow!, color: v } })} label="Cor" />
-          <G2><F l="Off X"><Num v={s.shadow.offsetX} c={v => u({ shadow: { ...s.shadow!, offsetX: v } })} /></F><F l="Off Y"><Num v={s.shadow.offsetY} c={v => u({ shadow: { ...s.shadow!, offsetY: v } })} /></F></G2>
-          <F l="Blur"><Num v={s.shadow.blur} c={v => u({ shadow: { ...s.shadow!, blur: v } })} /></F>
-        </>}
+        <SubSec t="Sombra" right={
+          <SBtn active={!!s.shadow}
+            onClick={() => u({ shadow: s.shadow ? undefined : { color: "rgba(0,0,0,0.4)", offsetX: 4, offsetY: 4, blur: 12 } })}>
+            {s.shadow ? "ON" : "OFF"}
+          </SBtn>
+        } />
+        {s.shadow && (
+          <>
+            <ColorSwatch value={s.shadow.color} onChange={v => u({ shadow: { ...s.shadow!, color: v } })} label="Cor" />
+            <G2>
+              <F l="Off X"><Num v={s.shadow.offsetX} c={v => u({ shadow: { ...s.shadow!, offsetX: v } })} /></F>
+              <F l="Off Y"><Num v={s.shadow.offsetY} c={v => u({ shadow: { ...s.shadow!, offsetY: v } })} /></F>
+            </G2>
+            <F l="Blur"><Num v={s.shadow.blur} c={v => u({ shadow: { ...s.shadow!, blur: v } })} /></F>
+          </>
+        )}
       </Sec>
 
       {/* ═══ 5. IMAGEM ═══ */}
@@ -1051,18 +1075,25 @@ function AlignBtn({ onClick, title, d, center }: { onClick: () => void; title: s
   );
 }
 
-function SubSec({ t, icon }: { t: string; icon?: string }) {
+function SubSec({ t, right }: { t: string; right?: React.ReactNode }) {
   return (
     <div style={{
       display: "flex",
       alignItems: "center",
-      gap: 5,
+      gap: 8,
       marginBottom: 6,
       marginTop: 2,
     }}>
-      {icon && <span style={{ fontSize: 12 }}>{icon}</span>}
-      <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ed-txt2)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{t}</span>
+      <span style={{
+        fontSize: 9,
+        fontWeight: 700,
+        color: "var(--ed-txt2)",
+        textTransform: "uppercase",
+        letterSpacing: "0.06em",
+        whiteSpace: "nowrap",
+      }}>{t}</span>
       <div style={{ flex: 1, height: 1, background: "var(--ed-bdr)" }} />
+      {right && right}
     </div>
   );
 }
