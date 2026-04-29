@@ -128,20 +128,22 @@ export default function ManutencaoPage() {
 
   return (
     <div style={{
-        minHeight: "100vh",
+        width: "100vw",
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
-        backgroundColor: "#060D1A",
+        background: "#060D1A",
         backgroundImage: "radial-gradient(circle, rgba(26,86,196,0.08) 1px, transparent 1px)",
         backgroundSize: "28px 28px",
-        padding: "24px",
         fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
         color: "#EEF2FF",
         overflow: "hidden",
-        position: "relative",
+        position: "fixed",
+        top: 0,
+        left: 0,
       }}>
         <style>{KEYFRAMES}</style>
 
