@@ -187,26 +187,44 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     if (!selectedId) return;
     const el = schemaRef.current.elements.find(e => e.id === selectedId);
     if (!el) return;
+
+    // Tenta usar o bounding box real do Konva
+    const node = stageRef.current?.findOne(`#${selectedId}`);
+    let absBox = node
+      ? node.getClientRect({ relativeTo: stageRef.current! })
+      : null;
+
+    // Fallback para cálculo manual (elemento ainda não montado)
+    if (!absBox) {
+      const rot = ((el.rotation || 0) * Math.PI) / 180;
+      const cos = Math.abs(Math.cos(rot));
+      const sin = Math.abs(Math.sin(rot));
+      absBox = {
+        x: el.x,
+        y: el.y,
+        width:  el.width * cos + el.height * sin,
+        height: el.width * sin + el.height * cos,
+      };
+    }
+
+    // absBox está em coordenadas do stage (escalado por stageScale) — converter para lógico
+    const scale = stageRef.current?.scaleX() || 1;
+    const boxW = absBox.width  / scale;
+    const boxH = absBox.height / scale;
+    // Offset: deslocamento entre el.x/el.y e onde o bbox realmente começa
+    const offsetX = el.x - absBox.x / scale;
+    const offsetY = el.y - absBox.y / scale;
+
     const keysArr = Array.isArray(keys) ? keys : [keys];
     const u: Partial<EditorElement> = {};
 
-    const isCircle = el.type === "circle";
-    const offX = isCircle ? el.width  / 2 : 0;
-    const offY = isCircle ? el.height / 2 : 0;
-
-    const rot = ((el.rotation || 0) * Math.PI) / 180;
-    const cos = Math.abs(Math.cos(rot));
-    const sin = Math.abs(Math.sin(rot));
-    const bboxW = el.width  * cos + el.height * sin;
-    const bboxH = el.width  * sin + el.height * cos;
-
     for (const key of keysArr) {
-      if (key === "left")     u.x = offX;
-      if (key === "center-h") u.x = (width  - el.width)  / 2;
-      if (key === "right")    u.x = width  - bboxW + offX;
-      if (key === "top")      u.y = offY;
-      if (key === "center-v") u.y = (height - el.height) / 2;
-      if (key === "bottom")   u.y = height - bboxH + offY;
+      if (key === "left")     u.x = offsetX;
+      if (key === "center-h") u.x = (width  - boxW) / 2 + offsetX;
+      if (key === "right")    u.x = width  - boxW + offsetX;
+      if (key === "top")      u.y = offsetY;
+      if (key === "center-v") u.y = (height - boxH) / 2 + offsetY;
+      if (key === "bottom")   u.y = height - boxH + offsetY;
     }
     updateElement(selectedId, u);
   }, [selectedId, width, height, updateElement]);
