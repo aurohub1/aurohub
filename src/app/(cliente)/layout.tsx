@@ -15,6 +15,7 @@ import SupportFab from "@/components/support/SupportFab";
 import PushPermission from "@/components/PushPermission";
 import { PublishQueueProvider } from "@/hooks/usePublishQueue";
 import PublishQueuePanel from "@/components/PublishQueuePanel";
+import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
 
 export default function ClienteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -87,6 +88,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         hasInactiveStores={hasInactiveStores}
       />
       <div className={`ml-[220px] flex flex-1 flex-col ${pathname === "/cliente/publicar" ? "h-[calc(100dvh-40px)] overflow-hidden" : "min-h-dvh pb-10"}`}>
+        <MaintenanceBanner />
         <main className="flex flex-1 flex-col" style={{padding: pathname === "/cliente/publicar" ? "0" : "1.5rem", gap: pathname === "/cliente/publicar" ? "0" : "1.25rem", minHeight: 0, overflow: pathname === "/cliente/publicar" ? "hidden" : "auto"}}>{children}</main>
       </div>
       <footer className="fixed bottom-0 left-[220px] right-0 z-40 flex items-center gap-3 border-t border-[var(--bdr)] bg-[var(--bg1)] px-6 py-2.5 text-[0.68rem] text-[var(--txt3)] overflow-hidden">

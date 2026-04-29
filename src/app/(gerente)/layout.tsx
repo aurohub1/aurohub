@@ -15,6 +15,7 @@ import SupportFab from "@/components/support/SupportFab";
 import PushPermission from "@/components/PushPermission";
 import { PublishQueueProvider } from "@/hooks/usePublishQueue";
 import PublishQueuePanel from "@/components/PublishQueuePanel";
+import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
 
 export default function GerenteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -88,6 +89,7 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
         hasInactiveStores={hasInactiveStores}
       />
       <div className={`ml-[220px] flex flex-1 flex-col ${pathname === "/gerente/publicar" ? "h-dvh overflow-hidden" : "min-h-dvh pb-10"}`}>
+        <MaintenanceBanner />
         <main className="flex flex-1 flex-col" style={{padding: pathname === "/gerente/publicar" ? "0" : "1.5rem", gap: pathname === "/gerente/publicar" ? "0" : "1.25rem", minHeight: 0, overflow: pathname === "/gerente/publicar" ? "hidden" : "auto"}}>{children}</main>
       </div>
       {pathname !== "/gerente/publicar" && (

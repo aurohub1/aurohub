@@ -14,6 +14,7 @@ import SupportFab from "@/components/support/SupportFab";
 import PushPermission from "@/components/PushPermission";
 import { PublishQueueProvider } from "@/hooks/usePublishQueue";
 import PublishQueuePanel from "@/components/PublishQueuePanel";
+import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
 
 export default function UnidadeLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -80,6 +81,7 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
         brandLabel={profile?.store?.name || "Central da Unidade"}
       />
       <div className="ml-[220px] flex min-h-dvh flex-1 flex-col pb-10">
+        <MaintenanceBanner />
         <main className="flex flex-1 flex-col gap-5 p-6">{children}</main>
       </div>
       <footer className="fixed bottom-0 left-[220px] right-0 z-40 flex items-center gap-3 border-t border-[var(--bdr)] bg-[var(--bg1)] px-6 py-2.5 text-[0.68rem] text-[var(--txt3)] overflow-hidden">
