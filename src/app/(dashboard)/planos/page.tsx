@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAdmGuard } from "@/contexts/AdmContext";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -106,6 +107,7 @@ function fmt(v: number): string {
 /* ── Component ───────────────────────────────────── */
 
 export default function PlanosPage() {
+  const { allowed } = useAdmGuard("can_manage_plans");
   const [plans, setPlans] = useState<Plan[]>([]);
   const [licensees, setLicensees] = useState<Licensee[]>([]);
   const [storeCounts, setStoreCounts] = useState<StoreCount[]>([]);
@@ -232,6 +234,8 @@ export default function PlanosPage() {
 
   const ALL_SLUGS = ["basic", "pro", "business", "enterprise", "interno"] as const;
   const SLUGS = ALL_SLUGS.filter((slug) => PLAN_INFO[slug] && (slug !== "interno" || planMap[slug])) as readonly string[];
+
+  if (!allowed) return null;
 
   return (
     <>

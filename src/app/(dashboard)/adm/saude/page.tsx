@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAdmGuard } from "@/contexts/AdmContext";
 import { Activity, Users, Rocket, AlertTriangle, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { checkInstagramToken } from "@/lib/instagram-status";
 
@@ -60,6 +61,7 @@ const MODULOS = [
 ] as const;
 
 export default function AdmSaudePage() {
+  const { allowed } = useAdmGuard("can_view_health");
   const [licensees, setLicensees] = useState<Licensee[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [postsToday, setPostsToday] = useState(0);
@@ -213,6 +215,8 @@ export default function AdmSaudePage() {
     const val = (ultimoRelatorio as unknown as Record<string, unknown>)[`score_${key}`];
     return val != null ? Number(val) : -1;
   };
+
+  if (!allowed) return null;
 
   if (loading) {
     return (

@@ -5,11 +5,14 @@ import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import ImageCropModal from "@/components/ImageCropModal";
 import { PermissionsModal } from "@/components/users/PermissionsModal";
+import { AdmPermissionsModal } from "@/components/users/AdmPermissionsModal";
+import { useAdmGuard } from "@/contexts/AdmContext";
 
 /* ── Types ───────────────────────────────────────── */
 
 interface Profile {
   id: string; name: string | null; role: string; sub_role: string | null;
+  adm_level: string | null;
   status: string; licensee_id: string | null; store_id: string | null; created_at: string;
   avatar_url: string | null;
   stories_limit: number | null; feed_limit: number | null; reels_limit: number | null; tv_limit: number | null;
@@ -45,6 +48,7 @@ const PLAN_LABELS: Record<string, string> = { basic: "Essencial", pro: "Profissi
 /* ── Component ───────────────────────────────────── */
 
 export default function UsuariosPage() {
+  const { allowed } = useAdmGuard("can_manage_users");
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [licensees, setLicensees] = useState<Licensee[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
@@ -85,13 +89,14 @@ export default function UsuariosPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [allPermsMap, setAllPermsMap] = useState<Record<string, UserPerms>>({});
   const [permUser, setPermUser] = useState<{ userId: string; licenseeId: string; userName: string } | null>(null);
+  const [admPermUser, setAdmPermUser] = useState<{ userId: string; userName: string; admLevel: string } | null>(null);
 
   /* ── Load ──────────────────────────────────────── */
 
   const loadData = useCallback(async () => {
     try {
       const [pR, lR, sR, segR, plR, permR] = await Promise.all([
-        supabase.from("profiles").select("id, name, role, sub_role, status, licensee_id, store_id, created_at, avatar_url, stories_limit, feed_limit, reels_limit, tv_limit").order("created_at", { ascending: false }),
+        supabase.from("profiles").select("id, name, role, sub_role, adm_level, status, licensee_id, store_id, created_at, avatar_url, stories_limit, feed_limit, reels_limit, tv_limit").order("created_at", { ascending: false }),
         supabase.from("licensees").select("id, name, segment_id").order("name"),
         supabase.from("stores").select("id, name, licensee_id").order("name"),
         supabase.from("segments").select("id, name, icon"),
@@ -368,6 +373,8 @@ export default function UsuariosPage() {
 
   /* ── Render ────────────────────────────────────── */
 
+  if (!allowed) return null;
+
   return (
     <>
       {cropSrc && <ImageCropModal src={cropSrc} shape="circle" onClose={() => setCropSrc(null)} onConfirm={handleAvatarCropped} />}
@@ -459,8 +466,12 @@ export default function UsuariosPage() {
                           <button onClick={() => openEdit(p)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]">Editar</button>
                           <button
                               onClick={() => {
-                                const licId = p.licensee_id ?? (p.store_id ? storeMap[p.store_id]?.licensee_id : "") ?? "";
-                                setPermUser({ userId: p.id, licenseeId: licId, userName: p.name ?? "Consultor" });
+                                if (p.role === "adm") {
+                                  setAdmPermUser({ userId: p.id, userName: p.name ?? "ADM", admLevel: p.adm_level ?? "operacional" });
+                                } else {
+                                  const licId = p.licensee_id ?? (p.store_id ? storeMap[p.store_id]?.licensee_id : "") ?? "";
+                                  setPermUser({ userId: p.id, licenseeId: licId, userName: p.name ?? "Usuário" });
+                                }
                               }}
                               className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]"
                             >
@@ -711,6 +722,17 @@ export default function UsuariosPage() {
           userName={permUser.userName}
           stores={stores.filter(s => s.licensee_id === permUser.licenseeId)}
           onClose={() => setPermUser(null)}
+          onSaved={loadData}
+        />
+      )}
+
+      {/* ── ADM Permissions modal ─────────────────── */}
+      {admPermUser && (
+        <AdmPermissionsModal
+          userId={admPermUser.userId}
+          userName={admPermUser.userName}
+          admLevel={admPermUser.admLevel}
+          onClose={() => setAdmPermUser(null)}
           onSaved={loadData}
         />
       )}

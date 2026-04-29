@@ -20,7 +20,7 @@ interface Ticket {
 interface Message {
   id: string;
   sender: "user" | "bot" | "human";
-  content: string;
+  message: string;
   created_at: string;
 }
 
@@ -109,8 +109,8 @@ export default function AdmSuportePage() {
         .eq("id", activeId);
 
       const { data } = await supabase
-        .from("support_messages")
-        .select("id, sender, content, created_at")
+        .from("ticket_messages")
+        .select("id, sender, message, created_at")
         .eq("ticket_id", activeId)
         .order("created_at", { ascending: true });
       if (alive) setMessages((data ?? []) as Message[]);
@@ -120,7 +120,7 @@ export default function AdmSuportePage() {
       .channel(`adm-msgs-${activeId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${activeId}` },
+        { event: "INSERT", schema: "public", table: "ticket_messages", filter: `ticket_id=eq.${activeId}` },
         (payload) => {
           setMessages((prev) => {
             const newMsg = payload.new as Message;
@@ -143,8 +143,8 @@ export default function AdmSuportePage() {
     setSending(true);
     setReply("");
     try {
-      await supabase.from("support_messages").insert({
-        ticket_id: activeId, sender: "human", sender_id: profile.id, content: text,
+      await supabase.from("ticket_messages").insert({
+        ticket_id: activeId, sender: "human", user_id: profile.id, message: text,
       });
       await supabase.from("support_tickets")
         .update({ status: "human", unread_adm: false, updated_at: new Date().toISOString() })
@@ -291,7 +291,7 @@ export default function AdmSuportePage() {
                           <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
                             rightSide ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-700"
                           }`}>
-                            <div className="whitespace-pre-wrap break-words">{m.content}</div>
+                            <div className="whitespace-pre-wrap break-words">{m.message}</div>
                           </div>
                         </div>
                       );

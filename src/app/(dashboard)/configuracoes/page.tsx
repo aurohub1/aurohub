@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAdmGuard } from "@/contexts/AdmContext";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/splash/SplashScreen";
 
@@ -54,6 +55,7 @@ const TIMEZONES = [
 /* ── Component ───────────────────────────────────── */
 
 export default function ConfiguracoesPage() {
+  const { allowed } = useAdmGuard("can_manage_configs");
   const [config, setConfig] = useState<ConfigMap>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -189,6 +191,8 @@ export default function ConfiguracoesPage() {
   }
 
   /* ── Render ────────────────────────────────────── */
+
+  if (!allowed) return null;
 
   if (loading) {
     return <div className="flex flex-1 items-center justify-center text-[13px] text-[var(--txt3)]">Carregando configurações...</div>;

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAdmGuard } from "@/contexts/AdmContext";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import {
   Images, Plane, Ship, Building2, MapPin, Upload, Trash2,
@@ -43,6 +44,7 @@ function formatDate(iso: string): string {
 /* ── Página ──────────────────────────────────────── */
 
 export default function BibliotecaPage() {
+  const { allowed } = useAdmGuard("can_manage_library");
   const [tab, setTab] = useState<TabKey>("destinos");
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -121,6 +123,8 @@ export default function BibliotecaPage() {
   }
 
   /* ── Render ────────────────────────────────────── */
+
+  if (!allowed) return null;
 
   return (
     <>

@@ -6,6 +6,7 @@ import {
   Sun, Moon, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
 import { useSupportDrawer } from "@/components/support/SupportDrawerProvider";
+import type { AdmPermissions } from "@/lib/adm-permissions";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -23,6 +24,8 @@ interface SidebarProps {
   hasInactiveStores?: boolean;
   /** Se true, exibe ponto vermelho no item Manutenção */
   maintenanceActive?: boolean;
+  /** Permissões granulares do ADM (nível operacional/suporte). Items com admPerm fora deste set são ocultados. */
+  admPerms?: AdmPermissions;
 }
 
 export interface NavItem {
@@ -31,6 +34,8 @@ export interface NavItem {
   icon: React.ReactNode;
   /** Se definida, o item só aparece quando a feature estiver ativa para o usuário. */
   feature?: string;
+  /** Se definida, o item só aparece quando admPerms[admPerm] for true. */
+  admPerm?: keyof AdmPermissions;
 }
 
 export interface NavSection {
@@ -87,6 +92,7 @@ const ADM_SECTIONS: NavSection[] = [
       {
         label: "Estúdio de Templates",
         href: "/editor-de-templates",
+        admPerm: "can_use_editor",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <path d="M14.3 3.7a1 1 0 011.4 1.4l-9.5 9.5-2 .6.6-2 9.5-9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -96,6 +102,7 @@ const ADM_SECTIONS: NavSection[] = [
       {
         label: "Importar Template",
         href: "/importar-template",
+        admPerm: "can_use_editor",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -106,6 +113,7 @@ const ADM_SECTIONS: NavSection[] = [
       {
         label: "Banco de Imagens",
         href: "/biblioteca",
+        admPerm: "can_manage_library",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
@@ -152,6 +160,7 @@ const ADM_SECTIONS: NavSection[] = [
       {
         label: "Logs de Atividade",
         href: "/logs",
+        admPerm: "can_view_logs",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <path d="M4 4h12M4 8h12M4 12h8M4 16h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -166,6 +175,7 @@ const ADM_SECTIONS: NavSection[] = [
       {
         label: "Clientes",
         href: "/clientes",
+        admPerm: "can_manage_clients",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <path d="M16 11c0 3.866-2.686 7-6 7S4 14.866 4 11V5l6-2 6 2v6z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -176,6 +186,7 @@ const ADM_SECTIONS: NavSection[] = [
       {
         label: "Usuários",
         href: "/usuarios",
+        admPerm: "can_manage_users",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM1 16a7 7 0 0114 0H1z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -185,6 +196,7 @@ const ADM_SECTIONS: NavSection[] = [
       {
         label: "Planos",
         href: "/planos",
+        admPerm: "can_manage_plans",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <path d="M10 2l1.83 3.72L16 6.55l-3 2.93.71 4.13L10 11.77l-3.71 1.84.71-4.13L4 6.55l4.17-.83L10 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -255,6 +267,7 @@ const ADM_SECTIONS: NavSection[] = [
       {
         label: "Configurações",
         href: "/configuracoes",
+        admPerm: "can_manage_configs",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
@@ -265,6 +278,7 @@ const ADM_SECTIONS: NavSection[] = [
       {
         label: "Saúde",
         href: "/adm/saude",
+        admPerm: "can_view_health",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <path d="M10 18s-7-4-7-10V4l7-2 7 2v4c0 6-7 10-7 10z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -432,17 +446,19 @@ function WeatherIconLucide({ code, size = 13 }: { code: number | null; size?: nu
 
 /* ── Component ───────────────────────────────────── */
 
-export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel, hasInactiveStores = false, maintenanceActive = false }: SidebarProps) {
+export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel, hasInactiveStores = false, maintenanceActive = false, admPerms }: SidebarProps) {
   const supportDrawer = useSupportDrawer(); // null fora do provider (ex: ADM) → renderiza Link
   const rawSections = sections ?? ADM_SECTIONS;
-  const navSections = activeFeatures
-    ? rawSections
-        .map((section) => ({
-          ...section,
-          items: section.items.filter((item) => !item.feature || activeFeatures.has(item.feature)),
-        }))
-        .filter((section) => section.items.length > 0)
-    : rawSections;
+  const navSections = rawSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (item.feature && activeFeatures && !activeFeatures.has(item.feature)) return false;
+        if (item.admPerm && admPerms && !admPerms[item.admPerm]) return false;
+        return true;
+      }),
+    }))
+    .filter((section) => section.items.length > 0);
   const initial = user.name.charAt(0).toUpperCase();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [now, setNow] = useState<Date>(new Date());

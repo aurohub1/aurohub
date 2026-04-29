@@ -8,14 +8,14 @@ import { X, Send, User, Bot, Headphones } from "lucide-react";
 interface Message {
   id: string;
   sender: "user" | "bot" | "human";
-  content: string;
+  message: string;
   created_at: string;
 }
 
 type Status = "bot" | "human" | "resolved";
 
 interface SupabaseRealtimePayload {
-  new: { id: string; sender: "user" | "bot" | "human"; content: string; created_at: string };
+  new: { id: string; sender: "user" | "bot" | "human"; message: string; created_at: string };
 }
 
 export default function SupportChat({ onClose }: { onClose: () => void }) {
@@ -56,15 +56,15 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
         setTicketId(tid);
         setStatus(s);
         const { data: msgs } = await supabase
-          .from("support_messages")
-          .select("id, sender, content, created_at")
+          .from("ticket_messages")
+          .select("id, sender, message, created_at")
           .eq("ticket_id", tid)
           .order("created_at", { ascending: true });
         if (alive) setMessages((msgs ?? []) as Message[]);
       } else {
         // Nenhum ticket aberto — mostra greeting local (não persistido) até a primeira mensagem
         const greet = `Olá ${p.name ?? "por aí"}! Como posso ajudar? 👋`;
-        if (alive) setMessages([{ id: "local-greet", sender: "bot", content: greet, created_at: new Date().toISOString() }]);
+        if (alive) setMessages([{ id: "local-greet", sender: "bot", message: greet, created_at: new Date().toISOString() }]);
       }
     })();
     return () => { alive = false; };
@@ -77,7 +77,7 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
       .channel(`support-msgs-${ticketId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${ticketId}` },
+        { event: "INSERT", schema: "public", table: "ticket_messages", filter: `ticket_id=eq.${ticketId}` },
         (payload: SupabaseRealtimePayload) => {
           setMessages((prev) => {
             if (prev.some((m) => m.id === payload.new.id)) return prev;
@@ -97,7 +97,7 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
 
     // Otimista: adiciona a mensagem do user já
     const tempId = `tmp-${Date.now()}`;
-    setMessages((prev) => [...prev, { id: tempId, sender: "user", content: text, created_at: new Date().toISOString() }]);
+    setMessages((prev) => [...prev, { id: tempId, sender: "user", message: text, created_at: new Date().toISOString() }]);
 
     try {
       let tid = ticketId;
@@ -127,8 +127,8 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
       }
 
       if (status === "human") {
-        await supabase.from("support_messages").insert({
-          ticket_id: tid, sender: "user", sender_id: profile.id, content: text,
+        await supabase.from("ticket_messages").insert({
+          ticket_id: tid, sender: "user", user_id: profile.id, message: text,
         });
         await supabase.from("support_tickets")
           .update({ updated_at: new Date().toISOString(), unread_adm: true })
@@ -158,7 +158,7 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
   const escalate = useCallback(async () => {
     if (!ticketId || !profile || status === "human") return;
     setStatus("human");
-    const lastMessage = [...messages].reverse().find(m => m.sender === "user")?.content ?? null;
+    const lastMessage = [...messages].reverse().find(m => m.sender === "user")?.message ?? null;
     await fetch("/api/support/bot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -247,7 +247,7 @@ export default function SupportChat({ onClose }: { onClose: () => void }) {
                   <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
                     isUser ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
                   }`}>
-                    <div className="whitespace-pre-wrap break-words">{m.content}</div>
+                    <div className="whitespace-pre-wrap break-words">{m.message}</div>
                   </div>
                 </div>
               );

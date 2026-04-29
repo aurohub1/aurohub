@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAdmGuard } from "@/contexts/AdmContext";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -78,6 +79,7 @@ function getMeta(entry: LogEntry, key: string): string {
 /* ── Component ───────────────────────────────────── */
 
 export default function LogsPage() {
+  const { allowed } = useAdmGuard("can_view_logs");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
@@ -227,6 +229,8 @@ export default function LogsPage() {
   }, [logs]);
 
   /* ── Render ────────────────────────────────────── */
+
+  if (!allowed) return null;
 
   return (
     <>

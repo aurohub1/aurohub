@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAdmGuard } from "@/contexts/AdmContext";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import ImageCropModal from "@/components/ImageCropModal";
 import InstagramStatusBadge from "@/components/InstagramStatusBadge";
@@ -48,6 +49,7 @@ const PLAN_COLORS: Record<string, { color: string; label: string }> = {
 /* ── Component ───────────────────────────────────── */
 
 export default function ClientesPage() {
+  const { allowed } = useAdmGuard("can_manage_clients");
   const [currentProfile, setCurrentProfile] = useState<{ role: string } | null>(null);
   const [licensees, setLicensees] = useState<Licensee[]>([]);
   const [segments, setSegments] = useState<Segment[]>([]);
@@ -508,6 +510,8 @@ export default function ClientesPage() {
   const viewName = viewStoresId ? licensees.find((l) => l.id === viewStoresId)?.name ?? "" : "";
 
   /* ── Render ────────────────────────────────────── */
+
+  if (!allowed) return null;
 
   return (
     <>

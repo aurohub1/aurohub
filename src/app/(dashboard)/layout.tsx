@@ -5,6 +5,12 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
+import {
+  AdmContext, type AdmLevel,
+} from "@/contexts/AdmContext";
+import {
+  ADM_FULL_PERMISSIONS, ADM_PERMISSIONS_SELECT, rowToAdmPermissions, type AdmPermissions,
+} from "@/lib/adm-permissions";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
 
@@ -18,6 +24,8 @@ export default function DashboardLayout({
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [checking, setChecking] = useState(true);
   const [maintenanceActive, setMaintenanceActive] = useState(false);
+  const [admPerms, setAdmPerms] = useState<AdmPermissions>(ADM_FULL_PERMISSIONS);
+  const [admLevel, setAdmLevel] = useState<AdmLevel>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -30,6 +38,16 @@ export default function DashboardLayout({
       if (!p) { router.push("/login"); return; }
       if (p.role !== "adm" && p.role !== "operador") { router.push(homeForRole(p.role)); return; }
       setProfile(p);
+      const level = p.adm_level as AdmLevel | null;
+      setAdmLevel(level ?? null);
+      if (p.role === "adm" && level && level !== "super") {
+        const { data } = await supabase
+          .from("adm_permissions")
+          .select(ADM_PERMISSIONS_SELECT)
+          .eq("user_id", p.id)
+          .maybeSingle();
+        if (data) setAdmPerms(rowToAdmPermissions(data as Record<string, unknown>));
+      }
       setChecking(false);
     })();
     fetch("/api/maintenance-status", { cache: "no-store" })
@@ -53,12 +71,13 @@ export default function DashboardLayout({
   }
 
   return (
-    <>
+    <AdmContext.Provider value={{ admLevel, perms: admPerms }}>
       <Sidebar
         activePath={pathname}
         user={{ name: profile?.name || "Usuário", role: profile?.role || "adm" }}
         onLogout={handleLogout}
         maintenanceActive={maintenanceActive}
+        admPerms={admPerms}
       />
       <div className="ml-[220px] flex min-h-dvh flex-1 flex-col pb-10">
         <Topbar />
@@ -70,6 +89,6 @@ export default function DashboardLayout({
         <span className="text-[var(--bdr2)]">&middot;</span>
         <span>Aurohub v6.0</span>
       </footer>
-    </>
+    </AdmContext.Provider>
   );
 }

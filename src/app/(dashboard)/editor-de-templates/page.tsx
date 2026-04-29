@@ -7,12 +7,14 @@ import { uploadToCloudinary } from "@/lib/cloudinary";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { TemplateCard, type CanvasTemplate } from "@/components/editor/TemplateCard";
 import { TemplateFilters } from "@/components/editor/TemplateFilters";
+import { useAdmGuard } from "@/contexts/AdmContext";
 
 interface Licensee { id: string; name: string; }
 
 /* ── Component ───────────────────────────────────── */
 
 export default function EditorTemplatesPage() {
+  const { allowed } = useAdmGuard("can_use_editor");
   const router = useRouter();
 
   // Canvas templates (system_config tmpl_*)
@@ -588,6 +590,8 @@ export default function EditorTemplatesPage() {
     const qs = licenseeId ? `?licensee=${licenseeId}` : "";
     router.push(`/editor${qs}`);
   };
+
+  if (!allowed) return null;
 
   return (
     <div className="flex flex-col gap-6">

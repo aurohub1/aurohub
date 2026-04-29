@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 
 interface AnthropicContent { type: string; text?: string }
 interface AnthropicResponse { content?: AnthropicContent[] }
-interface MsgRow { sender: "user" | "bot" | "human"; content: string }
+interface MsgRow { sender: "user" | "bot" | "human"; message: string }
 
 export async function POST(req: NextRequest) {
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -33,10 +33,10 @@ export async function POST(req: NextRequest) {
       if (upErr) {
         return NextResponse.json({ error: "DB update failed", detail: upErr.message }, { status: 500 });
       }
-      await sb.from("support_messages").insert({
+      await sb.from("ticket_messages").insert({
         ticket_id: ticketId,
         sender: "bot",
-        content: "Encaminhei pra nossa equipe. Em breve alguém vai responder aqui mesmo.",
+        message: "Encaminhei pra nossa equipe. Em breve alguém vai responder aqui mesmo.",
       });
 
       const origin = new URL(req.url).origin;
@@ -61,10 +61,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Salva mensagem do user
-    const { error: insertErr } = await sb.from("support_messages").insert({
+    const { error: insertErr } = await sb.from("ticket_messages").insert({
       ticket_id: ticketId,
       sender: "user",
-      content: userMessage,
+      message: userMessage,
     });
     if (insertErr) {
       return NextResponse.json({ error: "DB insert failed", detail: insertErr.message }, { status: 500 });
@@ -72,18 +72,54 @@ export async function POST(req: NextRequest) {
 
     // Histórico pra contexto (últimas 20 mensagens)
     const { data: history } = await sb
-      .from("support_messages")
-      .select("sender, content")
+      .from("ticket_messages")
+      .select("sender, message")
       .eq("ticket_id", ticketId)
       .order("created_at", { ascending: true })
       .limit(20);
 
     const messages = ((history ?? []) as MsgRow[]).map(m => ({
       role: m.sender === "user" ? ("user" as const) : ("assistant" as const),
-      content: m.content,
+      content: m.message,
     }));
 
-    const system = `Você é o assistente do Aurohub, plataforma de artes para agências de viagem da Aurovista. Responda sobre: publicar templates, formulários, agendamentos, planos, usuários, lojas. Se não souber com certeza, diga que vai encaminhar para a equipe. Seja direto e simpático em português informal. Usuário: ${userName ?? "(desconhecido)"}, função: ${userRole ?? "(n/a)"}, plano: ${userPlan ?? "(n/a)"}`;
+    const system = `Você é o suporte do Aurohub, plataforma de criação e publicação de artes para agências de viagem, desenvolvida pela Aurovista.
+
+SOBRE O AUROHUB:
+- Agências criam artes de viagem (Stories, Feed, Reels, TV, Card WhatsApp) usando templates personalizados
+- Publicação direta no Instagram das lojas
+- Hierarquia: ADM Aurovista → Cliente (agência) → Unidade (loja/filial) → Consultor/Vendedor
+- Planos: Essencial, Pro, Business, Interno (ilimitado para clientes especiais)
+
+FUNCIONALIDADES PRINCIPAIS:
+- Publicar: escolher template → preencher formulário (destino, preço, datas, serviços) → gerar arte → publicar ou baixar
+- Formulários disponíveis: Pacote, Campanha, Passagem, Cruzeiro, Anoiteceu, Card WhatsApp
+- Calendário: ver posts agendados e feriados próximos
+- Métricas/Resumo: ver posts publicados por formato e período
+- Usuários: gerenciar consultores e permissões por formulário e loja
+- Configurações: dados da agência, tema de cores, logo
+
+PROBLEMAS COMUNS E SOLUÇÕES:
+- "Não consigo publicar no Instagram": verificar se a permissão 'Pode publicar no Instagram' está ativa nas permissões do usuário
+- "Template não aparece": o ADM precisa vincular o template ao cliente; verifique com seu gestor
+- "Erro ao salvar": pode ser conexão instável, tente novamente em alguns segundos
+- "Não vejo determinado formulário": seu perfil pode não ter permissão para esse formulário, contate seu gestor
+- "Como alterar minha senha": acesse Configurações no menu lateral
+- "Como adicionar uma loja/unidade": apenas o gestor da conta (perfil Cliente) pode adicionar unidades
+
+REGRAS DE ESCALADA — encaminhe para a equipe humana quando:
+- Problema técnico persistente após tentar as soluções básicas
+- Dúvida sobre cobrança, plano ou contrato
+- Solicitação de novo template ou personalização
+- Problema com token do Instagram
+- Qualquer situação que você não consiga resolver com certeza
+
+USUÁRIO ATUAL:
+- Nome: ${userName ?? "não identificado"}
+- Função: ${userRole ?? "não informada"}
+- Plano: ${userPlan ?? "não informado"}
+
+Responda sempre em português informal e direto. Máximo 3 parágrafos por resposta. Se não souber com certeza, diga que vai encaminhar para a equipe humana.`;
 
     const aRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -108,10 +144,10 @@ export async function POST(req: NextRequest) {
     const data = (await aRes.json()) as AnthropicResponse;
     const botContent = data.content?.[0]?.text ?? "Desculpe, não consegui processar agora.";
 
-    await sb.from("support_messages").insert({
+    await sb.from("ticket_messages").insert({
       ticket_id: ticketId,
       sender: "bot",
-      content: botContent,
+      message: botContent,
     });
     await sb.from("support_tickets")
       .update({ updated_at: new Date().toISOString() })
