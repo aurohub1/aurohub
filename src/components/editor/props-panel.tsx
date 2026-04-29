@@ -175,14 +175,14 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Alinhar ao Canvas</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
           {[
-            { k: "left",     d: "M4 4v10M7 6h7M7 9h5",   t: "Alinhar à esquerda" },
-            { k: "center-h", d: "M9 4v10M5 6h8M6 9h6",   t: "Centralizar horizontal" },
-            { k: "right",    d: "M14 4v10M5 6h7M7 9h5",  t: "Alinhar à direita" },
-            { k: "top",      d: "M4 4h10M6 7v7M9 7v5",   t: "Alinhar ao topo" },
-            { k: "center-v", d: null,                     t: "Centralizar tudo", center: true },
-            { k: "bottom",   d: "M4 14h10M6 5v7M9 7v5",  t: "Alinhar à base" },
+            { k: "left",     t: "Alinhar à esquerda",     d: "M3 9h12M3 5l4 4-4 4" },
+            { k: "center-h", t: "Centralizar horizontal", d: "M9 3v12M6 6l3-3 3 3M6 12l3 3 3-3" },
+            { k: "right",    t: "Alinhar à direita",      d: "M15 9H3M15 5l-4 4 4 4" },
+            { k: "top",      t: "Alinhar ao topo",        d: "M9 15V3M5 7l4-4 4 4" },
+            { k: "center-v", t: "Centralizar vertical",   d: "M3 9h12M6 6l3-3 3 3M6 12l3 3 3-3" },
+            { k: "bottom",   t: "Alinhar à base",         d: "M9 3v12M5 11l4 4 4-4" },
           ].map(a => (
-            <AlignBtn key={a.k} onClick={() => onAlign(a.k)} title={a.t} d={a.d || ""} center={a.center} />
+            <AlignBtn key={a.k} onClick={() => onAlign(a.k)} title={a.t} d={a.d} />
           ))}
         </div>
         <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
@@ -1064,10 +1064,9 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
   return <button onClick={onClick} style={{ flex: 1, padding: "10px 0", border: "none", borderBottom: active ? "2px solid var(--ed-accent)" : "2px solid transparent", background: "none", color: active ? "var(--ed-accent)" : "var(--ed-txt3)", fontSize: 10, fontWeight: 700, cursor: "pointer", textTransform: "uppercase", letterSpacing: 1 }}>{children}</button>;
 }
 
-function AlignBtn({ onClick, title, d, center }: { onClick: () => void; title: string; d: string; center?: boolean }) {
+function AlignBtn({ onClick, title, d }: { onClick: () => void; title: string; d: string }) {
   const [hover, setHover] = useState(false);
-  const baseColor = center ? "var(--ed-txt)" : "var(--ed-txt2)";
-  const iconColor = hover ? "var(--ed-accent)" : baseColor;
+  const iconColor = hover ? "var(--ed-accent)" : "var(--ed-txt2)";
   return (
     <button
       onClick={onClick}
@@ -1087,16 +1086,15 @@ function AlignBtn({ onClick, title, d, center }: { onClick: () => void; title: s
         transition: "background 0.15s, border-color 0.15s",
       }}
     >
-      {center ? (
-        <svg viewBox="0 0 18 18" width={16} height={16}>
-          <path d="M9 3v12M3 9h12" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="9" cy="9" r="2" fill="none" stroke={iconColor} strokeWidth="1.2" />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 18 18" width={16} height={16}>
-          <path d={d} stroke={iconColor} strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        </svg>
-      )}
+      <svg viewBox="0 0 18 18" width={16} height={16} fill="none">
+        <path
+          d={d}
+          stroke={iconColor}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </button>
   );
 }
