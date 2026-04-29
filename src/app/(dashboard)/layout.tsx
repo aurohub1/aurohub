@@ -15,6 +15,8 @@ import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
 import AdmSupportFab from "@/components/support/AdmSupportFab";
 import AdmSupportDrawer from "@/components/support/AdmSupportDrawer";
+import AdmChatFab from "@/components/chat/AdmChatFab";
+import AdmChatWidget from "@/components/chat/AdmChatWidget";
 
 export default function DashboardLayout({
   children,
@@ -30,6 +32,9 @@ export default function DashboardLayout({
   const [admLevel, setAdmLevel] = useState<AdmLevel>(null);
   const [admSupportOpen, setAdmSupportOpen] = useState(false);
   const [admSupportMinimized, setAdmSupportMinimized] = useState(false);
+  const [admChatOpen, setAdmChatOpen] = useState(false);
+  const [admChatMinimized, setAdmChatMinimized] = useState(false);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem("ah_theme") as "dark" | "light" | null;
@@ -82,6 +87,7 @@ export default function DashboardLayout({
         onLogout={handleLogout}
         maintenanceActive={maintenanceActive}
         admPerms={admPerms}
+        chatUnreadCount={chatUnreadCount}
       />
       <div className="ml-[220px] flex min-h-dvh flex-1 flex-col pb-10">
         <Topbar />
@@ -102,6 +108,19 @@ export default function DashboardLayout({
             onClose={() => { setAdmSupportOpen(false); setAdmSupportMinimized(false); }}
             onMinimize={() => setAdmSupportMinimized(true)}
             onRestore={() => setAdmSupportMinimized(false)}
+          />
+          <AdmChatFab
+            onClick={() => { setAdmChatOpen(true); setAdmChatMinimized(false); }}
+            isOpen={admChatOpen}
+            unreadCount={chatUnreadCount}
+          />
+          <AdmChatWidget
+            isOpen={admChatOpen}
+            minimized={admChatMinimized}
+            onClose={() => { setAdmChatOpen(false); setAdmChatMinimized(false); }}
+            onMinimize={() => setAdmChatMinimized(true)}
+            onRestore={() => setAdmChatMinimized(false)}
+            onUnreadChange={setChatUnreadCount}
           />
         </>
       )}

@@ -26,6 +26,8 @@ interface SidebarProps {
   maintenanceActive?: boolean;
   /** Permissões granulares do ADM (nível operacional/suporte). Items com admPerm fora deste set são ocultados. */
   admPerms?: AdmPermissions;
+  /** Número de salas de chat com mensagens não lidas (badge no item Chat). */
+  chatUnreadCount?: number;
 }
 
 export interface NavItem {
@@ -60,6 +62,7 @@ const I = {
   support: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" /><path d="M8 8a2 2 0 012-2 2 2 0 012 2c0 1-1 1.5-2 2M10 14h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
   whatsapp: (<svg viewBox="0 0 20 20" fill="none"><path d="M3 17l1-3.5A7 7 0 113 17z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M7 9c0 2 1.5 3.5 3.5 3.5L12 11l2 1c-.5 1-2 1.5-3 1.5-2.5 0-5-2.5-5-5 0-1 .5-2.5 1.5-3l1 2-1 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" /></svg>),
   resumo: (<svg viewBox="0 0 20 20" fill="none"><path d="M3 16v-6M8 16V8M13 16v-4M18 16V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+  chat: (<svg viewBox="0 0 20 20" fill="none"><path d="M4 4h12a1 1 0 011 1v7a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>),
 };
 
 /* ── ADM Sections (default) ───────────────────── */
@@ -192,6 +195,11 @@ const ADM_SECTIONS: NavSection[] = [
             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM1 16a7 7 0 0114 0H1z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         ),
+      },
+      {
+        label: "Chat",
+        href: "/chat",
+        icon: I.chat,
       },
       {
         label: "Planos",
@@ -446,7 +454,7 @@ function WeatherIconLucide({ code, size = 13 }: { code: number | null; size?: nu
 
 /* ── Component ───────────────────────────────────── */
 
-export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel, hasInactiveStores = false, maintenanceActive = false, admPerms }: SidebarProps) {
+export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel, hasInactiveStores = false, maintenanceActive = false, admPerms, chatUnreadCount = 0 }: SidebarProps) {
   const supportDrawer = useSupportDrawer(); // null fora do provider (ex: ADM) → renderiza Link
   const rawSections = sections ?? ADM_SECTIONS;
   const navSections = rawSections
@@ -593,6 +601,11 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
                     )}
                     {item.label === "Manutenção" && maintenanceActive && (
                       <span className="ml-auto h-2 w-2 rounded-full bg-red-500" title="Sistema em manutenção" />
+                    )}
+                    {item.label === "Chat" && chatUnreadCount > 0 && (
+                      <span className="ml-auto flex min-w-[16px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-white">
+                        {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+                      </span>
                     )}
                   </>
                 );

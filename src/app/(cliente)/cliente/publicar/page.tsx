@@ -93,7 +93,7 @@ export default function ClientePublicarPage() {
         title="Ver tour guiado"
         style={{
           position: "fixed",
-          bottom: "24px",
+          bottom: "80px",
           right: "24px",
           width: "48px",
           height: "48px",
