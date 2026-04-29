@@ -81,6 +81,9 @@ export function useTour({ pageKey, steps, autoStart = true, delay = 1000 }: UseT
       showButtons: ["next", "previous", "close"],
       smoothScroll: true,
       animate: true,
+      nextBtnText: 'Próximo',
+      prevBtnText: 'Anterior',
+      doneBtnText: 'Concluir',
       steps,
       onDestroyed: () => {
         markTourAsCompleted();
