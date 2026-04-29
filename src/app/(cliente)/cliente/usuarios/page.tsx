@@ -84,6 +84,7 @@ export default function ClienteUsuariosPage() {
   const [creating, setCreating] = useState(false);
   const [allPermsMap, setAllPermsMap] = useState<Record<string, UserPerms>>({});
   const [permUserId, setPermUserId] = useState<string | null>(null);
+  const [selfAllowedForms, setSelfAllowedForms] = useState<string[] | undefined>(undefined);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -92,7 +93,7 @@ export default function ClienteUsuariosPage() {
       setProfile(p);
       if (!p?.licensee_id) { setLoading(false); return; }
 
-      const [uR, sR] = await Promise.all([
+      const [uR, sR, selfPermsR] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, name, email, role, status, licensee_id, store_id, created_at")
@@ -104,7 +105,14 @@ export default function ClienteUsuariosPage() {
           .select("id, name")
           .eq("licensee_id", p.licensee_id)
           .order("name"),
+        supabase
+          .from("user_permissions")
+          .select("allowed_forms")
+          .eq("user_id", p.id)
+          .maybeSingle(),
       ]);
+      const selfForms = (selfPermsR.data as { allowed_forms?: string[] } | null)?.allowed_forms;
+      setSelfAllowedForms(selfForms?.length ? selfForms : undefined);
 
       setUsers((uR.data ?? []) as Profile[]);
       setStores((sR.data ?? []) as StoreRow[]);
@@ -320,15 +328,13 @@ export default function ClienteUsuariosPage() {
                           >
                             <Pencil size={12} />
                           </button>
-                          {isRestrito && (
-                            <button
-                              onClick={() => setPermUserId(u.id)}
-                              title="Gerenciar permissões"
-                              className="flex h-7 items-center justify-center gap-1 rounded-md border border-[var(--bdr2)] px-2 text-[10px] font-semibold text-[var(--txt3)] transition-colors hover:border-[rgba(167,139,250,0.4)] hover:bg-[rgba(167,139,250,0.1)] hover:text-[#A78BFA]"
-                            >
-                              🔒
-                            </button>
-                          )}
+                          <button
+                            onClick={() => setPermUserId(u.id)}
+                            title="Gerenciar permissões"
+                            className="flex h-7 items-center justify-center gap-1 rounded-md border border-[var(--bdr2)] px-2 text-[10px] font-semibold text-[var(--txt3)] transition-colors hover:border-[rgba(167,139,250,0.4)] hover:bg-[rgba(167,139,250,0.1)] hover:text-[#A78BFA]"
+                          >
+                            🔒
+                          </button>
                           <button
                             onClick={() => !isReadOnly && toggleStatus(u)}
                             disabled={isReadOnly}
@@ -355,6 +361,7 @@ export default function ClienteUsuariosPage() {
           licenseeId={profile.licensee_id}
           userName={users.find(u => u.id === permUserId)?.name ?? "Consultor"}
           stores={stores}
+          parentAllowedForms={selfAllowedForms}
           onClose={() => setPermUserId(null)}
           onSaved={loadData}
         />

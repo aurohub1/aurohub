@@ -102,8 +102,6 @@ export default function ConsultorCalendarioPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [formTexto, setFormTexto] = useState("");
   const [formData, setFormData] = useState(selectedDay);
-  const [formLoja, setFormLoja] = useState("");
-  const [formTodasLojas, setFormTodasLojas] = useState(false);
 
   /* ── Load ─────────────────────────────────────── */
 
@@ -265,8 +263,6 @@ export default function ConsultorCalendarioPage() {
   function openAddLembrete() {
     setFormTexto("");
     setFormData(selectedDay);
-    setFormLoja(profile?.store_id || "");
-    setFormTodasLojas(false);
     setModalOpen(true);
   }
 

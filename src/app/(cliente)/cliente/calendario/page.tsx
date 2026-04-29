@@ -102,8 +102,7 @@ export default function ClienteCalendarioPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [formTexto, setFormTexto] = useState("");
   const [formData, setFormData] = useState(selectedDay);
-  const [formLoja, setFormLoja] = useState("");
-  const [formTodasLojas, setFormTodasLojas] = useState(false);
+  const [formLojasSelecionadas, setFormLojasSelecionadas] = useState<string[]>([]);
 
   /* ── Load ─────────────────────────────────────── */
 
@@ -266,39 +265,25 @@ export default function ClienteCalendarioPage() {
   function openAddLembrete() {
     setFormTexto("");
     setFormData(selectedDay);
-    setFormLoja(stores[0]?.id || "");
-    setFormTodasLojas(false);
+    setFormLojasSelecionadas(stores.length === 1 ? [stores[0].id] : stores.length > 0 ? [stores[0].id] : []);
     setModalOpen(true);
   }
 
   async function saveLembrete() {
-    if (!formTexto.trim() || !formData || !profile?.licensee_id) return;
+    if (!formTexto.trim() || !formData || !profile?.licensee_id || formLojasSelecionadas.length === 0) return;
 
     try {
-      if (formTodasLojas) {
-        // Criar um lembrete para cada loja
-        const inserts = stores.map(store => ({
-          licensee_id: profile.licensee_id!,
-          store_id: store.id,
-          user_id: profile.id,
-          data_iso: formData,
-          texto: formTexto.trim(),
-          visibilidade: "loja",
-          feito: false,
-        }));
-        await supabase.from("lembretes").insert(inserts);
-      } else {
-        // Criar um lembrete para a loja selecionada
-        await supabase.from("lembretes").insert({
-          licensee_id: profile.licensee_id,
-          store_id: formLoja,
-          user_id: profile.id,
-          data_iso: formData,
-          texto: formTexto.trim(),
-          visibilidade: "loja",
-          feito: false,
-        });
-      }
+      // Criar um lembrete para cada loja selecionada
+      const inserts = formLojasSelecionadas.map(storeId => ({
+        licensee_id: profile.licensee_id!,
+        store_id: storeId,
+        user_id: profile.id,
+        data_iso: formData,
+        texto: formTexto.trim(),
+        visibilidade: "loja",
+        feito: false,
+      }));
+      await supabase.from("lembretes").insert(inserts);
 
       await loadData(); // Recarregar
       setModalOpen(false);
@@ -653,33 +638,28 @@ export default function ClienteCalendarioPage() {
                 />
               </div>
               {stores.length > 1 && (
-                <>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Loja</label>
-                    <select
-                      value={formLoja}
-                      onChange={(e) => setFormLoja(e.target.value)}
-                      disabled={formTodasLojas}
-                      className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)] disabled:opacity-50"
-                    >
-                      {stores.map(store => (
-                        <option key={store.id} value={store.id}>{store.name}</option>
-                      ))}
-                    </select>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Lojas</label>
+                  <div className="flex flex-col gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] p-3">
+                    {stores.map(store => (
+                      <label key={store.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formLojasSelecionadas.includes(store.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormLojasSelecionadas([...formLojasSelecionadas, store.id]);
+                            } else {
+                              setFormLojasSelecionadas(formLojasSelecionadas.filter(id => id !== store.id));
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-[var(--bdr)] text-[var(--orange)] focus:ring-[var(--orange)]"
+                        />
+                        <span className="text-[12px] text-[var(--txt)]">{store.name}</span>
+                      </label>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="todas-lojas"
-                      checked={formTodasLojas}
-                      onChange={(e) => setFormTodasLojas(e.target.checked)}
-                      className="h-4 w-4 rounded border-[var(--bdr)] text-[var(--orange)] focus:ring-[var(--orange)]"
-                    />
-                    <label htmlFor="todas-lojas" className="text-[11px] text-[var(--txt2)]">
-                      Adicionar em todas as lojas ({stores.length})
-                    </label>
-                  </div>
-                </>
+                </div>
               )}
             </div>
             <div className="mt-5 flex justify-end gap-2">
@@ -691,7 +671,7 @@ export default function ClienteCalendarioPage() {
               </button>
               <button
                 onClick={saveLembrete}
-                disabled={!formTexto.trim() || !formData || (!formTodasLojas && !formLoja)}
+                disabled={!formTexto.trim() || !formData || formLojasSelecionadas.length === 0}
                 className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-lg disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
               >

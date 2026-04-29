@@ -432,7 +432,6 @@ export default function UsuariosPage() {
                   const store = p.store_id ? storeMap[p.store_id] : null;
                   const isActive = p.status === "active";
                   const perms = allPermsMap[p.id];
-                  const isRestrito = ['vendedor', 'gerente', 'consultor'].includes(p.role);
 
                   return (
                     <tr key={p.id} className="border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)]">
@@ -445,7 +444,7 @@ export default function UsuariosPage() {
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--bg3)] text-[11px] font-semibold text-[var(--txt2)]">{(p.name ?? "?").charAt(0).toUpperCase()}</div>
                           )}
                           <span className="font-medium text-[var(--txt)]">{p.name ?? "—"}</span>
-                          {isRestrito && perms && (
+                          {perms && (
                             <RestritoBadge perms={perms} />
                           )}
                         </div>
@@ -458,8 +457,7 @@ export default function UsuariosPage() {
                       <td className="whitespace-nowrap pr-5 pl-4 py-3">
                         <div className="flex justify-end gap-2">
                           <button onClick={() => openEdit(p)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]">Editar</button>
-                          {isRestrito && (
-                            <button
+                          <button
                               onClick={() => {
                                 const licId = p.licensee_id ?? (p.store_id ? storeMap[p.store_id]?.licensee_id : "") ?? "";
                                 setPermUser({ userId: p.id, licenseeId: licId, userName: p.name ?? "Consultor" });
@@ -468,7 +466,6 @@ export default function UsuariosPage() {
                             >
                               Permissões
                             </button>
-                          )}
                           <button onClick={() => toggleStatus(p.id, p.status)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]">{isActive ? "Desativar" : "Ativar"}</button>
                           <button onClick={() => setDeleteId(p.id)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--red)]">Excluir</button>
                         </div>

@@ -318,7 +318,7 @@ export default function PublicarPageBase({
 
           const counts = { stories: 0, feed: 0, reels: 0, tv: 0 };
           (logs ?? []).forEach((log: any) => {
-            if (log.metadata?.user_id === p.id) {
+            if (log.metadata?.licensee_id === p.licensee_id) {
               const fmt = log.metadata?.format as Format;
               if (fmt && fmt in counts) counts[fmt]++;
             }
@@ -745,7 +745,7 @@ export default function PublicarPageBase({
                 letterSpacing: ".08em",
               }}
             >
-              Plano Pro
+              {profile?.plan?.name || profile?.licensee?.plan || "—"}
             </div>
             <div
               style={{
@@ -759,25 +759,24 @@ export default function PublicarPageBase({
           </div>
           <div style={{ marginLeft: "auto", display: "flex", gap: "24px" }}>
             {[
-              { l: "Stories", k: "stories" as Format, c: "var(--brand-primary)" },
-              { l: "Feed", k: "feed" as Format, c: "#f59e0b" },
-              { l: "Reels", k: "reels" as Format, c: "#22c55e" },
-              { l: "TV", k: "tv" as Format, c: "#a855f7" },
+              { l: "Stories", k: "stories" as Format, c: "#3B9EFF" },
+              { l: "Feed", k: "feed" as Format, c: "#F59E0B" },
+              { l: "Reels", k: "reels" as Format, c: "#10B981" },
+              { l: "TV", k: "tv" as Format, c: "#8B5CF6" },
             ].map((x) => {
-              const usado = postCounts[x.k];
               const limite = postLimits[x.k];
-              const display = limite > 0 ? `${usado}/${limite}` : "∞";
+              const ilimitado = limite === 0;
               return (
                 <div key={x.l} style={{ textAlign: "center" }}>
                   <div
                     style={{
-                      fontSize: "14px",
+                      fontSize: "21px",
                       fontWeight: 800,
                       color: x.c,
                       lineHeight: 1,
                     }}
                   >
-                    {display}
+                    {ilimitado ? "∞" : String(limite)}
                   </div>
                   <div
                     style={{

@@ -7,7 +7,6 @@ import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
 import InactivityAlert from "@/components/InactivityAlert";
-import { PostCounters } from "@/components/PostCounters";
 import { getInactiveStores, type InactiveStore } from "@/lib/inactivity-check";
 import {
   Store, BarChart3, FileText, Sparkles, CalendarClock, ArrowRight,
@@ -42,6 +41,8 @@ interface PlanFull {
   max_posts_day: number;
 }
 interface Noticia { title: string; url: string; image?: string | null; source?: string; }
+
+type FmtKey = "stories" | "feed" | "reels" | "tv";
 
 const SEGMENT_MAP: Record<string, string> = {
   "7dd6759b-ba23-4d33-b898-c7a00cdf7b80": "turismo",
@@ -158,6 +159,8 @@ export default function ClienteInicioPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [dbFeriados, setDbFeriados] = useState<DataComemorativa[]>([]);
   const [postsMes, setPostsMes] = useState(0);
+  const [postFormats, setPostFormats] = useState<Record<FmtKey, number>>({ stories: 0, feed: 0, reels: 0, tv: 0 });
+  const [postLimits, setPostLimits] = useState<Record<FmtKey, number>>({ stories: 0, feed: 0, reels: 0, tv: 0 });
   const [templatesCount, setTemplatesCount] = useState(0);
 
   const [noticias, setNoticias] = useState<Noticia[]>([]);
@@ -181,170 +184,146 @@ export default function ClienteInicioPage() {
       setProfile(p);
       if (!p?.licensee_id) { setLoading(false); return; }
 
-      // Verificar lojas inativas
-      const inactive = await getInactiveStores(supabase, p.licensee_id);
-      setInactiveStores(inactive);
-
-      // Frase do segmento (igual ADM)
-      let segmentQuotes: string[] | null = null;
       const segmentId = p.licensee?.segment_id ?? null;
-      if (segmentId) {
-        const { data: seg } = await supabase.from("segments").select("quotes").eq("id", segmentId).single();
-        const arr = (seg as { quotes?: unknown } | null)?.quotes;
-        if (Array.isArray(arr) && arr.length > 0) segmentQuotes = arr as string[];
-      }
-      if (!segmentQuotes) {
-        const { data: outros } = await supabase.from("segments").select("quotes").eq("name", "Outros").single();
-        const arr = (outros as { quotes?: unknown } | null)?.quotes;
-        if (Array.isArray(arr) && arr.length > 0) segmentQuotes = arr as string[];
-      }
-      setQuote(pickQuoteOfDay(segmentQuotes));
-
-      // Previsão do tempo via geolocation do browser (fallback Rio Preto)
-      try {
-        const pos = await new Promise<{ lat: number; lon: number } | null>((resolve) => {
-          if (typeof window === "undefined" || !navigator.geolocation) { resolve(null); return; }
-          navigator.geolocation.getCurrentPosition(
-            (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
-            () => resolve(null),
-            { timeout: 5000, maximumAge: 600_000 }
-          );
-        });
-        const lat = pos?.lat ?? -20.8116;
-        const lon = pos?.lon ?? -49.3755;
-
-        if (pos) {
-          try {
-            const rev = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=pt`);
-            if (rev.ok) {
-              const d = await rev.json();
-              const name = d?.results?.[0]?.name;
-              if (name) setCityName(name);
-            }
-          } catch { /* silent */ }
-        }
-
-        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=America/Sao_Paulo`);
-        if (w.ok) {
-          const d = await w.json();
-          if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code });
-        }
-      } catch { /* silent */ }
-
-      // Dados do licensee (expires_at não vem no FullProfile)
-      const { data: licFull } = await supabase
-        .from("licensees")
-        .select("expires_at")
-        .eq("id", p.licensee_id)
-        .single();
-      if (licFull) setExpiresAt((licFull as { expires_at: string | null }).expires_at ?? null);
-
-      // Plano completo (inclui max_users)
       const slug = p.licensee?.plan_slug || p.licensee?.plan || p.plan?.slug;
-      if (slug) {
-        const { data: plan } = await supabase
-          .from("plans")
-          .select("slug, name, max_users, max_posts_day")
-          .eq("slug", slug)
-          .single();
-        if (plan) setPlanFull(plan as PlanFull);
-      }
 
-      // Stores (best-effort com city/active)
-      let storeRows: StoreRow[] = [];
-      {
-        const tryFull = await supabase
-          .from("stores")
-          .select("id, name, city, active")
-          .eq("licensee_id", p.licensee_id)
-          .order("name");
-        if (!tryFull.error && tryFull.data) {
-          storeRows = tryFull.data as StoreRow[];
-        } else {
-          const { data } = await supabase
-            .from("stores")
-            .select("id, name")
-            .eq("licensee_id", p.licensee_id)
-            .order("name");
-          storeRows = (data ?? []) as StoreRow[];
-        }
-      }
-      setStores(storeRows);
+      // Clima: fire-and-forget — geolocation pode levar 5s, não deve bloquear loading
+      void (async () => {
+        try {
+          const pos = await new Promise<{ lat: number; lon: number } | null>((resolve) => {
+            if (typeof window === "undefined" || !navigator.geolocation) { resolve(null); return; }
+            navigator.geolocation.getCurrentPosition(
+              (g) => resolve({ lat: g.coords.latitude, lon: g.coords.longitude }),
+              () => resolve(null),
+              { timeout: 5000, maximumAge: 600_000 }
+            );
+          });
+          const lat = pos?.lat ?? -20.8116;
+          const lon = pos?.lon ?? -49.3755;
+          if (pos) {
+            try {
+              const rev = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=pt`);
+              if (rev.ok) { const d = await rev.json(); const name = d?.results?.[0]?.name; if (name) setCityName(name); }
+            } catch { /* silent */ }
+          }
+          const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=America/Sao_Paulo`);
+          if (w.ok) { const d = await w.json(); if (d?.current) setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code }); }
+        } catch { /* silent */ }
+      })();
 
-      // Usuários do licensee
-      const { data: usersData } = await supabase
-        .from("profiles")
-        .select("id, name, email, role")
-        .eq("licensee_id", p.licensee_id)
-        .order("name");
-      setUsers((usersData ?? []) as UserRow[]);
-
-      // Posts do mês via activity_logs (filtrado por licensee_id nos metadata)
       const inicioMes = new Date();
       inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
-      const { data: logs } = await supabase
-        .from("activity_logs")
-        .select("id, metadata")
-        .gte("created_at", inicioMes.toISOString())
-        .in("event_type", ["post_instagram", "post_scheduled"])
-        .limit(500);
-      const allLogs = (logs ?? []) as { id: string; metadata: Record<string, unknown> | null }[];
+      const hojeDt = new Date();
+      const mesAtual = hojeDt.getMonth() + 1;
+      const diaAtual = hojeDt.getDate();
+      const diaFim = diaAtual + 14;
+
+      // Todas as queries independentes em paralelo
+      const [
+        inactive,
+        licResult,
+        planResult,
+        storeRows,
+        usersResult,
+        logsResult,
+        tmplsResult,
+        feriadosResult,
+        noticiasResult,
+        segmentQuotes,
+      ] = await Promise.all([
+        // 1. Lojas inativas
+        getInactiveStores(supabase, p.licensee_id),
+        // 2. expires_at do licensee
+        supabase.from("licensees").select("expires_at").eq("id", p.licensee_id).single(),
+        // 3. Plano completo
+        slug
+          ? supabase.from("plans").select("slug, name, max_users, max_posts_day").eq("slug", slug).single()
+          : Promise.resolve({ data: null as PlanFull | null, error: null }),
+        // 4. Stores (best-effort city/active, fallback id/name)
+        (async (): Promise<StoreRow[]> => {
+          const r = await supabase.from("stores").select("id, name, city, active").eq("licensee_id", p.licensee_id).order("name");
+          if (!r.error && r.data) return r.data as StoreRow[];
+          const { data } = await supabase.from("stores").select("id, name").eq("licensee_id", p.licensee_id).order("name");
+          return (data ?? []) as StoreRow[];
+        })(),
+        // 5. Usuários
+        supabase.from("profiles").select("id, name, email, role").eq("licensee_id", p.licensee_id).order("name"),
+        // 6. Activity logs do mês
+        supabase.from("activity_logs").select("id, metadata").gte("created_at", inicioMes.toISOString()).in("event_type", ["post_instagram", "post_scheduled"]).limit(500),
+        // 7. Templates
+        supabase.from("system_config").select("key").like("key", "tmpl_%").like("value", `%"licenseeId":"${p.licensee_id}"%`),
+        // 8. Feriados (1 ou 2 queries dependendo do mês)
+        (async (): Promise<DataComemorativa[]> => {
+          try {
+            if (diaFim <= 31) {
+              const { data: dc } = await supabase.from("datas_comemorativas").select("id, nome, data_mes, data_dia, tipo").eq("data_mes", mesAtual).gte("data_dia", diaAtual).lte("data_dia", diaFim).order("data_dia").limit(5);
+              return (dc ?? []) as DataComemorativa[];
+            }
+            const proxMes = mesAtual === 12 ? 1 : mesAtual + 1;
+            const [r1, r2] = await Promise.all([
+              supabase.from("datas_comemorativas").select("id, nome, data_mes, data_dia, tipo").eq("data_mes", mesAtual).gte("data_dia", diaAtual).order("data_dia").limit(5),
+              supabase.from("datas_comemorativas").select("id, nome, data_mes, data_dia, tipo").eq("data_mes", proxMes).lte("data_dia", diaFim - 31).order("data_dia").limit(5),
+            ]);
+            return [...((r1.data ?? []) as DataComemorativa[]), ...((r2.data ?? []) as DataComemorativa[])].slice(0, 5);
+          } catch { return []; }
+        })(),
+        // 9. Notícias
+        (async (): Promise<Noticia[]> => {
+          try {
+            const segmentName = SEGMENT_MAP[segmentId ?? ""] ?? "default";
+            const res = await fetch(`/api/noticias?segment=${segmentName}`);
+            if (res.ok) return (await res.json()) as Noticia[];
+          } catch { /* silent */ }
+          return [];
+        })(),
+        // 10. Frases do segmento (fallback sequencial interno)
+        (async (): Promise<string[] | null> => {
+          if (segmentId) {
+            const { data: seg } = await supabase.from("segments").select("quotes").eq("id", segmentId).single();
+            const arr = (seg as { quotes?: unknown } | null)?.quotes;
+            if (Array.isArray(arr) && arr.length > 0) return arr as string[];
+          }
+          const { data: outros } = await supabase.from("segments").select("quotes").eq("name", "Outros").single();
+          const arr = (outros as { quotes?: unknown } | null)?.quotes;
+          if (Array.isArray(arr) && arr.length > 0) return arr as string[];
+          return null;
+        })(),
+      ]);
+
+      // Aplica resultados
+      setInactiveStores(inactive);
+      if (licResult.data) setExpiresAt((licResult.data as { expires_at: string | null }).expires_at ?? null);
+      if (planResult.data) setPlanFull(planResult.data as PlanFull);
+
+      const { data: limits } = await supabase
+        .from("profiles")
+        .select("limit_stories, limit_feed, limit_reels, limit_tv")
+        .eq("id", p.id)
+        .single();
+      if (limits) setPostLimits({
+        stories: (limits as any).limit_stories ?? 0,
+        feed:    (limits as any).limit_feed    ?? 0,
+        reels:   (limits as any).limit_reels   ?? 0,
+        tv:      (limits as any).limit_tv      ?? 0,
+      });
+      setStores(storeRows);
+      setUsers((usersResult.data ?? []) as UserRow[]);
+
+      const allLogs = (logsResult.data ?? []) as { id: string; metadata: Record<string, unknown> | null }[];
       const doLic = allLogs.filter((l) => l.metadata?.licensee_id === p.licensee_id);
       setPostsMes(doLic.length);
+      const fmtCounts: Record<FmtKey, number> = { stories: 0, feed: 0, reels: 0, tv: 0 };
+      for (const l of doLic) {
+        const fmt = l.metadata?.format as FmtKey | undefined;
+        if (fmt && fmt in fmtCounts) fmtCounts[fmt]++;
+      }
+      setPostFormats(fmtCounts);
 
-      // Templates do canvas (system_config tmpl_* onde value contém licenseeId)
-      const { data: tmpls } = await supabase
-        .from("system_config")
-        .select("key")
-        .like("key", "tmpl_%")
-        .like("value", `%"licenseeId":"${p.licensee_id}"%`);
-      setTemplatesCount((tmpls ?? []).length);
+      setTemplatesCount((tmplsResult.data ?? []).length);
+      setDbFeriados(feriadosResult);
+      if (noticiasResult.length) setNoticias(noticiasResult);
+      setQuote(pickQuoteOfDay(segmentQuotes));
 
-      // Datas comemorativas próximos 14 dias
-      try {
-        const hojeDt = new Date();
-        const mesAtual = hojeDt.getMonth() + 1;
-        const diaAtual = hojeDt.getDate();
-        const diaFim = diaAtual + 14;
-        if (diaFim <= 31) {
-          const { data: dc } = await supabase
-            .from("datas_comemorativas")
-            .select("id, nome, data_mes, data_dia, tipo")
-            .eq("data_mes", mesAtual)
-            .gte("data_dia", diaAtual)
-            .lte("data_dia", diaFim)
-            .order("data_dia")
-            .limit(5);
-          setDbFeriados((dc ?? []) as DataComemorativa[]);
-        } else {
-          const { data: dc1 } = await supabase
-            .from("datas_comemorativas")
-            .select("id, nome, data_mes, data_dia, tipo")
-            .eq("data_mes", mesAtual)
-            .gte("data_dia", diaAtual)
-            .order("data_dia")
-            .limit(5);
-          const proxMes = mesAtual === 12 ? 1 : mesAtual + 1;
-          const { data: dc2 } = await supabase
-            .from("datas_comemorativas")
-            .select("id, nome, data_mes, data_dia, tipo")
-            .eq("data_mes", proxMes)
-            .lte("data_dia", diaFim - 31)
-            .order("data_dia")
-            .limit(5);
-          setDbFeriados([...((dc1 ?? []) as DataComemorativa[]), ...((dc2 ?? []) as DataComemorativa[])].slice(0, 5));
-        }
-      } catch { /* silent */ }
-
-      // Notícias do setor
-      try {
-        const segmentName = SEGMENT_MAP[segmentId ?? ""] ?? "default";
-        const res = await fetch(`/api/noticias?segment=${segmentName}`);
-        if (res.ok) {
-          const items = await res.json();
-          if (items.length) setNoticias(items);
-        }
-      } catch { /* silent */ }
     } catch (err) {
       console.error("[ClienteInicio] load:", err);
     } finally {
@@ -462,188 +441,153 @@ export default function ClienteInicioPage() {
 
       <InactivityAlert stores={inactiveStores} />
 
-      {/* ═══ KPI Row — Plano, Posts do mês, Templates ══ */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {/* Plano atual */}
-        <div className="card-glass px-5 py-5">
-          <div className="mb-3 flex items-start gap-4">
-            <div
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
-              style={{
-                background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-                border: "1px solid var(--bdr2)",
-                backdropFilter: "blur(8px)",
-                boxShadow: "0 0 24px rgba(255,122,26,0.22)",
-              }}
-            >
-              <BarChart3 size={22} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Plano atual</div>
-                <span
-                  className="rounded-full px-2 py-0.5 text-[0.55rem] font-bold"
-                  style={
-                    isActive
-                      ? { background: "var(--green3)", color: "var(--green)" }
-                      : { background: "var(--red3)", color: "var(--red)" }
-                  }
-                >
-                  {isActive ? "Ativo" : "Inativo"}
-                </span>
+      {/* ═══ Layout principal 3 colunas ══════════════════════════ */}
+      <div className="grid" style={{ gridTemplateColumns: "1fr 1.4fr 1.2fr", gap: "10px" }}>
+
+        {/* ── Col 1: 4 cards empilhados ─────────── */}
+        <div className="flex flex-col gap-2" style={{ minWidth: 0 }}>
+
+          {/* Plano atual */}
+          <div className="card-glass flex flex-col overflow-hidden">
+          <div className="py-2 px-3">
+            <div className="mb-3 flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]">
+                <BarChart3 size={22} />
               </div>
-              <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)]">
-                {planFull?.name || profile?.plan?.name || "—"}
-              </div>
-              <div className="mt-1 flex items-center gap-1 text-[11px] text-[var(--txt3)]">
-                <CalendarClock size={11} />
-                Vence em {formatDate(expiresAt)}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Plano atual</div>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[0.55rem] font-bold"
+                    style={
+                      isActive
+                        ? { background: "var(--green3)", color: "var(--green)" }
+                        : { background: "var(--red3)", color: "var(--red)" }
+                    }
+                  >
+                    {isActive ? "Ativo" : "Inativo"}
+                  </span>
+                </div>
+                <div className="font-[family-name:var(--font-dm-serif)] text-[1.5rem] font-bold leading-none text-[var(--txt)]">
+                  {planFull?.name || profile?.plan?.name || "—"}
+                </div>
+                <div className="mt-1 flex items-center gap-1 text-[11px] text-[var(--txt3)]">
+                  <CalendarClock size={11} />
+                  Vence em {formatDate(expiresAt)}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Barra de uso de usuários */}
-          {maxUsers !== null && maxUsers > 0 && (
-            <div>
-              <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--txt3)]">
-                <span>Usuários usados</span>
-                <span className="tabular-nums">{usersAnim} / {maxUsers}</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg2)]">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${usersUsedPct ?? 0}%`,
-                    background: (usersUsedPct ?? 0) > 90
-                      ? "var(--red)"
-                      : (usersUsedPct ?? 0) > 70
-                        ? "var(--orange)"
-                        : "linear-gradient(90deg, var(--orange), var(--gold))",
-                  }}
-                />
-              </div>
-              {users.length >= maxUsers && (
-                <div className="mt-1.5 text-xs" style={{ color: "var(--red)" }}>⚠️ Limite atingido — entre em contato com o suporte</div>
-              )}
-            </div>
-          )}
-          {maxUsers === -1 && (
-            <div className="text-[11px] text-[var(--txt3)]">Usuários ilimitados</div>
-          )}
-        </div>
-
-        {/* Posts do mês */}
-        <div className="card-glass flex items-center gap-4 px-5 py-5">
-          <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
-            style={{
-              background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid var(--bdr2)",
-              backdropFilter: "blur(8px)",
-              boxShadow: "0 0 24px rgba(255,122,26,0.22)",
-            }}
-          >
-            <BarChart3 size={22} />
-          </div>
-          <div>
-            <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts do mês</div>
-            <div className="font-[family-name:var(--font-dm-serif)] text-4xl font-bold leading-none text-[var(--txt)] tabular-nums">
-              {postsMesAnim}
-            </div>
-            <div className="mt-1.5 text-[11px] text-[var(--txt3)]">Publicações de todas as unidades</div>
-          </div>
-        </div>
-
-        {/* Templates disponíveis */}
-        <div className="card-glass flex items-center gap-4 px-5 py-5">
-          <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]"
-            style={{
-              background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-              border: "1px solid var(--bdr2)",
-              backdropFilter: "blur(8px)",
-              boxShadow: "0 0 24px rgba(255,122,26,0.22)",
-            }}
-          >
-            <FileText size={22} />
-          </div>
-          <div>
-            <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Templates</div>
-            <div className="font-[family-name:var(--font-dm-serif)] text-4xl font-bold leading-none text-[var(--txt)] tabular-nums">
-              {templatesAnim}
-            </div>
-            <div className="mt-1.5 text-[11px] text-[var(--txt3)]">Disponíveis para publicação</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ═══ Contadores de Posts por Formato ══════════════════ */}
-      {profile?.id && (
-        <div className="card-glass px-6 py-4">
-          <div className="mb-3 text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">
-            Posts do mês por formato
-          </div>
-          <PostCounters userId={profile.id} />
-        </div>
-      )}
-
-      {/* ═══ Unidades + Usuários + Notícias ══════════════════════ */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {/* ── Unidades ──────────────────────────── */}
-        <div className="card-glass flex flex-col">
-          <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
-            <div className="flex items-center gap-2">
-              <Store size={15} className="text-[var(--orange)]" />
-              <h3 className="text-[14px] font-bold text-[var(--txt)]">Unidades</h3>
-              <span className="rounded-full bg-[var(--green3)] px-2 py-0.5 text-[0.55rem] font-bold text-[var(--green)]">
-                {unidadesAnim} ativa{unidadesAtivas === 1 ? "" : "s"}
-              </span>
-            </div>
-            <Link
-              href="/clientes"
-              className="flex items-center gap-1 text-[11px] font-semibold text-[var(--orange)] hover:underline"
-            >
-              Gerenciar <ArrowRight size={11} />
-            </Link>
-          </div>
-          <div className="p-5">
-            {stores.length === 0 ? (
-              <div className="py-6 text-center text-[12px] text-[var(--txt3)]">Nenhuma unidade cadastrada.</div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {stores.map((s) => {
-                  const ativo = s.active !== false;
-                  return (
-                    <div key={s.id} className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-3 py-2">
-                      <div className="min-w-0">
-                        <div className="truncate text-[12px] font-medium text-[var(--txt)]">{s.name}</div>
-                        {s.city && <div className="truncate text-[10px] text-[var(--txt3)]">{s.city}</div>}
-                      </div>
-                      <span
-                        className="ml-2 shrink-0 rounded-full px-2 py-0.5 text-[0.55rem] font-bold"
-                        style={
-                          ativo
-                            ? { background: "var(--green3)", color: "var(--green)" }
-                            : { background: "var(--red3)", color: "var(--red)" }
-                        }
-                      >
-                        {ativo ? "Ativa" : "Inativa"}
-                      </span>
-                    </div>
-                  );
-                })}
+            {/* Barra de uso de usuários */}
+            {maxUsers !== null && maxUsers > 0 && (
+              <div>
+                <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--txt3)]">
+                  <span>Usuários usados</span>
+                  <span className="tabular-nums">{usersAnim} / {maxUsers}</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg2)]">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${usersUsedPct ?? 0}%`,
+                      background: (usersUsedPct ?? 0) > 90
+                        ? "var(--red)"
+                        : (usersUsedPct ?? 0) > 70
+                          ? "var(--orange)"
+                          : "linear-gradient(90deg, var(--orange), var(--gold))",
+                    }}
+                  />
+                </div>
+                {users.length >= maxUsers && (
+                  <div className="mt-1.5 text-xs" style={{ color: "var(--red)" }}>⚠️ Limite atingido — entre em contato com o suporte</div>
+                )}
               </div>
             )}
+
+            {/* Breakdown por formato */}
+            <div className="mt-3 grid grid-cols-4 border-t border-[var(--bdr)] pt-3">
+              {([
+                { key: "stories" as FmtKey, label: "Stories", color: "#3B9EFF" },
+                { key: "feed"    as FmtKey, label: "Feed",    color: "#F59E0B" },
+                { key: "reels"   as FmtKey, label: "Reels",   color: "#10B981" },
+                { key: "tv"      as FmtKey, label: "TV",      color: "#8B5CF6" },
+              ]).map(({ key, label, color }) => {
+                const ilimitado = postLimits[key] === 0;
+                return (
+                  <div key={key} className="flex flex-col items-center">
+                    <span style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1, color }}>
+                      {ilimitado ? "∞" : String(postLimits[key])}
+                    </span>
+                    <span style={{ fontSize: "10px", letterSpacing: ".8px", color: "var(--txt3)" }}>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+          </div>
+
+          {/* Posts do mês */}
+          <div className="card-glass flex flex-col overflow-hidden">
+          <div className="flex items-center gap-4 py-2 px-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]">
+              <BarChart3 size={22} />
+            </div>
+            <div>
+              <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Posts do mês</div>
+              <div className="font-[family-name:var(--font-dm-serif)] text-4xl font-bold leading-none text-[var(--txt)] tabular-nums">
+                {postsMesAnim}
+              </div>
+              <div className="mt-1.5 text-[11px] text-[var(--txt3)]">Publicações de todas as unidades</div>
+            </div>
+          </div>
+          </div>
+
+          {/* Templates disponíveis */}
+          <div className="card-glass flex flex-col overflow-hidden">
+          <div className="flex items-center gap-4 py-2 px-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]">
+              <FileText size={22} />
+            </div>
+            <div>
+              <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Templates</div>
+              <div className="font-[family-name:var(--font-dm-serif)] text-4xl font-bold leading-none text-[var(--txt)] tabular-nums">
+                {templatesAnim}
+              </div>
+              <div className="mt-1.5 text-[11px] text-[var(--txt3)]">Disponíveis para publicação</div>
+            </div>
+          </div>
+          </div>
+
+          {/* Unidades */}
+          <div className="card-glass flex flex-col overflow-hidden">
+          <div className="flex items-center gap-4 py-2 px-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[var(--orange)]">
+              <Store size={22} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Unidades</div>
+              <div className="font-[family-name:var(--font-dm-serif)] text-4xl font-bold leading-none text-[var(--txt)] tabular-nums">
+                {unidadesAnim}
+              </div>
+              <div className="mt-1.5 truncate text-[11px] text-[var(--txt3)]">
+                {stores.map(s => s.name).join(' · ') || 'Nenhuma unidade'}
+              </div>
+            </div>
+          </div>
+          </div>
+
         </div>
 
-        {/* ── Próximos feriados ──────────────────── */}
-        <FeriadosCard feriados={proximosFeriados} />
+        {/* ── Col 2: FeriadosCard ────────────────── */}
+        <div className="self-start" style={{ minWidth: 0 }}>
+          <FeriadosCard feriados={proximosFeriados} />
+        </div>
 
-        {/* ── Notícias do setor ─────────────────── */}
-        <div className="self-start">
+        {/* ── Col 3: NewsCard ───────────────────── */}
+        <div className="self-start" style={{ minWidth: "280px" }}>
           <NewsCard news={noticias} />
         </div>
+
       </div>
     </div>
   );

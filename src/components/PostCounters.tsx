@@ -77,7 +77,7 @@ export function PostCounters({ userId, className = "" }: PostCountersProps) {
           <div key={x.l} style={{ textAlign: "center" }}>
             <div
               style={{
-                fontSize: "14px",
+                fontSize: "21px",
                 fontWeight: 800,
                 color: x.c,
                 lineHeight: 1,

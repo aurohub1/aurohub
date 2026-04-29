@@ -12,7 +12,7 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 )
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+let resend: Resend
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -388,6 +388,7 @@ function renderAdminEmail(reports: LicenseeReport[], monthName: string): string 
 // ─── Handler Principal ────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
+  resend = new Resend(process.env.RESEND_API_KEY!)
   // Verificar autorização
   const cronHeader = request.headers.get('x-vercel-cron')
   const authHeader = request.headers.get('authorization')

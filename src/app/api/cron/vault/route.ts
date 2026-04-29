@@ -286,7 +286,7 @@ async function enviarEmail(relatorio: Record<string, unknown>): Promise<boolean>
       headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'Aurohub <noreply@aurovista.com.br>',
-        to: ['duane@aurovista.com.br'],
+        to: ['contato@aurovista.com.br'],
         subject: `🔐 Aurohub — Saúde do Sistema: ${scoreGeral}/100`,
         html,
       })

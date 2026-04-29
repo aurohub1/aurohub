@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 
 export interface FeriadoItem { nome: string; data: string; } // data = YYYY-MM-DD
 
@@ -12,84 +11,6 @@ function daysUntil(iso: string): number {
 }
 
 function pad(n: number): string { return String(n).padStart(2, "0"); }
-
-/* ── Mini Calendar ─────────────────────────────── */
-
-const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
-const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
-function MiniCalendar({ feriados }: { feriados: FeriadoItem[] }) {
-  const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
-
-  const feriadoSet = useMemo(() => {
-    const s = new Set<string>();
-    for (const f of feriados) s.add(f.data);
-    return s;
-  }, [feriados]);
-
-  const feriadoMap = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const f of feriados) m.set(f.data, f.nome);
-    return m;
-  }, [feriados]);
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-  const todayISO = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-
-  function prev() {
-    if (month === 0) { setMonth(11); setYear(y => y - 1); }
-    else setMonth(m => m - 1);
-  }
-  function next() {
-    if (month === 11) { setMonth(0); setYear(y => y + 1); }
-    else setMonth(m => m + 1);
-  }
-
-  return (
-    <div className="px-4 py-3">
-      <div className="mb-2 flex items-center justify-between">
-        <button type="button" onClick={prev} className="rounded p-0.5 text-[var(--txt3)] hover:text-[var(--txt)]"><ChevronLeft size={14} /></button>
-        <span className="text-[11px] font-bold text-[var(--txt)]">{MONTH_NAMES[month]} {year}</span>
-        <button type="button" onClick={next} className="rounded p-0.5 text-[var(--txt3)] hover:text-[var(--txt)]"><ChevronRight size={14} /></button>
-      </div>
-      <div className="grid grid-cols-7 gap-px text-center">
-        {WEEKDAYS.map((w, i) => (
-          <div key={i} className="py-0.5 text-[8px] font-bold uppercase text-[var(--txt3)]">{w}</div>
-        ))}
-        {cells.map((d, i) => {
-          if (d === null) return <div key={`e${i}`} />;
-          const iso = `${year}-${pad(month + 1)}-${pad(d)}`;
-          const isToday = iso === todayISO;
-          const isFeriado = feriadoSet.has(iso);
-          const nome = feriadoMap.get(iso);
-          return (
-            <div
-              key={iso}
-              title={nome || undefined}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] tabular-nums mx-auto"
-              style={
-                isFeriado
-                  ? { background: "var(--orange)", color: "#fff", fontWeight: 700 }
-                  : isToday
-                    ? { background: "var(--blue)", color: "#fff", fontWeight: 700 }
-                    : { color: "var(--txt2)" }
-              }
-            >
-              {d}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 /* ── Main Card ─────────────────────────────────── */
 
@@ -108,11 +29,8 @@ export default function FeriadosCard({ feriados }: { feriados: FeriadoItem[] }) 
         </span>
       </div>
 
-      {/* Mini calendar */}
-      <MiniCalendar feriados={feriados} />
-
       {/* List */}
-      <div className="flex flex-col gap-2 border-t border-[var(--bdr)] p-4">
+      <div className="flex flex-col gap-2 p-4">
         {next5.length === 0 ? (
           <div className="py-2 text-center text-[12px] text-[var(--txt3)]">
             Sem feriados próximos.

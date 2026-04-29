@@ -10,7 +10,7 @@ interface Post {
   id: string;
   created_at: string;
   destino: string;
-  formato: "stories" | "feed" | "reels" | "tv";
+  formato: "stories" | "feed" | "reels" | "tv" | "download";
   template_nome?: string;
   tipo?: string;
 }
@@ -20,6 +20,7 @@ const FORMAT_LABELS: Record<string, string> = {
   feed: "Feed",
   reels: "Reels",
   tv: "TV",
+  download: "Download",
 };
 
 const FORMAT_ICONS: Record<string, any> = {
@@ -27,6 +28,7 @@ const FORMAT_ICONS: Record<string, any> = {
   feed: Square,
   reels: Video,
   tv: BarChart2,
+  download: Download,
 };
 
 const FORMAT_COLORS: Record<string, string> = {
@@ -34,6 +36,7 @@ const FORMAT_COLORS: Record<string, string> = {
   feed: "bg-blue-100 text-blue-700",
   reels: "bg-pink-100 text-pink-700",
   tv: "bg-orange-100 text-orange-700",
+  download: "bg-slate-100 text-slate-700",
 };
 
 const CHART_COLORS: Record<string, string> = {
@@ -41,6 +44,7 @@ const CHART_COLORS: Record<string, string> = {
   feed: "#3b82f6",
   reels: "#ec4899",
   tv: "#f97316",
+  download: "#64748B",
 };
 
 const TIPO_LABELS: Record<string, string> = {
@@ -60,6 +64,8 @@ export default function GerenteResumoPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedTipo, setSelectedTipo] = useState<string>("all");
   const [selectedFormato, setSelectedFormato] = useState<string>("all");
+  const [selectedPeriodo, setSelectedPeriodo] = useState<"7" | "30" | "90">("30");
+  const [selectedStatus, setSelectedStatus] = useState<"all" | "publicado" | "download">("all");
 
   useEffect(() => {
     loadData();
@@ -156,7 +162,7 @@ export default function GerenteResumoPage() {
     const weeksInMonth = Math.ceil(daysInMonth / 7);
 
     for (let i = 1; i <= weeksInMonth; i++) {
-      weeks[`Sem ${i}`] = { name: `Sem ${i}`, stories: 0, feed: 0, reels: 0, tv: 0 };
+      weeks[`Sem ${i}`] = { name: `Sem ${i}`, stories: 0, feed: 0, reels: 0, tv: 0, download: 0 };
     }
 
     filteredPosts.forEach((post) => {
@@ -246,17 +252,73 @@ export default function GerenteResumoPage() {
         ) : (
           <>
             {/* Filtros */}
-            <div className="mt-6 flex flex-col gap-4 no-print">
-              {/* Filtros pills */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium" style={{ color: "var(--txt2)" }}>Formato:</span>
-                {["all", "stories", "feed", "reels"].map((fmt) => (
+            <div className="mt-6 no-print" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+
+              {/* Linha 1: Período + Status */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--txt3)", minWidth: "50px" }}>
+                  Período
+                </span>
+                {(["7", "30", "90"] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setSelectedPeriodo(p)}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: selectedPeriodo === p ? "1.5px solid var(--brand-primary)" : "1px solid var(--bdr)",
+                      background: selectedPeriodo === p ? "var(--brand-primary)" : "transparent",
+                      color: selectedPeriodo === p ? "#fff" : "var(--txt2)",
+                    }}
+                  >
+                    {p} dias
+                  </button>
+                ))}
+                <div style={{ width: "1px", height: "16px", background: "var(--bdr)", margin: "0 4px", flexShrink: 0 }} />
+                {([
+                  { key: "all",       label: "Todos"     },
+                  { key: "publicado", label: "Publicado" },
+                  { key: "download",  label: "Download"  },
+                ] as const).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedStatus(key)}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: selectedStatus === key ? "1.5px solid var(--brand-primary)" : "1px solid var(--bdr)",
+                      background: selectedStatus === key ? "var(--brand-primary)" : "transparent",
+                      color: selectedStatus === key ? "#fff" : "var(--txt2)",
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Linha 2: Formato */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--txt3)", minWidth: "50px" }}>
+                  Formato
+                </span>
+                {["all", "stories", "reels", "feed", "tv"].map((fmt) => (
                   <button
                     key={fmt}
                     onClick={() => setSelectedFormato(fmt)}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
                     style={{
-                      background: selectedFormato === fmt ? "var(--brand-primary)" : "var(--bg2)",
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: selectedFormato === fmt ? "1.5px solid var(--brand-primary)" : "1px solid var(--bdr)",
+                      background: selectedFormato === fmt ? "var(--brand-primary)" : "transparent",
                       color: selectedFormato === fmt ? "#fff" : "var(--txt2)",
                     }}
                   >
@@ -265,20 +327,6 @@ export default function GerenteResumoPage() {
                 ))}
               </div>
 
-              {/* Filtro tipo */}
-              <div className="flex items-center gap-3">
-                <select
-                  value={selectedTipo}
-                  onChange={(e) => setSelectedTipo(e.target.value)}
-                  className="h-9 rounded-lg px-3 text-sm"
-                  style={{ background: "var(--bg2)", border: "1px solid var(--bdr)", color: "var(--txt)" }}
-                >
-                  <option value="all">Todos os tipos</option>
-                  {Object.entries(TIPO_LABELS).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </div>
             </div>
 
             {/* Métricas */}
@@ -340,6 +388,7 @@ export default function GerenteResumoPage() {
                   <Bar dataKey="feed" name="Feed" fill={CHART_COLORS.feed} />
                   <Bar dataKey="reels" name="Reels" fill={CHART_COLORS.reels} />
                   <Bar dataKey="tv" name="TV" fill={CHART_COLORS.tv} />
+                  <Bar dataKey="download" name="Download" fill={CHART_COLORS.download} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

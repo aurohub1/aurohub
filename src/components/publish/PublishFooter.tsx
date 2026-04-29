@@ -18,6 +18,8 @@ interface PublishFooterProps {
   onPublishDrive: () => void;
   onClear: () => void;
   onDownload: () => void;
+  canPublish?: boolean;
+  canDownload?: boolean;
 }
 
 export function PublishFooter({
@@ -35,6 +37,8 @@ export function PublishFooter({
   onPublishDrive,
   onClear,
   onDownload,
+  canPublish = true,
+  canDownload = true,
 }: PublishFooterProps) {
   return (
     <div
@@ -120,8 +124,8 @@ export function PublishFooter({
         <button
           onClick={onClear}
           style={{
-            flex: 1,
-            padding: "8px",
+            flex: canDownload ? 1 : "unset",
+            padding: "8px 14px",
             borderRadius: "8px",
             border: "1px solid var(--bdr2)",
             background: "transparent",
@@ -135,25 +139,27 @@ export function PublishFooter({
           <Trash2 size={12} style={{ display: "inline", marginRight: "4px" }} />
           Limpar
         </button>
-        <button
-          onClick={onDownload}
-          style={{
-            flex: 1,
-            padding: "8px",
-            borderRadius: "8px",
-            border: "1px solid var(--bdr2)",
-            background: "transparent",
-            color: "var(--txt3)",
-            fontSize: "11px",
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-          }}
-        >
-          ⬇ Download
-        </button>
+        {canDownload && (
+          <button
+            onClick={onDownload}
+            style={{
+              flex: 1,
+              padding: "8px",
+              borderRadius: "8px",
+              border: "1px solid var(--bdr2)",
+              background: "transparent",
+              color: "var(--txt3)",
+              fontSize: "11px",
+              fontWeight: 600,
+              cursor: "pointer",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            }}
+          >
+            ⬇ Download
+          </button>
+        )}
       </div>
-      {format !== "tv" && (
+      {canPublish && format !== "tv" && (
         <>
           <button
             onClick={onPublish}
