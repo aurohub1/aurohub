@@ -139,30 +139,31 @@ export default function AdmMetricasPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mt-6">
-            <MetricCard label="Publicações hoje"  value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
-            <MetricCard label="Esta semana"        value={kpis.week}           icon={<CalendarDays size={18} />} accent="green"  />
-            <MetricCard label="Este mês"           value={kpis.month}          icon={<CalendarDays size={18} />} accent="orange" />
-            <MetricCard label="Downloads (30d)"    value={kpis.downloadsMonth} icon={<Download size={18} />}     accent="gold"   />
-            <MetricCard label="Plataforma (30d)"   value={kpis.platformMonth}  icon={<Globe2 size={18} />}       accent="blue"   />
-          </div>
-
-          <div className="mt-6">
-            <FiltersBar
-              periodo={periodo} onPeriodoChange={setPeriodo}
-              formato={formato} onFormatoChange={setFormato}
-              tipo={tipo} onTipoChange={setTipo}
-              extra={extraFilters}
-            />
-          </div>
-
-          <div className="flex flex-col lg:flex-row gap-4 mt-4">
-            <div className="flex-1 min-w-0">
-              <BarsByDay rows={filtered} days={periodo} />
+          <div className="grid grid-cols-[auto_1fr_auto] gap-3 mt-6">
+            {/* Col 1: KPIs empilhados */}
+            <div className="flex flex-col gap-2" style={{ minWidth: 180 }}>
+              <MetricCard label="Publicações hoje"  value={kpis.today}          icon={<Rocket size={18} />}       accent="blue"   />
+              <MetricCard label="Esta semana"        value={kpis.week}           icon={<CalendarDays size={18} />} accent="green"  />
+              <MetricCard label="Este mês"           value={kpis.month}          icon={<CalendarDays size={18} />} accent="orange" />
+              <MetricCard label="Downloads (30d)"    value={kpis.downloadsMonth} icon={<Download size={18} />}     accent="gold"   />
+              <MetricCard label="Plataforma (30d)"   value={kpis.platformMonth}  icon={<Globe2 size={18} />}       accent="blue"   />
             </div>
-            <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-4">
+
+            {/* Col 2: Gráfico + Atividade */}
+            <div className="flex flex-col gap-4">
+              <BarsByDay rows={filtered} days={periodo} />
               <ActivityFeed rows={filtered} />
+            </div>
+
+            {/* Col 3: Pizza + Filtros */}
+            <div className="flex flex-col gap-2" style={{ minWidth: 220 }}>
               <PieByFormat rows={filtered} />
+              <FiltersBar
+                periodo={periodo} onPeriodoChange={setPeriodo}
+                formato={formato} onFormatoChange={setFormato}
+                tipo={tipo} onTipoChange={setTipo}
+                extra={extraFilters}
+              />
             </div>
           </div>
 
