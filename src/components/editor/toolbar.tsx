@@ -18,6 +18,7 @@ interface Props {
   onHistory?: () => void;
   onSaveComponent?: () => void; canSaveComponent?: boolean;
   onNew?: () => void;
+  autoSaveStatus?: "saved" | "saving" | "idle";
 }
 
 export default function Toolbar(p: Props) {
@@ -84,6 +85,12 @@ export default function Toolbar(p: Props) {
         {p.onSave && <button onClick={p.onSave} disabled={p.saving} title="Salvar template" style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", opacity: p.saving ? 0.5 : 1, display: "flex", alignItems: "center", gap: 4 }}>
           <Save size={12} />{p.saving ? "..." : "Salvar"}
         </button>}
+        {p.autoSaveStatus === "saving" && (
+          <span style={{ fontSize: 9, color: "var(--ed-txt3)" }}>Salvando...</span>
+        )}
+        {p.autoSaveStatus === "saved" && (
+          <span style={{ fontSize: 9, color: "#22C55E" }}>✓ Salvo</span>
+        )}
       </div>
     </header>
   );

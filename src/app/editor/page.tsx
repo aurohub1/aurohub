@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
@@ -46,6 +46,9 @@ function EditorInner() {
   const [loadedThumbnail, setLoadedThumbnail] = useState<string | null>(null);
   const [loadedAccessSelections, setLoadedAccessSelections] = useState<Map<string, Set<string>>>(new Map());
   const [isAdm, setIsAdm] = useState(false);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | "idle">("idle");
+  const persistSchemaRef = useRef<(() => Promise<void>) | null>(null);
   const FMTS: Record<string, [number,number]> = { stories: [1080,1920], reels: [1080,1920], feed: [1080,1350], tv: [1920,1080] };
   const [cW, cH] = FMTS[format] || [1080, 1920];
 
@@ -124,6 +127,43 @@ function EditorInner() {
     document.documentElement.setAttribute("data-theme", saved || "light");
   }, []);
 
+  const persistSchema = useCallback(async () => {
+    if (!templateId) return;
+    const key = `tmpl_${templateId}`;
+    const payload = {
+      ...schema, width: cW, height: cH,
+      format, formType, qtdDestinos,
+      nome: loadedNome,
+      licenseeId: loadedLicenseeId,
+      lojaId: loadedLojaId,
+      licenseeNome: loadedLicenseeNome,
+      lojaNome: loadedLojaNome,
+      thumbnail: loadedThumbnail,
+    };
+    await supabase.from("system_config").upsert({
+      key,
+      value: JSON.stringify(payload),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "key" });
+  }, [templateId, schema, cW, cH, format, formType, qtdDestinos, loadedNome, loadedLicenseeId, loadedLojaId, loadedLicenseeNome, loadedLojaNome, loadedThumbnail]);
+
+  persistSchemaRef.current = persistSchema;
+
+  const triggerAutoSave = useCallback(() => {
+    if (!templateId) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    setAutoSaveStatus("saving");
+    autoSaveTimer.current = setTimeout(async () => {
+      try { await persistSchemaRef.current?.(); } catch { /* silent */ }
+      setAutoSaveStatus("saved");
+      setTimeout(() => setAutoSaveStatus("idle"), 2000);
+    }, 2000);
+  }, [templateId]);
+
+  useEffect(() => {
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  }, []);
+
   if (loading) return <LoadingScreen text="Carregando template..." />;
 
   return (
@@ -139,7 +179,8 @@ function EditorInner() {
         qtdDestinos={qtdDestinos}
         onQtdDestinosChange={setQtdDestinos}
         schema={schema}
-        onChange={setSchema}
+        onChange={(s) => { setSchema(s); triggerAutoSave(); }}
+        autoSaveStatus={autoSaveStatus}
         saving={saving}
         templateId={templateId}
         variantsEnabled={variantsEnabled}

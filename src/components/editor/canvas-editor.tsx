@@ -33,9 +33,10 @@ interface CanvasEditorProps {
   onSaveVariants?: (variants: { format: string; width: number; height: number; schema: EditorSchema }[]) => void;
   onNew?: () => void;
   isAdm?: boolean;
+  autoSaveStatus?: "saved" | "saving" | "idle";
 }
 
-export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onNew, isAdm }: CanvasEditorProps) {
+export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onNew, isAdm, autoSaveStatus }: CanvasEditorProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -403,6 +404,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         onHistory={templateId ? () => setShowHistory(true) : undefined}
         onSaveComponent={() => setShowSaveComponent(true)} canSaveComponent={selectedIds.length > 0}
         onNew={onNew}
+        autoSaveStatus={autoSaveStatus}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
