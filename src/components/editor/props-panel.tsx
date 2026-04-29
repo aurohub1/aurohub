@@ -208,7 +208,10 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
       {/* ═══ 3. TIPOGRAFIA ═══ */}
       {s.type === "text" && (
         <Sec t="Tipografia">
+          {/* 1. Conteúdo */}
           <F l="Conteúdo"><textarea value={s.text || ""} onChange={e => u({ text: e.target.value })} rows={3} style={{ ...inpS, height: "auto", resize: "vertical", padding: "6px 8px" }} /></F>
+
+          {/* 2. Fonte + Tamanho + Peso */}
           <F l="Fonte"><select value={s.fontFamily && s.fontStyle && s.fontStyle.match(/^\d+$/) ? `Helvetica Neue ${({"100":"Thin","300":"Light","400":"","500":"Medium","700":"Bold","800":"Heavy","900":"Black"} as Record<string,string>)[s.fontStyle] || ""}`.trim() || s.fontFamily : (s.fontFamily || FONTS[0])} onChange={e => {
             const picked = e.target.value;
             const spec = resolveFontSpec(picked);
@@ -244,9 +247,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
               </select>
             </F>
           </G2>
-          <F l="Cor texto"><FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
-          <F l="Split R$"><input type="checkbox" checked={!!s.priceDisplay} onChange={e => u({ priceDisplay: e.target.checked })} /></F>
-          <F l="Ocultar vazio"><input type="checkbox" checked={!!s.hideIfEmpty} onChange={e => u({ hideIfEmpty: e.target.checked })} /></F>
+
+          {/* 3. Formatação — B U S + transform Aa AA aa Ab */}
           <div style={{ display: "flex", gap: 3 }}>
             <AlBtn
               active={
@@ -283,6 +285,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
               </button>
             ))}
           </div>
+
+          {/* 4. Alinhamento */}
           <div style={{ display: "flex", gap: 3 }}>
             {(["left","center","right","justify"] as const).map(a => (
               <AlBtn key={a} active={s.align === a} onClick={() => u({ align: a })}>
@@ -290,14 +294,33 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
               </AlBtn>
             ))}
           </div>
+
+          {/* 5. Cor */}
+          <F l="Cor texto"><FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
+
+          {/* 6. Espaçamento */}
           <G2><F l="Letter"><Num v={s.letterSpacing || 0} c={v => u({ letterSpacing: v })} /></F><F l="Line H"><Num v={s.lineHeight || 1.2} c={v => u({ lineHeight: v })} step={0.1} /></F></G2>
-          <F l="Linhas">
+          <F l="Linhas máx">
             <Num v={s.linhas || 0} min={0} max={20} c={v => u({ linhas: v || undefined })} />
           </F>
+
+          {/* 7. Stroke */}
           <G2>
             <F l="Stroke cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
             <F l="Stroke W"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} min={0} /></F>
           </G2>
+
+          {/* 8. Comportamento */}
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--ed-txt2)", cursor: "pointer" }}>
+              <input type="checkbox" checked={!!s.priceDisplay} onChange={e => u({ priceDisplay: e.target.checked })} />
+              Split R$
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--ed-txt2)", cursor: "pointer" }}>
+              <input type="checkbox" checked={!!s.hideIfEmpty} onChange={e => u({ hideIfEmpty: e.target.checked })} />
+              Ocultar vazio
+            </label>
+          </div>
         </Sec>
       )}
 
