@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
 interface Config {
@@ -9,6 +9,9 @@ interface Config {
   scheduledEnd: string | null;
   scheduledStart: string | null;
   bannerHours: number;
+  musicUrl: string | null;
+  musicVolume: number;
+  musicEnabled: boolean;
 }
 
 function toLocalInput(iso: string | null): string {
@@ -45,7 +48,13 @@ export default function ManutencaoAdmPage() {
     scheduledEnd: null,
     scheduledStart: null,
     bannerHours: 2,
+    musicUrl: null,
+    musicVolume: 0.5,
+    musicEnabled: false,
   });
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmOn, setConfirmOn] = useState(false);
   const [saved, setSaved] = useState("");
@@ -99,6 +108,51 @@ export default function ManutencaoAdmPage() {
     await upsert("maintenance_banner_hours", String(cfg.bannerHours));
     flash("Configuração salva.");
     setSaving(false);
+  }
+
+  async function saveMusic() {
+    setSaving(true);
+    await upsert("maintenance_music_enabled", String(cfg.musicEnabled));
+    await upsert("maintenance_music_url", cfg.musicUrl ?? "null");
+    await upsert("maintenance_music_volume", String(cfg.musicVolume));
+    flash("Música salva.");
+    setSaving(false);
+  }
+
+  async function uploadAudio(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("upload_preset", "aurohub17");
+      fd.append("folder", "aurohubv2/manutencao");
+      const res = await fetch(
+        "https://api.cloudinary.com/v1_1/dxgj4bcch/video/upload",
+        { method: "POST", body: fd }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error?.message || "Upload falhou");
+      setCfg(c => ({ ...c, musicUrl: data.secure_url }));
+    } catch (err) {
+      flash(`Erro: ${err instanceof Error ? err.message : "upload falhou"}`);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function togglePreview() {
+    if (!cfg.musicUrl) return;
+    if (previewPlaying && previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      setPreviewPlaying(false);
+      return;
+    }
+    const audio = new Audio(cfg.musicUrl);
+    audio.volume = cfg.musicVolume;
+    audio.play().catch(() => {});
+    previewAudioRef.current = audio;
+    setPreviewPlaying(true);
+    audio.onended = () => setPreviewPlaying(false);
   }
 
   const cardStyle: React.CSSProperties = {
@@ -308,6 +362,95 @@ export default function ManutencaoAdmPage() {
         </div>
 
         <button onClick={saveBanner} disabled={saving} style={btnPrimary}>Salvar configuração</button>
+      </div>
+
+      {/* 5. MÚSICA */}
+      <div style={{ ...cardStyle, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <p style={{ ...labelStyle, marginBottom: 0 }}>Música de fundo</p>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <span style={{ fontSize: 11, color: "rgba(200,210,255,0.5)" }}>
+              {cfg.musicEnabled ? "Ativada" : "Desativada"}
+            </span>
+            <div
+              onClick={() => setCfg(c => ({ ...c, musicEnabled: !c.musicEnabled }))}
+              style={{
+                width: 36, height: 20, borderRadius: 10,
+                background: cfg.musicEnabled ? "#D4A843" : "rgba(255,255,255,0.1)",
+                position: "relative", cursor: "pointer", transition: "background .2s",
+              }}
+            >
+              <div style={{
+                position: "absolute", top: 3,
+                left: cfg.musicEnabled ? 18 : 3,
+                width: 14, height: 14, borderRadius: "50%",
+                background: "#fff", transition: "left .2s",
+              }} />
+            </div>
+          </label>
+        </div>
+
+        {/* URL ou upload */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ ...labelStyle, marginBottom: 6 }}>URL do áudio (mp3, ogg)</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type="url"
+              placeholder="https://..."
+              value={cfg.musicUrl ?? ""}
+              onChange={e => setCfg(c => ({ ...c, musicUrl: e.target.value || null }))}
+              style={{ ...inputStyle }}
+            />
+            <label style={{
+              ...btnGhost,
+              cursor: uploading ? "not-allowed" : "pointer",
+              opacity: uploading ? 0.6 : 1,
+              whiteSpace: "nowrap",
+              display: "inline-flex",
+              alignItems: "center",
+            }}>
+              {uploading ? "Enviando..." : "Upload"}
+              <input
+                type="file"
+                accept="audio/*"
+                style={{ display: "none" }}
+                onChange={e => { if (e.target.files?.[0]) uploadAudio(e.target.files[0]); }}
+                disabled={uploading}
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* Volume */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ ...labelStyle, marginBottom: 6 }}>Volume</label>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <input
+              type="range" min={0} max={1} step={0.05}
+              value={cfg.musicVolume}
+              onChange={e => {
+                const v = +e.target.value;
+                setCfg(c => ({ ...c, musicVolume: v }));
+                if (previewAudioRef.current) previewAudioRef.current.volume = v;
+              }}
+              style={{ flex: 1, accentColor: "#D4A843" }}
+            />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#D4A843", minWidth: 36, textAlign: "right" }}>
+              {Math.round(cfg.musicVolume * 100)}%
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={saveMusic} disabled={saving} style={btnPrimary}>Salvar música</button>
+          <button
+            onClick={togglePreview}
+            disabled={!cfg.musicUrl}
+            style={{ ...btnGhost, opacity: cfg.musicUrl ? 1 : 0.4 }}
+          >
+            {previewPlaying ? "⏸ Pausar" : "▶ Testar"}
+          </button>
+        </div>
       </div>
     </div>
   );

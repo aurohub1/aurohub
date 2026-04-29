@@ -9,6 +9,9 @@ interface Status {
   active: boolean;
   message: string;
   scheduledEnd: string | null;
+  musicUrl: string | null;
+  musicVolume: number;
+  musicEnabled: boolean;
 }
 
 function useCountdown(target: string | null) {
@@ -54,6 +57,8 @@ export default function ManutencaoPage() {
   const router = useRouter();
   const [status, setStatus] = useState<Status | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [muted, setMuted] = useState(false);
   const diff = useCountdown(status?.scheduledEnd ?? null);
 
   // If ADM: redirect to home immediately
@@ -80,6 +85,46 @@ export default function ManutencaoPage() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Audio player
+  useEffect(() => {
+    if (!status?.musicEnabled || !status.musicUrl) return;
+
+    const audio = new Audio(status.musicUrl);
+    audio.loop = true;
+    audio.volume = status.musicVolume ?? 0.5;
+    audio.muted = true;
+    audioRef.current = audio;
+
+    audio.play().catch(() => {});
+
+    // Fade in volume on first user interaction
+    const unmute = () => {
+      audio.muted = false;
+      setMuted(false);
+      let v = 0;
+      const step = setInterval(() => {
+        v = Math.min(v + 0.05, status.musicVolume ?? 0.5);
+        audio.volume = v;
+        if (v >= (status.musicVolume ?? 0.5)) clearInterval(step);
+      }, 80);
+    };
+    document.addEventListener("click", unmute, { once: true });
+
+    return () => {
+      document.removeEventListener("click", unmute);
+      audio.pause();
+      audio.src = "";
+      audioRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.musicEnabled, status?.musicUrl]);
+
+  function toggleMute() {
+    if (!audioRef.current) return;
+    audioRef.current.muted = !audioRef.current.muted;
+    setMuted(audioRef.current.muted);
+  }
 
   return (
     <div style={{
@@ -250,6 +295,33 @@ export default function ManutencaoPage() {
             Atualizando automaticamente...
           </div>
         </div>
+
+        {/* Botão mute — aparece só quando música está habilitada */}
+        {status?.musicEnabled && status.musicUrl && (
+          <button
+            onClick={toggleMute}
+            title={muted ? "Ativar som" : "Silenciar"}
+            style={{
+              position: "fixed",
+              bottom: 20,
+              left: 20,
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "50%",
+              width: 36,
+              height: 36,
+              cursor: "pointer",
+              fontSize: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#EEF2FF",
+              transition: "background .2s",
+            }}
+          >
+            {muted ? "🔇" : "🔊"}
+          </button>
+        )}
       </div>
   );
 }
