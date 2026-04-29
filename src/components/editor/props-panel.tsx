@@ -170,17 +170,15 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType }: { s: Ed
       <Sec t="Layout">
         {/* Alinhar ao Canvas */}
         <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 4, fontWeight: 600 }}>Alinhar ao Canvas</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4, justifyItems: "center" }}>
-          {[
-            { k: "left", d: "M4 4v10M7 6h7M7 9h5", t: "Alinhar à esquerda" },
-            { k: "center-h", d: "M9 4v10M5 6h8M6 9h6", t: "Centralizar horizontalmente" },
-            { k: "right", d: "M14 4v10M5 6h7M7 9h5", t: "Alinhar à direita" },
-            { k: "top", d: "M4 4h10M6 7v7M9 7v5", t: "Alinhar ao topo" },
-            { k: "center-v", d: "", t: "Centralizar verticalmente", center: true },
-            { k: "bottom", d: "M4 14h10M6 5v7M9 7v5", t: "Alinhar à base" },
-          ].map(a => (
-            <AlignBtn key={a.k} onClick={() => onAlign(a.k)} title={a.t} d={a.d} center={a.center} />
-          ))}
+        <div style={{ display: "flex", gap: 3, marginBottom: 3 }}>
+          <button title="Alinhar à esquerda" onClick={() => onAlign("left")} style={alignBtnStyle}>← Esq</button>
+          <button title="Centralizar horizontalmente" onClick={() => onAlign("center-h")} style={alignBtnStyle}>↔ Centro</button>
+          <button title="Alinhar à direita" onClick={() => onAlign("right")} style={alignBtnStyle}>→ Dir</button>
+        </div>
+        <div style={{ display: "flex", gap: 3 }}>
+          <button title="Alinhar ao topo" onClick={() => onAlign("top")} style={alignBtnStyle}>↑ Topo</button>
+          <button title="Centralizar verticalmente" onClick={() => onAlign("center-v")} style={alignBtnStyle}>↕ Meio</button>
+          <button title="Alinhar à base" onClick={() => onAlign("bottom")} style={alignBtnStyle}>↓ Base</button>
         </div>
         <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
           <SBtn active={!!s.locked} onClick={() => u({ locked: !s.locked })}>{s.locked ? "🔒 Travado" : "🔓 Travar"}</SBtn>
@@ -1038,42 +1036,21 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
   return <button onClick={onClick} style={{ flex: 1, padding: "10px 0", border: "none", borderBottom: active ? "2px solid var(--ed-accent)" : "2px solid transparent", background: "none", color: active ? "var(--ed-accent)" : "var(--ed-txt3)", fontSize: 10, fontWeight: 700, cursor: "pointer", textTransform: "uppercase", letterSpacing: 1 }}>{children}</button>;
 }
 
-function AlignBtn({ onClick, title, d, center }: { onClick: () => void; title: string; d: string; center?: boolean }) {
-  const [hover, setHover] = useState(false);
-  const baseColor = center ? "var(--ed-txt)" : "var(--ed-txt2)";
-  const iconColor = hover ? "var(--ed-accent)" : baseColor;
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: 8,
-        border: "1px solid var(--ed-bdr)",
-        background: hover ? "var(--ed-hover)" : "var(--ed-input)",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "background 0.15s, border-color 0.15s",
-      }}
-    >
-      {center ? (
-        <svg viewBox="0 0 18 18" width={16} height={16}>
-          <path d="M9 3v12M3 9h12" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="9" cy="9" r="2" fill="none" stroke={iconColor} strokeWidth="1.2" />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 18 18" width={16} height={16}>
-          <path d={d} stroke={iconColor} strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        </svg>
-      )}
-    </button>
-  );
-}
+const alignBtnStyle: React.CSSProperties = {
+  flex: 1,
+  height: 30,
+  borderRadius: 6,
+  border: "1px solid var(--ed-bdr)",
+  background: "var(--ed-input)",
+  color: "var(--ed-txt2)",
+  fontSize: 10,
+  fontWeight: 600,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 3,
+};
 
 function SubSec({ t, right }: { t: string; right?: React.ReactNode }) {
   return (
