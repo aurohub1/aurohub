@@ -110,7 +110,7 @@ export default function BarsByDay({ rows, days }: Props) {
               iconType="circle"
             />
             <Area
-              type="monotone"
+              type="natural"
               dataKey="publicado"
               name="Publicado"
               stroke="#3B82F6"
@@ -120,10 +120,11 @@ export default function BarsByDay({ rows, days }: Props) {
               fill="url(#fillPublicado)"
               dot={false}
               activeDot={{ r: 5, stroke: "#3B82F6", strokeWidth: 2, fill: "var(--card-bg)" }}
+              baseValue={0}
               style={{ filter: "drop-shadow(0 0 6px #3B82F6)" }}
             />
             <Area
-              type="monotone"
+              type="natural"
               dataKey="download"
               name="Download"
               stroke="#FF7A1A"
@@ -133,6 +134,7 @@ export default function BarsByDay({ rows, days }: Props) {
               fill="url(#fillDownload)"
               dot={false}
               activeDot={{ r: 5, stroke: "#FF7A1A", strokeWidth: 2, fill: "var(--card-bg)" }}
+              baseValue={0}
               style={{ filter: "drop-shadow(0 0 6px #FF7A1A)" }}
             />
           </AreaChart>
