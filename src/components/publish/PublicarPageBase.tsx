@@ -169,12 +169,21 @@ interface PublicarPageBaseProps {
   ) => string | undefined;
 }
 
+interface UserPerms {
+  allowed_forms: string[];
+  store_ids: string[];
+  can_publish: boolean;
+  can_download: boolean;
+}
+
 export default function PublicarPageBase({
   role,
   enablePublishing,
   getNomeLoja,
 }: PublicarPageBaseProps) {
   const [profile, setProfile] = useState<FullProfile | null>(null);
+  const [userPerms, setUserPerms] = useState<UserPerms | null>(null);
+  const [permsLoaded, setPermsLoaded] = useState(false);
   const [previewBgUrl, setPreviewBgUrl] = useState("");
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [feriados, setFeriados] = useState<string[]>([]);
@@ -270,6 +279,28 @@ export default function PublicarPageBase({
         supabase.from("system_config").select("value").eq("key", `preview_bg_${p.licensee_id}`).single().then(({ data }) => {
           if (data?.value) setPreviewBgUrl(data.value);
         });
+      }
+
+      // Buscar permissões do usuário
+      try {
+        if (p?.id) {
+          const { data: perms } = await supabase
+            .from("user_permissions")
+            .select("allowed_forms,store_ids,can_publish,can_download")
+            .eq("user_id", p.id)
+            .maybeSingle();
+          if (perms) {
+            setUserPerms({
+              allowed_forms: perms.allowed_forms ?? [],
+              store_ids: perms.store_ids ?? [],
+              can_publish: perms.can_publish ?? true,
+              can_download: perms.can_download ?? true,
+            });
+          }
+        }
+      } finally {
+        // Sempre marcar como carregado, mesmo se der erro ou não houver permissões
+        setPermsLoaded(true);
       }
 
       // Buscar contadores de posts do mês atual
@@ -512,6 +543,34 @@ export default function PublicarPageBase({
     setBadge,
   });
 
+  // Derived from user_permissions — fall back to full lists when no restriction
+  const visibleTipos = useMemo(() => {
+    if (!userPerms?.allowed_forms?.length) return TIPOS;
+    return TIPOS.filter(t => userPerms.allowed_forms.includes(t.id));
+  }, [userPerms]);
+
+  const effectivePublishTargets = useMemo(() => {
+    if (!userPerms?.store_ids?.length) return publishTargets;
+    return publishTargets.filter(t => userPerms!.store_ids.includes(t.id));
+  }, [publishTargets, userPerms]);
+
+  const effectiveSelectedTargetIds = useMemo(() => {
+    if (!userPerms?.store_ids?.length) return selectedTargetIds;
+    const filtered = selectedTargetIds.filter(id => userPerms!.store_ids.includes(id));
+    if (filtered.length === 0 && effectivePublishTargets.length > 0) {
+      return [effectivePublishTargets[0].id];
+    }
+    return filtered;
+  }, [selectedTargetIds, userPerms, effectivePublishTargets]);
+
+  // Auto-switch tab when perms restrict current tab
+  useEffect(() => {
+    if (userPerms?.allowed_forms?.length && !userPerms.allowed_forms.includes(tab)) {
+      const first = visibleTipos[0];
+      if (first) setTab(first.id);
+    }
+  }, [userPerms, visibleTipos, tab]);
+
   const previewValues = useMemo(() => {
     console.log('[previewValues] cruzeiro inteiro:', values?.inteiro, 'tab:', tab);
     const m: Record<string, string> = { ...(values ?? {}) };
@@ -603,7 +662,7 @@ export default function PublicarPageBase({
   }
 
   // nomeLoja para PacoteForm
-  const nomeLoja = getNomeLoja(profile!, selectedTargetIds, publishTargets);
+  const nomeLoja = getNomeLoja(profile!, effectiveSelectedTargetIds, effectivePublishTargets);
 
   // ===== SELEÇÃO DE TIPO =====
   if (phase === "selector")
@@ -716,7 +775,7 @@ export default function PublicarPageBase({
             gap: "12px",
           }}
         >
-          {TIPOS.map((t, i) => (
+          {visibleTipos.map((t, i) => (
             <button
               key={t.id}
               onClick={() => goToForm(t.id)}
@@ -933,6 +992,32 @@ export default function PublicarPageBase({
       </div>
     );
 
+  // Guard: aguardar carregamento do profile e permissões
+  if (!profile || !permsLoaded) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        color: 'var(--txt3)',
+        fontSize: 13,
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 32, height: 32,
+            border: '2px solid var(--bdr)',
+            borderTopColor: 'var(--accent)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+            margin: '0 auto 12px',
+          }} />
+          Carregando...
+        </div>
+      </div>
+    );
+  }
+
   // ===== FORMULÁRIO =====
   return (
     <div
@@ -1052,7 +1137,7 @@ export default function PublicarPageBase({
               }}
             />
           </div>
-          {TIPOS.map((t) => (
+          {visibleTipos.map((t) => (
             <button
               key={t.id}
               data-active={tab === t.id ? "true" : "false"}
@@ -1285,18 +1370,20 @@ export default function PublicarPageBase({
             role={role}
             enablePublishing={enablePublishing}
             format={format}
-            publishTargets={publishTargets}
-            selectedTargetIds={selectedTargetIds}
+            publishTargets={effectivePublishTargets}
+            selectedTargetIds={effectiveSelectedTargetIds}
             toggleTarget={toggleTarget}
             busy={busy}
             status={status}
             statusMsg={statusMsg}
             currentTemplate={currentTemplate}
+            canPublish={userPerms ? userPerms.can_publish : true}
+            canDownload={userPerms ? userPerms.can_download : true}
             onPublish={() =>
               handlePublish({
                 profile,
-                selectedTargetIds,
-                publishTargets,
+                selectedTargetIds: effectiveSelectedTargetIds,
+                publishTargets: effectivePublishTargets,
                 currentTemplate,
                 values,
                 format,

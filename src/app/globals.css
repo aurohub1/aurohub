@@ -206,3 +206,9 @@ body {
 .icon-glow-gold   { box-shadow: 0 0 24px rgba(212, 168, 67, 0.22); }
 .icon-glow-green  { box-shadow: 0 0 24px rgba(34, 197, 94, 0.22); }
 .icon-glow-red    { box-shadow: 0 0 24px rgba(239, 68, 68, 0.22); }
+
+/* ── Spin animation ──────────────────────────────── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
