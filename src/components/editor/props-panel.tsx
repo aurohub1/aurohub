@@ -601,22 +601,31 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
               <option key={e.id} value={e.id}>{e.name || e.id}</option>
             ))}
           </select>
-          {s.smartTrack && (
-            <G2>
-              <F l="Direção">
-                <select
-                  value={s.smartTrack.direction}
-                  onChange={e => u({ smartTrack: { ...s.smartTrack!, direction: e.target.value as "right"|"left"|"down"|"up" } })}
-                  style={selS}
-                >
-                  <option value="right">→ Direita</option>
-                  <option value="left">← Esquerda</option>
-                  <option value="down">↓ Abaixo</option>
-                  <option value="up">↑ Acima</option>
-                </select>
-              </F>
-              <F l="Gap"><Num v={s.smartTrack.gap} c={v => u({ smartTrack: { ...s.smartTrack!, gap: v } })} /></F>
-            </G2>
+          <G2>
+            <F l="Direção">
+              <select
+                value={s.smartTrack?.direction || "right"}
+                onChange={e => { if (s.smartTrack) u({ smartTrack: { ...s.smartTrack, direction: e.target.value as "right"|"left"|"down"|"up" } }); }}
+                style={{ ...selS, opacity: s.smartTrack ? 1 : 0.5 }}
+                disabled={!s.smartTrack}
+              >
+                <option value="right">→ Direita</option>
+                <option value="left">← Esquerda</option>
+                <option value="down">↓ Abaixo</option>
+                <option value="up">↑ Acima</option>
+              </select>
+            </F>
+            <F l="Gap">
+              <Num
+                v={s.smartTrack?.gap ?? 8}
+                c={v => { if (s.smartTrack) u({ smartTrack: { ...s.smartTrack, gap: v } }); }}
+              />
+            </F>
+          </G2>
+          {!s.smartTrack && (
+            <div style={{ fontSize: 8, color: "var(--ed-txt3)", marginTop: 2, fontStyle: "italic" }}>
+              Selecione um alvo para ativar
+            </div>
           )}
         </SmartCard>
 
