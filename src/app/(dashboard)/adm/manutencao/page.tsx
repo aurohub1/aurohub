@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { supabase } from "@/lib/supabase";
 
 interface Config {
   active: boolean;
@@ -35,10 +34,11 @@ function timeUntil(iso: string | null): string {
 }
 
 async function upsert(key: string, value: string) {
-  await supabase.from("system_config").upsert(
-    { key, value, updated_at: new Date().toISOString() },
-    { onConflict: "key" }
-  );
+  await fetch("/api/maintenance-update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, value }),
+  });
 }
 
 export default function ManutencaoAdmPage() {
