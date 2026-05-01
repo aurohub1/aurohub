@@ -747,9 +747,10 @@ export default function EditorTemplatesPage() {
           name: parsed.nome || newKey,
           form_type: parsed.formType || "pacote",
           format: parsed.format || "stories",
-          is_base: true,
+          is_base: parsed.is_base === true,
           active: true,
-          licensee_id: null,
+          licensee_id: parsed.licenseeId ?? null,
+          config_key: newKey,
           schema: {
             elements: parsed.elements || [],
             background: parsed.background || "#0E1520",
