@@ -6,17 +6,18 @@ import { useAdmGuard } from "@/contexts/AdmContext";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import {
   Images, Plane, Ship, Building2, MapPin, Upload, Trash2,
-  Search, X, Check, Loader2, Plus,
+  Search, X, Check, Loader2, Plus, Tag,
 } from "lucide-react";
 
 /* ── Tipos ───────────────────────────────────────── */
 
-type TabKey = "destinos" | "hoteis" | "avioes" | "cruzeiros";
+type TabKey = "destinos" | "hoteis" | "avioes" | "cruzeiros" | "badges";
 
 interface ImgDestino { id: number; nome: string; url: string; created_at: string; }
 interface ImgHotel   { id: number; nome: string; url: string; created_at: string; }
 interface ImgAviao   { id: number;                url: string; created_at: string; }
 interface ImgCruise  { id: number; nome: string; url: string; cia: string | null; created_at: string; }
+interface BadgeItem  { id: string; nome: string; url: string; categoria: string; created_at: string; }
 
 interface TabMeta {
   key: TabKey;
@@ -27,13 +28,15 @@ interface TabMeta {
 }
 
 const TABS: TabMeta[] = [
-  { key: "destinos",  label: "Destinos",  table: "imgfundo",  icon: <MapPin   size={14} />, folder: "aurohubv2/biblioteca/destinos" },
+  { key: "destinos",  label: "Destinos",  table: "imgfundo",  icon: <MapPin    size={14} />, folder: "aurohubv2/biblioteca/destinos" },
   { key: "hoteis",    label: "Hotéis",    table: "imghotel",  icon: <Building2 size={14} />, folder: "aurohubv2/biblioteca/hoteis" },
-  { key: "avioes",    label: "Aviões",    table: "imgaviao",  icon: <Plane    size={14} />, folder: "aurohubv2/biblioteca/avioes" },
-  { key: "cruzeiros", label: "Cruzeiros", table: "imgcruise", icon: <Ship     size={14} />, folder: "aurohubv2/biblioteca/cruzeiros" },
+  { key: "avioes",    label: "Aviões",    table: "imgaviao",  icon: <Plane     size={14} />, folder: "aurohubv2/biblioteca/avioes" },
+  { key: "cruzeiros", label: "Cruzeiros", table: "imgcruise", icon: <Ship      size={14} />, folder: "aurohubv2/biblioteca/cruzeiros" },
+  { key: "badges",    label: "Badges",    table: "badges",    icon: <Tag       size={14} />, folder: "badges" },
 ];
 
 const CIAS = ["MSC", "Costa", "Royal", "Celebrity", "Princess", "Oceania", "Norwegian", "Disney"];
+const BADGE_CATS = ["feriado", "desconto", "ultima_chamada", "ultimos_lugares", "oferta", "all_inclusive"];
 
 /* ── Helpers ─────────────────────────────────────── */
 
@@ -54,6 +57,7 @@ export default function BibliotecaPage() {
   const [hoteis, setHoteis]     = useState<ImgHotel[]>([]);
   const [avioes, setAvioes]     = useState<ImgAviao[]>([]);
   const [cruises, setCruises]   = useState<ImgCruise[]>([]);
+  const [badges, setBadges]     = useState<BadgeItem[]>([]);
 
   // Modal
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -73,17 +77,18 @@ export default function BibliotecaPage() {
         .limit(500);
       if (error) {
         console.error(`[Biblioteca] ${meta.table}:`, error);
-        // tabela ausente → lista vazia em vez de crash
         if (k === "destinos")  setDestinos([]);
         if (k === "hoteis")    setHoteis([]);
         if (k === "avioes")    setAvioes([]);
         if (k === "cruzeiros") setCruises([]);
+        if (k === "badges")    setBadges([]);
         return;
       }
       if (k === "destinos")  setDestinos((data ?? []) as ImgDestino[]);
       if (k === "hoteis")    setHoteis((data ?? []) as ImgHotel[]);
       if (k === "avioes")    setAvioes((data ?? []) as ImgAviao[]);
       if (k === "cruzeiros") setCruises((data ?? []) as ImgCruise[]);
+      if (k === "badges")    setBadges((data ?? []) as BadgeItem[]);
     } finally {
       setLoading(false);
     }
@@ -95,27 +100,29 @@ export default function BibliotecaPage() {
 
   const items = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const matches = (name: string, cia?: string | null) => {
+    const matches = (name: string, extra?: string | null) => {
       if (!q) return true;
-      return name.toLowerCase().includes(q) || (cia ?? "").toLowerCase().includes(q);
+      return name.toLowerCase().includes(q) || (extra ?? "").toLowerCase().includes(q);
     };
     if (tab === "destinos")  return destinos.filter((x) => matches(x.nome));
     if (tab === "hoteis")    return hoteis.filter((x) => matches(x.nome));
-    if (tab === "avioes")    return avioes; // sem nome
+    if (tab === "avioes")    return avioes;
     if (tab === "cruzeiros") return cruises.filter((x) => matches(x.nome, x.cia));
+    if (tab === "badges")    return badges.filter((x) => matches(x.nome, x.categoria));
     return [];
-  }, [tab, search, destinos, hoteis, avioes, cruises]);
+  }, [tab, search, destinos, hoteis, avioes, cruises, badges]);
 
   const counts = useMemo(() => ({
-    destinos: destinos.length,
-    hoteis:   hoteis.length,
-    avioes:   avioes.length,
+    destinos:  destinos.length,
+    hoteis:    hoteis.length,
+    avioes:    avioes.length,
     cruzeiros: cruises.length,
-  }), [destinos, hoteis, avioes, cruises]);
+    badges:    badges.length,
+  }), [destinos, hoteis, avioes, cruises, badges]);
 
   /* ── Ações ─────────────────────────────────────── */
 
-  async function handleDelete(table: string, id: number) {
+  async function handleDelete(table: string, id: number | string) {
     if (!confirm("Excluir esta imagem?")) return;
     const { error } = await supabase.from(table).delete().eq("id", id);
     if (error) { alert("Erro ao excluir: " + error.message); return; }
@@ -125,6 +132,26 @@ export default function BibliotecaPage() {
   /* ── Render ────────────────────────────────────── */
 
   if (!allowed) return null;
+
+  // Badges agrupados por categoria
+  const badgesByCat = useMemo(() => {
+    if (tab !== "badges") return {};
+    const grouped: Record<string, BadgeItem[]> = {};
+    (items as BadgeItem[]).forEach((b) => {
+      const cat = b.categoria || "outro";
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(b);
+    });
+    return grouped;
+  }, [tab, items]);
+
+  const emptyLabel = () => {
+    if (tab === "avioes") return " avião";
+    if (tab === "cruzeiros") return " cruzeiro";
+    if (tab === "hoteis") return " hotel";
+    if (tab === "badges") return " badge";
+    return " destino";
+  };
 
   return (
     <>
@@ -144,7 +171,7 @@ export default function BibliotecaPage() {
               Biblioteca de Imagens
             </h1>
             <p className="mt-1 text-[12px] text-[var(--txt3)]">
-              Fundos, hotéis, aviões e cruzeiros usados pelos editores e publicações.
+              Fundos, hotéis, aviões, cruzeiros e badges usados pelos editores e publicações.
             </p>
           </div>
 
@@ -160,7 +187,7 @@ export default function BibliotecaPage() {
 
       {/* ═══ TABS ═══ */}
       <div className="card-glass flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] p-1">
+        <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] p-1">
           {TABS.map((t) => (
             <button
               key={t.key}
@@ -194,7 +221,11 @@ export default function BibliotecaPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={tab === "cruzeiros" ? "Buscar navio ou CIA..." : "Buscar por nome..."}
+              placeholder={
+                tab === "cruzeiros" ? "Buscar navio ou CIA..." :
+                tab === "badges"    ? "Buscar por nome ou categoria..." :
+                "Buscar por nome..."
+              }
               className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] pl-9 pr-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
             />
           </div>
@@ -216,7 +247,7 @@ export default function BibliotecaPage() {
             {tabMeta.icon}
           </div>
           <div className="font-[family-name:var(--font-dm-serif)] text-[18px] font-bold text-[var(--txt)]">
-            {search ? "Nenhum resultado" : `Nenhum${tab === "avioes" ? " avião" : tab === "cruzeiros" ? " cruzeiro" : tab === "hoteis" ? " hotel" : " destino"} cadastrado`}
+            {search ? "Nenhum resultado" : `Nenhum${emptyLabel()} cadastrado`}
           </div>
           <p className="max-w-[380px] text-[12px] text-[var(--txt3)]">
             {search
@@ -224,7 +255,79 @@ export default function BibliotecaPage() {
               : "Clique em “Nova imagem” para fazer upload."}
           </p>
         </div>
+      ) : tab === "badges" ? (
+        /* ── Badges: agrupados por categoria ── */
+        <div className="flex flex-col gap-6">
+          {BADGE_CATS.filter((cat) => badgesByCat[cat]?.length).map((cat) => (
+            <div key={cat}>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
+                {cat.replace(/_/g, " ")}
+              </p>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {badgesByCat[cat].map((badge) => (
+                  <div
+                    key={badge.id}
+                    className="card-glass group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5 page-fade"
+                  >
+                    <div className="relative aspect-[4/5] w-full overflow-hidden border-b border-[var(--bdr)] bg-[var(--bg2)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={badge.url} alt={badge.nome} className="h-full w-full object-cover" />
+                      <button
+                        onClick={() => handleDelete("badges", badge.id)}
+                        title="Excluir"
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur transition-opacity hover:bg-[#EF4444] group-hover:opacity-100"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-0.5 p-3">
+                      <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={badge.nome}>
+                        {badge.nome}
+                      </h3>
+                      <div className="text-[10px] text-[var(--txt3)]">{formatDate(badge.created_at)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {/* categorias não listadas em BADGE_CATS (ex: "outro" extra) */}
+          {Object.keys(badgesByCat).filter((c) => !BADGE_CATS.includes(c)).map((cat) => (
+            <div key={cat}>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">
+                {cat.replace(/_/g, " ")}
+              </p>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {badgesByCat[cat].map((badge) => (
+                  <div
+                    key={badge.id}
+                    className="card-glass group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5 page-fade"
+                  >
+                    <div className="relative aspect-[4/5] w-full overflow-hidden border-b border-[var(--bdr)] bg-[var(--bg2)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={badge.url} alt={badge.nome} className="h-full w-full object-cover" />
+                      <button
+                        onClick={() => handleDelete("badges", badge.id)}
+                        title="Excluir"
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur transition-opacity hover:bg-[#EF4444] group-hover:opacity-100"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-0.5 p-3">
+                      <h3 className="truncate text-[12px] font-bold text-[var(--txt)]" title={badge.nome}>
+                        {badge.nome}
+                      </h3>
+                      <div className="text-[10px] text-[var(--txt3)]">{formatDate(badge.created_at)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
+        /* ── Grid padrão ── */
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {items.map((it) => {
             type Item = ImgDestino | ImgHotel | ImgAviao | ImgCruise;
@@ -303,6 +406,7 @@ function UploadModal({
   const [preview, setPreview] = useState<string>("");
   const [nome, setNome] = useState("");
   const [cia, setCia] = useState("");
+  const [categoria, setCategoria] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -332,7 +436,7 @@ function UploadModal({
   }
 
   const needsNome = tab !== "avioes";
-  const valid = !!file && (!needsNome || nome.trim().length > 0);
+  const valid = !!file && (!needsNome || nome.trim().length > 0) && (tab !== "badges" || categoria.length > 0);
 
   async function save() {
     if (!valid || saving || !file) return;
@@ -343,6 +447,7 @@ function UploadModal({
       const row: Record<string, unknown> = { url };
       if (needsNome) row.nome = nome.trim();
       if (tab === "cruzeiros") row.cia = cia.trim() || null;
+      if (tab === "badges") row.categoria = categoria;
 
       const { error: insErr } = await supabase.from(meta.table).insert(row);
       if (insErr) throw new Error(insErr.message);
@@ -409,18 +514,52 @@ function UploadModal({
             <input ref={inputRef} type="file" accept="image/*" onChange={onFileInput} className="hidden" />
           </div>
 
-          {/* Campos específicos */}
+          {/* Nome */}
           {needsNome && (
-            <Field label={tab === "destinos" ? "Destino *" : tab === "hoteis" ? "Nome do hotel *" : "Nome do navio *"}>
+            <Field label={
+              tab === "destinos" ? "Destino *" :
+              tab === "hoteis"   ? "Nome do hotel *" :
+              tab === "badges"   ? "Nome do badge *" :
+              "Nome do navio *"
+            }>
               <input
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                placeholder={tab === "destinos" ? "Ex.: Fernando de Noronha" : tab === "hoteis" ? "Ex.: Tivoli Mofarrej" : "Ex.: Splendida"}
+                placeholder={
+                  tab === "destinos" ? "Ex.: Fernando de Noronha" :
+                  tab === "hoteis"   ? "Ex.: Tivoli Mofarrej" :
+                  tab === "badges"   ? "Ex.: Carnaval 2026" :
+                  "Ex.: Splendida"
+                }
                 className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
               />
             </Field>
           )}
 
+          {/* Categoria (badges) */}
+          {tab === "badges" && (
+            <Field label="Categoria *">
+              <div className="flex flex-wrap gap-1.5">
+                {BADGE_CATS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCategoria(categoria === c ? "" : c)}
+                    className="rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                    style={
+                      categoria === c
+                        ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.18)", color: "var(--orange)" }
+                        : { borderColor: "var(--bdr)", color: "var(--txt3)" }
+                    }
+                  >
+                    {c.replace(/_/g, " ")}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
+
+          {/* CIA (cruzeiros) */}
           {tab === "cruzeiros" && (
             <Field label="Companhia marítima">
               <div className="flex flex-wrap gap-1.5">

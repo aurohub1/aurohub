@@ -351,13 +351,15 @@ export default function PublicarPageBase({
         }
       }
     });
-    supabase
-      .from("feriados")
-      .select("nome")
-      .order("nome")
-      .then(({ data }) => {
-        if (data) setFeriados(data.map((r: any) => r.nome));
-      });
+    Promise.all([
+      supabase.from("feriados").select("nome").order("nome"),
+      supabase.from("badges").select("nome").eq("categoria", "feriado").order("nome"),
+    ]).then(([feriadosRes, badgesRes]) => {
+      const nomes = new Set<string>();
+      (feriadosRes.data ?? []).forEach((r: any) => nomes.add(r.nome));
+      (badgesRes.data ?? []).forEach((r: any) => nomes.add(r.nome));
+      setFeriados([...nomes].sort());
+    });
   }, []);
 
   async function loadTemplates(lid: string) {

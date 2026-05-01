@@ -18,26 +18,52 @@ const TTL_MS = 60 * 60 * 1000; // 1h — igual v1 (Cache.fetch, utils.js:207)
 let cachedPromise: Promise<BadgesData> | null = null;
 let cachedAt = 0;
 
+// Categoria → aliases usados por resolveBadgeUrl (BADGE_ALIASES em src/lib/badges.ts)
+const CAT_TO_ALIASES: Record<string, string[]> = {
+  all_inclusive:   ["ALL INCLUSIVE", "All Inclusive", "allinclusive", "all_inclusive"],
+  ultima_chamada:  ["ÚLTIMA CHAMADA", "ULTIMA CHAMADA", "Última Chamada", "ultimachamada", "chamada"],
+  ultimos_lugares: ["ÚLTIMOS LUGARES", "ULTIMOS LUGARES", "Últimos Lugares", "ultimoslugares"],
+  oferta:          ["OFERTAS", "OFERTAS AZUL", "Ofertas Azul", "ofertas azul", "ofertas"],
+  desconto:        ["DESCONTO", "desconto", "porcentagem", "PORCENTAGEM"],
+};
+
 async function loadBadges(): Promise<BadgesData> {
   const [b, f] = await Promise.all([
-    supabase.from("badges").select("nome,url"),
+    supabase.from("badges").select("nome,url,categoria"),
     supabase.from("feriados").select("nome,url"),
   ]);
   if (b.error) throw b.error;
   if (f.error) throw f.error;
 
-  // Agrupa por nome e sorteia entre variações — v1 utils.js:194-203
-  const groups: Record<string, string[]> = {};
-  for (const r of (b.data ?? []) as Array<{ nome: string; url: string }>) {
+  type BadgeRow = { nome: string; url: string; categoria?: string };
+
+  // 1. Agrupa por nome e sorteia entre variações — v1 utils.js:194-203
+  const byNome: Record<string, string[]> = {};
+  for (const r of (b.data ?? []) as BadgeRow[]) {
     if (!r.nome || !r.url) continue;
-    (groups[r.nome] ||= []).push(r.url);
+    (byNome[r.nome] ||= []).push(r.url);
   }
   const badges: Record<string, string> = {};
-  for (const [k, arr] of Object.entries(groups)) {
-    const picked = arr[Math.floor(Math.random() * arr.length)];
-    badges[k] = normalizeUrl(picked);
+  for (const [k, arr] of Object.entries(byNome)) {
+    badges[k] = normalizeUrl(arr[Math.floor(Math.random() * arr.length)]);
   }
 
+  // 2. Resolução por categoria — sobrepõe aliases com URL sorteada da categoria
+  const byCategory: Record<string, string[]> = {};
+  for (const r of (b.data ?? []) as BadgeRow[]) {
+    if (!r.url || !r.categoria) continue;
+    (byCategory[r.categoria] ||= []).push(r.url);
+  }
+  for (const [cat, aliases] of Object.entries(CAT_TO_ALIASES)) {
+    const urls = byCategory[cat];
+    if (!urls?.length) continue;
+    const picked = normalizeUrl(urls[Math.floor(Math.random() * urls.length)]);
+    for (const alias of aliases) {
+      badges[alias] = picked;
+    }
+  }
+
+  // 3. Feriados: keyed by nome → url
   const feriados: Record<string, string> = {};
   for (const r of (f.data ?? []) as Array<{ nome: string; url: string }>) {
     if (!r.nome || !r.url) continue;
