@@ -1161,12 +1161,18 @@ export function PacoteForm({
           </p>
         ) : null}
         <Field label="Feriado">
-          <SearchableSelect
-            value={(fields.feriado as string) || "– nenhum –"}
-            onChange={(v) => set("feriado", v === "– nenhum –" ? "" : v)}
-            options={["– nenhum –", ...feriadosNormalizados]}
-            placeholder="– nenhum –"
-          />
+          <div className="relative">
+            <select
+              value={(fields.feriado as string) || ""}
+              onChange={(e) => set("feriado", e.target.value)}
+              className="w-full rounded-xl border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[13px] text-[var(--txt)] appearance-none outline-none"
+            >
+              <option value="">– nenhum –</option>
+              {feriadosNormalizados.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
         </Field>
       </Section>
 
@@ -1459,12 +1465,18 @@ export function CampanhaForm({
           />
         )}
         <Field label="Feriado">
-          <SearchableSelect
-            value={(fields.feriado as string) || "– nenhum –"}
-            onChange={(v) => set("feriado", v === "– nenhum –" ? "" : v)}
-            options={["– nenhum –", ...feriadosNormalizados]}
-            placeholder="– nenhum –"
-          />
+          <div className="relative">
+            <select
+              value={(fields.feriado as string) || ""}
+              onChange={(e) => set("feriado", e.target.value)}
+              className="w-full rounded-xl border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[13px] text-[var(--txt)] appearance-none outline-none"
+            >
+              <option value="">– nenhum –</option>
+              {feriadosNormalizados.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
         </Field>
       </Section>
 
