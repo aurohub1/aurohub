@@ -10,7 +10,7 @@ import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/
 
 type ConfigMap = Record<string, string>;
 
-type SectionKey = "geral" | "auth" | "integ" | "limites" | "splash" | "sistema";
+type SectionKey = "geral" | "auth" | "integ" | "limites" | "splash" | "sistema" | "tour";
 
 const SECTIONS: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
   {
@@ -36,6 +36,10 @@ const SECTIONS: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
   {
     key: "sistema", label: "Sistema",
     icon: <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" /><path d="M3 8h14" stroke="currentColor" strokeWidth="1.5" /><path d="M7 12h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>,
+  },
+  {
+    key: "tour", label: "Tour Guiado",
+    icon: <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" /><path d="M10 11V10c1.105 0 2-.672 2-1.5S11.105 7 10 7s-2 .672-2 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><circle cx="10" cy="13.5" r="0.75" fill="currentColor" /></svg>,
   },
 ];
 
@@ -69,6 +73,9 @@ export default function ConfiguracoesPage() {
   const admSplashSomRef = useRef<HTMLInputElement>(null);
   const [uploadingSom, setUploadingSom] = useState(false);
   const [splashReplayKey, setSplashReplayKey] = useState(0);
+  const [tourStats, setTourStats] = useState<{ total: number; completed: number; pending: number; disabled: number } | null>(null);
+  const [tourLoading, setTourLoading] = useState(false);
+  const [tourAction, setTourAction] = useState<string | null>(null);
 
   /* ── Load ──────────────────────────────────────── */
 
@@ -86,6 +93,28 @@ export default function ConfiguracoesPage() {
   }, []);
 
   useEffect(() => { loadConfig(); }, [loadConfig]);
+
+  const loadTourStats = useCallback(async () => {
+    setTourLoading(true);
+    try {
+      const { data } = await supabase.from("profiles").select("tour_pages");
+      if (!data) return;
+      let completed = 0, pending = 0, disabled = 0;
+      for (const p of data) {
+        const pages = (p.tour_pages as string[]) || [];
+        if (pages.includes("desativado")) disabled++;
+        else if (pages.length > 0) completed++;
+        else pending++;
+      }
+      setTourStats({ total: data.length, completed, pending, disabled });
+    } finally {
+      setTourLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === "tour") loadTourStats();
+  }, [activeSection, loadTourStats]);
 
   /* ── Helpers ───────────────────────────────────── */
 
@@ -187,6 +216,41 @@ export default function ConfiguracoesPage() {
       setMpTestResult("fail");
     } finally {
       setMpTesting(false);
+    }
+  }
+
+  /* ── Tour actions ──────────────────────────────── */
+
+  async function resetTour() {
+    if (!confirm("Resetar tour para TODOS os usuários?")) return;
+    setTourAction("reset");
+    try {
+      await supabase.from("profiles").update({ tour_pages: [] }).neq("id", "00000000-0000-0000-0000-000000000000");
+      await loadTourStats();
+    } finally {
+      setTourAction(null);
+    }
+  }
+
+  async function disableTour() {
+    if (!confirm("Desativar tour para TODOS os usuários?")) return;
+    setTourAction("disable");
+    try {
+      await supabase.from("profiles").update({ tour_pages: ["desativado"] }).neq("id", "00000000-0000-0000-0000-000000000000");
+      await loadTourStats();
+    } finally {
+      setTourAction(null);
+    }
+  }
+
+  async function reativarTour() {
+    if (!confirm("Reativar tour para TODOS os usuários?")) return;
+    setTourAction("reativar");
+    try {
+      await supabase.from("profiles").update({ tour_pages: [] }).neq("id", "00000000-0000-0000-0000-000000000000");
+      await loadTourStats();
+    } finally {
+      setTourAction(null);
     }
   }
 
@@ -577,6 +641,94 @@ export default function ConfiguracoesPage() {
                     >
                       {saving ? "Salvando..." : saved ? "Salvo!" : "Salvar"}
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── TOUR GUIADO ─────────────────────── */}
+              {activeSection === "tour" && (
+                <div className="flex flex-col gap-5">
+                  <SectionTitle title="Tour Guiado" desc="Controle do onboarding guiado para todos os usuários da plataforma" />
+
+                  {/* Contadores */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Concluíram o tour", value: tourStats?.completed ?? "—", color: "var(--green)", bg: "var(--green3)" },
+                      { label: "Ainda não fizeram", value: tourStats?.pending ?? "—", color: "var(--orange)", bg: "var(--orange3)" },
+                      { label: "Tour desativado", value: tourStats?.disabled ?? "—", color: "var(--txt3)", bg: "var(--bg3)" },
+                    ].map((stat) => (
+                      <div key={stat.label} className="flex flex-col gap-1 rounded-xl border border-[var(--bdr)] px-4 py-3" style={{ background: "var(--card-bg)" }}>
+                        <span className="text-[11px] font-medium text-[var(--txt3)]">{stat.label}</span>
+                        <span
+                          className="text-[26px] font-bold tabular-nums leading-none"
+                          style={{ color: stat.color }}
+                        >
+                          {tourLoading ? <span className="text-[14px] text-[var(--txt3)]">...</span> : stat.value}
+                        </span>
+                        {tourStats && (
+                          <span className="text-[10px] text-[var(--txt3)]">
+                            de {tourStats.total} usuários
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={loadTourStats}
+                    disabled={tourLoading}
+                    className="w-fit rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[11px] font-medium text-[var(--txt3)] hover:text-[var(--txt)] disabled:opacity-40"
+                  >
+                    {tourLoading ? "Carregando..." : "↻ Atualizar contadores"}
+                  </button>
+
+                  <div className="h-px bg-[var(--bdr)]" />
+
+                  {/* Ações */}
+                  <div className="flex flex-col gap-3">
+                    <span className="text-[13px] font-semibold text-[var(--txt)]">Ações em massa</span>
+
+                    <label className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-4 py-3">
+                      <div>
+                        <div className="text-[13px] font-medium text-[var(--txt)]">Resetar tour de todos os usuários</div>
+                        <div className="text-[11px] text-[var(--txt3)]">Apaga o progresso — todos verão o tour novamente ao acessar a página</div>
+                      </div>
+                      <button
+                        onClick={resetTour}
+                        disabled={tourAction !== null}
+                        className="ml-4 shrink-0 rounded-lg border border-[var(--bdr)] px-4 py-1.5 text-[12px] font-semibold text-[var(--txt2)] hover:border-[var(--orange)] hover:text-[var(--orange)] disabled:opacity-40"
+                      >
+                        {tourAction === "reset" ? "Resetando..." : "Resetar tour"}
+                      </button>
+                    </label>
+
+                    <label className="flex items-center justify-between rounded-lg border border-[var(--red)] px-4 py-3" style={{ background: "var(--red3)" }}>
+                      <div>
+                        <div className="text-[13px] font-medium text-[var(--red)]">Desativar tour para todos</div>
+                        <div className="text-[11px] text-[var(--txt3)]">Impede que o tour inicie automaticamente para qualquer usuário</div>
+                      </div>
+                      <button
+                        onClick={disableTour}
+                        disabled={tourAction !== null}
+                        className="ml-4 shrink-0 rounded-lg border border-[var(--red)] px-4 py-1.5 text-[12px] font-semibold text-[var(--red)] hover:bg-[var(--red)] hover:text-white disabled:opacity-40"
+                      >
+                        {tourAction === "disable" ? "Desativando..." : "Desativar tour"}
+                      </button>
+                    </label>
+
+                    <label className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-4 py-3">
+                      <div>
+                        <div className="text-[13px] font-medium text-[var(--txt)]">Reativar tour para todos</div>
+                        <div className="text-[11px] text-[var(--txt3)]">Remove a desativação — equivalente a resetar o tour</div>
+                      </div>
+                      <button
+                        onClick={reativarTour}
+                        disabled={tourAction !== null}
+                        className="ml-4 shrink-0 rounded-lg border border-[var(--bdr)] px-4 py-1.5 text-[12px] font-semibold text-[var(--txt2)] hover:border-[var(--green)] hover:text-[var(--green)] disabled:opacity-40"
+                      >
+                        {tourAction === "reativar" ? "Reativando..." : "Reativar tour"}
+                      </button>
+                    </label>
                   </div>
                 </div>
               )}

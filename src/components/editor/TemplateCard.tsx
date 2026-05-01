@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin, Users } from "lucide-react";
+import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin, Users, RefreshCw } from "lucide-react";
 
 export interface CanvasTemplate {
   key: string;
@@ -25,6 +25,7 @@ interface TemplateCardProps {
   onDuplicate: (key: string) => void;
   onDelete: (key: string) => void;
   onClone?: (key: string) => void;
+  onUpdate?: (key: string) => void;
   onAccess?: (key: string) => void;
   onNameChange: (key: string, nome: string) => void;
   onThumbUpload: (key: string, file: File) => void;
@@ -38,6 +39,7 @@ export function TemplateCard({
   onDuplicate,
   onDelete,
   onClone,
+  onUpdate,
   onAccess,
   onNameChange,
   onThumbUpload,
@@ -299,6 +301,16 @@ export function TemplateCard({
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(212,168,67,0.08)] hover:text-[var(--txt)]"
           >
             <Copy size={16} />
+          </button>
+        )}
+        {t.isBase && onUpdate && (
+          <button
+            onClick={() => onUpdate(t.key)}
+            onMouseEnter={() => setTooltip("Atualizar clientes")}
+            onMouseLeave={() => setTooltip(null)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(59,130,246,0.10)] hover:text-[#3b82f6]"
+          >
+            <RefreshCw size={15} />
           </button>
         )}
         <button

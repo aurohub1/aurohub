@@ -218,6 +218,8 @@ export default function PublicarPageBase({
   });
   const destinoDataRef = useRef<{ nome: string; url: string }[] | null>(null);
   const hotelDataRef = useRef<{ nome: string; url: string }[] | null>(null);
+  // Cache: destino slug → URL já sorteada. Evita re-sorteio em re-renders.
+  const resolvedDestinoImgRef = useRef<Record<string, string>>({});
   const previewAreaRef = useRef<HTMLDivElement>(null);
   const tabsWrapRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
@@ -517,9 +519,11 @@ export default function PublicarPageBase({
 
   const onImgFundo = useCallback(async (nome: string) => {
     if (!nome?.trim()) return;
+    // pacote: gerenciado pelo useEffect + resolvedDestinoImgRef
+    if (tab === "pacote") return;
     const url = await fetchImgFundo(nome);
     if (url) setField("imgfundo", url);
-  }, []);
+  }, [tab]);
 
   async function onHotelBlur(hotel?: string) {
     const h = (hotel ?? values.hotel)?.trim();
@@ -570,6 +574,25 @@ export default function PublicarPageBase({
       if (first) setTab(first.id);
     }
   }, [userPerms, visibleTipos, tab]);
+
+  // Sorteia imgfundo quando destino muda — apenas para pacote.
+  // Usa cache por destino para não re-sortear em re-renders ou blurs repetidos.
+  useEffect(() => {
+    if (tab !== "pacote") return;
+    const destino = (values.destino ?? "").trim();
+    if (!destino) return;
+    const key = slugify(destino);
+    if (resolvedDestinoImgRef.current[key]) {
+      setFormCache(c => ({ ...c, pacote: { ...c.pacote, imgfundo: resolvedDestinoImgRef.current[key] } }));
+      return;
+    }
+    fetchImgFundo(destino).then(url => {
+      if (!url) return;
+      resolvedDestinoImgRef.current[key] = url;
+      setFormCache(c => ({ ...c, pacote: { ...c.pacote, imgfundo: url } }));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.destino, tab]);
 
   const previewValues = useMemo(() => {
     console.log('[previewValues] cruzeiro inteiro:', values?.inteiro, 'tab:', tab);

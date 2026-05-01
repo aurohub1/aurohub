@@ -1044,7 +1044,6 @@ export function PacoteForm({
   const showTipovoo = hasBind(binds, "tipovoo");
   const showIda = hasBind(binds, "dataida", "dataperiodo");
   const showVolta = hasBind(binds, "datavolta", "dataperiodo");
-  const showFeriado = hasBind(binds, "feriado");
   const showHotel = hasBind(binds, "hotel", "imghotel");
   const showServicos =
     !binds ||
@@ -1062,6 +1061,9 @@ export function PacoteForm({
   const showDesconto = hasBind(binds, "numerodesconto", "desconto");
   const showValorTotal = hasBind(binds, "valortotal", "valortotalfmt", "totalduplo");
   const showPgtoBlock = showForma || showEntrada || showParcelas || showValorParc || showDesconto || showValorTotal;
+  const feriadosNormalizados = [...new Set(
+    (feriadoOpts ?? []).map(f => f.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
+  )].sort();
 
   return (
     <div className="flex flex-col gap-2">
@@ -1098,11 +1100,7 @@ export function PacoteForm({
               )}
               {showTipovoo && (
                 <Field label="Tipo de Voo *" asSection>
-                  {/* V1 .radio-group + .radio-btn.on — botões inline, altura 32px, font 12px, gap 8px. */}
-                  <div
-                    className="flex rounded-lg border p-0.5"
-                    style={{ background: "var(--bg2)", borderColor: "var(--bdr)", gap: "8px", flexWrap: "wrap" }}
-                  >
+                  <div className="flex gap-1">
                     {["( Voo Direto )", "( Voo Conexão )"].map((opt) => {
                       const sel = fields.tipovoo === opt;
                       return (
@@ -1110,11 +1108,11 @@ export function PacoteForm({
                           key={opt}
                           type="button"
                           onClick={() => set("tipovoo", opt)}
-                          className="flex-1 font-semibold transition-all"
+                          className="flex-1 rounded-lg border px-1.5 py-1 text-[10px] font-bold transition-all"
                           style={
                             sel
-                              ? { background: "var(--brand-primary)", color: "#FFFFFF", boxShadow: "0 1px 6px color-mix(in srgb, var(--brand-primary) 40%, transparent)", padding: "6px 16px", fontSize: "11px", borderRadius: "8px" }
-                              : { background: "transparent", color: "var(--txt3)", padding: "6px 16px", fontSize: "11px", borderRadius: "8px" }
+                              ? { background: "var(--brand-primary)", color: "#fff", borderColor: "var(--brand-primary)" }
+                              : { background: "transparent", color: "var(--txt3)", borderColor: "var(--bdr)" }
                           }
                         >
                           {opt}
@@ -1129,53 +1127,48 @@ export function PacoteForm({
         </div>
       )}
 
-      {(showIda || showVolta || showFeriado) && (
-        <Section title="Datas">
-          {(showIda || showVolta) && (
-            <div className="grid grid-cols-2 gap-2">
-              {showIda && (
-                <Field label="Ida *">
-                  <input
-                    type="date"
-                    min={today}
-                    value={(fields.dataida as string) || ""}
-                    onChange={(e) => onIdaChange(e.target.value)}
-                    className={INPUT_CLASS}
-                  />
-                </Field>
-              )}
-              {showVolta && (
-                <Field label="Volta *">
-                  <input
-                    type="date"
-                    min={(fields.dataida as string) || today}
-                    value={(fields.datavolta as string) || ""}
-                    onChange={(e) => onVoltaChange(e.target.value)}
-                    className={INPUT_CLASS}
-                  />
-                </Field>
-              )}
-            </div>
-          )}
-          {fields.dataperiodo ? (
-            <p className="text-[11px] text-[var(--txt3)]">
-              Período: <strong>{String(fields.dataperiodo)}</strong>
-              {fields.noites ? <> · <strong>{String(fields.noites)} noite{Number(fields.noites) === 1 ? "" : "s"}</strong></> : null}
-            </p>
-          ) : null}
-          {showFeriado && (
-            <Field label="Feriado">
-              <SearchableSelect
-                value={(fields.feriado as string) || ""}
-                onChange={(v) => set("feriado", v)}
-                options={feriadoOpts ?? []}
-                placeholder="Selecionar feriado..."
-                allowCustom
-              />
-            </Field>
-          )}
-        </Section>
-      )}
+      <Section title="Datas">
+        {(showIda || showVolta) && (
+          <div className="grid grid-cols-2 gap-2">
+            {showIda && (
+              <Field label="Ida *">
+                <input
+                  type="date"
+                  min={today}
+                  value={(fields.dataida as string) || ""}
+                  onChange={(e) => onIdaChange(e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
+            {showVolta && (
+              <Field label="Volta *">
+                <input
+                  type="date"
+                  min={(fields.dataida as string) || today}
+                  value={(fields.datavolta as string) || ""}
+                  onChange={(e) => onVoltaChange(e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            )}
+          </div>
+        )}
+        {fields.dataperiodo ? (
+          <p className="text-[11px] text-[var(--txt3)]">
+            Período: <strong>{String(fields.dataperiodo)}</strong>
+            {fields.noites ? <> · <strong>{String(fields.noites)} noite{Number(fields.noites) === 1 ? "" : "s"}</strong></> : null}
+          </p>
+        ) : null}
+        <Field label="Feriado">
+          <SearchableSelect
+            value={(fields.feriado as string) || "– nenhum –"}
+            onChange={(v) => set("feriado", v === "– nenhum –" ? "" : v)}
+            options={["– nenhum –", ...feriadosNormalizados]}
+            placeholder="– nenhum –"
+          />
+        </Field>
+      </Section>
 
       {showHotel && (
         <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>
@@ -1396,6 +1389,9 @@ export function CampanhaForm({
   const showHotel = hasBind(binds, "hotel", "imghotel");
   // Serviços — mostra se qualquer servico1..N estiver presente (sem binds = todos).
   const showServicos = !binds || Array.from({ length: 8 }, (_, i) => `servico${i + 1}`).some((k) => binds.has(k));
+  const feriadosNormalizados = [...new Set(
+    (feriadoOpts ?? []).map(f => f.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
+  )].sort();
 
   return (
     <>
@@ -1445,8 +1441,8 @@ export function CampanhaForm({
         </div>
       )}
 
-      {(hasBind(binds, "dataida") || hasBind(binds, "datavolta")) && (
-        <Section title="Datas" icon="📅">
+      <Section title="Datas" icon="📅">
+        {(hasBind(binds, "dataida") || hasBind(binds, "datavolta")) && (
           <DatasField
             fields={fields}
             set={set}
@@ -1461,8 +1457,16 @@ export function CampanhaForm({
               set("datavolta_fmt", fmtDate(v));
             }}
           />
-        </Section>
-      )}
+        )}
+        <Field label="Feriado">
+          <SearchableSelect
+            value={(fields.feriado as string) || "– nenhum –"}
+            onChange={(v) => set("feriado", v === "– nenhum –" ? "" : v)}
+            options={["– nenhum –", ...feriadosNormalizados]}
+            placeholder="– nenhum –"
+          />
+        </Field>
+      </Section>
 
       {showHotel && (
         <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>

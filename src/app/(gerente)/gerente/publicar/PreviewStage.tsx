@@ -129,6 +129,14 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
         .join("\n");
     }
 
+    // Lista de serviços sem bullets — 1 por linha, vazios ignorados
+    case "servicos": {
+      return [1,2,3,4,5,6]
+        .map(i => values[`servico${i}`])
+        .filter(Boolean)
+        .join("\n");
+    }
+
     // Texto de pagamento derivado
     case "textopagamento": {
       const forma = values.formapagamento || "";

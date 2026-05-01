@@ -35,6 +35,7 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
       { id: 'servico5', label: 'Serviço 5', type: 'text' },
       { id: 'servico6', label: 'Serviço 6', type: 'text' },
       { id: 'servicos', label: 'Serviços (lista completa, 1 por linha)', type: 'text' },
+      { id: 'servicos_lista', label: 'Serviços (lista completa)', type: 'text' },
       { id: 'texto', label: 'Texto Livre', type: 'text' },
     ],
     Valor: [
@@ -75,6 +76,8 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
       { id: 'servico4', label: 'Serviço 4', type: 'text' },
       { id: 'servico5', label: 'Serviço 5', type: 'text' },
       { id: 'servico6', label: 'Serviço 6', type: 'text' },
+      { id: 'servicos', label: 'Serviços (lista completa, 1 por linha)', type: 'text' },
+      { id: 'servicos_lista', label: 'Serviços (lista completa)', type: 'text' },
       { id: 'texto', label: 'Texto Livre', type: 'text' },
     ],
     Valor: [

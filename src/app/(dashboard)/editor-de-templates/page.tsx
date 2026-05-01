@@ -11,6 +11,17 @@ import { useAdmGuard } from "@/contexts/AdmContext";
 
 interface Licensee { id: string; name: string; }
 
+interface UpdateClientEntry {
+  formTemplateId: string;
+  configKey: string | null;
+  name: string;
+  licenseeId: string | null;
+  licenseeNome: string;
+  createdAt: string;
+  configUpdatedAt: string | null;
+  isOutdated: boolean;
+}
+
 /* ── Component ───────────────────────────────────── */
 
 export default function EditorTemplatesPage() {
@@ -33,6 +44,12 @@ export default function EditorTemplatesPage() {
   const [cloneLojas, setCloneLojas] = useState<{ id: string; name: string }[]>([]);
   const [cloneSelectedLojas, setCloneSelectedLojas] = useState<Set<string>>(new Set());
   const [cloneCustomName, setCloneCustomName] = useState<string>("");
+
+  // Update modal
+  const [updateKey, setUpdateKey] = useState<string | null>(null);
+  const [updateClients, setUpdateClients] = useState<UpdateClientEntry[]>([]);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [updatingClientId, setUpdatingClientId] = useState<string | null>(null);
 
   // Access modal
   const [accessKey, setAccessKey] = useState<string | null>(null);
@@ -537,6 +554,142 @@ export default function EditorTemplatesPage() {
   };
 
 
+  /* ── Update modal ─────────────────────────────── */
+
+  const openUpdateModal = async (key: string) => {
+    setUpdateKey(key);
+    setUpdateClients([]);
+    setUpdateLoading(true);
+    const baseTemplate = canvasTemplates.find(t => t.key === key);
+    if (!baseTemplate) { setUpdateLoading(false); return; }
+
+    try {
+      const { data: clones } = await supabase
+        .from("form_templates")
+        .select("id, name, licensee_id, created_at, config_key, licensees(name)")
+        .eq("is_base", false)
+        .eq("form_type", baseTemplate.formType)
+        .eq("format", baseTemplate.format);
+
+      const cloneList = (clones ?? []) as {
+        id: string; name: string; licensee_id: string | null; created_at: string;
+        config_key: string | null; licensees: { name: string }[] | null;
+      }[];
+
+      const configKeys = cloneList.filter(c => c.config_key).map(c => c.config_key as string);
+      let configUpdateMap: Record<string, string> = {};
+      if (configKeys.length > 0) {
+        const { data: cfgRows } = await supabase
+          .from("system_config")
+          .select("key, updated_at")
+          .in("key", configKeys);
+        for (const r of (cfgRows ?? []) as { key: string; updated_at: string }[]) {
+          configUpdateMap[r.key] = r.updated_at;
+        }
+      }
+
+      const baseUpdatedAt = baseTemplate.updatedAt ?? null;
+
+      const entries: UpdateClientEntry[] = cloneList.map(c => {
+        const configUpdatedAt = c.config_key ? (configUpdateMap[c.config_key] ?? null) : null;
+        const isOutdated = baseUpdatedAt
+          ? configUpdatedAt
+            ? new Date(baseUpdatedAt) > new Date(configUpdatedAt)
+            : true
+          : false;
+        return {
+          formTemplateId: c.id,
+          configKey: c.config_key ?? null,
+          name: c.name,
+          licenseeId: c.licensee_id ?? null,
+          licenseeNome: c.licensees?.[0]?.name ?? c.licensee_id ?? "Sem marca",
+          createdAt: c.created_at,
+          configUpdatedAt,
+          isOutdated,
+        };
+      });
+
+      setUpdateClients(entries);
+    } catch (err) {
+      console.error("[openUpdateModal]", err);
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const doUpdateClient = async (baseKey: string, client: UpdateClientEntry) => {
+    if (!client.configKey) return;
+
+    const [{ data: baseRow }, { data: clientRow }] = await Promise.all([
+      supabase.from("system_config").select("value").eq("key", baseKey).single(),
+      supabase.from("system_config").select("value").eq("key", client.configKey).single(),
+    ]);
+
+    if (!baseRow?.value) throw new Error("Base não encontrado em system_config");
+    const baseConfig = JSON.parse(baseRow.value);
+    const clientConfig = clientRow?.value ? JSON.parse(clientRow.value) : {};
+
+    const updatedConfig = {
+      ...clientConfig,
+      elements:   baseConfig.elements   ?? [],
+      background: baseConfig.background ?? clientConfig.background,
+      width:      baseConfig.width      ?? clientConfig.width,
+      height:     baseConfig.height     ?? clientConfig.height,
+      duration:   baseConfig.duration   ?? clientConfig.duration,
+      thumbnail:  baseConfig.thumbnail  ?? clientConfig.thumbnail,
+    };
+
+    await supabase.from("system_config").upsert(
+      { key: client.configKey, value: JSON.stringify(updatedConfig), updated_at: new Date().toISOString() },
+      { onConflict: "key" }
+    );
+
+    await supabase.from("form_templates").update({
+      schema: {
+        elements:   baseConfig.elements ?? [],
+        background: baseConfig.background ?? "#1E3A6E",
+        formType:   baseConfig.formType,
+        width:      baseConfig.width,
+        height:     baseConfig.height,
+        duration:   baseConfig.duration ?? 5,
+      },
+      width:         baseConfig.width,
+      height:        baseConfig.height,
+      thumbnail_url: baseConfig.thumbnail ?? null,
+    }).eq("id", client.formTemplateId);
+  };
+
+  const updateOneClient = async (client: UpdateClientEntry) => {
+    if (!updateKey || !client.configKey) return;
+    setUpdatingClientId(client.formTemplateId);
+    try {
+      await doUpdateClient(updateKey, client);
+      await openUpdateModal(updateKey);
+    } catch (err) {
+      console.error("[updateOneClient]", err);
+      alert("Falha ao atualizar template do cliente.");
+    } finally {
+      setUpdatingClientId(null);
+    }
+  };
+
+  const updateAllOutdated = async () => {
+    if (!updateKey) return;
+    const outdated = updateClients.filter(c => c.isOutdated && c.configKey);
+    if (!outdated.length) return;
+    if (!confirm(`Atualizar ${outdated.length} template(s) desatualizado(s)?`)) return;
+    setUpdatingClientId("all");
+    try {
+      for (const client of outdated) await doUpdateClient(updateKey, client);
+      await openUpdateModal(updateKey);
+    } catch (err) {
+      console.error("[updateAllOutdated]", err);
+      alert("Falha ao atualizar alguns templates.");
+    } finally {
+      setUpdatingClientId(null);
+    }
+  };
+
   // Duplica um template de cliente (mesmo licensee)
   async function duplicateCanvasTmpl(key: string) {
     try {
@@ -660,6 +813,7 @@ export default function EditorTemplatesPage() {
                       onDuplicate={duplicateCanvasTmpl}
                       onDelete={deleteCanvasTmpl}
                       onClone={isAdm && t.isBase ? setCloneKey : undefined}
+                      onUpdate={isAdm && t.isBase ? openUpdateModal : undefined}
                       onAccess={isAdm ? openAccessModal : undefined}
                       onNameChange={handleNameChange}
                       onThumbUpload={handleThumbUpload}
@@ -1045,6 +1199,126 @@ export default function EditorTemplatesPage() {
                 className="rounded-lg bg-[var(--orange)] px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
               >
                 {savingAccess ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </Ov>
+      )}
+      {/* Update modal */}
+      {updateKey && (
+        <Ov onClose={() => { setUpdateKey(null); setUpdateClients([]); }}>
+          <div className="mx-4 flex w-full max-w-[520px] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", maxHeight: "80vh" }}>
+            {/* Header */}
+            <div className="border-b border-[var(--bdr)] px-6 py-4">
+              <div className="text-[15px] font-bold text-[var(--txt)]">Atualizar clientes</div>
+              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">
+                Clientes com versão clonada de{" "}
+                <span className="font-semibold text-[var(--txt2)]">
+                  {canvasTemplates.find(t => t.key === updateKey)?.nome || updateKey}
+                </span>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {updateLoading ? (
+                <div className="py-8 text-center text-[12px] text-[var(--txt3)]">Carregando...</div>
+              ) : updateClients.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[var(--bdr)] py-10 text-center text-[12px] text-[var(--txt3)]">
+                  Nenhum cliente tem uma versão clonada deste template.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {/* Atualizar todos desatualizados */}
+                  {updateClients.some(c => c.isOutdated && c.configKey) && (
+                    <div className="mb-2 flex items-center justify-between rounded-xl border border-[var(--orange)] bg-[var(--orange3)] px-4 py-3">
+                      <div>
+                        <div className="text-[12px] font-semibold text-[var(--orange)]">
+                          {updateClients.filter(c => c.isOutdated && c.configKey).length} desatualizado(s)
+                        </div>
+                        <div className="text-[10px] text-[var(--txt3)]">Propaga os elementos visuais do template base</div>
+                      </div>
+                      <button
+                        onClick={updateAllOutdated}
+                        disabled={updatingClientId !== null}
+                        className="ml-4 shrink-0 rounded-lg bg-[var(--orange)] px-4 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"
+                      >
+                        {updatingClientId === "all" ? "Atualizando..." : "Atualizar todos"}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Lista de clientes */}
+                  {updateClients.map(client => (
+                    <div
+                      key={client.formTemplateId}
+                      className="flex items-center justify-between rounded-xl border border-[var(--bdr)] px-4 py-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-[13px] font-medium text-[var(--txt)]">
+                            {client.licenseeNome}
+                          </span>
+                          {client.isOutdated ? (
+                            <span className="shrink-0 rounded-full bg-[var(--orange3)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--orange)]">
+                              Desatualizado
+                            </span>
+                          ) : (
+                            <span className="shrink-0 rounded-full bg-[var(--green3)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--green)]">
+                              Atualizado
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 truncate text-[10px] text-[var(--txt3)]">{client.name}</div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-[var(--txt3)]">
+                          <span>
+                            Clonado:{" "}
+                            <span className="text-[var(--txt2)]">
+                              {new Date(client.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                            </span>
+                          </span>
+                          <span>
+                            Sincronizado:{" "}
+                            <span className="text-[var(--txt2)]">
+                              {client.configUpdatedAt
+                                ? new Date(client.configUpdatedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+                                : "—"}
+                            </span>
+                          </span>
+                          <span>
+                            Base atualizado:{" "}
+                            <span className={client.isOutdated ? "font-semibold text-[var(--orange)]" : "text-[var(--txt2)]"}>
+                              {canvasTemplates.find(t => t.key === updateKey)?.updatedAt
+                                ? new Date(canvasTemplates.find(t => t.key === updateKey)!.updatedAt!).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+                                : "—"}
+                            </span>
+                          </span>
+                        </div>
+                        {!client.configKey && (
+                          <div className="mt-1 text-[10px] text-[var(--txt3)] italic">Sem vínculo system_config — update manual necessário</div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => updateOneClient(client)}
+                        disabled={!client.configKey || updatingClientId !== null}
+                        className="ml-4 shrink-0 rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[11px] font-semibold text-[var(--txt2)] hover:border-[#3b82f6] hover:text-[#3b82f6] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {updatingClientId === client.formTemplateId ? "..." : "Atualizar"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end border-t border-[var(--bdr)] px-6 py-4">
+              <button
+                type="button"
+                onClick={() => { setUpdateKey(null); setUpdateClients([]); }}
+                className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]"
+              >
+                Fechar
               </button>
             </div>
           </div>
