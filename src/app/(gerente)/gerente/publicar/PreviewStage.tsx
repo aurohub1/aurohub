@@ -446,6 +446,16 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
   if (el.visible === false) return null;
   if (el.hideIfEmpty && el.bindParam && !values[el.bindParam] && !DYNAMIC_BADGES.has(el.bindParam)) return null;
 
+  {
+    const bp = el.bindParam;
+    if (bp && bp.endsWith("_badge")) {
+      const badgeActive = el.type === "text"
+        ? (values[bp] === "true" || (!!values[bp] && values[bp] !== ""))
+        : shouldRenderBadge(bp, values);
+      if (!badgeActive) return null;
+    }
+  }
+
   if (el.type === "rect") {
     const rectFillProps = getFillProps(el.fill, el.width, el.height);
     return (
@@ -636,13 +646,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
   if (el.type === "imageBind") {
     const bp = el.bindParam;
     if (!bp) return null;
-    if (DYNAMIC_BADGES.has(bp)) {
-      // Badges dinâmicos: condição vem de shouldRenderBadge (servicos, desconto, feriado).
-      if (!shouldRenderBadge(bp, values)) return null;
-    } else if (!values[bp] && !el.src) {
-      // Fallback: bind depende de values[bp] estar preenchido ou el.src padrão existir.
-      return null;
-    }
+    if (!bp.endsWith("_badge") && !values[bp] && !el.src) return null;
     return <RenderImage el={{ ...el, type: "image", src: values[bp] || el.src }} values={values} />;
   }
 
