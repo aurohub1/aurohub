@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import {
-  CalendarDays, Plus, Check, Trash2, ChevronLeft, ChevronRight, X,
+  CalendarDays, Plus, Check, Trash2, ChevronLeft, ChevronRight, X, HelpCircle,
 } from "lucide-react";
+import { useTour } from "@/hooks/useTour";
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -102,6 +103,36 @@ export default function ConsultorCalendarioPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [formTexto, setFormTexto] = useState("");
   const [formData, setFormData] = useState(selectedDay);
+
+  const { startTour } = useTour({
+    pageKey: "consultor-calendario",
+    steps: [
+      {
+        element: "[data-tour='calendario']",
+        popover: {
+          title: "Calendário de Publicações",
+          description: "Visualize suas publicações, datas comemorativas e feriados. Clique em qualquer dia para ver os detalhes.",
+          side: "right",
+        },
+      },
+      {
+        element: "[data-tour='lembretes']",
+        popover: {
+          title: "Lembretes e Eventos",
+          description: "Crie lembretes personalizados para não esquecer datas importantes. Os lembretes aparecem no calendário e podem ser marcados como concluídos.",
+          side: "left",
+        },
+      },
+      {
+        popover: {
+          title: "Pronto!",
+          description: "Use o calendário para planejar suas publicações e nunca perder uma data importante.",
+        },
+      },
+    ],
+    autoStart: true,
+    delay: 1000,
+  });
 
   /* ── Load ─────────────────────────────────────── */
 
@@ -381,7 +412,7 @@ export default function ConsultorCalendarioPage() {
       {/* ═══ GRID: Calendário + Painel do dia ══════ */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         {/* ── Calendário ───────────────────────── */}
-        <div className="card-glass overflow-hidden">
+        <div data-tour="calendario" className="card-glass overflow-hidden">
           {view === "mes" ? (
             <>
               <div className="grid grid-cols-7 border-b border-[var(--bdr)] bg-[var(--bg2)]">
@@ -512,7 +543,7 @@ export default function ConsultorCalendarioPage() {
         </div>
 
         {/* ── Painel do dia selecionado ──────────── */}
-        <div className="card-glass flex flex-col overflow-hidden">
+        <div data-tour="lembretes" className="card-glass flex flex-col overflow-hidden">
           <div className="flex items-center gap-2 border-b border-[var(--bdr)] px-5 py-4">
             <CalendarDays size={15} className="text-[var(--orange)]" />
             <h3 className="text-[14px] font-bold text-[var(--txt)]">{formatDia(selectedDay)}</h3>
@@ -567,6 +598,40 @@ export default function ConsultorCalendarioPage() {
           </div>
         </div>
       </div>
+
+      {/* Botão de ajuda fixo */}
+      <button
+        onClick={startTour}
+        title="Ver tour guiado"
+        style={{
+          position: "fixed",
+          bottom: "24px",
+          right: "24px",
+          width: "48px",
+          height: "48px",
+          borderRadius: "50%",
+          background: "var(--orange)",
+          border: "none",
+          color: "#fff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          zIndex: 9999,
+          transition: "all 0.2s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.1)";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+        }}
+      >
+        <HelpCircle size={24} strokeWidth={2.5} />
+      </button>
 
       {/* ═══ MODAL — Novo lembrete ═════════════════ */}
       {modalOpen && (
