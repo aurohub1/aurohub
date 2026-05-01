@@ -20,10 +20,11 @@ export interface ShadowConfig { color: string; offsetX: number; offsetY: number;
 
 export interface EditorElement {
   id: string;
-  type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind";
+  type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind"|"group";
   name?: string;
   x: number; y: number; width: number; height: number;
   rotation?: number; opacity?: number;
+  children?: string[];
   // Text
   text?: string; fontSize?: number; fontFamily?: string; fontStyle?: string; priceDisplay?: boolean; hideIfEmpty?: boolean;
   fill?: string | GradientFill; align?: string; verticalAlign?: string;

@@ -175,6 +175,35 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     setSelectedId(newEls[newEls.length - 1].id);
   }, [schema, changeSchema]);
 
+  const groupSelected = useCallback(() => {
+    if (selectedIds.length < 2) return;
+    const groupId = `grp_${Date.now()}`;
+    const members = schema.elements.filter(el => selectedIds.includes(el.id));
+    const x = Math.min(...members.map(e => e.x));
+    const y = Math.min(...members.map(e => e.y));
+    const right = Math.max(...members.map(e => e.x + e.width));
+    const bottom = Math.max(...members.map(e => e.y + e.height));
+    const groupEl: EditorElement = {
+      id: groupId, type: "group", name: "Grupo",
+      x, y, width: right - x, height: bottom - y,
+      children: selectedIds, opacity: 1,
+    };
+    const nonMembers = schema.elements.filter(el => !selectedIds.includes(el.id));
+    changeSchema({ ...schema, elements: [...nonMembers, groupEl, ...members] });
+    selectSingle(groupId);
+  }, [selectedIds, schema, changeSchema, selectSingle]);
+
+  const ungroupSelected = useCallback(() => {
+    if (!selectedId) return;
+    const group = schema.elements.find(e => e.id === selectedId && e.type === "group");
+    if (!group) return;
+    const newElements = schema.elements.filter(e => e.id !== selectedId);
+    changeSchema({ ...schema, elements: newElements });
+    const childIds = group.children || [];
+    setSelectedIds(childIds);
+    setSelectedId(childIds.length ? childIds[childIds.length - 1] : null);
+  }, [selectedId, schema, changeSchema]);
+
   const moveLayer = useCallback((dir: "up" | "down") => {
     if (!selectedId) return;
     const els = [...schema.elements]; const idx = els.findIndex(el => el.id === selectedId);
@@ -303,6 +332,8 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
       if (mod && e.key === "[") { e.preventDefault(); moveLayer("down"); }
       if (mod && e.key === "]") { e.preventDefault(); moveLayer("up"); }
       if (mod && key === "a") { e.preventDefault(); selectAll(); }
+      if (mod && !e.shiftKey && key === "g") { e.preventDefault(); groupSelected(); }
+      if (mod && e.shiftKey && key === "g") { e.preventDefault(); ungroupSelected(); }
       // Arrows move ALL selected
       if (selectedIds.length > 0 && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
         e.preventDefault(); const step = e.shiftKey ? 10 : 1;
@@ -321,7 +352,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [deleteSelected, clearSelection, playing, pause, play, undo, redo, copySelected, paste, duplicateSelected, selectAll, selectedIds, schema, changeSchema, handleExport, handleSaveClick, moveLayer]);
+  }, [deleteSelected, clearSelection, playing, pause, play, undo, redo, copySelected, paste, duplicateSelected, selectAll, selectedIds, schema, changeSchema, handleExport, handleSaveClick, moveLayer, groupSelected, ungroupSelected]);
 
   /* ── Badge automático (item 10) ───────────────────── */
   useEffect(() => {
@@ -427,6 +458,8 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         onSaveComponent={() => setShowSaveComponent(true)} canSaveComponent={selectedIds.length > 0}
         onNew={onNew}
         autoSaveStatus={autoSaveStatus}
+        onGroup={selectedIds.length >= 2 ? groupSelected : undefined}
+        onUngroup={selected?.type === "group" ? ungroupSelected : undefined}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>

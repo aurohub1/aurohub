@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet } from "lucide-react";
+import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet, Group, Ungroup } from "lucide-react";
 
 interface Props {
   onUndo: () => void; onRedo: () => void;
@@ -19,6 +19,7 @@ interface Props {
   onSaveComponent?: () => void; canSaveComponent?: boolean;
   onNew?: () => void;
   autoSaveStatus?: "saved" | "saving" | "idle";
+  onGroup?: () => void; onUngroup?: () => void;
 }
 
 export default function Toolbar(p: Props) {
@@ -68,6 +69,8 @@ export default function Toolbar(p: Props) {
       <Btn icon={<Trash2 size={14} />} tip="Deletar (Del)" o={p.onDelete} danger />
       {p.onSaveComponent && <Btn icon={<Package size={14} />} tip="Salvar como componente" o={p.onSaveComponent} d={!p.canSaveComponent} />}
       {p.onToggleSnap && <Btn icon={<Magnet size={14} />} tip={p.snapEnabled ? "Smart Guides ativo" : "Smart Guides desativado"} o={p.onToggleSnap} active={p.snapEnabled} />}
+      {p.onGroup && <><Sep /><Btn icon={<Group size={14} />} tip="Agrupar (Ctrl+G)" o={p.onGroup} /></>}
+      {p.onUngroup && <Btn icon={<Ungroup size={14} />} tip="Desagrupar (Ctrl+Shift+G)" o={p.onUngroup} />}
       {p.onToggleParamView && <><Sep /><Btn icon={p.paramViewActive ? <EyeOff size={14} /> : <Eye size={14} />} tip="Parameter View (Ctrl+P)" o={p.onToggleParamView} active={p.paramViewActive} /></>}
       {p.onHistory && <Btn icon={<History size={14} />} tip="Histórico" o={p.onHistory} />}
       {p.onPreview && <Btn icon={<Smartphone size={14} />} tip="Preview Instagram" o={p.onPreview} />}
