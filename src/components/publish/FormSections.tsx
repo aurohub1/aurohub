@@ -855,6 +855,7 @@ export function PagamentoSection({
                 onChange={(v) => set("parcelas", v)}
                 options={PARCELAS_OPTS_FORM}
                 placeholder="Selecionar..."
+                readOnly
               />
             </Field>
           )}
@@ -1161,18 +1162,13 @@ export function PacoteForm({
           </p>
         ) : null}
         <Field label="Feriado">
-          <div className="relative">
-            <select
-              value={(fields.feriado as string) || ""}
-              onChange={(e) => set("feriado", e.target.value)}
-              className="w-full rounded-xl border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[13px] text-[var(--txt)] appearance-none outline-none"
-            >
-              <option value="">– nenhum –</option>
-              {feriadosNormalizados.map((f) => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            value={(fields.feriado as string) || ""}
+            onChange={(v) => set("feriado", v === "– nenhum –" ? "" : v)}
+            options={["– nenhum –", ...feriadosNormalizados]}
+            placeholder="– nenhum –"
+            readOnly
+          />
         </Field>
       </Section>
 
@@ -1295,6 +1291,7 @@ export function PacoteForm({
                     }}
                     options={PARCELAS_OPTS}
                     placeholder="Selecione..."
+                    readOnly
                   />
                 </Field>
               )}
@@ -1320,17 +1317,13 @@ export function PacoteForm({
           )}
           {showDesconto && (
             <Field label="% Desconto">
-              <select
+              <SearchableSelect
                 value={(fields.numerodesconto as string) || ""}
-                onChange={(e) => set("numerodesconto", e.target.value)}
-                className={SELECT_CLASS}
-                style={SELECT_STYLE}
-              >
-                <option value="">– nenhum –</option>
-                {DESCONTO_OPTS.map((d) => (
-                  <option key={d} value={d.replace("%", "")}>{d}</option>
-                ))}
-              </select>
+                onChange={(v) => set("numerodesconto", v)}
+                options={["10","15","20","25","30","40","50"]}
+                placeholder="Selecione"
+                readOnly
+              />
             </Field>
           )}
           {showValorTotal && (
@@ -1375,7 +1368,7 @@ export function PacoteForm({
 /* ── CampanhaForm ───────────────────────────────────── */
 
 export function CampanhaForm({
-  fields, set, servicos, setServicos, today, feriadoOpts, binds, formato, nomeLoja,
+  fields, set, servicos, setServicos, today, feriadoOpts, loadHoteis, binds, formato, nomeLoja,
 }: {
   fields: Fields;
   set: Setter;
@@ -1383,10 +1376,16 @@ export function CampanhaForm({
   setServicos: (s: string[]) => void;
   today: string;
   feriadoOpts?: string[];
+  loadHoteis?: () => Promise<string[]>;
   binds?: Set<string>;
   formato?: string;
   nomeLoja?: string;
 }) {
+  const [hotelOpts, setHotelOpts] = useState<string[]>([]);
+  useEffect(() => {
+    loadHoteis?.().then(setHotelOpts).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const showDestino = hasBind(binds, "destino");
   const showSaida = hasBind(binds, "saida");
   const showTipovoo = hasBind(binds, "tipovoo");
@@ -1465,18 +1464,13 @@ export function CampanhaForm({
           />
         )}
         <Field label="Feriado">
-          <div className="relative">
-            <select
-              value={(fields.feriado as string) || ""}
-              onChange={(e) => set("feriado", e.target.value)}
-              className="w-full rounded-xl border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[13px] text-[var(--txt)] appearance-none outline-none"
-            >
-              <option value="">– nenhum –</option>
-              {feriadosNormalizados.map((f) => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            value={(fields.feriado as string) || ""}
+            onChange={(v) => set("feriado", v === "– nenhum –" ? "" : v)}
+            options={["– nenhum –", ...feriadosNormalizados]}
+            placeholder="– nenhum –"
+            readOnly
+          />
         </Field>
       </Section>
 
@@ -1486,11 +1480,12 @@ export function CampanhaForm({
             <span className="text-[13px]">🏨</span>
           </div>
           <Field label="Hotel *" asSection>
-            <input
+            <SearchableSelect
               value={(fields.hotel as string) || ""}
-              onChange={(e) => set("hotel", e.target.value)}
+              onChange={(v) => set("hotel", v)}
+              options={hotelOpts}
               placeholder="Nome do hotel"
-              className={INPUT_CLASS}
+              allowCustom
             />
           </Field>
         </div>
@@ -2038,32 +2033,27 @@ export function PassagemForm({
   const showParcelas = hasBind(binds, "parcelas");
   const showValorTotal = hasBind(binds, "valortotal", "valor_total");
   const showFormaPgto = hasBind(binds, "formapagamento");
-  const showEntrada = fields.formapagamento === "entrada";
+  const showEntrada = fields.formapagamento === "Boleto";
 
   // ═══ BIND: forma_pgto / forma_de_pagamento (derivados) ═══
   useEffect(() => {
     const fp = fields.formapagamento as string;
-    if (fp === "cartao") {
+    if (fp === "Cartão") {
       set("forma_pgto", "No Cartão de Crédito Sem Juros");
       set("forma_de_pagamento", "No Cartão de Crédito Sem Juros");
       set("psg_forma_pgto", "No Cartão de Crédito Sem Juros"); // Prefixado
       set("psg_forma_de_pagamento", "No Cartão de Crédito Sem Juros"); // Prefixado
-    } else if (fp === "entrada") {
+    } else if (fp === "Boleto") {
       const ent = (fields.entrada as string) || "";
-      set("forma_pgto", ent ? `Entrada de R$ ${ent} +` : "Entrada +");
-      set("forma_de_pagamento", ent ? `Entrada de R$ ${ent} +` : "Entrada +");
-      set("psg_forma_pgto", ent ? `Entrada de R$ ${ent} +` : "Entrada +"); // Prefixado
-      set("psg_forma_de_pagamento", ent ? `Entrada de R$ ${ent} +` : "Entrada +"); // Prefixado
-    } else if (fp === "debito") {
+      set("forma_pgto", ent ? `Entrada de R$ ${ent} +` : "Boleto");
+      set("forma_de_pagamento", ent ? `Entrada de R$ ${ent} +` : "Boleto");
+      set("psg_forma_pgto", ent ? `Entrada de R$ ${ent} +` : "Boleto"); // Prefixado
+      set("psg_forma_de_pagamento", ent ? `Entrada de R$ ${ent} +` : "Boleto"); // Prefixado
+    } else if (fp === "Débito") {
       set("forma_pgto", "No Débito");
       set("forma_de_pagamento", "No Débito");
       set("psg_forma_pgto", "No Débito"); // Prefixado
       set("psg_forma_de_pagamento", "No Débito"); // Prefixado
-    } else if (fp === "pix") {
-      set("forma_pgto", "No Pix");
-      set("forma_de_pagamento", "No Pix");
-      set("psg_forma_pgto", "No Pix"); // Prefixado
-      set("psg_forma_de_pagamento", "No Pix"); // Prefixado
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.formapagamento, fields.entrada]);
@@ -2255,21 +2245,13 @@ export function PassagemForm({
         {/* Forma de Pagamento */}
         {showFormaPgto && (
           <Field label="Forma de Pagamento *">
-            <select
+            <SearchableSelect
               value={(fields.formapagamento as string) || ""}
-              onChange={(e) => {
-                set("formapagamento", e.target.value);
-                set("psg_formapagamento", e.target.value); // Prefixado
-              }}
-              className={SELECT_CLASS}
-              style={SELECT_STYLE}
-            >
-              <option value="">Selecione...</option>
-              <option value="cartao">Cartão de Crédito</option>
-              <option value="entrada">Boleto</option>
-              <option value="debito">Débito</option>
-              <option value="pix">PIX</option>
-            </select>
+              onChange={(v) => { set("formapagamento", v); set("psg_formapagamento", v); }}
+              options={["Cartão","Boleto","Débito"]}
+              placeholder="Selecione"
+              readOnly
+            />
           </Field>
         )}
 
@@ -2442,7 +2424,7 @@ interface LamDest {
   destino: string; saida: string; voo: string;
   ida: string; volta: string;
   hotel: string; incluso: string;
-  pgto: "cartao" | "boleto" | "";
+  pgto: string;
   entrada: string; parc: string;
   valor: string; total: string;
 }
@@ -2514,9 +2496,9 @@ export function CardWhatsAppForm({
       // pgto: V1 resolution rules
       set(
         `lam_d${n}_pgto`,
-        d.pgto === "cartao"
+        d.pgto === "Cartão"
           ? "No Cartão de Crédito S/ Juros"
-          : d.pgto === "boleto"
+          : d.pgto === "Boleto"
             ? (d.entrada ? `Entrada de R$ ${d.entrada} +` : "Boleto")
             : "",
       );
@@ -2730,16 +2712,13 @@ export function CardWhatsAppForm({
             />
           </Field>
           <Field label="Tipo Voo">
-            <select
-              value={d.voo}
-              onChange={(e) => updateDest(curDest, { voo: e.target.value })}
-              className={SELECT_CLASS}
-              style={SELECT_STYLE}
-            >
-              {VOO_OPTS.map((v) => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
+            <SearchableSelect
+              value={d.voo || ""}
+              onChange={(v) => updateDest(curDest, { voo: v })}
+              options={["Voo Direto","Voo Conexão"]}
+              placeholder="Selecione"
+              readOnly
+            />
           </Field>
         </div>
       </Section>
@@ -2783,36 +2762,27 @@ export function CardWhatsAppForm({
           />
         </Field>
         <Field label="Incluso">
-          <select
-            value={d.incluso}
-            onChange={(e) => updateDest(curDest, { incluso: e.target.value })}
-            className={SELECT_CLASS}
-            style={SELECT_STYLE}
-          >
-            {LAM_INCLUSO_OPTS.map((v) => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            value={d.incluso || ""}
+            onChange={(v) => updateDest(curDest, { incluso: v })}
+            options={["Aéreo + Hotel","Aéreo + Hotel + Transfer","Só Aéreo","Só Hotel"]}
+            placeholder="Selecione"
+            readOnly
+          />
         </Field>
       </Section>
 
       <Section title="Pagamento" icon="💰">
         <Field label="Forma de Pagamento">
-          <select
-            value={d.pgto}
-            onChange={(e) => {
-              const v = e.target.value as LamDest["pgto"];
-              updateDest(curDest, { pgto: v, ...(v === "cartao" ? { entrada: "" } : {}) });
-            }}
-            className={SELECT_CLASS}
-            style={SELECT_STYLE}
-          >
-            <option value="">– selecione –</option>
-            <option value="cartao">Cartão de Crédito</option>
-            <option value="boleto">Boleto</option>
-          </select>
+          <SearchableSelect
+            value={d.pgto || ""}
+            onChange={(v) => updateDest(curDest, { pgto: v, ...(v === "Cartão" ? { entrada: "" } : {}) })}
+            options={["Cartão","Boleto","Débito"]}
+            placeholder="Selecione"
+            readOnly
+          />
         </Field>
-        {d.pgto === "boleto" && (
+        {d.pgto === "Boleto" && (
           <Field label="Valor da Entrada (R$)">
             <input
               value={d.entrada}
@@ -2833,6 +2803,7 @@ export function CardWhatsAppForm({
               onChange={(v) => updateDest(curDest, { parc: v })}
               options={PARCELAS_OPTS}
               placeholder="12x"
+              readOnly
             />
           </Field>
           <Field label="Valor Parcela">

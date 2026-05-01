@@ -704,8 +704,13 @@ export default function EditorTemplatesPage() {
   };
 
   const setActiveTemplate = async (key: string) => {
+    console.log('[setActive] chamado com key:', key);
     const template = canvasTemplates.find(t => t.key === key);
-    if (!template || !template.licenseeId) return;
+    if (!template || !template.licenseeId) {
+      console.log('[setActive] abortou — template:', template, 'licenseeId:', template?.licenseeId);
+      return;
+    }
+    console.log('[setActive]', { templateKey: key, licenseeId: template.licenseeId, formType: template.formType, format: template.format });
     try {
       await supabase
         .from("form_templates")
