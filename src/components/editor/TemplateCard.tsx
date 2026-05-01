@@ -302,12 +302,12 @@ export function TemplateCard({
         >
           <Pencil size={16} />
         </button>
-        {activeStatus === "inactive" && onSetActive && (
+        {activeStatus !== null && onSetActive && (
           <button
             onClick={() => onSetActive(t.key)}
-            onMouseEnter={() => setTooltip("Definir como ativo")}
+            onMouseEnter={() => setTooltip(activeStatus === "active" ? "Desativar" : "Ativar")}
             onMouseLeave={() => setTooltip(null)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(22,163,74,0.10)] hover:text-[#16a34a]"
+            className={`flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors ${activeStatus === "active" ? "hover:bg-[rgba(239,68,68,0.10)] hover:text-[#ef4444]" : "hover:bg-[rgba(22,163,74,0.10)] hover:text-[#16a34a]"}`}
           >
             <CheckCircle size={15} />
           </button>

@@ -714,14 +714,7 @@ export default function EditorTemplatesPage() {
     try {
       await supabase
         .from("form_templates")
-        .update({ active: false })
-        .eq("is_base", false)
-        .eq("form_type", template.formType)
-        .eq("format", template.format)
-        .eq("licensee_id", template.licenseeId);
-      await supabase
-        .from("form_templates")
-        .update({ active: true })
+        .update({ active: !template.formTemplateActive })
         .eq("config_key", key);
       await loadCanvasTemplates();
     } catch (err) {
@@ -891,21 +884,9 @@ export default function EditorTemplatesPage() {
               const color = getLicColor(licName);
 
               const activeStatusMap = new Map<string, "active" | "inactive">();
-              const subgroups = new Map<string, CanvasTemplate[]>();
               for (const t of group.items) {
-                const sgKey = `${t.formType}__${t.format}`;
-                if (!subgroups.has(sgKey)) subgroups.set(sgKey, []);
-                subgroups.get(sgKey)!.push(t);
-              }
-              for (const sgItems of subgroups.values()) {
-                if (sgItems.length <= 1) continue;
-                const withActive = sgItems.filter(t => t.formTemplateActive === true);
-                const pool = withActive.length > 0 ? withActive : sgItems;
-                const activeKey = [...pool].sort((a, b) =>
-                  new Date(b.formTemplateCreatedAt ?? 0).getTime() - new Date(a.formTemplateCreatedAt ?? 0).getTime()
-                )[0].key;
-                for (const t of sgItems) {
-                  activeStatusMap.set(t.key, t.key === activeKey ? "active" : "inactive");
+                if (t.licenseeId && t.formTemplateActive !== null) {
+                  activeStatusMap.set(t.key, t.formTemplateActive ? "active" : "inactive");
                 }
               }
 
