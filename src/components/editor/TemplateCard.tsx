@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin, Users, RefreshCw } from "lucide-react";
+import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin, Users, RefreshCw, CheckCircle } from "lucide-react";
 
 export interface CanvasTemplate {
   key: string;
@@ -17,6 +17,8 @@ export interface CanvasTemplate {
   isBase: boolean;
   baseTipo: string | null;
   accessLicensees?: string[];
+  formTemplateActive?: boolean | null;
+  formTemplateCreatedAt?: string | null;
 }
 
 interface TemplateCardProps {
@@ -31,6 +33,8 @@ interface TemplateCardProps {
   onThumbUpload: (key: string, file: File) => void;
   onThumbCapture: (key: string) => void;
   thumbUploading?: boolean;
+  activeStatus?: "active" | "inactive" | null;
+  onSetActive?: (key: string) => void;
 }
 
 export function TemplateCard({
@@ -45,6 +49,8 @@ export function TemplateCard({
   onThumbUpload,
   onThumbCapture,
   thumbUploading = false,
+  activeStatus,
+  onSetActive,
 }: TemplateCardProps) {
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(t.nome);
@@ -193,6 +199,19 @@ export function TemplateCard({
           >
             {formatFormatLabel(t.format)}
           </span>
+          {activeStatus && (
+            <span
+              className="text-[9px] font-semibold uppercase"
+              style={{
+                background: activeStatus === "active" ? "#dcfce7" : "#f1f5f9",
+                color: activeStatus === "active" ? "#16a34a" : "#94a3b8",
+                padding: "2px 6px",
+                borderRadius: "4px",
+              }}
+            >
+              {activeStatus === "active" ? "ATIVO" : "INATIVO"}
+            </span>
+          )}
         </div>
 
         {/* Meta info */}
@@ -283,6 +302,16 @@ export function TemplateCard({
         >
           <Pencil size={16} />
         </button>
+        {activeStatus === "inactive" && onSetActive && (
+          <button
+            onClick={() => onSetActive(t.key)}
+            onMouseEnter={() => setTooltip("Definir como ativo")}
+            onMouseLeave={() => setTooltip(null)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(22,163,74,0.10)] hover:text-[#16a34a]"
+          >
+            <CheckCircle size={15} />
+          </button>
+        )}
         {onAccess && (
           <button
             onClick={() => onAccess(t.key)}

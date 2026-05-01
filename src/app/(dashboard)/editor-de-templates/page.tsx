@@ -202,6 +202,17 @@ export default function EditorTemplatesPage() {
         .from("template_access")
         .select("template_key,licensee_id,store_id,licensees(name),stores(name)");
 
+      // Busca status active de form_templates (clones de cliente)
+      const { data: ftData } = await supabase
+        .from("form_templates")
+        .select("config_key,active,created_at")
+        .eq("is_base", false)
+        .not("config_key", "is", null);
+      const ftMap = new Map<string, { active: boolean; createdAt: string }>();
+      for (const r of (ftData ?? []) as { config_key: string; active: boolean; created_at: string }[]) {
+        if (r.config_key) ftMap.set(r.config_key, { active: r.active, createdAt: r.created_at });
+      }
+
       // Mapa: template_key → array de strings descritivas
       const accessMap = new Map<string, string[]>();
       if (accessData) {
@@ -303,6 +314,8 @@ export default function EditorTemplatesPage() {
           isBase,
           baseTipo,
           accessLicensees: accessMap.get(r.key) ?? [],
+          formTemplateActive: ftMap.get(r.key)?.active ?? null,
+          formTemplateCreatedAt: ftMap.get(r.key)?.createdAt ?? null,
         };
       });
       setCanvasTemplates(list);
@@ -690,6 +703,28 @@ export default function EditorTemplatesPage() {
     }
   };
 
+  const setActiveTemplate = async (key: string) => {
+    const template = canvasTemplates.find(t => t.key === key);
+    if (!template || !template.licenseeId) return;
+    try {
+      await supabase
+        .from("form_templates")
+        .update({ active: false })
+        .eq("is_base", false)
+        .eq("form_type", template.formType)
+        .eq("format", template.format)
+        .eq("licensee_id", template.licenseeId);
+      await supabase
+        .from("form_templates")
+        .update({ active: true })
+        .eq("config_key", key);
+      await loadCanvasTemplates();
+    } catch (err) {
+      console.error("[setActiveTemplate]", err);
+      alert("Falha ao definir template como ativo.");
+    }
+  };
+
   // Duplica um template de cliente (mesmo licensee)
   async function duplicateCanvasTmpl(key: string) {
     try {
@@ -848,6 +883,29 @@ export default function EditorTemplatesPage() {
           <div className="flex flex-col gap-4">
             {Object.entries(userTemplatesByLicensee).map(([licName, group]) => {
               const color = getLicColor(licName);
+
+              const activeStatusMap = new Map<string, "active" | "inactive">();
+              const subgroups = new Map<string, CanvasTemplate[]>();
+              for (const t of group.items) {
+                const sgKey = `${t.formType}__${t.format}`;
+                if (!subgroups.has(sgKey)) subgroups.set(sgKey, []);
+                subgroups.get(sgKey)!.push(t);
+              }
+              for (const sgItems of subgroups.values()) {
+                if (sgItems.length <= 1) continue;
+                const withActive = sgItems.filter(t => t.formTemplateActive === true);
+                let activeKey: string | null = null;
+                if (withActive.length > 0) {
+                  const sorted = [...withActive].sort((a, b) =>
+                    new Date(b.formTemplateCreatedAt ?? 0).getTime() - new Date(a.formTemplateCreatedAt ?? 0).getTime()
+                  );
+                  activeKey = sorted[0].key;
+                }
+                for (const t of sgItems) {
+                  activeStatusMap.set(t.key, t.key === activeKey ? "active" : "inactive");
+                }
+              }
+
               return (
                 <details
                   key={licName}
@@ -889,6 +947,8 @@ export default function EditorTemplatesPage() {
                           onThumbUpload={handleThumbUpload}
                           onThumbCapture={handleCaptureCard}
                           thumbUploading={thumbUploadingKey === t.key}
+                          activeStatus={activeStatusMap.get(t.key) ?? null}
+                          onSetActive={setActiveTemplate}
                         />
                       ))}
                     </div>
