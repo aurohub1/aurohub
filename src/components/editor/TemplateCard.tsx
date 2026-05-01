@@ -17,6 +17,7 @@ export interface CanvasTemplate {
   isBase: boolean;
   baseTipo: string | null;
   accessLicensees?: string[];
+  formTemplateId?: string | null;
   formTemplateActive?: boolean | null;
   formTemplateCreatedAt?: string | null;
 }
@@ -203,8 +204,8 @@ export function TemplateCard({
             <span
               className="text-[9px] font-semibold uppercase"
               style={{
-                background: activeStatus === "active" ? "#dcfce7" : "#f1f5f9",
-                color: activeStatus === "active" ? "#16a34a" : "#94a3b8",
+                background: activeStatus === "active" ? "#dcfce7" : "#fee2e2",
+                color: activeStatus === "active" ? "#16a34a" : "#dc2626",
                 padding: "2px 6px",
                 borderRadius: "4px",
               }}

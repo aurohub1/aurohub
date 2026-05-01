@@ -205,12 +205,12 @@ export default function EditorTemplatesPage() {
       // Busca status active de form_templates (clones de cliente)
       const { data: ftData } = await supabase
         .from("form_templates")
-        .select("config_key,active,created_at")
+        .select("id,config_key,active,created_at")
         .eq("is_base", false)
         .not("config_key", "is", null);
-      const ftMap = new Map<string, { active: boolean; createdAt: string }>();
-      for (const r of (ftData ?? []) as { config_key: string; active: boolean; created_at: string }[]) {
-        if (r.config_key) ftMap.set(r.config_key, { active: r.active, createdAt: r.created_at });
+      const ftMap = new Map<string, { id: string; active: boolean; createdAt: string }>();
+      for (const r of (ftData ?? []) as { id: string; config_key: string; active: boolean; created_at: string }[]) {
+        if (r.config_key) ftMap.set(r.config_key, { id: r.id, active: r.active, createdAt: r.created_at });
       }
 
       // Mapa: template_key → array de strings descritivas
@@ -314,6 +314,7 @@ export default function EditorTemplatesPage() {
           isBase,
           baseTipo,
           accessLicensees: accessMap.get(r.key) ?? [],
+          formTemplateId: ftMap.get(r.key)?.id ?? null,
           formTemplateActive: ftMap.get(r.key)?.active ?? null,
           formTemplateCreatedAt: ftMap.get(r.key)?.createdAt ?? null,
         };
@@ -712,10 +713,14 @@ export default function EditorTemplatesPage() {
     }
     console.log('[setActive]', { templateKey: key, licenseeId: template.licenseeId, formType: template.formType, format: template.format });
     try {
+      if (!template.formTemplateId) {
+        console.log('[setActive] abortou — sem formTemplateId (template não vinculado a form_templates)');
+        return;
+      }
       await supabase
         .from("form_templates")
         .update({ active: !template.formTemplateActive })
-        .eq("config_key", key);
+        .eq("id", template.formTemplateId);
       await loadCanvasTemplates();
     } catch (err) {
       console.error("[setActiveTemplate]", err);
@@ -885,8 +890,8 @@ export default function EditorTemplatesPage() {
 
               const activeStatusMap = new Map<string, "active" | "inactive">();
               for (const t of group.items) {
-                if (t.licenseeId && t.formTemplateActive !== null) {
-                  activeStatusMap.set(t.key, t.formTemplateActive ? "active" : "inactive");
+                if (t.licenseeId) {
+                  activeStatusMap.set(t.key, t.formTemplateActive === true ? "active" : "inactive");
                 }
               }
 
