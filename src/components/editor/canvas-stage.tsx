@@ -13,6 +13,7 @@ interface Props {
   snapEnabled?: boolean;
   onSelect: (id: string | null) => void;
   onShiftSelect: (id: string) => void;
+  onMultiSelect?: (ids: string[]) => void;
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
   onStageRef: (r: Konva.Stage | null) => void;
   onScaleChange: (s: number) => void;
@@ -399,6 +400,13 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   return null;
 }
 
+function rectsIntersect(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number }
+): boolean {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
 /* ── Main canvas component ───────────────────────── */
 export default function CanvasStage(p: Props) {
   const { width, height, schema, selectedIds, stageScale, playing, currentTime, snapEnabled = true } = p;
@@ -506,6 +514,8 @@ export default function CanvasStage(p: Props) {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef<{ clientX: number; clientY: number; offsetX: number; offsetY: number } | null>(null);
+  const selRectStart = useRef<{ x: number; y: number } | null>(null);
+  const [selRect, setSelRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 1) return;
@@ -560,12 +570,38 @@ export default function CanvasStage(p: Props) {
       <Stage ref={stageRef} width={width * stageScale} height={height * stageScale} scaleX={stageScale} scaleY={stageScale}
         onWheel={handleWheel}
         onMouseDown={e => {
-          // Middle-click: bloqueia seleção/drag no stage, container cuida do pan
-          if (e.evt.button === 1) {
-            e.evt.preventDefault();
-            return;
+          if (e.evt.button === 1) { e.evt.preventDefault(); return; }
+          if (e.target === e.target.getStage()) {
+            p.onSelect(null);
+            const pos = stageRef.current?.getRelativePointerPosition();
+            if (pos) {
+              selRectStart.current = pos;
+              // Cancela o rubber band se o mouse sair do canvas antes do mouseup
+              const cleanup = () => { selRectStart.current = null; setSelRect(null); };
+              window.addEventListener("mouseup", cleanup, { once: true });
+            }
           }
-          if (e.target === e.target.getStage()) p.onSelect(null);
+        }}
+        onMouseMove={() => {
+          if (!selRectStart.current) return;
+          const pos = stageRef.current?.getRelativePointerPosition();
+          if (!pos) return;
+          const s = selRectStart.current;
+          setSelRect({ x: Math.min(s.x, pos.x), y: Math.min(s.y, pos.y), w: Math.abs(pos.x - s.x), h: Math.abs(pos.y - s.y) });
+        }}
+        onMouseUp={() => {
+          if (!selRectStart.current) return;
+          const s = selRectStart.current;
+          selRectStart.current = null;
+          setSelRect(null);
+          const pos = stageRef.current?.getRelativePointerPosition();
+          if (!pos) return;
+          const r = { x: Math.min(s.x, pos.x), y: Math.min(s.y, pos.y), w: Math.abs(pos.x - s.x), h: Math.abs(pos.y - s.y) };
+          if (r.w < 4 || r.h < 4) return;
+          const ids = schema.elements
+            .filter(el => !el.locked && rectsIntersect(r, { x: el.x, y: el.y, w: el.width, h: el.height }))
+            .map(el => el.id);
+          if (ids.length > 0) p.onMultiSelect?.(ids);
         }}
         style={{ borderRadius: 4, boxShadow: "0 10px 48px rgba(0,0,0,0.5)" }}>
         <Layer>
@@ -632,6 +668,12 @@ export default function CanvasStage(p: Props) {
             }
             return <React.Fragment key={`sl-${el.id}`}>{links}</React.Fragment>;
           })}
+          {selRect && (
+            <Rect x={selRect.x} y={selRect.y} width={selRect.w} height={selRect.h}
+              fill="rgba(59,130,246,0.08)" stroke="#3B82F6"
+              strokeWidth={1 / stageScale} dash={[4 / stageScale, 2 / stageScale]}
+              listening={false} />
+          )}
           <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} boundBoxFunc={(_, nw) => nw} />
         </Layer>
       </Stage>

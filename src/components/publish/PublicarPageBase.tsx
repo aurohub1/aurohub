@@ -366,7 +366,7 @@ export default function PublicarPageBase({
     const { data } = await supabase
       .from("form_templates")
       .select("*")
-      .eq("licensee_id", lid)
+      .or(`licensee_id.eq.${lid},licensee_id.is.null`)
       .eq("active", true)
       .order("form_type")
       .order("format")

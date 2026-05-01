@@ -103,6 +103,11 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     setSelectedId(ids.length > 0 ? ids[ids.length - 1] : null);
   }, [schema.elements]);
 
+  const selectMultiple = useCallback((ids: string[]) => {
+    setSelectedIds(ids);
+    setSelectedId(ids.length > 0 ? ids[ids.length - 1] : null);
+  }, []);
+
   const clearSelection = useCallback(() => { setSelectedId(null); setSelectedIds([]); }, []);
 
   // Fit canvas
@@ -488,7 +493,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
           selectedIds={selectedIds} stageScale={stageScale}
           playing={playing} currentTime={currentTime}
           snapEnabled={snapEnabled}
-          onSelect={selectSingle} onShiftSelect={shiftSelect}
+          onSelect={selectSingle} onShiftSelect={shiftSelect} onMultiSelect={selectMultiple}
           onUpdate={updateElement}
           onStageRef={(r) => { stageRef.current = r; }}
           onScaleChange={setStageScale}
