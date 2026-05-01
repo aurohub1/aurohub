@@ -20,16 +20,16 @@ let cachedAt = 0;
 
 // Categoria → aliases usados por resolveBadgeUrl (BADGE_ALIASES em src/lib/badges.ts)
 const CAT_TO_ALIASES: Record<string, string[]> = {
-  all_inclusive:   ["ALL INCLUSIVE", "All Inclusive", "allinclusive", "all_inclusive"],
-  ultima_chamada:  ["ÚLTIMA CHAMADA", "ULTIMA CHAMADA", "Última Chamada", "ultimachamada", "chamada"],
-  ultimos_lugares: ["ÚLTIMOS LUGARES", "ULTIMOS LUGARES", "Últimos Lugares", "ultimoslugares"],
-  oferta:          ["OFERTAS", "OFERTAS AZUL", "Ofertas Azul", "ofertas azul", "ofertas"],
-  desconto:        ["DESCONTO", "desconto", "porcentagem", "PORCENTAGEM"],
+  all_inclusive:   ["ALL INCLUSIVE", "All Inclusive", "allinclusive", "all_inclusive", "all_inclusive_badge"],
+  ultima_chamada:  ["ÚLTIMA CHAMADA", "ULTIMA CHAMADA", "Última Chamada", "ultimachamada", "chamada", "ultima_chamada_badge"],
+  ultimos_lugares: ["ÚLTIMOS LUGARES", "ULTIMOS LUGARES", "Últimos Lugares", "ultimoslugares", "ultimos_lugares_badge"],
+  oferta:          ["OFERTAS", "OFERTAS AZUL", "Ofertas Azul", "ofertas azul", "ofertas", "ofertas_azul_badge"],
+  desconto:        ["DESCONTO", "desconto", "porcentagem", "PORCENTAGEM", "desconto_badge"],
 };
 
 async function loadBadges(): Promise<BadgesData> {
   const [b, f] = await Promise.all([
-    supabase.from("badges").select("nome,url,categoria"),
+    supabase.from("badges").select("nome,url"),
     supabase.from("feriados").select("nome,url"),
   ]);
   if (b.error) throw b.error;

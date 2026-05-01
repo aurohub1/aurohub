@@ -50,11 +50,11 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
     ],
     Badges: [
       { id: 'desconto', label: 'Desconto (%)', type: 'text' },
-      { id: 'badge_oferta', label: 'Oferta Azul', type: 'image' },
-      { id: 'badge_ultima_chamada', label: 'Última Chamada', type: 'image' },
-      { id: 'badge_ultimos_lugares', label: 'Últimos Lugares', type: 'image' },
-      { id: 'badge_all_inclusive', label: 'All Inclusive', type: 'image' },
-      { id: 'badge_feriado', label: 'Badge Feriado', type: 'image' },
+      { id: 'oferta_badge', label: 'Oferta Azul', type: 'image' },
+      { id: 'ultima_chamada_badge', label: 'Última Chamada', type: 'image' },
+      { id: 'ultimos_lugares_badge', label: 'Últimos Lugares', type: 'image' },
+      { id: 'all_inclusive_badge', label: 'All Inclusive', type: 'image' },
+      { id: 'feriado_badge', label: 'Badge Feriado', type: 'image' },
     ],
   },
 
@@ -92,11 +92,11 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
     ],
     Badges: [
       { id: 'desconto', label: 'Desconto (%)', type: 'text' },
-      { id: 'badge_oferta', label: 'Oferta Azul', type: 'image' },
-      { id: 'badge_ultima_chamada', label: 'Última Chamada', type: 'image' },
-      { id: 'badge_ultimos_lugares', label: 'Últimos Lugares', type: 'image' },
-      { id: 'badge_all_inclusive', label: 'All Inclusive', type: 'image' },
-      { id: 'badge_feriado', label: 'Badge Feriado', type: 'image' },
+      { id: 'oferta_badge', label: 'Oferta Azul', type: 'image' },
+      { id: 'ultima_chamada_badge', label: 'Última Chamada', type: 'image' },
+      { id: 'ultimos_lugares_badge', label: 'Últimos Lugares', type: 'image' },
+      { id: 'all_inclusive_badge', label: 'All Inclusive', type: 'image' },
+      { id: 'feriado_badge', label: 'Badge Feriado', type: 'image' },
     ],
   },
 
@@ -179,7 +179,7 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
     ],
     Badges: [
       { id: 'desconto', label: 'Desconto (%)', type: 'text' },
-      { id: 'badge_feriado', label: 'Badge Feriado', type: 'image' },
+      { id: 'feriado_badge', label: 'Badge Feriado', type: 'image' },
     ],
   },
 
