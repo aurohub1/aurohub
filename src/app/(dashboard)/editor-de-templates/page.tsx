@@ -894,13 +894,10 @@ export default function EditorTemplatesPage() {
               for (const sgItems of subgroups.values()) {
                 if (sgItems.length <= 1) continue;
                 const withActive = sgItems.filter(t => t.formTemplateActive === true);
-                let activeKey: string | null = null;
-                if (withActive.length > 0) {
-                  const sorted = [...withActive].sort((a, b) =>
-                    new Date(b.formTemplateCreatedAt ?? 0).getTime() - new Date(a.formTemplateCreatedAt ?? 0).getTime()
-                  );
-                  activeKey = sorted[0].key;
-                }
+                const pool = withActive.length > 0 ? withActive : sgItems;
+                const activeKey = [...pool].sort((a, b) =>
+                  new Date(b.formTemplateCreatedAt ?? 0).getTime() - new Date(a.formTemplateCreatedAt ?? 0).getTime()
+                )[0].key;
                 for (const t of sgItems) {
                   activeStatusMap.set(t.key, t.key === activeKey ? "active" : "inactive");
                 }
