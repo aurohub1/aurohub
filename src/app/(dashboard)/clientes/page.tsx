@@ -30,6 +30,7 @@ interface Licensee {
   cor_primaria?: string; cor_secundaria?: string; cor_acento?: string; cor_fundo?: string;
   cor4?: string; cor5?: string;
   tema_fundo_escuro?: string; tema_fundo_claro?: string; tema_texto_escuro?: string; tema_texto_claro?: string;
+  chat_profanity_filter?: boolean;
 }
 interface Segment { id: string; name: string; icon: string | null; }
 interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; is_enterprise?: boolean | null; }
@@ -67,7 +68,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "", chat_profanity_filter: true });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -173,7 +174,7 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_texto_efeito, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5").order("created_at", { ascending: false }),
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_texto_efeito, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, chat_profanity_filter").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda, is_enterprise"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
@@ -217,7 +218,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "" });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "", chat_profanity_filter: true });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -225,7 +226,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", splash_texto_efeito: l.splash_texto_efeito ?? "typewriter", cor_primaria: l.cor_primaria ?? "#1E3A6E", cor_secundaria: l.cor_secundaria ?? "#3B82F6", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF", preview_bg_url: "" });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", splash_texto_efeito: l.splash_texto_efeito ?? "typewriter", cor_primaria: l.cor_primaria ?? "#1E3A6E", cor_secundaria: l.cor_secundaria ?? "#3B82F6", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF", preview_bg_url: "", chat_profanity_filter: l.chat_profanity_filter ?? true });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -258,6 +259,7 @@ export default function ClientesPage() {
         cor_fundo: form.cor_fundo || null,
         cor4: form.cor4 || null,
         cor5: form.cor5 || null,
+        chat_profanity_filter: form.chat_profanity_filter ?? true,
       };
       if (formPlanIsInternal && form.expires_at) {
         payload.expires_at = form.expires_at;
@@ -947,6 +949,22 @@ export default function ClientesPage() {
                       <option value="">Nenhum</option>
                       {segments.map((s) => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
                     </select>
+                  </div>
+                  <div className="border-t border-[var(--bdr)] pt-4 mt-2">
+                    <label className="mb-2.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Chat Interno</label>
+                    <div className="flex items-center justify-between rounded-lg border border-[var(--bdr)] px-3 py-2.5">
+                      <div>
+                        <div className="text-[12px] font-medium text-[var(--txt)]">Filtro de palavrão</div>
+                        <div className="text-[10px] text-[var(--txt3)]">Bloqueia mensagens com conteúdo impróprio</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, chat_profanity_filter: !f.chat_profanity_filter }))}
+                        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${form.chat_profanity_filter ? "bg-emerald-500" : "bg-[var(--bdr2)]"}`}
+                      >
+                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form.chat_profanity_filter ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

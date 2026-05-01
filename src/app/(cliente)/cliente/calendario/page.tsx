@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import {
-  CalendarDays, Plus, Check, Trash2, ChevronLeft, ChevronRight, X,
+  CalendarDays, Plus, Check, Trash2, ChevronLeft, ChevronRight, X, HelpCircle,
 } from "lucide-react";
+import { useTour } from "@/hooks/useTour";
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -54,13 +55,13 @@ const MESES = [
 const DIAS_SEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const TIPO_BADGE: Record<string, { bg: string; color: string }> = {
-  publicado: { bg: "var(--blue3)",   color: "var(--blue)" },
-  feriado:   { bg: "var(--red3)",    color: "var(--red)" },
-  vespera:   { bg: "var(--orange3)", color: "var(--orange)" },
-  temporada: { bg: "var(--blue3)",   color: "var(--blue)" },
-  evento:    { bg: "var(--gold3)",   color: "var(--gold)" },
-  segmento:  { bg: "rgba(167,139,250,0.18)", color: "#A78BFA" },
-  lembrete:  { bg: "rgba(34,197,94,0.18)",   color: "var(--green)" },
+  publicado: { bg: "var(--blue3)", color: "var(--blue)" },
+  feriado: { bg: "var(--red3)", color: "var(--red)" },
+  vespera: { bg: "var(--orange3)", color: "var(--orange)" },
+  temporada: { bg: "var(--blue3)", color: "var(--blue)" },
+  evento: { bg: "var(--gold3)", color: "var(--gold)" },
+  segmento: { bg: "rgba(167,139,250,0.18)", color: "#A78BFA" },
+  lembrete: { bg: "rgba(34,197,94,0.18)", color: "var(--green)" },
 };
 
 /* ── Helpers ─────────────────────────────────────── */
@@ -103,6 +104,34 @@ export default function ClienteCalendarioPage() {
   const [formTexto, setFormTexto] = useState("");
   const [formData, setFormData] = useState(selectedDay);
   const [formLojasSelecionadas, setFormLojasSelecionadas] = useState<string[]>([]);
+
+  const { startTour, tourCompleted } = useTour({
+    pageKey: "cliente-calendario",
+    steps: [
+      {
+        element: "[data-tour='calendario']",
+        popover: {
+          title: "Calendário de Publicações",
+          description: "Visualize suas publicações, datas comemorativas e feriados. Clique em qualquer dia para ver os detalhes.",
+          side: "right"
+        }
+      },
+      {
+        element: "[data-tour='lembretes']",
+        popover: {
+          title: "Lembretes e Eventos",
+          description: "Crie lembretes personalizados para não esquecer datas importantes. Os lembretes aparecem no calendário e podem ser marcados como concluídos.",
+          side: "left"
+        }
+      },
+      {
+        popover: {
+          title: "Pronto!",
+          description: "Use o calendário para planejar suas publicações e nunca perder uma data importante."
+        }
+      }
+    ]
+  });
 
   /* ── Load ─────────────────────────────────────── */
 
@@ -185,7 +214,7 @@ export default function ClienteCalendarioPage() {
         return isoDay(cursor.year, row.data_mes - 1, row.data_dia);
       }
       return null;
-    };
+    }
 
     for (const f of feriados) {
       const iso = buildIso(f);
@@ -416,7 +445,7 @@ export default function ClienteCalendarioPage() {
       {/* ═══ GRID: Calendário + Painel do dia ══════ */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         {/* ── Calendário ───────────────────────── */}
-        <div className="card-glass overflow-hidden">
+        <div data-tour="calendario" className="card-glass overflow-hidden">
           {view === "mes" ? (
             <>
               <div className="grid grid-cols-7 border-b border-[var(--bdr)] bg-[var(--bg2)]">
@@ -449,9 +478,8 @@ export default function ClienteCalendarioPage() {
                       style={cellBg ? { background: cellBg } : undefined}
                     >
                       <span
-                        className={`text-[11px] font-semibold tabular-nums ${
-                          cell.inMonth ? "text-[var(--txt)]" : "text-[var(--txt3)] opacity-50"
-                        }`}
+                        className={`text-[11px] font-semibold tabular-nums ${cell.inMonth ? "text-[var(--txt)]" : "text-[var(--txt3)] opacity-50"
+                          }`}
                       >
                         {isToday ? (
                           <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--orange)] text-[10px] font-bold text-white">
@@ -498,9 +526,8 @@ export default function ClienteCalendarioPage() {
                         {DIAS_SEM[d.getDay()]}
                       </div>
                       <div
-                        className={`mt-0.5 font-[family-name:var(--font-dm-serif)] text-[20px] font-bold leading-none tabular-nums ${
-                          isToday ? "text-[var(--orange)]" : "text-[var(--txt)]"
-                        }`}
+                        className={`mt-0.5 font-[family-name:var(--font-dm-serif)] text-[20px] font-bold leading-none tabular-nums ${isToday ? "text-[var(--orange)]" : "text-[var(--txt)]"
+                          }`}
                       >
                         {d.getDate()}
                       </div>
@@ -547,7 +574,7 @@ export default function ClienteCalendarioPage() {
         </div>
 
         {/* ── Painel do dia selecionado ──────────── */}
-        <div className="card-glass flex flex-col overflow-hidden">
+        <div className="card-glass flex flex-col overflow-hidden" data-tour="lembretes">
           <div className="flex items-center gap-2 border-b border-[var(--bdr)] px-5 py-4">
             <CalendarDays size={15} className="text-[var(--orange)]" />
             <h3 className="text-[14px] font-bold text-[var(--txt)]">{formatDia(selectedDay)}</h3>
@@ -564,9 +591,8 @@ export default function ClienteCalendarioPage() {
                     {lem ? (
                       <button
                         onClick={() => toggleLembrete(lem.id)}
-                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                          lem.feito ? "border-[var(--green)] bg-[var(--green)] text-white" : "border-[var(--bdr2)]"
-                        }`}
+                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${lem.feito ? "border-[var(--green)] bg-[var(--green)] text-white" : "border-[var(--bdr2)]"
+                          }`}
                       >
                         {lem.feito && <Check size={10} />}
                       </button>
@@ -603,6 +629,40 @@ export default function ClienteCalendarioPage() {
         </div>
       </div>
 
+      {/* Botão de ajuda fixo */}
+      <button
+        onClick={startTour}
+        title="Ver tour guiado"
+        style={{
+          position: "fixed",
+          bottom: "24px",
+          right: "24px",
+          width: "48px",
+          height: "48px",
+          borderRadius: "50%",
+          background: "var(--orange)",
+          border: "none",
+          color: "#fff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          zIndex: 9999,
+          transition: "all 0.2s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.1)";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+        }}
+      >
+        <HelpCircle size={24} strokeWidth={2.5} />
+      </button>
+
       {/* ═══ MODAL — Novo lembrete ═════════════════ */}
       {modalOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -637,46 +697,61 @@ export default function ClienteCalendarioPage() {
                   className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]"
                 />
               </div>
-              {stores.length > 1 && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">Lojas</label>
-                  <div className="flex flex-col gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] p-3">
-                    {stores.map(store => (
-                      <label key={store.id} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formLojasSelecionadas.includes(store.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormLojasSelecionadas([...formLojasSelecionadas, store.id]);
-                            } else {
-                              setFormLojasSelecionadas(formLojasSelecionadas.filter(id => id !== store.id));
-                            }
-                          }}
-                          className="h-4 w-4 rounded border-[var(--bdr)] text-[var(--orange)] focus:ring-[var(--orange)]"
-                        />
-                        <span className="text-[12px] text-[var(--txt)]">{store.name}</span>
-                      </label>
-                    ))}
+
+              {stores.length > 1 && (() => {
+                const sortedStores = [...stores].sort((a, b) => {
+                  if (a.id === profile?.store_id) return -1;
+                  if (b.id === profile?.store_id) return 1;
+                  return a.name.localeCompare(b.name);
+                });
+
+                return (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--txt3)]">
+                      Lojas
+                    </label>
+
+                    <div className="flex flex-col gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] p-3">
+                      {sortedStores.map(store => (
+                        <label key={store.id} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formLojasSelecionadas.includes(store.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormLojasSelecionadas([...formLojasSelecionadas, store.id]);
+                              } else {
+                                setFormLojasSelecionadas(
+                                  formLojasSelecionadas.filter(id => id !== store.id)
+                                );
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-[var(--bdr)] text-[var(--orange)] focus:ring-[var(--orange)]"
+                          />
+                          <span className="text-[12px] text-[var(--txt)]">{store.name}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="rounded-lg border border-[var(--bdr)] px-4 py-2 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={saveLembrete}
-                disabled={!formTexto.trim() || !formData || formLojasSelecionadas.length === 0}
-                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-lg disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
-              >
-                <Plus size={13} /> Adicionar
-              </button>
+                );
+              })()}
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="rounded-lg border border-[var(--bdr)] px-4 py-2 text-[12px] font-semibold text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveLembrete}
+                  disabled={!formTexto.trim() || !formData || formLojasSelecionadas.length === 0}
+                  className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-semibold text-white shadow-lg disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+                >
+                  <Plus size={13} /> Adicionar
+                </button>
+              </div>
             </div>
           </div>
         </div>

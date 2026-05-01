@@ -10,15 +10,15 @@ interface Room {
   name: string;
   type: "loja" | "franquia";
   created_at: string;
-  last_msg: { content: string; sender_name: string; created_at: string } | null;
+  last_msg: { message: string; sender_name: string; created_at: string } | null;
   unread: boolean;
 }
 
 interface ChatMsg {
   id: string;
-  sender_id: string;
+  user_id: string;
   sender_name: string | null;
-  content: string;
+  message: string;
   created_at: string;
 }
 
@@ -46,6 +46,7 @@ export default function GerenteChatPage() {
   const [input, setInput]               = useState("");
   const [sending, setSending]           = useState(false);
   const [senderNames, setSenderNames]   = useState<Map<string, string>>(new Map());
+  const [filterError, setFilterError]   = useState<string | null>(null);
   const bottomRef                       = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,12 +71,12 @@ export default function GerenteChatPage() {
 
     const { data: msgs } = await supabase
       .from("chat_messages")
-      .select("room_id, content, sender_name, created_at")
+      .select("room_id, message, sender_name, created_at")
       .in("room_id", roomIds)
       .order("created_at", { ascending: false });
 
-    const lastMsgMap = new Map<string, { content: string; sender_name: string; created_at: string }>();
-    for (const m of (msgs ?? []) as { room_id: string; content: string; sender_name: string; created_at: string }[]) {
+    const lastMsgMap = new Map<string, { message: string; sender_name: string; created_at: string }>();
+    for (const m of (msgs ?? []) as { room_id: string; message: string; sender_name: string; created_at: string }[]) {
       if (!lastMsgMap.has(m.room_id)) lastMsgMap.set(m.room_id, m);
     }
 
@@ -139,12 +140,12 @@ export default function GerenteChatPage() {
 
       const { data } = await supabase
         .from("chat_messages")
-        .select("id, sender_id, sender_name, content, created_at")
+        .select("id, user_id, sender_name, message, created_at")
         .eq("room_id", activeRoomId)
         .order("created_at", { ascending: true });
       const msgs = (data ?? []) as ChatMsg[];
       if (alive) setMessages(msgs);
-      const unknownIds = [...new Set(msgs.filter(m => !m.sender_name && m.sender_id !== profile.id).map(m => m.sender_id))];
+      const unknownIds = [...new Set(msgs.filter(m => !m.sender_name && m.user_id !== profile.id).map(m => m.user_id))];
       if (unknownIds.length) {
         const { data: profs } = await supabase.from("profiles").select("id, name").in("id", unknownIds);
         if (alive) setSenderNames(new Map(((profs ?? []) as { id: string; name: string }[]).map(p => [p.id, p.name])));
@@ -175,14 +176,24 @@ export default function GerenteChatPage() {
   const sendMessage = useCallback(async () => {
     const text = input.trim();
     if (!text || !activeRoomId || !profile || sending) return;
+    setFilterError(null);
+    if (profile.licensee_id) {
+      const res = await fetch("/api/chat/filter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, licensee_id: profile.licensee_id }),
+      });
+      const data = await res.json() as { allowed: boolean; reason?: string };
+      if (!data.allowed) { setFilterError(data.reason ?? "Mensagem bloqueada pelo filtro de conteúdo."); return; }
+    }
     setSending(true);
     setInput("");
     try {
       await supabase.from("chat_messages").insert({
         room_id: activeRoomId,
-        sender_id: profile.id,
+        user_id: profile.id,
         sender_name: profile.name ?? "Gerente",
-        content: text,
+        message: text,
       });
     } finally {
       setSending(false);
@@ -193,8 +204,8 @@ export default function GerenteChatPage() {
 
   function displayName(m: ChatMsg): string {
     if (m.sender_name) return m.sender_name;
-    if (m.sender_id === profile?.id) return "Você";
-    return senderNames.get(m.sender_id) ?? "Usuário";
+    if (m.user_id === profile?.id) return "Você";
+    return senderNames.get(m.user_id) ?? "Usuário";
   }
 
   return (
@@ -243,7 +254,7 @@ export default function GerenteChatPage() {
                   </div>
                   {room.last_msg && (
                     <div className="mt-0.5 truncate text-[11px] text-slate-400">
-                      {room.last_msg.sender_name}: {room.last_msg.content}
+                      {room.last_msg.sender_name}: {room.last_msg.message}
                     </div>
                   )}
                 </div>
@@ -274,7 +285,7 @@ export default function GerenteChatPage() {
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="flex flex-col gap-3">
               {messages.map(m => {
-                const isMe = m.sender_id === profile?.id;
+                const isMe = m.user_id === profile?.id;
                 return (
                   <div key={m.id} className={`flex gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                     <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
@@ -288,7 +299,7 @@ export default function GerenteChatPage() {
                       {!isMe && (
                         <div className="mb-0.5 text-[10px] font-semibold opacity-60">{displayName(m)}</div>
                       )}
-                      <div className="whitespace-pre-wrap break-words">{m.content}</div>
+                      <div className="whitespace-pre-wrap break-words">{m.message}</div>
                       <div className={`mt-0.5 text-[9px] ${isMe ? "text-right text-blue-100" : "text-slate-400"}`}>
                         {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </div>
@@ -300,11 +311,14 @@ export default function GerenteChatPage() {
             </div>
           </div>
 
+          {filterError && (
+            <p className="shrink-0 px-4 pb-1 text-[11px] text-red-500">{filterError}</p>
+          )}
           <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 p-3">
             <input
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setInput(e.target.value); if (filterError) setFilterError(null); }}
               onKeyDown={(e) => e.key === "Enter" && !sending && sendMessage()}
               placeholder="Mensagem..."
               className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"

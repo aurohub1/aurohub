@@ -172,7 +172,7 @@ export default function UserMetricsPage() {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
+          <div data-tour="kpi-cards" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
             <MetricCard label="Total publicações" value={kpis.totalPublicacoes} icon={<Rocket size={18} />}       accent="blue"   />
             <MetricCard label="Total downloads"   value={kpis.totalDownloads}   icon={<Download size={18} />}     accent="green"  />
             <MetricCard label="Consultores ativos" value={kpis.consultoresAtivos} icon={<CalendarDays size={18} />} accent="orange" />
@@ -208,7 +208,7 @@ export default function UserMetricsPage() {
           </div>
 
           {/* Linha principal - Gráfico + Distribuição */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1.8fr_1fr] gap-4 mt-4">
+          <div data-tour="grafico" className="grid grid-cols-1 lg:grid-cols-[1.8fr_1fr] gap-4 mt-4">
             <BarsByDay rows={filtered} days={periodo} />
             <PieByFormat rows={filtered} />
           </div>

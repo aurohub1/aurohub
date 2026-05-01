@@ -18,15 +18,15 @@ interface Room {
   created_at: string;
   licensee_name: string | null;
   store_name: string | null;
-  last_msg: { content: string; sender_name: string; created_at: string } | null;
+  last_msg: { message: string; sender_name: string; created_at: string } | null;
   unread: boolean;
 }
 
 interface ChatMsg {
   id: string;
-  sender_id: string;
+  user_id: string;
   sender_name: string | null;
-  content: string;
+  message: string;
   created_at: string;
 }
 
@@ -111,12 +111,12 @@ export default function ChatPage() {
 
     const { data: msgs } = await supabase
       .from("chat_messages")
-      .select("room_id, content, sender_name, created_at")
+      .select("room_id, message, sender_name, created_at")
       .in("room_id", roomIds)
       .order("created_at", { ascending: false });
 
-    const lastMsgMap = new Map<string, { content: string; sender_name: string; created_at: string }>();
-    for (const m of (msgs ?? []) as { room_id: string; content: string; sender_name: string; created_at: string }[]) {
+    const lastMsgMap = new Map<string, { message: string; sender_name: string; created_at: string }>();
+    for (const m of (msgs ?? []) as { room_id: string; message: string; sender_name: string; created_at: string }[]) {
       if (!lastMsgMap.has(m.room_id)) lastMsgMap.set(m.room_id, m);
     }
 
@@ -187,7 +187,7 @@ export default function ChatPage() {
 
       const { data } = await supabase
         .from("chat_messages")
-        .select("id, sender_id, sender_name, content, created_at")
+        .select("id, user_id, sender_name, message, created_at")
         .eq("room_id", activeRoomId)
         .order("created_at", { ascending: true });
       if (alive) setMessages((data ?? []) as ChatMsg[]);
@@ -223,9 +223,9 @@ export default function ChatPage() {
     try {
       await supabase.from("chat_messages").insert({
         room_id: activeRoomId,
-        sender_id: profile.id,
+        user_id: profile.id,
         sender_name: "Equipe Aurovista",
-        content: text,
+        message: text,
       });
     } finally {
       setSending(false);
@@ -363,7 +363,7 @@ export default function ChatPage() {
                         {room.last_msg && (
                           <div className="mt-0.5 truncate text-[11px] text-slate-400">
                             <span className="font-medium">{room.last_msg.sender_name}:</span>{" "}
-                            {room.last_msg.content}
+                            {room.last_msg.message}
                           </div>
                         )}
                       </div>
@@ -420,7 +420,7 @@ export default function ChatPage() {
                 )}
                 <div className="flex flex-col gap-3">
                   {messages.map(m => {
-                    const isMe = m.sender_id === profile?.id;
+                    const isMe = m.user_id === profile?.id;
                     return (
                       <div key={m.id} className={`flex gap-2.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
@@ -435,7 +435,7 @@ export default function ChatPage() {
                           <div className={`rounded-2xl px-4 py-2.5 text-sm ${
                             isMe ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-700"
                           }`}>
-                            <div className="whitespace-pre-wrap break-words">{m.content}</div>
+                            <div className="whitespace-pre-wrap break-words">{m.message}</div>
                           </div>
                           <span className={`text-[10px] text-slate-400 ${isMe ? "text-right pr-1" : "pl-1"}`}>
                             {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}

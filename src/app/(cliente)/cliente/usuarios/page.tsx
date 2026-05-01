@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
-import { Users, Plus, Pencil, Power, X, Check, RefreshCw, Copy } from "lucide-react";
+import { Users, Plus, Pencil, Power, X, Check, RefreshCw, Copy, HelpCircle } from "lucide-react";
 import { PermissionsModal } from "@/components/users/PermissionsModal";
+import { useTour } from "@/hooks/useTour";
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -176,6 +177,36 @@ export default function ClienteUsuariosPage() {
   const unlimited = isEnterprise || maxUsers === -1 || maxUsers === null || maxUsers === 0;
   const limitReached = !unlimited && maxUsers !== null && users.length >= maxUsers;
 
+  const { startTour } = useTour({
+    pageKey: "cliente-usuarios",
+    steps: [
+      {
+        element: "[data-tour='lista-usuarios']",
+        popover: {
+          title: "Sua equipe",
+          description: "Aqui estão todos os usuários vinculados à sua marca. Você pode editar, gerenciar permissões ou ativar/desativar cada um.",
+          side: "top",
+        },
+      },
+      {
+        element: "[data-tour='btn-novo-usuario']",
+        popover: {
+          title: "Adicionar usuário",
+          description: "Clique aqui para criar um novo usuário — Unidade ou Consultor — e definir a qual loja ele pertence.",
+          side: "left",
+        },
+      },
+      {
+        popover: {
+          title: "Pronto!",
+          description: "Gerencie sua equipe por aqui. O botão ? está disponível a qualquer momento para rever este tour.",
+        },
+      },
+    ],
+    autoStart: true,
+    delay: 1000,
+  });
+
   /* ── Ações ─────────────────────────────────────── */
 
   async function toggleStatus(u: Profile) {
@@ -222,6 +253,7 @@ export default function ClienteUsuariosPage() {
 
           <div className={`group relative ${limitReached ? "cursor-not-allowed" : ""}`} title={limitReached ? "Limite de usuários do plano atingido" : undefined}>
             <button
+              data-tour="btn-novo-usuario"
               onClick={() => !limitReached && setCreating(true)}
               disabled={limitReached}
               className="flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
@@ -259,7 +291,7 @@ export default function ClienteUsuariosPage() {
           </p>
         </div>
       ) : (
-        <div className="card-glass" style={{ overflow: "clip" }}>
+        <div data-tour="lista-usuarios" className="card-glass" style={{ overflow: "clip" }}>
           <div style={{ overflowX: "auto", width: "100%" }}>
             <table className="w-full text-[12px]" style={{ minWidth: 600 }}>
               <thead>
@@ -405,6 +437,40 @@ export default function ClienteUsuariosPage() {
           }}
         />
       )}
+
+      {/* Botão de ajuda fixo */}
+      <button
+        onClick={startTour}
+        title="Ver tour guiado"
+        style={{
+          position: "fixed",
+          bottom: "24px",
+          right: "24px",
+          width: "48px",
+          height: "48px",
+          borderRadius: "50%",
+          background: "var(--orange)",
+          border: "none",
+          color: "#fff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          zIndex: 9999,
+          transition: "all 0.2s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.1)";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+        }}
+      >
+        <HelpCircle size={24} strokeWidth={2.5} />
+      </button>
 
       {/* ═══ MODAL EDITAR ═══ */}
       {editing && (editing.role === "unidade" || editing.role === "vendedor") && (

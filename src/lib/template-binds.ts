@@ -14,102 +14,168 @@ export interface BindCategory {
 }
 
 export const BINDS_POR_FORM: Record<string, BindCategory> = {
-  anoiteceu: {
-    Imagens: [
-      { id: 'img_fundo', label: 'Imagem Anoiteceu', type: 'image' },
-    ],
-    Datas: [
-      { id: 'data_inicio', label: 'Data Início', type: 'text' },
-      { id: 'data_fim', label: 'Data Fim', type: 'text' },
-      { id: 'para_viagens_ate', label: 'Para viagens até', type: 'text' },
-    ],
-    Selos: [
-      { id: 'desconto_anoit_valor', label: 'Desconto Anoiteceu (só número)', type: 'text' },
-    ],
-    Loja: [
-      { id: 'logo_loja', label: 'Logo Azul Viagens', type: 'image' },
-    ],
-  },
-
-  passagem: {
-    Imagens: [
-      { id: 'img_fundo', label: 'Imagem Destino', type: 'image' },
-    ],
-    Destino: [
-      { id: 'destino', label: 'Destino', type: 'text' },
-      { id: 'saida', label: 'Saída (aeroporto)', type: 'text' },
-      { id: 'voo', label: 'Tipo de Voo', type: 'text' },
-      { id: 'periodo', label: 'Período', type: 'text' },
-      { id: 'incluso', label: 'Incluso', type: 'text' },
-    ],
-    Valor: [
-      { id: 'valorparcela', label: 'Valor por Pessoa', type: 'text' },
-      { id: 'parcelas', label: 'Parcelas', type: 'text' },
-      { id: 'valortotal', label: 'Valor Total', type: 'text' },
-    ],
-    Loja: [
-      { id: 'logo_loja', label: 'Logo Azul Viagens', type: 'image' },
-    ],
-  },
-
   pacote: {
     Imagens: [
-      { id: 'img_fundo', label: 'Imagem Destino', type: 'image' },
+      { id: 'imgfundo', label: 'Imagem de Fundo', type: 'image' },
+      { id: 'imghotel', label: 'Imagem do Hotel', type: 'image' },
+      { id: 'imgloja', label: 'Logo da Loja', type: 'image' },
     ],
     Destino: [
       { id: 'destino', label: 'Destino / Resort', type: 'text' },
+      { id: 'saida', label: 'Saída', type: 'text' },
+      { id: 'voo', label: 'Tipo de Voo', type: 'text' },
       { id: 'periodo', label: 'Período', type: 'text' },
+      { id: 'noites', label: 'Noites', type: 'text' },
+      { id: 'hotel', label: 'Hotel', type: 'text' },
       { id: 'incluso', label: 'Incluso', type: 'text' },
+      { id: 'servico1', label: 'Serviço 1', type: 'text' },
+      { id: 'servico2', label: 'Serviço 2', type: 'text' },
+      { id: 'servico3', label: 'Serviço 3', type: 'text' },
+      { id: 'servico4', label: 'Serviço 4', type: 'text' },
+      { id: 'servico5', label: 'Serviço 5', type: 'text' },
+      { id: 'servico6', label: 'Serviço 6', type: 'text' },
+      { id: 'texto', label: 'Texto Livre', type: 'text' },
     ],
     Valor: [
-      { id: 'valorparcela', label: 'Valor da Parcela', type: 'text' },
-      { id: 'parcelas', label: 'Parcelas', type: 'text' },
-      { id: 'valortotal', label: 'Valor Total', type: 'text' },
       { id: 'formapagamento', label: 'Forma de Pagamento', type: 'text' },
+      { id: 'parcelas', label: 'Parcelas', type: 'text' },
+      { id: 'valorparcela', label: 'Valor da Parcela', type: 'text' },
+      { id: 'valortotal', label: 'Valor Total', type: 'text' },
       { id: 'entrada', label: 'Entrada', type: 'text' },
     ],
     Loja: [
-      { id: 'logo_loja', label: 'Logo Azul Viagens', type: 'image' },
+      { id: 'loja', label: 'Nome da Loja', type: 'text' },
     ],
-  },
-
-  cruzeiro: {
-    Imagens: [
-      { id: 'img_fundo', label: 'Imagem de Fundo', type: 'image' },
-      { id: 'logo_cia', label: 'Logo CIA Marítima', type: 'image' },
-    ],
-    Destino: [
-      { id: 'navio', label: 'Nome do Navio', type: 'text' },
-    ],
-    Datas: [
-      { id: 'data_periodo', label: 'Período (23 a 28/03)', type: 'text' },
-    ],
-    Hotel: [
-      { id: 'itinerario', label: 'Itinerário', type: 'text' },
-      { id: 'incluso', label: 'Incluso', type: 'text' },
-    ],
-    Preco: [
-      { id: 'forma_pgto', label: 'Forma Pagamento', type: 'text' },
-      { id: 'parcelas', label: 'Parcelas (ex: 12x)', type: 'text' },
-      { id: 'valor_preco', label: 'Valor da Parcela', type: 'text' },
-      { id: 'valor_total_texto', label: 'Valor Total (texto)', type: 'text' },
-    ],
-    Loja: [
-      { id: 'nome_loja', label: 'Logo da Loja', type: 'image' },
+    Badges: [
+      { id: 'desconto', label: 'Desconto (%)', type: 'text' },
+      { id: 'badge_oferta', label: 'Oferta Azul', type: 'image' },
+      { id: 'badge_ultima_chamada', label: 'Última Chamada', type: 'image' },
+      { id: 'badge_ultimos_lugares', label: 'Últimos Lugares', type: 'image' },
+      { id: 'badge_all_inclusive', label: 'All Inclusive', type: 'image' },
+      { id: 'badge_feriado', label: 'Badge Feriado', type: 'image' },
     ],
   },
 
   campanha: {
     Imagens: [
-      { id: 'img_fundo', label: 'Imagem Campanha', type: 'image' },
+      { id: 'imgfundo', label: 'Imagem de Fundo', type: 'image' },
+      { id: 'imgloja', label: 'Logo da Loja', type: 'image' },
     ],
-    Campanha: [
+    Destino: [
+      { id: 'destino', label: 'Destino', type: 'text' },
+      { id: 'saida', label: 'Saída', type: 'text' },
+      { id: 'voo', label: 'Tipo de Voo', type: 'text' },
+      { id: 'periodo', label: 'Período', type: 'text' },
+      { id: 'hotel', label: 'Hotel', type: 'text' },
+      { id: 'incluso', label: 'Incluso', type: 'text' },
+      { id: 'servico1', label: 'Serviço 1', type: 'text' },
+      { id: 'servico2', label: 'Serviço 2', type: 'text' },
+      { id: 'servico3', label: 'Serviço 3', type: 'text' },
+      { id: 'servico4', label: 'Serviço 4', type: 'text' },
+      { id: 'servico5', label: 'Serviço 5', type: 'text' },
+      { id: 'servico6', label: 'Serviço 6', type: 'text' },
+      { id: 'texto', label: 'Texto Livre', type: 'text' },
+    ],
+    Valor: [
+      { id: 'formapagamento', label: 'Forma de Pagamento', type: 'text' },
+      { id: 'parcelas', label: 'Parcelas', type: 'text' },
+      { id: 'valorparcela', label: 'Valor da Parcela', type: 'text' },
+      { id: 'valortotal', label: 'Valor Total', type: 'text' },
+      { id: 'entrada', label: 'Entrada', type: 'text' },
+    ],
+    Loja: [
+      { id: 'loja', label: 'Nome da Loja', type: 'text' },
+    ],
+    Badges: [
+      { id: 'desconto', label: 'Desconto (%)', type: 'text' },
+      { id: 'badge_oferta', label: 'Oferta Azul', type: 'image' },
+      { id: 'badge_ultima_chamada', label: 'Última Chamada', type: 'image' },
+      { id: 'badge_ultimos_lugares', label: 'Últimos Lugares', type: 'image' },
+      { id: 'badge_all_inclusive', label: 'All Inclusive', type: 'image' },
+      { id: 'badge_feriado', label: 'Badge Feriado', type: 'image' },
+    ],
+  },
+
+  cruzeiro: {
+    Imagens: [
+      { id: 'imgfundo', label: 'Imagem de Fundo', type: 'image' },
+      { id: 'logo_cia', label: 'Logo CIA Marítima', type: 'image' },
+      { id: 'imgloja', label: 'Logo da Loja', type: 'image' },
+    ],
+    Navio: [
+      { id: 'navio', label: 'Nome do Navio', type: 'text' },
+      { id: 'destino', label: 'Destino', type: 'text' },
+      { id: 'embarque', label: 'Porto de Embarque', type: 'text' },
+      { id: 'itinerario', label: 'Itinerário', type: 'text' },
+      { id: 'noites', label: 'Noites', type: 'text' },
+      { id: 'cabine', label: 'Cabine', type: 'text' },
+      { id: 'incluso', label: 'Incluso', type: 'text' },
+    ],
+    Datas: [
+      { id: 'data_periodo', label: 'Período (23 a 28/03)', type: 'text' },
+    ],
+    Valor: [
+      { id: 'forma_pgto', label: 'Forma de Pagamento', type: 'text' },
+      { id: 'parcelas', label: 'Parcelas', type: 'text' },
+      { id: 'valor_preco', label: 'Valor da Parcela', type: 'text' },
+      { id: 'valor_total_texto', label: 'Valor Total (texto)', type: 'text' },
+    ],
+    Loja: [
+      { id: 'nome_loja', label: 'Logo da Loja', type: 'image' },
+      { id: 'loja', label: 'Nome da Loja', type: 'text' },
+    ],
+  },
+
+  anoiteceu: {
+    Imagens: [
+      { id: 'imgfundo', label: 'Imagem Anoiteceu', type: 'image' },
+      { id: 'imgloja', label: 'Logo da Loja', type: 'image' },
+    ],
+    'Conteúdo': [
+      { id: 'numero', label: 'Número', type: 'text' },
       { id: 'titulo', label: 'Título', type: 'text' },
-      { id: 'subtitulo', label: 'Subtítulo', type: 'text' },
       { id: 'descricao', label: 'Descrição', type: 'text' },
+    ],
+    Datas: [
+      { id: 'data_inicio', label: 'Data Início (dia e mês)', type: 'text' },
+      { id: 'data_fim', label: 'Data Fim (dia e mês)', type: 'text' },
+      { id: 'data_completa', label: 'Data Completa (dia/mês/ano)', type: 'text' },
+      { id: 'para_viagens_ate', label: 'Para viagens até', type: 'text' },
     ],
     Loja: [
       { id: 'logo_loja', label: 'Logo Azul Viagens', type: 'image' },
+      { id: 'loja', label: 'Nome da Loja', type: 'text' },
+    ],
+    Badges: [
+      { id: 'desconto_anoit_valor', label: 'Desconto Anoiteceu (só número)', type: 'text' },
+    ],
+  },
+
+  passagem: {
+    Imagens: [
+      { id: 'imgfundo', label: 'Imagem de Fundo', type: 'image' },
+      { id: 'imgaviao', label: 'Imagem Avião (aleatória)', type: 'image' },
+      { id: 'imgloja', label: 'Logo da Loja', type: 'image' },
+    ],
+    Destino: [
+      { id: 'destino', label: 'Destino', type: 'text' },
+      { id: 'saida', label: 'Saída', type: 'text' },
+      { id: 'voo', label: 'Tipo de Voo', type: 'text' },
+      { id: 'periodo', label: 'Período', type: 'text' },
+      { id: 'texto', label: 'Texto Livre', type: 'text' },
+    ],
+    Valor: [
+      { id: 'parcelas', label: 'Parcelas', type: 'text' },
+      { id: 'valorparcela', label: 'Valor da Parcela', type: 'text' },
+      { id: 'valortotal', label: 'Valor Total por Pessoa', type: 'text' },
+    ],
+    Loja: [
+      { id: 'logo_loja', label: 'Logo Azul Viagens', type: 'image' },
+      { id: 'loja', label: 'Nome da Loja', type: 'text' },
+    ],
+    Badges: [
+      { id: 'desconto', label: 'Desconto (%)', type: 'text' },
+      { id: 'badge_feriado', label: 'Badge Feriado', type: 'image' },
     ],
   },
 

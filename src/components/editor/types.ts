@@ -179,19 +179,8 @@ function convertToBindGroups(formType: string): { group: string; fields: string[
   return groups;
 }
 
-/** BIND_GROUPS genérico — fallback para formTypes não mapeados */
-export const BIND_GROUPS = [
-  { group: "Imagens", fields: ["imgfundo","imghotel","imgaviao","imgciamaritima","imgloja"] },
-  { group: "Selos",   fields: ["badge","allinclusive","ofertas","ultima_chamada_badge","ultimos_lugares_badge","all_inclusive_badge","ofertas_azul_badge","feriado_badge","desconto_badge"] },
-  { group: "Destino", fields: ["destino","saida","tipovoo"] },
-  { group: "Período", fields: ["dataida","datavolta","noites","feriado"] },
-  { group: "Hotel / Navio", fields: ["hotel","navio","categoria","itinerario","incluso"] },
-  { group: "Serviços", fields: ["servico1","servico2","servico3","servico4","servico5","servico6"] },
-  { group: "Pagamento", fields: ["formapagamento","entrada","parcelas","valorparcela","desconto","totalduplo","totalcruzeiro"] },
-  { group: "Anoiteceu", fields: ["inicio","fim","paraviagens"] },
-  { group: "Loja", fields: ["loja","agente","fone"] },
-  { group: "Genérico", fields: ["titulo","subtitulo","texto1","texto2","texto3"] },
-];
+/** BIND_GROUPS genérico — fallback vazio para formTypes não mapeados */
+export const BIND_GROUPS: { group: string; fields: string[] }[] = [];
 
 export const BADGE_FOLDERS: Record<string, string> = {
   ultimos_lugares_badge: "aurohubv2/badges/ultimos_lugares",
