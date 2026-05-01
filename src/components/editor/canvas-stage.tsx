@@ -484,33 +484,34 @@ export default function CanvasStage(p: Props) {
     stage.batchDraw();
   }, [stageScale, p.onScaleChange, clampStagePos]);
 
-  // Pan via botão do meio do mouse (CorelDraw-style): move o wrapper CSS do Stage
-  // via transform: translate — canvas + conteúdo movem juntos. Não usa stage.position()
-  // (aquela implementação deslocava o conteúdo dentro do canvas DOM fixo e gerava
-  // desconexão visual com o background).
+  // Pan via botão do meio do mouse: usa stage.position() — mesmo sistema de coordenadas do zoom.
   const containerRef = useRef<HTMLDivElement>(null);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const panStartRef = useRef<{ clientX: number; clientY: number; offsetX: number; offsetY: number } | null>(null);
+  const panStartRef = useRef<{ clientX: number; clientY: number; stageX: number; stageY: number } | null>(null);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 1) return;
+    const stage = stageRef.current;
+    if (!stage) return;
     e.preventDefault();
     e.stopPropagation();
     panStartRef.current = {
       clientX: e.clientX,
       clientY: e.clientY,
-      offsetX: panOffset.x,
-      offsetY: panOffset.y,
+      stageX: stage.x(),
+      stageY: stage.y(),
     };
     setIsPanning(true);
     const onMove = (ev: MouseEvent) => {
       const s = panStartRef.current;
-      if (!s) return;
-      setPanOffset({
-        x: s.offsetX + (ev.clientX - s.clientX),
-        y: s.offsetY + (ev.clientY - s.clientY),
-      });
+      const st = stageRef.current;
+      if (!s || !st) return;
+      const newPos = clampStagePos(
+        s.stageX + (ev.clientX - s.clientX) / stageScale,
+        s.stageY + (ev.clientY - s.clientY) / stageScale,
+      );
+      st.position(newPos);
+      st.batchDraw();
     };
     const onUp = () => {
       panStartRef.current = null;
@@ -520,7 +521,7 @@ export default function CanvasStage(p: Props) {
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-  }, [panOffset.x, panOffset.y]);
+  }, [stageScale, clampStagePos]);
 
   const handleElementClick = useCallback((elId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
     if (e.evt.shiftKey) {
@@ -542,7 +543,6 @@ export default function CanvasStage(p: Props) {
       onClick={e => { if (e.target === e.currentTarget) p.onSelect(null); }}
       onMouseDown={handleContainerMouseDown}
       onAuxClick={e => { if (e.button === 1) e.preventDefault(); }}>
-      <div style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px)` }}>
       <Stage ref={stageRef} width={width * stageScale} height={height * stageScale} scaleX={stageScale} scaleY={stageScale}
         onWheel={handleWheel}
         onMouseDown={e => {
@@ -621,7 +621,6 @@ export default function CanvasStage(p: Props) {
           <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} boundBoxFunc={(_, nw) => nw} />
         </Layer>
       </Stage>
-      </div>
     </div>
   );
 }
