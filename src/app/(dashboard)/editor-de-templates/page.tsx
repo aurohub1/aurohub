@@ -8,6 +8,7 @@ import { getProfile, type FullProfile } from "@/lib/auth";
 import { TemplateCard, type CanvasTemplate } from "@/components/editor/TemplateCard";
 import { TemplateFilters } from "@/components/editor/TemplateFilters";
 import { useAdmGuard } from "@/contexts/AdmContext";
+import { PermissionsModal } from "@/components/users/PermissionsModal";
 
 interface Licensee { id: string; name: string; }
 
@@ -50,6 +51,12 @@ export default function EditorTemplatesPage() {
   const [updateClients, setUpdateClients] = useState<UpdateClientEntry[]>([]);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updatingClientId, setUpdatingClientId] = useState<string | null>(null);
+
+  // User picker (acesso via PermissionsModal)
+  const [userPickerTemplate, setUserPickerTemplate] = useState<string | null>(null);
+  const [userPickerList, setUserPickerList] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [userPickerStores, setUserPickerStores] = useState<{ id: string; name: string }[]>([]);
+  const [permUser, setPermUser] = useState<{ userId: string; licenseeId: string; userName: string } | null>(null);
 
   // Access modal
   const [accessKey, setAccessKey] = useState<string | null>(null);
@@ -467,6 +474,30 @@ export default function EditorTemplatesPage() {
     } catch (err) { console.error("[CanvasTemplates] delete:", err); alert("Erro ao excluir."); }
   };
 
+  // Abre picker de usuários do licensee do template
+  const openUserPicker = async (key: string) => {
+    const tmpl = canvasTemplates.find(t => t.key === key);
+    if (!tmpl?.licenseeId) {
+      openAccessModal(key);
+      return;
+    }
+    const [{ data: users }, { data: stores }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, name, role")
+        .eq("licensee_id", tmpl.licenseeId)
+        .order("name"),
+      supabase
+        .from("stores")
+        .select("id, name")
+        .eq("licensee_id", tmpl.licenseeId)
+        .order("name"),
+    ]);
+    setUserPickerList((users as { id: string; name: string; role: string }[]) ?? []);
+    setUserPickerStores((stores as { id: string; name: string }[]) ?? []);
+    setUserPickerTemplate(key);
+  };
+
   // Abre modal de acesso e carrega licensees que já têm acesso
   const openAccessModal = async (key: string) => {
     setAccessKey(key);
@@ -853,7 +884,7 @@ export default function EditorTemplatesPage() {
                       onDelete={deleteCanvasTmpl}
                       onClone={isAdm && t.isBase ? setCloneKey : undefined}
                       onUpdate={isAdm && t.isBase ? openUpdateModal : undefined}
-                      onAccess={isAdm ? openAccessModal : undefined}
+                      onAccess={isAdm ? openUserPicker : undefined}
                       onNameChange={handleNameChange}
                       onThumbUpload={handleThumbUpload}
                       onThumbCapture={handleCaptureCard}
@@ -931,7 +962,7 @@ export default function EditorTemplatesPage() {
                           onEdit={(key) => router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`)}
                           onDuplicate={duplicateCanvasTmpl}
                           onDelete={deleteCanvasTmpl}
-                          onAccess={isAdm ? openAccessModal : undefined}
+                          onAccess={isAdm ? openUserPicker : undefined}
                           onNameChange={handleNameChange}
                           onThumbUpload={handleThumbUpload}
                           onThumbCapture={handleCaptureCard}
@@ -1372,6 +1403,68 @@ export default function EditorTemplatesPage() {
             </div>
           </div>
         </Ov>
+      )}
+
+      {/* User picker — lista usuários do licensee do template */}
+      {userPickerTemplate && (
+        <Ov onClose={() => { setUserPickerTemplate(null); setUserPickerList([]); setUserPickerStores([]); }}>
+          <div className="mx-4 flex w-full max-w-[400px] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
+            <div className="border-b border-[var(--bdr)] px-6 py-4">
+              <div className="text-[15px] font-bold text-[var(--txt)]">Selecionar usuário</div>
+              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Escolha o usuário para gerenciar permissões</div>
+            </div>
+            <div className="max-h-[50vh] overflow-y-auto px-4 py-3">
+              {userPickerList.length === 0 ? (
+                <div className="py-6 text-center text-[12px] text-[var(--txt3)]">Nenhum usuário encontrado</div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {userPickerList.map((u) => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => {
+                        const tmpl = canvasTemplates.find(t => t.key === userPickerTemplate);
+                        setPermUser({ userId: u.id, licenseeId: tmpl!.licenseeId!, userName: u.name });
+                        setUserPickerTemplate(null);
+                        setUserPickerList([]);
+                      }}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-[var(--hover-bg)]"
+                    >
+                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--bg3)] text-[10px] font-bold text-[var(--txt2)]">
+                        {u.name.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-[13px] font-medium text-[var(--txt)]">{u.name}</span>
+                        <span className="text-[10px] text-[var(--txt3)]">{u.role}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end border-t border-[var(--bdr)] px-6 py-4">
+              <button
+                type="button"
+                onClick={() => { setUserPickerTemplate(null); setUserPickerList([]); setUserPickerStores([]); }}
+                className="rounded-lg px-4 py-2 text-[13px] text-[var(--txt3)] hover:text-[var(--txt)]"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </Ov>
+      )}
+
+      {/* PermissionsModal */}
+      {permUser && (
+        <PermissionsModal
+          userId={permUser.userId}
+          licenseeId={permUser.licenseeId}
+          userName={permUser.userName}
+          stores={userPickerStores}
+          onClose={() => setPermUser(null)}
+          onSaved={() => setPermUser(null)}
+        />
       )}
     </div>
   );
