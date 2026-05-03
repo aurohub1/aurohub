@@ -603,8 +603,11 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
   if (el.type === "imageBind") {
     const bp = el.bindParam;
     if (!bp) return null;
-    if (!bp.endsWith("_badge") && !values[bp] && !el.src) return null;
-    return <RenderImage el={{ ...el, type: "image", src: values[bp] || el.src }} values={values} />;
+    if (!bp.endsWith("_badge")) {
+      if (!values[bp] && !el.src) return null;
+      if (!values[bp] && el.hideIfEmpty) return null;
+    }
+    return <RenderImage el={{ ...el, type: "image", src: el.src || values[bp] }} values={values} />;
   }
 
   return null;

@@ -162,8 +162,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
     setBindUploading(true);
     try {
       const url = await uploadToCloudinary(file, "aurohubv2/badges");
-      // Converte para type image, preserva bindParam para controle de visibilidade
-      u({ type: "image", src: url });
+      u({ src: url });
     } catch (err) {
       console.error("[imageBind upload]", err);
       alert("Falha ao enviar imagem.");
@@ -562,10 +561,21 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
               ))}
             </select>
           </F>
-          <F l="Fixar imagem no template">
+          <F l="Imagem fixa">
             <div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 4, lineHeight: 1.4 }}>
-              Faz upload e converte para imagem fixa. O bind continua controlando visibilidade.
+              Imagem exibida no preview. O bind controla só a visibilidade (show/hide).
             </div>
+            {s.src && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <img src={s.src} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4, border: "1px solid var(--ed-bdr)", flexShrink: 0 }} />
+                <button
+                  onClick={() => u({ src: undefined })}
+                  style={{ fontSize: 10, color: "var(--ed-txt3)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  Remover
+                </button>
+              </div>
+            )}
             <input
               ref={bindFileRef}
               type="file"
@@ -582,7 +592,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
               disabled={bindUploading}
               style={{ width: "100%", height: 32, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: bindUploading ? "var(--ed-txt3)" : "var(--ed-txt)", fontSize: 11, fontWeight: 600, cursor: bindUploading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
             >
-              {bindUploading ? "⏳ Enviando..." : "⟳ Fixar imagem"}
+              {bindUploading ? "⏳ Enviando..." : s.src ? "⟳ Trocar imagem" : "⟳ Fixar imagem"}
             </button>
           </F>
           <F l="Borda Raio"><Num v={s.cornerRadius || 0} c={v => u({ cornerRadius: v })} /></F>
