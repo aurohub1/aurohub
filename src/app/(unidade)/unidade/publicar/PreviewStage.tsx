@@ -339,9 +339,12 @@ function resolveImage(
     return undefined;
   }
 
+  // IMAGE com src já definida: bind controla só visibilidade, nunca substitui src.
+  if (el.src) return el.src;
+
   const val = values[bp];
   if (val) return val;
-  return el.src;
+  return undefined;
 }
 
 /* ── Card WhatsApp colorMap (paletas V1) ──────────

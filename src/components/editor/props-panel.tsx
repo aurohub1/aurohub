@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { HexColorPicker } from "react-colorful";
 import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec, getImageBindFields, GradientFill, GradientDirection } from "./types";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 interface Props {
   selected: EditorElement | null;
@@ -154,6 +155,23 @@ function isLine(el: EditorElement): boolean {
 
 /* ══ DESIGN TAB ═══════════════════════════════════ */
 function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: { s: EditorElement; u: (up: Partial<EditorElement>) => void; allElements: EditorElement[]; onAlign: (a: string | string[]) => void; onOpenCrop?: () => void; formType?: string; isAdm?: boolean }) {
+  const [bindUploading, setBindUploading] = useState(false);
+  const bindFileRef = useRef<HTMLInputElement>(null);
+
+  async function handleBindImageUpload(file: File) {
+    setBindUploading(true);
+    try {
+      const url = await uploadToCloudinary(file, "aurohubv2/badges");
+      // Converte para type image, preserva bindParam para controle de visibilidade
+      u({ type: "image", src: url });
+    } catch (err) {
+      console.error("[imageBind upload]", err);
+      alert("Falha ao enviar imagem.");
+    } finally {
+      setBindUploading(false);
+    }
+  }
+
   return (
     <>
       {/* ═══ 1. CAMPO BIND ═══ (apenas ADM) */}
@@ -162,7 +180,10 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
           {s.bindParam && <div style={{ borderRadius: 6, background: "rgba(212,168,67,0.1)", padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "var(--ed-bind)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>⬡ {s.bindParam}</div>}
           <select value={s.bindParam || ""} onChange={e => {
             const bp = e.target.value;
-            const up: Partial<EditorElement> = { bindParam: bp };
+            const up: Partial<EditorElement> = {
+              bindParam: bp || undefined,
+              hideIfEmpty: bp ? true : undefined,
+            };
             if (s.type === "text" && bp) { up.text = `[${bp}]`; up.fill = "#D4A843"; up.name = `[${bp}]`; }
             u(up);
           }} style={selS}>
@@ -540,6 +561,29 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
                 <option key={f} value={f}>{f}</option>
               ))}
             </select>
+          </F>
+          <F l="Fixar imagem no template">
+            <div style={{ fontSize: 9, color: "var(--ed-txt3)", marginBottom: 4, lineHeight: 1.4 }}>
+              Faz upload e converte para imagem fixa. O bind continua controlando visibilidade.
+            </div>
+            <input
+              ref={bindFileRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) handleBindImageUpload(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              onClick={() => bindFileRef.current?.click()}
+              disabled={bindUploading}
+              style={{ width: "100%", height: 32, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: bindUploading ? "var(--ed-txt3)" : "var(--ed-txt)", fontSize: 11, fontWeight: 600, cursor: bindUploading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            >
+              {bindUploading ? "⏳ Enviando..." : "⟳ Fixar imagem"}
+            </button>
           </F>
           <F l="Borda Raio"><Num v={s.cornerRadius || 0} c={v => u({ cornerRadius: v })} /></F>
           <F l="Ajuste (preview)">
