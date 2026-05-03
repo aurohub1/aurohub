@@ -19,6 +19,7 @@ export const ALL_FEATURES = [
   "lembretes",
   "card_whatsapp",
   "musica",
+  "chat",
 ] as const;
 
 export type Feature = (typeof ALL_FEATURES)[number];
@@ -36,6 +37,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   lembretes:        "Lembretes",
   card_whatsapp: "Card WhatsApp (add-on)",
   musica:           "Música (add-on)",
+  chat:             "Chat",
 };
 
 /** Features sempre on por padrão (independentes do plano). */

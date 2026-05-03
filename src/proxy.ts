@@ -1,12 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-
-/**
- * Middleware de auth por role + manutenção.
- * Lê cookies → Supabase session → profiles.role → decide redirect.
- */
+import { createClient } from "@supabase/supabase-js";
 
 const PUBLIC_PATHS = ["/manutencao", "/login", "/api", "/_next", "/favicon", "/public"];
+
+const CHAT_PATHS = [
+  "/cliente/chat",
+  "/gerente/chat",
+  "/consultor/chat",
+  "/unidade/chat",
+];
 
 // Cache de manutenção (módulo-level, persiste por worker; ~30s TTL)
 let maintenanceCache: { active: boolean; ts: number } | null = null;
@@ -178,6 +181,29 @@ export async function proxy(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/manutencao";
       return NextResponse.redirect(url);
+    }
+  }
+
+  // Chat desativado — bloqueia acesso às rotas de chat
+  if (CHAT_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"))) {
+    try {
+      const admin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      );
+      const { data } = await admin
+        .from("system_config")
+        .select("value")
+        .eq("key", "chat_enabled")
+        .maybeSingle();
+      if (data?.value === "false") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/";
+        url.search = "?chat=disabled";
+        return NextResponse.redirect(url);
+      }
+    } catch {
+      // on error, let through
     }
   }
 
