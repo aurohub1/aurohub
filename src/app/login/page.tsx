@@ -169,8 +169,6 @@ export default function LoginPage() {
           password,
         });
 
-        console.log("[Login] signIn result:", { error: authError, user: data?.user, hasSession: !!data?.session });
-
         if (authError) {
           setError(
             authError.message === "Invalid login credentials"
@@ -182,7 +180,6 @@ export default function LoginPage() {
 
         // Busca profile pra obter role + home correta (evita flash do /inicio)
         const profile = await getProfile(supabase);
-        console.log("[Login] Profile fetched:", { role: profile?.role, name: profile?.name, licensee_id: profile?.licensee_id });
 
         const u = data?.user;
         const name = profile?.name
@@ -196,7 +193,6 @@ export default function LoginPage() {
         const canShowSplash = role !== null && splashRoles.includes(role);
 
         if (!canShowSplash) {
-          console.log("[Login] Skipping splash (role=", role, ") → redirect to:", home);
           router.push(home);
           return;
         }
@@ -270,12 +266,10 @@ export default function LoginPage() {
         }
 
         if (!splashConfig) {
-          console.log("[Login] No splash_effect configured → redirect to:", home);
           router.push(home);
           return;
         }
 
-        console.log("[Login] Showing splash → will redirect to:", home);
         setLoading(false);
         setSplash({ name, home, ...splashConfig });
         return;

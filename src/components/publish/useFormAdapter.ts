@@ -167,15 +167,12 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
         setFieldRef.current("formapagamento", formaPgtoSpecToLegacy(s));
         return;
       case "img_fundo":
-        console.log('[useFormAdapter] Setando img_fundo:', s);
         setFieldRef.current("img_fundo", s);
         return;
       case "logo_cia":
-        console.log('[useFormAdapter] Setando logo_cia:', s);
         setFieldRef.current("logo_cia", s);
         return;
       case "forma_pgto":
-        console.log('[SET forma_pgto]', s);
         setFieldRef.current("forma_pgto", s);
         return;
       case "entrada":
@@ -191,7 +188,6 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
         setFieldRef.current("inteiro", s);
         return;
       default:
-        console.log('[useFormAdapter default]', { k, s });
         setFieldRef.current(k, s);
     }
   }, [tab, setBadge, values]);

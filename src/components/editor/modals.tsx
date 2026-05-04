@@ -652,11 +652,6 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
       const firstStoreId = firstStoreIds && firstStoreIds.size === 1 ? [...firstStoreIds][0] : undefined;
       const firstStoreData = firstStoreId ? licenseeStores.get(firstLicId!)?.find(s => s.id === firstStoreId) : undefined;
 
-      console.log('[MODAL DEBUG] accessSelections:',
-        [...accessSelections.entries()].map(([k,v]) => ({k, v: [...v]})));
-      console.log('[MODAL DEBUG] firstLicId:',
-        accessSelections.size > 0 ? [...accessSelections.keys()][0] : 'VAZIO');
-
       await onConfirm({
         nome: nome.trim(),
         formType,

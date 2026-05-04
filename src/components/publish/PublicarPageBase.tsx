@@ -277,7 +277,7 @@ export default function PublicarPageBase({
     getProfile(supabase).then(async (p) => {
       setProfile(p);
       if (p?.licensee_id) {
-        loadTemplates(p.licensee_id);
+        loadTemplates(p.licensee_id, p.store_id ?? null);
         supabase.from("system_config").select("value").eq("key", `preview_bg_${p.licensee_id}`).single().then(({ data }) => {
           if (data?.value) setPreviewBgUrl(data.value);
         });
@@ -362,12 +362,28 @@ export default function PublicarPageBase({
     });
   }, []);
 
-  async function loadTemplates(lid: string) {
+  async function loadTemplates(lid: string, storeId: string | null) {
+    // Busca template_keys permitidos para este licensee/store
+    let accessQuery = supabase
+      .from("template_access")
+      .select("template_key")
+      .eq("licensee_id", lid);
+    if (storeId) {
+      accessQuery = accessQuery.or(`store_id.eq.${storeId},store_id.is.null`);
+    }
+    const { data: accessData } = await accessQuery;
+    const keys = ((accessData ?? []) as { template_key: string }[])
+      .map(r => r.template_key)
+      .filter(Boolean);
+
+    if (!keys.length) { setTemplates([]); return; }
+
     const { data } = await supabase
       .from("form_templates")
       .select("*")
-      .or(`licensee_id.eq.${lid},licensee_id.is.null`)
+      .in("config_key", keys)
       .eq("active", true)
+      .is("deleted_at", null)
       .order("form_type")
       .order("format")
       .order("name");
@@ -582,7 +598,6 @@ export default function PublicarPageBase({
   }, [values.destino, tab]);
 
   const previewValues = useMemo(() => {
-    console.log('[previewValues] cruzeiro inteiro:', values?.inteiro, 'tab:', tab);
     const m: Record<string, string> = { ...(values ?? {}) };
     for (const [k, v] of Object.entries(badges ?? {}))
       m[k] = v ? "true" : "";
@@ -1400,7 +1415,17 @@ export default function PublicarPageBase({
                 format,
               })
             }
-            onPublishDrive={handlePublishDrive}
+            onPublishDrive={() =>
+              handlePublishDrive({
+                profile,
+                selectedTargetIds: effectiveSelectedTargetIds,
+                publishTargets: effectivePublishTargets,
+                currentTemplate,
+                values,
+                format,
+                formType: tab,
+              })
+            }
             onClear={handleClear}
             onDownload={() => handleDownload(currentTemplate)}
           />

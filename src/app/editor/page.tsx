@@ -220,20 +220,6 @@ function EditorInner() {
           existingThumb={loadedThumbnail}
           onClose={() => { setPendingSave(null); setPendingVariants(null); }}
           onConfirm={async (meta: SaveTemplateData) => {
-            console.log('[SAVE DEBUG] meta completo:', JSON.stringify({
-              licenseeId: meta.licenseeId,
-              licenseeNome: meta.licenseeNome,
-              lojaId: meta.lojaId,
-              lojaNome: meta.lojaNome,
-              isBase: meta.isBase,
-              accessSelectionsSize: meta.accessSelections?.size,
-              accessSelectionsEntries: meta.accessSelections
-                ? [...meta.accessSelections.entries()].map(([k,v]) => ({
-                    licenseeId: k,
-                    storeIds: [...v]
-                  }))
-                : []
-            }));
             setSaving(true);
             // meta.thumbnail é o dataURL efetivo escolhido no modal (capture ou upload manual).
             // Fallback pro thumb capturado original apenas caso o modal não tenha mandado.
@@ -299,10 +285,8 @@ function EditorInner() {
                         width: p.width || 1080,
                         height: p.height || 1920,
                       };
-                      console.log("[Editor][sync-variant] form_templates upsert:", ftData);
                       const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
                       if (ftErr) console.error("[Editor][sync-variant] erro:", ftErr);
-                      else console.log("[Editor][sync-variant] ✅ Variant sincronizado");
                     }
                   } catch (syncErr) { console.error("[Editor][sync-variant] catch:", syncErr); }
                 }
@@ -350,10 +334,8 @@ function EditorInner() {
                         width: p.width || 1080,
                         height: p.height || 1920,
                       };
-                      console.log("[Editor][sync-starter] form_templates upsert:", ftData);
                       const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
                       if (ftErr) console.error("[Editor][sync-starter] erro:", ftErr);
-                      else console.log("[Editor][sync-starter] ✅ Starter sincronizado");
                     }
                   } catch (syncErr) { console.error("[Editor][sync-starter] catch:", syncErr); }
                   setEditingStarterId(null);
@@ -384,7 +366,6 @@ function EditorInner() {
                 lojaNome: meta.lojaNome || loadedLojaNome,
                 thumbnail: thumbnail || null,
               };
-              console.log("[Editor][save] system_config upsert:", { key: `tmpl_${key}`, hasThumbnail: !!thumbnail, thumbnailLen: thumbnail?.length ?? 0 });
               await supabase.from("system_config").upsert({
                 key: `tmpl_${key}`,
                 value: JSON.stringify(payload),
@@ -407,20 +388,13 @@ function EditorInner() {
                     width: p.width || 1080,
                     height: p.height || 1920,
                   };
-                  console.log("[Editor][sync] form_templates upsert:", ftData);
                   const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
                   if (ftErr) console.error("[Editor][sync] form_templates erro:", ftErr);
-                  else console.log("[Editor][sync] ✅ Template sincronizado com form_templates");
                 }
               } catch (syncErr) { console.error("[Editor][sync] catch:", syncErr); }
 
               // Salva acesso em template_access
               try {
-                console.log("[ACCESS] meta.isBase:", meta.isBase);
-                console.log("[ACCESS] meta.accessSelections size:", meta.accessSelections?.size);
-                console.log("[ACCESS] payload.licenseeId:", payload.licenseeId);
-                console.log("[ACCESS] key:", `tmpl_${key}`);
-
                 await supabase.from("template_access").delete().eq("template_key", `tmpl_${key}`);
 
                 if (!meta.isBase && meta.accessSelections && meta.accessSelections.size > 0) {
@@ -434,10 +408,8 @@ function EditorInner() {
                       }
                     }
                   }
-                  console.log("[ACCESS] rows to insert:", JSON.stringify(accessRows));
                   const { error } = await supabase.from("template_access").insert(accessRows);
                   if (error) console.error("[ACCESS] insert error:", error);
-                  else console.log("[ACCESS] insert OK");
                 } else if (!meta.isBase && payload.licenseeId) {
                   // Fallback: template tem licenseeId mas accessSelections vazio → criar registro órfão
                   const fallbackRow = {
@@ -445,10 +417,8 @@ function EditorInner() {
                     licensee_id: payload.licenseeId,
                     store_id: payload.lojaId || null,
                   };
-                  console.log("[ACCESS] fallback row (órfão):", JSON.stringify(fallbackRow));
                   const { error } = await supabase.from("template_access").insert([fallbackRow]);
                   if (error) console.error("[ACCESS] fallback insert error:", error);
-                  else console.log("[ACCESS] fallback insert OK");
                 }
               } catch (err) {
                 console.error("[ACCESS] catch:", err);

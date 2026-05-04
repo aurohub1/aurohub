@@ -48,10 +48,8 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     (async () => {
       const p = await getProfile(supabase);
-      console.log("[GerenteLayout] profile:", { role: p?.role, name: p?.name, id: p?.id });
-      if (!p) { console.log("[GerenteLayout] no profile → /login"); router.push("/login"); return; }
+      if (!p) { router.push("/login"); return; }
       if (p.role !== "gerente" && p.role !== "cliente" && p.role !== "adm") {
-        console.log("[GerenteLayout] role not allowed, redirecting to:", homeForRole(p.role));
         router.push(homeForRole(p.role));
         return;
       }

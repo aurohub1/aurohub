@@ -185,7 +185,6 @@ export default function BancoImagensAdmPage() {
 
   function openModal(licenseeId: string) {
     const seen = typeof window !== "undefined" && localStorage.getItem(TOUR_KEY) === "1";
-    console.log("[tour]", TOUR_KEY, "=", localStorage.getItem(TOUR_KEY), "| seen:", seen);
     setTourStep(seen ? "form" : "tour");
     if (licenseeId) {
       setUploadTarget("cliente");

@@ -3,6 +3,7 @@ import type Konva from "konva";
 import type { FullProfile } from "@/lib/auth";
 import { usePublishQueue } from "@/hooks/usePublishQueue";
 import type { StoreOption } from "./useStoreTargets";
+import { DRIVE_FOLDERS } from "@/lib/drive-folders";
 
 type Format = "stories" | "feed" | "reels" | "tv";
 
@@ -132,20 +133,133 @@ export function usePublishLogic(
     }, 2000);
   }
 
-  function handlePublishDrive() {
+  async function handlePublishDrive({
+    profile,
+    selectedTargetIds,
+    publishTargets,
+    currentTemplate,
+    values,
+    format,
+    formType,
+  }: {
+    profile: FullProfile | null;
+    selectedTargetIds: string[];
+    publishTargets: StoreOption[];
+    currentTemplate: { id?: string; name?: string; schema?: any } | undefined;
+    values: Record<string, string>;
+    format: Format;
+    formType: string;
+  }) {
     if (!enabled) return;
-
-    // Limpar formulário imediatamente
-    if (onClearForm) {
-      onClearForm();
+    if (!profile?.licensee_id) {
+      setStatus("error");
+      setStatusMsg("Sem licensee");
+      return;
+    }
+    if (selectedTargetIds.length === 0) {
+      setStatus("error");
+      setStatusMsg("Selecione pelo menos uma loja");
+      return;
     }
 
-    setStatus("success");
-    setStatusMsg("Em breve");
-    setTimeout(() => {
-      setStatus("idle");
-      setStatusMsg("");
-    }, 2000);
+    const targets = publishTargets.filter((t) => selectedTargetIds.includes(t.id));
+    if (targets.length === 0) {
+      setStatus("error");
+      setStatusMsg("Selecione pelo menos uma loja");
+      return;
+    }
+
+    try {
+      setBusy(true);
+
+      setStatus("generating");
+      setStatusMsg("Gerando imagem...");
+      const dataUrl = getPNGDataURL();
+      if (!dataUrl) throw new Error("Falha ao gerar imagem");
+
+      const hasAnimation = (currentTemplate?.schema?.elements ?? []).some(
+        (el: any) =>
+          (el.animDelay && el.animDelay > 0) ||
+          (el.animDuration && el.animDuration > 0)
+      );
+      let mediaBlob: Blob | undefined;
+      let mediaDataUrl: string | undefined;
+
+      if (hasAnimation) {
+        setStatus("generating");
+        setStatusMsg("Gravando vídeo...");
+        const els = (currentTemplate?.schema?.elements ?? []) as Array<{
+          animDelay?: number;
+          animDuration?: number;
+        }>;
+        const maxAnim = els.reduce(
+          (m, el) => Math.max(m, (el.animDelay || 0) + (el.animDuration || 0.6)),
+          0
+        );
+        const durationSec = Math.min(15, Math.max(5, Math.ceil(maxAnim + 2)));
+        const blob = await recordCanvasWithAudio(format, durationSec);
+        if (!blob) throw new Error("Falha ao gravar vídeo");
+        mediaBlob = blob;
+      } else {
+        mediaDataUrl = dataUrl;
+      }
+
+      setStatus("uploading");
+      setStatusMsg("Enviando para o Drive...");
+
+      const fileName = `${currentTemplate?.name || "arte"}_${Date.now()}.jpg`;
+
+      for (const target of targets) {
+        const folderId = DRIVE_FOLDERS[target.id]?.[formType];
+        if (folderId) {
+          await fetch("/api/drive/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imageBase64: dataUrl, fileName, folderId }),
+          });
+        }
+      }
+
+      setStatus("publishing");
+      setStatusMsg(`Publicando em ${targets.length} loja(s)...`);
+
+      for (const target of targets) {
+        publishQueue.enqueue({
+          storeId: target.id,
+          storeName: target.name,
+          destino: values.destino || null,
+          format,
+          isVideo: hasAnimation,
+          mediaBlob,
+          mediaDataUrl,
+          caption: "",
+          licenseeId: profile.licensee_id,
+          userId: profile.id,
+          userRole: profile.role,
+          templateId: currentTemplate?.id,
+          templateName: currentTemplate?.name,
+          onDone: () => {},
+        });
+      }
+
+      if (onClearForm) onClearForm();
+
+      setStatus("success");
+      setStatusMsg(`Drive + Instagram (${targets.length} loja(s))`);
+      setTimeout(() => {
+        setStatus("idle");
+        setStatusMsg("");
+        setBusy(false);
+      }, 3000);
+    } catch (error) {
+      setStatus("error");
+      setStatusMsg("Erro ao publicar no Drive");
+      setBusy(false);
+      setTimeout(() => {
+        setStatus("idle");
+        setStatusMsg("");
+      }, 3000);
+    }
   }
 
   async function handlePublish({

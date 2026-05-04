@@ -39,7 +39,6 @@ export function validateVaultToken(token: string): boolean {
     const decoded = Buffer.from(token, 'base64url').toString()
     const dot = decoded.lastIndexOf('.')
     if (dot === -1) {
-      console.log('[validateVaultToken] Formato inválido - sem ponto')
       return false
     }
     const payload = decoded.slice(0, dot)
@@ -48,17 +47,13 @@ export function validateVaultToken(token: string): boolean {
     const sigBuf = Buffer.from(sig, 'hex')
     const expBuf = Buffer.from(expected, 'hex')
     if (sigBuf.length !== expBuf.length) {
-      console.log('[validateVaultToken] Tamanho de assinatura diferente')
       return false
     }
     if (!timingSafeEqual(sigBuf, expBuf)) {
-      console.log('[validateVaultToken] Assinatura não confere')
       return false
     }
     const expires = parseInt(payload.split(':')[1])
-    const now = Date.now()
-    const isExpired = now >= expires
-    console.log('[validateVaultToken] Expiração:', new Date(expires).toISOString(), 'Agora:', new Date(now).toISOString(), 'Expirado?', isExpired)
+    const isExpired = Date.now() >= expires
     return !isExpired
   } catch (err) {
     console.error('[validateVaultToken] Erro:', err)
@@ -86,14 +81,8 @@ export async function isVaultAuthenticated(): Promise<boolean> {
   try {
     const store = await cookies()
     const token = store.get(VAULT_COOKIE)?.value
-    console.log('[isVaultAuthenticated] Cookie presente?', !!token)
-    if (!token) {
-      console.log('[isVaultAuthenticated] Cookie não encontrado')
-      return false
-    }
-    const valid = validateVaultToken(token)
-    console.log('[isVaultAuthenticated] Token válido?', valid)
-    return valid
+    if (!token) return false
+    return validateVaultToken(token)
   } catch (err) {
     console.error('[isVaultAuthenticated] Erro:', err)
     return false
