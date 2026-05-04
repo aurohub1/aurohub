@@ -91,6 +91,8 @@ export default function InicioPage() {
 
   const [sysConfig, setSysConfig] = useState({ chat_enabled: true, maintenance_active: false, tour_enabled: true });
   const [sysLoading, setSysLoading] = useState<Record<string, boolean>>({});
+  const [driveTokenError, setDriveTokenError] = useState(false);
+  const [driveOk, setDriveOk] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -190,12 +192,13 @@ export default function InicioPage() {
     const { data } = await supabase
       .from("system_config")
       .select("key, value")
-      .in("key", ["chat_enabled", "maintenance_active", "tour_enabled"]);
+      .in("key", ["chat_enabled", "maintenance_active", "tour_enabled", "drive_token_error"]);
     if (data) {
-      const map = Object.fromEntries(
-        (data as { key: string; value: string }[]).map(r => [r.key, r.value === "true"]),
-      );
+      const rows = data as { key: string; value: string }[];
+      const map = Object.fromEntries(rows.map(r => [r.key, r.value === "true"]));
       setSysConfig(prev => ({ ...prev, ...map }));
+      const driveErr = rows.find(r => r.key === "drive_token_error");
+      setDriveTokenError(driveErr?.value === "true");
     }
   }, []);
 
@@ -209,6 +212,11 @@ export default function InicioPage() {
   }, []);
 
   useEffect(() => { loadSysConfig(); }, [loadSysConfig]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("drive") === "ok") { setDriveOk(true); setDriveTokenError(false); }
+  }, []);
 
   const { weather, cityName } = useWeather();
 
@@ -360,6 +368,41 @@ export default function InicioPage() {
       {/* ═══ CONTROLES DO SISTEMA ═══ */}
       <div>
         <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">Controles do sistema</h2>
+
+        {driveOk && (
+          <div className="mb-3 flex items-center gap-3 rounded-xl border border-[var(--green)] bg-[rgba(16,185,129,0.08)] px-5 py-3.5">
+            <span className="h-2 w-2 rounded-full bg-[var(--green)]" />
+            <span className="text-[13px] font-medium" style={{ color: "var(--green)" }}>
+              Google Drive autorizado com sucesso. Token salvo.
+            </span>
+          </div>
+        )}
+
+        {driveTokenError && !driveOk && (
+          <div className="mb-3 flex items-start justify-between gap-4 rounded-xl border border-[var(--red)] bg-[rgba(239,68,68,0.08)] px-5 py-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: "var(--red)" }} />
+              <div>
+                <div className="text-[13px] font-semibold" style={{ color: "var(--red)" }}>
+                  Google Drive — Token expirado
+                </div>
+                <div className="mt-0.5 text-[12px]" style={{ color: "var(--red)" }}>
+                  O token de autenticação do Drive expirou e precisa ser renovado.
+                </div>
+              </div>
+            </div>
+            <a
+              href="/api/drive/auth"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 rounded-lg px-4 py-2 text-[12px] font-semibold text-white"
+              style={{ background: "var(--red)" }}
+            >
+              Renovar token
+            </a>
+          </div>
+        )}
+
         <div className="rounded-xl border border-[var(--bdr)] bg-[var(--bg1)]" style={{ paddingRight: "140px" }}>
           <SystemToggle
             label="Chat interno"

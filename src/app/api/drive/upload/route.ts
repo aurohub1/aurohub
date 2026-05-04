@@ -1,19 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+const cachedToken = { token: "", expiresAt: 0 };
+
+function admin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+async function getRefreshToken(): Promise<string> {
+  const { data } = await admin()
+    .from("system_config")
+    .select("value")
+    .eq("key", "google_drive_refresh_token")
+    .single();
+  return data?.value ?? process.env.GOOGLE_REFRESH_TOKEN!;
+}
 
 async function getAccessToken(): Promise<string> {
+  if (cachedToken.token && Date.now() < cachedToken.expiresAt - 60_000) {
+    return cachedToken.token;
+  }
+  const refreshToken = await getRefreshToken();
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN!,
+      refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),
   });
   const data = await res.json();
-  if (!data.access_token) throw new Error("Falha ao obter access_token do Google");
-  return data.access_token;
+  if (!data.access_token) {
+    await admin().from("system_config").upsert(
+      { key: "drive_token_error", value: "true" },
+      { onConflict: "key" }
+    );
+    throw new Error("Falha ao obter access_token do Google");
+  }
+  await admin().from("system_config").upsert(
+    { key: "drive_token_error", value: "false" },
+    { onConflict: "key" }
+  );
+  cachedToken.token = data.access_token;
+  cachedToken.expiresAt = Date.now() + data.expires_in * 1000;
+  return cachedToken.token;
 }
 
 export async function POST(req: NextRequest) {
