@@ -347,6 +347,7 @@ const DYNAMIC_BADGES = new Set([
   "all_inclusive_badge",
   "desconto_badge",
   "feriado_badge",
+  "ofertas_azul_badge",
 ]);
 
 function resolveImage(
@@ -359,6 +360,7 @@ function resolveImage(
   const bp = el.bindParam;
 
   if (bp.endsWith("_badge")) {
+    if (el.src && /^https?:\/\//i.test(el.src)) return el.src;
     const url = resolveBadgeUrl(bp, badgeUrls, feriadoUrls, values);
     if (url) return url;
     if (process.env.NODE_ENV !== "production") {

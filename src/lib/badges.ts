@@ -48,6 +48,7 @@ export function shouldRenderBadge(paramID: string, values: Record<string, string
     case "ultima_chamada_badge":
     case "ultimos_lugares_badge":
     case "oferta_badge":
+    case "ofertas_azul_badge":
       return values[paramID] === "true";
     // condicional pelo campo `desconto`
     case "desconto_badge": {
@@ -70,6 +71,7 @@ export const BADGE_ALIASES: Record<string, string[]> = {
   ultima_chamada_badge:  ["ÚLTIMA CHAMADA", "ULTIMA CHAMADA", "Última Chamada", "ultimachamada", "chamada"],
   ultimos_lugares_badge: ["ÚLTIMOS LUGARES", "ULTIMOS LUGARES", "Últimos Lugares", "ultimoslugares"],
   oferta_badge:          ["OFERTAS", "OFERTAS AZUL", "Ofertas Azul", "ofertas azul", "ofertas"],
+  ofertas_azul_badge:    ["OFERTAS", "OFERTAS AZUL", "Ofertas Azul", "ofertas azul", "ofertas", "oferta1"],
 };
 
 /**
