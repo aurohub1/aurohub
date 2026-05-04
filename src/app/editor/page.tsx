@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import { getProfile } from "@/lib/auth";
+import { getSystemConfig, invalidateSystemConfig } from "@/hooks/useSystemConfig";
 
 import type { EditorSchema } from "@/components/editor/canvas-editor";
 import { QuickStartModal, STARTER_KEY_PREFIX, SaveTemplateModal, slugifyTemplateName } from "@/components/editor/modals";
@@ -69,19 +70,17 @@ function EditorInner() {
 
   // Flag variantes
   useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await supabase.from("system_config").select("value").eq("key", "variants_enabled_global").single();
-        if (data?.value === "true") setVariantsEnabled(true);
-      } catch {}
-    })();
+    getSystemConfig("variants_enabled_global").then(val => {
+      if (val === "true") setVariantsEnabled(true);
+    });
   }, []);
 
   useEffect(() => {
     if (!templateId) return;
     (async () => {
       try {
-        const { data } = await supabase.from("system_config").select("value").eq("key", `tmpl_${templateId}`).single();
+        const raw = await getSystemConfig(`tmpl_${templateId}`);
+        const data = raw ? { value: raw } : null;
         if (data?.value) {
           const parsed = JSON.parse(data.value);
           if (parsed.elements) {
@@ -270,7 +269,8 @@ function EditorInner() {
                   }, { onConflict: "key" });
                   // Sync automático com form_templates
                   try {
-                    const { data: scRow } = await supabase.from("system_config").select("value").eq("key", key).single();
+                    invalidateSystemConfig(key);
+                    const scRow = { value: JSON.stringify(payload) };
                     if (scRow) {
                       const p = JSON.parse(scRow.value);
                       const ftData = {
@@ -319,7 +319,8 @@ function EditorInner() {
                   }, { onConflict: "key" });
                   // Sync automático com form_templates
                   try {
-                    const { data: scRow } = await supabase.from("system_config").select("value").eq("key", editingStarterId).single();
+                    invalidateSystemConfig(editingStarterId as string);
+                    const scRow = { value: JSON.stringify(payload) };
                     if (scRow) {
                       const p = JSON.parse(scRow.value);
                       const ftData = {
@@ -373,7 +374,8 @@ function EditorInner() {
               }, { onConflict: "key" });
               // Sync automático com form_templates
               try {
-                const { data: scRow } = await supabase.from("system_config").select("value").eq("key", `tmpl_${key}`).single();
+                invalidateSystemConfig(`tmpl_${key}`);
+                const scRow = { value: JSON.stringify(payload) };
                 if (scRow) {
                   const p = JSON.parse(scRow.value);
                   const ftData = {

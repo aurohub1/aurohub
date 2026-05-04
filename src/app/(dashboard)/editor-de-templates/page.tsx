@@ -9,6 +9,7 @@ import { TemplateCard, type CanvasTemplate } from "@/components/editor/TemplateC
 import { TemplateFilters } from "@/components/editor/TemplateFilters";
 import { useAdmGuard } from "@/contexts/AdmContext";
 import { PermissionsModal } from "@/components/users/PermissionsModal";
+import { getSystemConfig, invalidateSystemConfig } from "@/hooks/useSystemConfig";
 
 interface Licensee { id: string; name: string; }
 
@@ -99,16 +100,13 @@ export default function EditorTemplatesPage() {
   }, [cloneLicensee]);
 
   async function persistField(key: string, field: string, value: string) {
-    const { data: row } = await supabase
-      .from("system_config")
-      .select("value")
-      .eq("key", key)
-      .single();
-    const current = row?.value ? JSON.parse(row.value) : {};
+    const existing = await getSystemConfig(key);
+    const current = existing ? JSON.parse(existing) : {};
     current[field] = value;
     await supabase
       .from("system_config")
       .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
+    invalidateSystemConfig(key);
   }
 
   async function handleNameChange(key: string, nome: string) {
@@ -140,16 +138,13 @@ export default function EditorTemplatesPage() {
   }
 
   async function persistThumb(key: string, url: string) {
-    const { data: row } = await supabase
-      .from("system_config")
-      .select("value")
-      .eq("key", key)
-      .single();
-    const current = row?.value ? JSON.parse(row.value) : {};
+    const existing = await getSystemConfig(key);
+    const current = existing ? JSON.parse(existing) : {};
     current.thumbnail = url;
     await supabase
       .from("system_config")
       .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
+    invalidateSystemConfig(key);
     setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, thumbnail: url } : t)));
   }
 
@@ -388,13 +383,9 @@ export default function EditorTemplatesPage() {
     setCloning(true);
     try {
       const lic = licensees.find((l) => l.id === cloneLicensee);
-      const { data: row } = await supabase
-        .from("system_config")
-        .select("value")
-        .eq("key", cloneKey)
-        .single();
-      if (!row?.value) throw new Error("Template base não encontrado");
-      const parsed = JSON.parse(row.value);
+      const raw = await getSystemConfig(cloneKey);
+      if (!raw) throw new Error("Template base não encontrado");
+      const parsed = JSON.parse(raw);
 
       const selectedLojaIds = [...cloneSelectedLojas];
       const lojaNames = selectedLojaIds.map(id => cloneLojas.find(l => l.id === id)?.name ?? "");
@@ -425,6 +416,7 @@ export default function EditorTemplatesPage() {
         value: JSON.stringify(cloneData),
         updated_at: new Date().toISOString(),
       });
+      invalidateSystemConfig(newKey);
 
       // 2. Inserir em form_templates
       await supabase.from("form_templates").insert({
@@ -537,19 +529,16 @@ export default function EditorTemplatesPage() {
     setSavingAccess(true);
     try {
       // 1. Atualiza is_base no system_config
-      const { data: row } = await supabase
-        .from("system_config")
-        .select("value")
-        .eq("key", accessKey)
-        .single();
-      if (row?.value) {
-        const parsed = JSON.parse(row.value);
+      const existing = await getSystemConfig(accessKey);
+      if (existing) {
+        const parsed = JSON.parse(existing);
         parsed.is_base = accessIsBase;
         await supabase.from("system_config").upsert({
           key: accessKey,
           value: JSON.stringify(parsed),
           updated_at: new Date().toISOString(),
         }, { onConflict: "key" });
+        invalidateSystemConfig(accessKey);
       }
 
       // 2. Sincroniza template_access
@@ -749,9 +738,9 @@ export default function EditorTemplatesPage() {
   // Duplica um template de cliente (mesmo licensee)
   async function duplicateCanvasTmpl(key: string) {
     try {
-      const { data: row } = await supabase.from("system_config").select("value").eq("key", key).single();
-      if (!row?.value) return;
-      const parsed = JSON.parse(row.value);
+      const raw = await getSystemConfig(key);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
       const cloneData = { ...parsed, nome: (parsed.nome || "Template") + " (cópia)" };
       const baseSuffix = key.replace(/^tmpl_/, "");
       const newKey = `tmpl_${baseSuffix}_copy_${Date.now().toString(36)}`;
@@ -760,30 +749,27 @@ export default function EditorTemplatesPage() {
         value: JSON.stringify(cloneData),
         updated_at: new Date().toISOString(),
       });
+      invalidateSystemConfig(newKey);
       // Sync com form_templates para o publicar encontrar
-      const sc = await supabase.from("system_config").select("value").eq("key", newKey).single();
-      if (sc.data) {
-        const parsed = JSON.parse(sc.data.value);
-        await supabase.from("form_templates").upsert({
-          name: parsed.nome || newKey,
-          form_type: parsed.formType || "pacote",
-          format: parsed.format || "stories",
-          is_base: parsed.is_base === true,
-          active: true,
-          licensee_id: parsed.licenseeId ?? null,
-          config_key: newKey,
-          schema: {
-            elements: parsed.elements || [],
-            background: parsed.background || "#0E1520",
-            formType: parsed.formType || "pacote",
-            width: parsed.width || 1080,
-            height: parsed.height || 1920,
-            duration: parsed.duration || 5,
-          },
-          width: parsed.width || 1080,
-          height: parsed.height || 1920,
-        }, { onConflict: "name,form_type,format" });
-      }
+      await supabase.from("form_templates").upsert({
+        name: cloneData.nome || newKey,
+        form_type: cloneData.formType || "pacote",
+        format: cloneData.format || "stories",
+        is_base: cloneData.is_base === true,
+        active: true,
+        licensee_id: cloneData.licenseeId ?? null,
+        config_key: newKey,
+        schema: {
+          elements: cloneData.elements || [],
+          background: cloneData.background || "#0E1520",
+          formType: cloneData.formType || "pacote",
+          width: cloneData.width || 1080,
+          height: cloneData.height || 1920,
+          duration: cloneData.duration || 5,
+        },
+        width: cloneData.width || 1080,
+        height: cloneData.height || 1920,
+      }, { onConflict: "name,form_type,format" });
       await loadCanvasTemplates();
     } catch (err) {
       console.error("[Duplicate]", err);
