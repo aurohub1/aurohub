@@ -1,7 +1,5 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
-
 type PubType = "stories" | "feed" | "reels" | "carrossel";
 type ScheduleMode = "now" | "schedule";
 

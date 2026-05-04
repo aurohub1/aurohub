@@ -7,7 +7,7 @@ import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
 import { useCountUp } from "@/hooks/useCountUp";
 import {
-  CalendarDays, Send, BarChart3,
+  Send, BarChart3,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
 

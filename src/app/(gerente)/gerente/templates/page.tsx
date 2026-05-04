@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
-import { FileText, Search, Sparkles, CalendarClock, Trash2 } from "lucide-react";
+import { FileText, Search, Trash2 } from "lucide-react";
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -44,11 +44,6 @@ function typeMeta(t: string) {
 }
 function formatMeta(f: string) {
   return FORMAT_META[f] ?? { label: f || "—", aspect: "1 / 1" };
-}
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 /* ── Página ──────────────────────────────────────── */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import type Konva from "konva";
 
@@ -259,14 +259,14 @@ export default function EditorPage() {
     }
   }
 
-  function handleStageMouseDown(e: Konva.KonvaEventObject<MouseEvent>) {
+  function handleStageMouseDown(_e: Konva.KonvaEventObject<MouseEvent>) {
     if (tool === "select") return;
     const stage = stageRef.current;
     if (!stage) return;
     const pos = stage.getPointerPosition();
     if (!pos) return;
-    const x = pos.x / scale;
-    const y = pos.y / scale;
+    const _x = pos.x / scale;
+    const _y = pos.y / scale;
 
     if (tool === "text") addText("Texto");
     if (tool === "rect") { addRect(); }
@@ -329,95 +329,6 @@ export default function EditorPage() {
     console.log("[Editor] Template JSON:", JSON.stringify(data, null, 2));
     console.log("[Editor][saveTemplate] NOTA: esta função ainda NÃO persiste em supabase.from('templates'). Insert real acontece em /editor-de-templates (página de listagem) via handleSave. Veja result.data/result.error na console da listagem.");
     alert("Template salvo no console (integração Supabase pendente)");
-  }
-
-  /** Carrega template salvo — restaura state + aplica setAttrs em cada node Konva */
-  function loadTemplate(data: { format: Format; bgColor: string; bgSrc: string; elements: Array<{ id: string; type: string; name: string; visible: boolean; locked: boolean; isBind?: boolean; bindKey?: string; src?: string; attrs: Record<string, unknown> }>; stageJson?: string | null }) {
-    setFormat(data.format);
-    setBgColor(data.bgColor);
-    if (data.bgSrc) loadBgImage(data.bgSrc);
-
-    // Reconstrói elements state a partir dos attrs
-    const rebuilt: CanvasElement[] = data.elements.map((s) => {
-      const a = s.attrs;
-      const common = {
-        id: s.id,
-        name: s.name,
-        visible: s.visible,
-        locked: s.locked,
-        x: (a.x as number) || 0,
-        y: (a.y as number) || 0,
-        width: (a.width as number) || 100,
-        height: (a.height as number) || 100,
-        rotation: (a.rotation as number) || 0,
-        opacity: (a.opacity as number) ?? 1,
-      };
-      if (s.type === "text") {
-        return { ...common, type: "text",
-          text: (a.text as string) || "",
-          fontSize: (a.fontSize as number) || 24,
-          fontFamily: (a.fontFamily as string) || "DM Sans",
-          fill: (a.fill as string) || "#000",
-          fontStyle: (a.fontStyle as string) || "normal",
-          align: (a.align as string) || "left",
-          isBind: s.isBind ?? false,
-          bindKey: s.bindKey ?? "",
-        } as TextEl;
-      }
-      if (s.type === "image") {
-        return { ...common, type: "image", src: s.src ?? "" } as ImageEl;
-      }
-      if (s.type === "rect") {
-        return { ...common, type: "rect",
-          fill: (a.fill as string) || "#000",
-          stroke: (a.stroke as string) || "",
-          strokeWidth: (a.strokeWidth as number) || 0,
-          cornerRadius: (a.cornerRadius as number) || 0,
-        } as RectEl;
-      }
-      return { ...common, type: "circle",
-        fill: (a.fill as string) || "#000",
-        stroke: (a.stroke as string) || "",
-        strokeWidth: (a.strokeWidth as number) || 0,
-      } as CircleEl;
-    });
-    setElements(rebuilt);
-    pushHistory(rebuilt);
-
-    // Após o React montar os nodes, aplica setAttrs para restaurar fontSize,
-    // letterSpacing, lineHeight, scaleX/Y e todos os outros atributos não mapeados no state.
-    // Se stageJson estiver presente, usa Konva.Node.create(json) para parse autorizado pelo Konva
-    // e extrai attrs de cada node por id — restaurando fidelidade máxima.
-    setTimeout(async () => {
-      const stage = stageRef.current;
-      if (!stage) return;
-
-      // Fonte preferencial de attrs: stageJson via Konva.Node.create — fallback para s.attrs
-      let nodeAttrsById: Record<string, Record<string, unknown>> | null = null;
-      if (data.stageJson) {
-        try {
-          const Konva = (await import("konva")).default;
-          const parsed = Konva.Node.create(data.stageJson) as unknown as Konva.Stage;
-          nodeAttrsById = {};
-          parsed.find("Node").forEach((n) => {
-            const id = n.id();
-            if (id) nodeAttrsById![id] = n.getAttrs();
-          });
-          parsed.destroy();
-        } catch (err) {
-          console.warn("[loadTemplate] Falha ao parsear stageJson, fallback pra s.attrs", err);
-          nodeAttrsById = null;
-        }
-      }
-
-      for (const s of data.elements) {
-        const node = stage.findOne(`#${s.id}`);
-        if (!node) continue;
-        const attrs = nodeAttrsById?.[s.id] ?? s.attrs;
-        node.setAttrs(attrs);
-      }
-      stage.batchDraw();
-    }, 50);
   }
 
   /* ── Layer reorder ─────────────────────────────── */

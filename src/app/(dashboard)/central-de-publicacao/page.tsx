@@ -284,7 +284,6 @@ export default function CentralPublicacaoPage() {
 
   async function handlePublish() {
     if (!selectedLicenseeId || !selectedStoreId || !mediaDataUrl) return;
-    const lic = licMap[selectedLicenseeId];
     const store = storeMap[selectedStoreId];
     if (!store) return;
 

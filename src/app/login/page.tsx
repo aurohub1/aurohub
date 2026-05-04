@@ -289,7 +289,6 @@ export default function LoginPage() {
     : "radial-gradient(ellipse 100% 80% at 0% 50%, rgba(30,58,110,0.12) 0%, transparent 55%), radial-gradient(ellipse 80% 60% at 100% 20%, rgba(255,122,26,0.08) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 50% 100%, rgba(212,168,67,0.06) 0%, transparent 50%), #EEF2FA";
   const panelBg = dk ? "rgba(8,14,28,0.92)" : "rgba(255,255,255,0.98)";
   const panelBorder = dk ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(13,22,40,0.10)";
-  const heroLogo = dk ? "https://res.cloudinary.com/dxgj4bcch/image/upload/v1774115445/Logo_com_fundo_trans22_1_wujniv.png" : "/logo-laranja.png";
   const heroHeadColor = dk ? "#FFFFFF" : "#1E3A6E";
   const heroStatColor = dk ? "#fff" : "#1E3A6E";
   const heroSubColor = dk ? "var(--txt2)" : "#4A5878";

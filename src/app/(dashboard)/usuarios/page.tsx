@@ -120,7 +120,6 @@ export default function UsuariosPage() {
 
   const licMap = useMemo(() => { const m: Record<string, Licensee> = {}; licensees.forEach((l) => { m[l.id] = l; }); return m; }, [licensees]);
   const storeMap = useMemo(() => { const m: Record<string, Store> = {}; stores.forEach((s) => { m[s.id] = s; }); return m; }, [stores]);
-  const segMap = useMemo(() => { const m: Record<string, Segment> = {}; segments.forEach((s) => { m[s.id] = s; }); return m; }, [segments]);
 
   const storesForLic = useMemo(() => {
     if (!form.licensee_id) return stores;

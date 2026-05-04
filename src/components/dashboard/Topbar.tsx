@@ -62,8 +62,6 @@ export default function Topbar() {
     window.dispatchEvent(new CustomEvent("theme-change", { detail: next }));
   }, [theme]);
 
-  const title = PAGE_TITLES[pathname] ?? "Aurohub";
-
   return (
     <header className="sticky top-0 z-40 flex h-20 shrink-0 items-center justify-between pt-4 border-b border-[var(--bdr)] bg-[var(--topbar-bg,var(--bg1))] px-6 backdrop-blur-[24px]">
       {/* Left: greeting + title + date */}

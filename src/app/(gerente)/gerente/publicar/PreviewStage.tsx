@@ -57,16 +57,6 @@ function useImage(src?: string): HTMLImageElement | null {
   return img;
 }
 
-/** Formata valor total no padrão "ou R$ 12.345,67 por pessoa cabine dupla" */
-function formatBRL(raw: string | undefined): string {
-  if (!raw) return "";
-  const nums = raw.replace(/\D/g, "");
-  if (!nums) return "";
-  const n = parseInt(nums, 10);
-  const formatted = Math.floor(n / 100).toLocaleString("pt-BR") + "," + String(n % 100).padStart(2, "0");
-  return `ou R$ ${formatted} por pessoa cabine dupla`;
-}
-
 function resolveBindParam(bindParam: string, values: Record<string, string>): string {
   switch (bindParam) {
 

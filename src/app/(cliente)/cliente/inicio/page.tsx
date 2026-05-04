@@ -14,11 +14,6 @@ import {
 } from "lucide-react";
 
 interface DataComemorativa { id: string; nome: string; data_mes: number; data_dia: number; tipo: string; }
-function daysUntil(iso: string): number {
-  const a = new Date(); a.setHours(0,0,0,0);
-  const b = new Date(iso + "T00:00:00");
-  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
-}
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -114,16 +109,6 @@ function formatDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
-function roleLabel(role: string | null): string {
-  switch (role) {
-    case "adm":      return "ADM";
-    case "cliente":  return "Cliente";
-    case "unidade":  return "Unidade";
-    case "vendedor": return "Consultor";
-    default:         return role || "—";
-  }
-}
-
 /** Conta de 0 até target com easeOutCubic. Só dispara quando `enabled`
  *  vira true — evita que a animação rode enquanto o main JSX ainda
  *  está oculto pelo estado de loading. */
@@ -152,14 +137,14 @@ export default function ClienteInicioPage() {
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [planFull, setPlanFull] = useState<PlanFull | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [quote, setQuote] = useState<string>("");
+  const [, setQuote] = useState<string>("");
   const [inactiveStores, setInactiveStores] = useState<InactiveStore[]>([]);
 
   const [stores, setStores] = useState<StoreRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [dbFeriados, setDbFeriados] = useState<DataComemorativa[]>([]);
   const [postsMes, setPostsMes] = useState(0);
-  const [postFormats, setPostFormats] = useState<Record<FmtKey, number>>({ stories: 0, feed: 0, reels: 0, tv: 0 });
+  const [, setPostFormats] = useState<Record<FmtKey, number>>({ stories: 0, feed: 0, reels: 0, tv: 0 });
   const [postLimits, setPostLimits] = useState<Record<FmtKey, number>>({ stories: 0, feed: 0, reels: 0, tv: 0 });
   const [templatesCount, setTemplatesCount] = useState(0);
 

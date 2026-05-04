@@ -332,10 +332,6 @@ export default function EditorTemplatesPage() {
 
   useEffect(() => { loadCanvasTemplates(); }, [loadCanvasTemplates]);
 
-  const editCanvasTmpl = (key: string) => {
-    router.push(`/editor?id=${key.replace(/^tmpl_/, "")}`);
-  };
-
   // Filtra base templates (usa filtros globais)
   const baseTemplatesFiltered = useMemo(() => {
     return canvasTemplates.filter((t) => {

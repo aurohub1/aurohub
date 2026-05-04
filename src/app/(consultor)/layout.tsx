@@ -7,7 +7,6 @@ import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
 import Sidebar, { VENDEDOR_SECTIONS } from "@/components/layout/Sidebar";
 
-import { useContentProtection } from "@/hooks/useContentProtection";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import WelcomeTour from "@/components/tour/WelcomeTour";
 import { SupportDrawerProvider } from "@/components/support/SupportDrawerProvider";

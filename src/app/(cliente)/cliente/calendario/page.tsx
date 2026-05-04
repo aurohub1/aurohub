@@ -105,7 +105,7 @@ export default function ClienteCalendarioPage() {
   const [formData, setFormData] = useState(selectedDay);
   const [formLojasSelecionadas, setFormLojasSelecionadas] = useState<string[]>([]);
 
-  const { startTour, tourCompleted } = useTour({
+  const { startTour } = useTour({
     pageKey: "cliente-calendario",
     steps: [
       {

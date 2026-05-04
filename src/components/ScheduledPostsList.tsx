@@ -28,7 +28,7 @@ interface Props {
 }
 
 export default function ScheduledPostsList({ scope }: Props) {
-  const [profile, setProfile] = useState<FullProfile | null>(null);
+  const [, setProfile] = useState<FullProfile | null>(null);
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [loading, setLoading] = useState(true);
 

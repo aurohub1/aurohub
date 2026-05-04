@@ -8,16 +8,11 @@ import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
 import { useCountUp } from "@/hooks/useCountUp";
 import {
-  Send, BarChart3, ArrowRight, Image as ImageIcon, CalendarDays,
+  Send, BarChart3, ArrowRight, Image as ImageIcon,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
 
 interface DataComemorativa { id: string; nome: string; data_mes: number; data_dia: number; tipo: string; }
-function daysUntil(iso: string): number {
-  const a = new Date(); a.setHours(0,0,0,0);
-  const b = new Date(iso + "T00:00:00");
-  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
-}
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -137,7 +132,7 @@ export default function UnidadeInicioPage() {
 
   const [postsHoje, setPostsHoje] = useState(0);
   const [postsMes, setPostsMes] = useState(0);
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [, setVendedores] = useState<Vendedor[]>([]);
   const [dbFeriados, setDbFeriados] = useState<DataComemorativa[]>([]);
   const [ultimasPub, setUltimasPub] = useState<ScheduledPost[]>([]);
 

@@ -2,11 +2,10 @@
 
 import { HelpCircle } from "lucide-react";
 import PublicarPageBase from "@/components/publish/PublicarPageBase";
-import type { FullProfile } from "@/lib/auth";
 import { useTour } from "@/hooks/useTour";
 
 export default function ClientePublicarPage() {
-  const { startTour, tourCompleted } = useTour({
+  const { startTour } = useTour({
     pageKey: "cliente-publicar",
     steps: [
       {

@@ -48,8 +48,6 @@ export default function EditorLandingPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const imgRef = useRef<HTMLInputElement>(null);
-
   /* ── Load ──────────────────────────────────────── */
 
   const loadData = useCallback(async () => {

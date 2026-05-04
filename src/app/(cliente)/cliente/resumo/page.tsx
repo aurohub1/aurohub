@@ -54,24 +54,15 @@ const CHART_COLORS: Record<string, string> = {
   download: "#64748B",
 };
 
-const TIPO_LABELS: Record<string, string> = {
-  pacote: "Pacote",
-  passagem: "Passagem",
-  cruzeiro: "Cruzeiro",
-  anoiteceu: "Anoiteceu",
-  card_whatsapp: "Card WhatsApp",
-  campanha: "Campanha",
-};
-
 export default function ClienteResumoPage() {
-  const [profile, setProfile] = useState<FullProfile | null>(null);
+  const [, setProfile] = useState<FullProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [previousMonthPosts, setPreviousMonthPosts] = useState<Post[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedStore, setSelectedStore] = useState<string>("all");
-  const [selectedTipo, setSelectedTipo] = useState<string>("all");
+  const [selectedTipo] = useState<string>("all");
   const [selectedFormato, setSelectedFormato] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"geral" | "comparativo">("geral");
   const [selectedPeriodo, setSelectedPeriodo] = useState<"7" | "30" | "90">("30");
