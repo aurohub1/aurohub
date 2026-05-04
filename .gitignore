@@ -50,3 +50,4 @@ _audit.mjs
 _list.mjs
 _update_template.sql
 _backup_template_*.json
+scripts/get-drive-token.mjs
