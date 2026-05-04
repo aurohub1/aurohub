@@ -459,6 +459,15 @@ function WeatherIconLucide({ code, size = 13 }: { code: number | null; size?: nu
 
 export default function Sidebar({ activePath, user, onLogout, sections, brandLabel, activeFeatures, extraPanel, hasInactiveStores = false, maintenanceActive = false, admPerms, chatUnreadCount = 0 }: SidebarProps) {
   const supportDrawer = useSupportDrawer(); // null fora do provider (ex: ADM) → renderiza Link
+  const [chatEnabled, setChatEnabled] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/chat-status")
+      .then(r => r.json())
+      .then(d => setChatEnabled(d.enabled !== false))
+      .catch(() => {});
+  }, []);
+
   const rawSections = sections ?? ADM_SECTIONS;
   const navSections = rawSections
     .map((section) => ({
@@ -466,6 +475,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
       items: section.items.filter((item) => {
         if (item.feature && activeFeatures && !activeFeatures.has(item.feature)) return false;
         if (item.admPerm && admPerms && !admPerms[item.admPerm]) return false;
+        if (item.label === "Chat" && !chatEnabled && user?.role !== "adm") return false;
         return true;
       }),
     }))

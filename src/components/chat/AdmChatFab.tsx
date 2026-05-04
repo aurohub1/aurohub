@@ -30,7 +30,7 @@ export default function AdmChatFab({ onClick, isOpen, unreadCount }: Props) {
           transform: scale(0.6);
           pointer-events: none;
           transition: opacity 300ms ease, transform 250ms ease, box-shadow 200ms ease;
-          box-shadow: 0 6px 20px rgba(16,185,129,0.35);
+          box-shadow: 0 6px 20px rgba(245,158,11,0.35);
         }
         .ah-adm-chat-fab[data-ready="true"] {
           opacity: 1;
@@ -39,7 +39,7 @@ export default function AdmChatFab({ onClick, isOpen, unreadCount }: Props) {
         }
         .ah-adm-chat-fab[data-ready="true"]:hover {
           transform: scale(1.08);
-          box-shadow: 0 8px 28px rgba(16,185,129,0.55);
+          box-shadow: 0 8px 28px rgba(245,158,11,0.55);
         }
       `}</style>
       <button
@@ -47,7 +47,7 @@ export default function AdmChatFab({ onClick, isOpen, unreadCount }: Props) {
         onClick={onClick}
         aria-label="Abrir chat interno"
         data-ready={ready ? "true" : "false"}
-        className="ah-adm-chat-fab fixed bottom-4 right-[118px] z-[9988] flex h-[52px] w-[52px] items-center justify-center rounded-full bg-emerald-500 text-white"
+        className="ah-adm-chat-fab fixed bottom-4 right-[118px] z-[9988] flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#F59E0B] text-white"
       >
         <MessageCircle size={22} />
         {unreadCount > 0 && (

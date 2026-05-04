@@ -236,7 +236,12 @@ export default function ConfiguracoesPage() {
     if (!confirm("Desativar tour para TODOS os usuários?")) return;
     setTourAction("disable");
     try {
-      await supabase.from("profiles").update({ tour_pages: ["desativado"] }).neq("id", "00000000-0000-0000-0000-000000000000");
+      const res = await fetch("/api/admin/tour-disable", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert("Erro ao desativar tour: " + (body.error ?? res.status));
+        return;
+      }
       await loadTourStats();
     } finally {
       setTourAction(null);

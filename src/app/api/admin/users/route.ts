@@ -125,6 +125,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Erro ao salvar profile: ${pErr.message}` }, { status: 500 });
     }
 
+    // Auto-criar sala de chat para usuários com licensee_id
+    const licenseeId = profile.licensee_id ? String(profile.licensee_id) : null;
+    if (licenseeId) {
+      try {
+        const storeId = profile.store_id ? String(profile.store_id) : null;
+        const userName = String(profile.name || email.split("@")[0] || "Usuário");
+
+        // Verifica se já existe sala para esse licensee/store antes de criar
+        let existQ = sb.from("chat_rooms").select("id", { count: "exact", head: true }).eq("licensee_id", licenseeId);
+        existQ = storeId ? existQ.eq("store_id", storeId) : existQ.is("store_id", null);
+        const { count } = await existQ;
+
+        if (!count) {
+          await sb.from("chat_rooms").insert({ name: userName, licensee_id: licenseeId, store_id: storeId });
+        }
+      } catch (chatErr) {
+        console.error("[admin/users] chat room creation:", chatErr);
+      }
+    }
+
     return NextResponse.json({ success: true, id });
   } catch (err) {
     console.error("[admin/users]", err);

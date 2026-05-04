@@ -41,8 +41,8 @@ export function useTour({ pageKey, steps, autoStart = true, delay = 1000 }: UseT
     loadUser();
   }, []);
 
-  // Verifica se o tour já foi feito
-  const tourCompleted = tourPages.includes(pageKey);
+  // Verifica se o tour já foi feito ou está globalmente desativado
+  const tourCompleted = tourPages.includes(pageKey) || tourPages.includes("desativado");
 
   // Salva no Supabase que o tour foi concluído
   const markTourAsCompleted = async () => {

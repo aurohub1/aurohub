@@ -238,19 +238,24 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
     <div
       role="dialog"
       aria-label="Chat Interno ADM"
-      style={{ display: isOpen ? "flex" : "none", width: 360, height: minimized ? 48 : 560 }}
-      className="fixed bottom-4 right-[118px] z-[9998] flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+      style={{
+        display: isOpen ? "flex" : "none",
+        width: 360,
+        height: minimized ? 48 : 560,
+        background: "#111827",
+      }}
+      className="fixed bottom-4 right-[118px] z-[9998] flex-col rounded-2xl shadow-2xl overflow-hidden"
     >
       {/* ── Header ── */}
       <div
-        className={`flex shrink-0 items-center gap-2 border-b border-slate-200 px-3 ${minimized ? "h-12 cursor-pointer" : "py-2.5"}`}
+        className={`flex shrink-0 items-center gap-2 border-b border-[rgba(255,255,255,0.08)] px-3 ${minimized ? "h-12 cursor-pointer" : "py-2.5"}`}
         onClick={minimized ? onRestore : undefined}
       >
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100">
-          <MessageCircle size={14} className="text-emerald-600" />
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[rgba(16,185,129,0.15)]">
+          <MessageCircle size={14} className="text-emerald-400" />
         </div>
         <div className="flex-1 min-w-0 flex items-center gap-1.5">
-          <span className="text-sm font-semibold text-slate-800 truncate">
+          <span className="text-sm font-semibold text-[#EEF2FF] truncate">
             {activeRoomId && !minimized ? (activeRoom?.name ?? "Chat") : "Chat Interno"}
           </span>
           {!activeRoomId && !minimized && unreadCount > 0 && (
@@ -263,7 +268,7 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
           <button
             onClick={(e) => { e.stopPropagation(); setActiveRoomId(null); }}
             aria-label="Voltar"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[rgba(255,255,255,0.08)] hover:text-[#EEF2FF]"
           >
             <ArrowLeft size={14} />
           </button>
@@ -271,14 +276,14 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
         <button
           onClick={(e) => { e.stopPropagation(); minimized ? onRestore() : onMinimize(); }}
           aria-label={minimized ? "Expandir" : "Minimizar"}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[rgba(255,255,255,0.08)] hover:text-[#EEF2FF]"
         >
           {minimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onClose(); }}
           aria-label="Fechar"
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[rgba(255,255,255,0.08)] hover:text-[#EEF2FF]"
         >
           <X size={14} />
         </button>
@@ -291,12 +296,12 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
             <div className="flex flex-1 flex-col overflow-hidden">
               {loading ? (
                 <div className="flex flex-1 items-center justify-center">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.1)] border-t-emerald-400" />
                 </div>
               ) : rooms.length === 0 ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-2">
-                  <MessageCircle size={28} className="text-slate-300" />
-                  <span className="text-sm text-slate-400">Nenhuma sala criada</span>
+                  <MessageCircle size={28} className="text-[rgba(255,255,255,0.2)]" />
+                  <span className="text-sm text-[#94A3B8]">Nenhuma sala criada</span>
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto px-3 py-2">
@@ -305,30 +310,31 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
                       <button
                         key={room.id}
                         onClick={() => setActiveRoomId(room.id)}
-                        className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5 text-left transition-colors hover:bg-slate-50"
+                        className="flex items-center gap-2.5 rounded-xl p-2.5 text-left transition-colors hover:bg-[rgba(255,255,255,0.06)]"
+                        style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
                       >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(99,102,241,0.2)] text-sm font-bold text-[#EEF2FF]">
                           {initials(room.name)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="truncate text-sm font-semibold text-slate-800">{room.name}</span>
+                            <span className="truncate text-sm font-semibold text-[#EEF2FF]">{room.name}</span>
                             {room.unread && (
-                              <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-label="Não lido" />
+                              <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" aria-label="Não lido" />
                             )}
                           </div>
-                          <div className="truncate text-[11px] text-slate-400">
+                          <div className="truncate text-[11px] text-[#94A3B8]">
                             {room.licensee_name ?? "—"}
                             {room.store_name ? ` · ${room.store_name}` : ""}
                           </div>
                           {room.last_msg && (
-                            <div className="truncate text-[10px] text-slate-400 mt-0.5">
+                            <div className="truncate text-[10px] text-[#94A3B8] mt-0.5">
                               {room.last_msg.sender_name}: {room.last_msg.message}
                             </div>
                           )}
                         </div>
                         {room.last_msg && (
-                          <span className="shrink-0 text-[10px] text-slate-400">{relTime(room.last_msg.created_at)}</span>
+                          <span className="shrink-0 text-[10px] text-[#94A3B8]">{relTime(room.last_msg.created_at)}</span>
                         )}
                       </button>
                     ))}
@@ -348,13 +354,14 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
                     return (
                       <div key={m.id} className={`flex gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                         <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                          isMe ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+                          isMe ? "bg-[#6366F1] text-white" : "bg-[rgba(255,255,255,0.1)] text-[#94A3B8]"
                         }`}>
                           {initials(m.sender_name)}
                         </div>
-                        <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
-                          isMe ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-700"
-                        }`}>
+                        <div
+                          className="max-w-[75%] rounded-xl px-3 py-2 text-sm text-[#EEF2FF]"
+                          style={{ background: isMe ? "#1e3a5f" : "rgba(255,255,255,0.07)" }}
+                        >
                           {!isMe && (
                             <div className="mb-0.5 text-[10px] font-semibold opacity-60">{m.sender_name}</div>
                           )}
@@ -367,20 +374,21 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 p-3">
+              <div className="flex shrink-0 items-center gap-2 border-t border-[rgba(255,255,255,0.08)] p-3">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !sending && sendMessage()}
                   placeholder="Mensagem..."
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-emerald-400"
+                  className="flex-1 rounded-lg px-3 py-2 text-sm text-[#EEF2FF] outline-none placeholder:text-[#94A3B8]"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={sending || !input.trim()}
                   aria-label="Enviar"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F59E0B] text-white hover:bg-[#D97706] disabled:opacity-50"
                 >
                   <Send size={14} />
                 </button>

@@ -89,6 +89,9 @@ export default function InicioPage() {
   const [atividade, setAtividade] = useState<Array<{ id: string; cliente: string; template: string; time: string }>>([]);
   const [alertas, setAlertas] = useState<{ expiring: number; inactiveTokens: number; overLimit: number }>({ expiring: 0, inactiveTokens: 0, overLimit: 0 });
 
+  const [sysConfig, setSysConfig] = useState({ chat_enabled: true, maintenance_active: false, tour_enabled: true });
+  const [sysLoading, setSysLoading] = useState<Record<string, boolean>>({});
+
   const load = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -182,6 +185,30 @@ export default function InicioPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const loadSysConfig = useCallback(async () => {
+    const { data } = await supabase
+      .from("system_config")
+      .select("key, value")
+      .in("key", ["chat_enabled", "maintenance_active", "tour_enabled"]);
+    if (data) {
+      const map = Object.fromEntries(
+        (data as { key: string; value: string }[]).map(r => [r.key, r.value === "true"]),
+      );
+      setSysConfig(prev => ({ ...prev, ...map }));
+    }
+  }, []);
+
+  const toggleSysConfig = useCallback(async (key: string, newValue: boolean) => {
+    setSysLoading(prev => ({ ...prev, [key]: true }));
+    await supabase
+      .from("system_config")
+      .upsert({ key, value: String(newValue) }, { onConflict: "key" });
+    setSysConfig(prev => ({ ...prev, [key]: newValue }));
+    setSysLoading(prev => ({ ...prev, [key]: false }));
+  }, []);
+
+  useEffect(() => { loadSysConfig(); }, [loadSysConfig]);
 
   const { weather, cityName } = useWeather();
 
@@ -329,6 +356,34 @@ export default function InicioPage() {
           <QuickAction href="/calculadora" icon={<Calculator size={18} />} label="Calculadora" subtitle="Precificação" />
         </div>
       </div>
+
+      {/* ═══ CONTROLES DO SISTEMA ═══ */}
+      <div>
+        <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--txt3)]">Controles do sistema</h2>
+        <div className="rounded-xl border border-[var(--bdr)] bg-[var(--bg1)]" style={{ paddingRight: "140px" }}>
+          <SystemToggle
+            label="Chat interno"
+            description="Habilita o chat entre equipe e clientes"
+            value={sysConfig.chat_enabled}
+            loading={!!sysLoading.chat_enabled}
+            onToggle={(v) => toggleSysConfig("chat_enabled", v)}
+          />
+          <SystemToggle
+            label="Manutenção"
+            description="Exibe aviso de manutenção para todos os usuários"
+            value={sysConfig.maintenance_active}
+            loading={!!sysLoading.maintenance_active}
+            onToggle={(v) => toggleSysConfig("maintenance_active", v)}
+          />
+          <SystemToggle
+            label="Tour de boas-vindas"
+            description="Exibe o onboarding para novos usuários"
+            value={sysConfig.tour_enabled}
+            loading={!!sysLoading.tour_enabled}
+            onToggle={(v) => toggleSysConfig("tour_enabled", v)}
+          />
+        </div>
+      </div>
     </>
   );
 }
@@ -410,5 +465,46 @@ function QuickAction({ href, icon, label, subtitle }: { href: string; icon: Reac
         <div className="text-[11px] text-[var(--txt3)]">{subtitle}</div>
       </div>
     </Link>
+  );
+}
+
+function SystemToggle({
+  label, description, value, loading, onToggle,
+}: {
+  label: string;
+  description?: string;
+  value: boolean;
+  loading: boolean;
+  onToggle: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-[var(--bdr)] px-4 py-3.5 last:border-b-0">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-[13px] font-medium text-[var(--txt)]">{label}</span>
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+            style={{
+              background: value ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)",
+              color: value ? "#34D399" : "#F87171",
+            }}
+          >
+            {value ? "ATIVO" : "INATIVO"}
+          </span>
+        </div>
+        {description && <div className="mt-0.5 text-[11px] text-[var(--txt3)]">{description}</div>}
+      </div>
+      <button
+        onClick={() => onToggle(!value)}
+        disabled={loading}
+        className="ml-4 shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50"
+        style={{
+          background: value ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)",
+          color: value ? "#F87171" : "#34D399",
+        }}
+      >
+        {loading ? "Salvando..." : value ? "Desativar" : "Ativar"}
+      </button>
+    </div>
   );
 }

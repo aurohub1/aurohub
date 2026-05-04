@@ -34,11 +34,8 @@ type RoomRow = {
   id: string;
   licensee_id: string;
   store_id: string | null;
-  type: string;
   name: string;
   created_at: string;
-  licensees: { name: string } | null;
-  stores: { name: string } | null;
 };
 
 interface Licensee { id: string; name: string | null }
@@ -74,6 +71,10 @@ export default function ChatPage() {
   const [sending, setSending]           = useState(false);
   const bottomRef                       = useRef<HTMLDivElement>(null);
 
+  // Chat enabled toggle
+  const [chatEnabled, setChatEnabled]   = useState<boolean>(true);
+  const [togglingChat, setTogglingChat] = useState(false);
+
   // Modal state
   const [modalOpen, setModalOpen]       = useState(false);
   const [newName, setNewName]           = useState("");
@@ -91,16 +92,41 @@ export default function ChatPage() {
   /* ── Profile ── */
   useEffect(() => { getProfile(supabase).then(p => setProfile(p)); }, []);
 
+  /* ── Chat enabled ── */
+  useEffect(() => {
+    fetch("/api/chat-status")
+      .then(r => r.json())
+      .then(d => setChatEnabled(d.enabled !== false));
+  }, []);
+
+  const toggleChat = useCallback(async () => {
+    setTogglingChat(true);
+    const next = !chatEnabled;
+    const res = await fetch("/api/chat-status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: next }),
+    });
+    if (res.ok) {
+      setChatEnabled(next);
+    } else {
+      const body = await res.json().catch(() => ({}));
+      console.error("[toggleChat]", body);
+      alert("Erro ao salvar: " + (body.error ?? res.status));
+    }
+    setTogglingChat(false);
+  }, [chatEnabled]);
+
   /* ── Load rooms ── */
   const loadRooms = useCallback(async (admId: string) => {
     setLoading(true);
 
-    const { data: rawRooms } = await supabase
+    const { data: rawRooms, error: roomsErr } = await supabase
       .from("chat_rooms")
-      .select("id, licensee_id, store_id, type, name, created_at, licensees(name), stores(name)")
+      .select("id, licensee_id, store_id, name, created_at")
       .order("created_at", { ascending: true });
 
-    if (!rawRooms || rawRooms.length === 0) {
+    if (roomsErr || !rawRooms || rawRooms.length === 0) {
       setRooms([]);
       setLoading(false);
       return;
@@ -109,25 +135,31 @@ export default function ChatPage() {
     const roomsData = rawRooms as unknown as RoomRow[];
     const roomIds   = roomsData.map(r => r.id);
 
-    const { data: msgs } = await supabase
-      .from("chat_messages")
-      .select("room_id, message, sender_name, created_at")
-      .in("room_id", roomIds)
-      .order("created_at", { ascending: false });
+    // Busca nomes de licensees e stores distintos em paralelo
+    const licenseeIds = [...new Set(roomsData.map(r => r.licensee_id))];
+    const storeIds    = [...new Set(roomsData.map(r => r.store_id).filter((id): id is string => !!id))];
+
+    const [msgsRes, receiptsRes, licenseesRes, storesRes] = await Promise.all([
+      supabase.from("chat_messages").select("room_id, message, sender_name, created_at").in("room_id", roomIds).order("created_at", { ascending: false }),
+      supabase.from("chat_read_receipts").select("room_id, last_read_at").eq("user_id", admId).eq("is_adm", true),
+      supabase.from("licensees").select("id, name").in("id", licenseeIds),
+      storeIds.length > 0 ? supabase.from("stores").select("id, name").in("id", storeIds) : Promise.resolve({ data: [] }),
+    ]);
 
     const lastMsgMap = new Map<string, { message: string; sender_name: string; created_at: string }>();
-    for (const m of (msgs ?? []) as { room_id: string; message: string; sender_name: string; created_at: string }[]) {
+    for (const m of (msgsRes.data ?? []) as { room_id: string; message: string; sender_name: string; created_at: string }[]) {
       if (!lastMsgMap.has(m.room_id)) lastMsgMap.set(m.room_id, m);
     }
 
-    const { data: receipts } = await supabase
-      .from("chat_read_receipts")
-      .select("room_id, last_read_at")
-      .eq("user_id", admId)
-      .eq("is_adm", true);
-
     const receiptMap = new Map(
-      ((receipts ?? []) as { room_id: string; last_read_at: string }[]).map(r => [r.room_id, r.last_read_at]),
+      ((receiptsRes.data ?? []) as { room_id: string; last_read_at: string }[]).map(r => [r.room_id, r.last_read_at]),
+    );
+
+    const licenseeNameMap = new Map(
+      ((licenseesRes.data ?? []) as { id: string; name: string }[]).map(l => [l.id, l.name]),
+    );
+    const storeNameMap = new Map(
+      ((storesRes.data ?? []) as { id: string; name: string }[]).map(s => [s.id, s.name]),
     );
 
     const enriched: Room[] = roomsData.map(r => {
@@ -138,11 +170,11 @@ export default function ChatPage() {
         id: r.id,
         licensee_id: r.licensee_id,
         store_id: r.store_id ?? null,
-        type: r.type as "loja" | "franquia",
+        type: r.store_id ? "loja" : "franquia",
         name: r.name,
         created_at: r.created_at,
-        licensee_name: r.licensees?.name ?? null,
-        store_name: r.stores?.name ?? null,
+        licensee_name: licenseeNameMap.get(r.licensee_id) ?? null,
+        store_name: r.store_id ? (storeNameMap.get(r.store_id) ?? null) : null,
         last_msg: lastMsg,
         unread,
       };
@@ -283,36 +315,53 @@ export default function ChatPage() {
   /* ── Render ── */
   return (
     <>
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+      <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] pb-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Chat Interno</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <h2 className="text-2xl font-bold text-[#EEF2FF]">Chat Interno</h2>
+          <p className="mt-0.5 text-sm text-[#94A3B8]">
             {rooms.length} {rooms.length === 1 ? "sala" : "salas"} ·{" "}
             {rooms.filter(r => r.unread).length} não {rooms.filter(r => r.unread).length === 1 ? "lida" : "lidas"}
           </p>
         </div>
-        <button
-          onClick={openModal}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600"
-        >
-          <Plus size={14} /> Nova sala
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleChat}
+            disabled={togglingChat}
+            title={chatEnabled ? "Chat ativo — clique para desativar" : "Chat desativado — clique para ativar"}
+            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-60 ${
+              chatEnabled
+                ? "border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.1)] text-emerald-400 hover:bg-[rgba(16,185,129,0.15)]"
+                : "border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:bg-[rgba(255,255,255,0.08)]"
+            }`}
+          >
+            <div className={`relative h-4 w-7 rounded-full transition-colors ${chatEnabled ? "bg-emerald-500" : "bg-[rgba(255,255,255,0.15)]"}`}>
+              <div className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform ${chatEnabled ? "translate-x-3.5" : "translate-x-0.5"}`} />
+            </div>
+            Chat ativo
+          </button>
+          <button
+            onClick={openModal}
+            className="flex items-center gap-1.5 rounded-lg bg-[#F59E0B] px-3 py-2 text-xs font-semibold text-white hover:bg-[#D97706]"
+          >
+            <Plus size={14} /> Nova sala
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-1 min-h-0 gap-0 overflow-hidden rounded-xl border border-slate-200 -mx-6 mt-0">
+      <div className="flex flex-1 min-h-0 gap-0 overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)] -mx-6 mt-0">
 
         {/* ── Col esquerda: lista de salas ──────────── */}
-        <div className="flex w-80 shrink-0 flex-col border-r border-slate-200 bg-white">
+        <div className="flex w-80 shrink-0 flex-col border-r border-[rgba(255,255,255,0.08)]" style={{ background: "#111827" }}>
           {/* Busca */}
-          <div className="border-b border-slate-100 px-3 py-2">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
-              <Search size={13} className="shrink-0 text-slate-400" />
+          <div className="border-b border-[rgba(255,255,255,0.05)] px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" }}>
+              <Search size={13} className="shrink-0 text-[#94A3B8]" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar sala..."
-                className="flex-1 bg-transparent text-[13px] text-slate-700 outline-none placeholder:text-slate-400"
+                className="flex-1 bg-transparent text-[13px] text-[#EEF2FF] outline-none placeholder:text-[#94A3B8]"
               />
             </div>
           </div>
@@ -321,17 +370,17 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex h-32 items-center justify-center">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.1)] border-t-emerald-400" />
               </div>
             ) : filteredRooms.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-12">
-                <MessageCircle size={24} className="text-slate-300" />
-                <span className="text-sm text-slate-400">
+                <MessageCircle size={24} className="text-[rgba(255,255,255,0.2)]" />
+                <span className="text-sm text-[#94A3B8]">
                   {search ? "Nenhuma sala encontrada" : "Nenhuma sala criada"}
                 </span>
               </div>
             ) : (
-              <div className="flex flex-col divide-y divide-slate-100">
+              <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.05)]">
                 {filteredRooms.map(room => {
                   const isActive = activeRoomId === room.id;
                   return (
@@ -339,36 +388,36 @@ export default function ChatPage() {
                       key={room.id}
                       onClick={() => setActiveRoomId(room.id)}
                       className={`flex items-start gap-2.5 px-3 py-3 text-left transition-colors ${
-                        isActive ? "bg-emerald-50" : "hover:bg-slate-50"
+                        isActive ? "bg-[rgba(99,102,241,0.1)]" : "hover:bg-[rgba(255,255,255,0.04)]"
                       }`}
                     >
                       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                        isActive ? "bg-emerald-500 text-white" : "bg-emerald-100 text-emerald-700"
+                        isActive ? "bg-[#6366F1] text-white" : "bg-[rgba(99,102,241,0.2)] text-[#EEF2FF]"
                       }`}>
                         {initials(room.name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className={`truncate text-[13px] font-semibold ${isActive ? "text-emerald-700" : "text-slate-800"}`}>
+                          <span className="truncate text-[13px] font-semibold text-[#EEF2FF]">
                             {room.name}
                           </span>
                           {room.unread && (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-label="Não lida" />
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" aria-label="Não lida" />
                           )}
                         </div>
-                        <div className="truncate text-[11px] text-slate-400">
+                        <div className="truncate text-[11px] text-[#94A3B8]">
                           {room.licensee_name ?? "—"}
                           {room.store_name ? ` · ${room.store_name}` : ""}
                         </div>
                         {room.last_msg && (
-                          <div className="mt-0.5 truncate text-[11px] text-slate-400">
+                          <div className="mt-0.5 truncate text-[11px] text-[#94A3B8]">
                             <span className="font-medium">{room.last_msg.sender_name}:</span>{" "}
                             {room.last_msg.message}
                           </div>
                         )}
                       </div>
                       {room.last_msg && (
-                        <span className="shrink-0 text-[10px] text-slate-400 pt-0.5">
+                        <span className="shrink-0 text-[10px] text-[#94A3B8] pt-0.5">
                           {relTime(room.last_msg.created_at)}
                         </span>
                       )}
@@ -381,30 +430,31 @@ export default function ChatPage() {
         </div>
 
         {/* ── Col direita: conversa ─────────────────── */}
-        <div className="flex flex-1 flex-col bg-white min-w-0">
+        <div className="flex flex-1 flex-col min-w-0" style={{ background: "#0c0c12" }}>
           {!activeRoom ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-400">
-              <MessageCircle size={36} className="text-slate-200" />
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-[#94A3B8]">
+              <MessageCircle size={36} className="text-[rgba(255,255,255,0.15)]" />
               <span className="text-sm">Selecione uma sala para conversar</span>
             </div>
           ) : (
             <>
               {/* Header da conversa */}
-              <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-3">
+              <div className="flex shrink-0 items-center justify-between border-b border-[rgba(255,255,255,0.08)] px-5 py-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-slate-800">{activeRoom.name}</div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-sm font-semibold text-[#EEF2FF]">{activeRoom.name}</div>
+                  <div className="text-[11px] text-[#94A3B8]">
                     {activeRoom.licensee_name ?? "—"}
                     {activeRoom.store_name ? ` · ${activeRoom.store_name}` : ""}
                     {" · "}
-                    <span className={`font-medium ${activeRoom.type === "loja" ? "text-blue-600" : "text-purple-600"}`}>
+                    <span className={`font-medium ${activeRoom.type === "loja" ? "text-blue-400" : "text-purple-400"}`}>
                       {activeRoom.type === "loja" ? "Loja" : "Franquia"}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={archiveRoom}
-                  className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-[#94A3B8] transition-colors hover:bg-[rgba(239,68,68,0.1)] hover:text-red-400"
+                  style={{ border: "1px solid rgba(255,255,255,0.08)" }}
                 >
                   <Archive size={13} /> Arquivar
                 </button>
@@ -413,8 +463,8 @@ export default function ChatPage() {
               {/* Mensagens */}
               <div className="flex-1 overflow-y-auto px-5 py-4">
                 {messages.length === 0 && (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
-                    <MessageCircle size={24} className="text-slate-200" />
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-[#94A3B8]">
+                    <MessageCircle size={24} className="text-[rgba(255,255,255,0.15)]" />
                     <span className="text-sm">Nenhuma mensagem ainda</span>
                   </div>
                 )}
@@ -424,20 +474,23 @@ export default function ChatPage() {
                     return (
                       <div key={m.id} className={`flex gap-2.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                          isMe ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+                          isMe ? "bg-[#6366F1] text-white" : "bg-[rgba(255,255,255,0.1)] text-[#94A3B8]"
                         }`}>
                           {isMe ? <User size={14} /> : initials(m.sender_name)}
                         </div>
-                        <div className="flex max-w-[65%] flex-col gap-0.5">
+                        <div
+                          className="flex max-w-[65%] flex-col gap-0.5"
+                        >
                           {!isMe && (
-                            <span className="pl-1 text-[11px] font-medium text-slate-500">{m.sender_name}</span>
+                            <span className="pl-1 text-[11px] font-medium text-[#94A3B8]">{m.sender_name}</span>
                           )}
-                          <div className={`rounded-2xl px-4 py-2.5 text-sm ${
-                            isMe ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-700"
-                          }`}>
+                          <div
+                            className="rounded-2xl px-4 py-2.5 text-sm text-[#EEF2FF]"
+                            style={{ background: isMe ? "#1e3a5f" : "rgba(255,255,255,0.07)" }}
+                          >
                             <div className="whitespace-pre-wrap break-words">{m.message}</div>
                           </div>
-                          <span className={`text-[10px] text-slate-400 ${isMe ? "text-right pr-1" : "pl-1"}`}>
+                          <span className={`text-[10px] text-[#94A3B8] ${isMe ? "text-right pr-1" : "pl-1"}`}>
                             {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                           </span>
                         </div>
@@ -449,20 +502,21 @@ export default function ChatPage() {
               </div>
 
               {/* Input */}
-              <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 px-4 py-3">
+              <div className="flex shrink-0 items-center gap-2 border-t border-[rgba(255,255,255,0.08)] px-4 py-3">
                 <input
                   type="text"
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !sending && sendMessage()}
                   placeholder="Mensagem..."
-                  className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400"
+                  className="flex-1 rounded-xl px-4 py-2.5 text-sm text-[#EEF2FF] outline-none placeholder:text-[#94A3B8]"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={sending || !reply.trim()}
                   aria-label="Enviar"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F59E0B] text-white hover:bg-[#D97706] disabled:opacity-50"
                 >
                   <Send size={16} />
                 </button>
@@ -476,12 +530,15 @@ export default function ChatPage() {
       {modalOpen && (
         <>
           <div className="fixed inset-0 z-[9990] bg-black/50" onClick={() => setModalOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 z-[9991] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl">
+          <div
+            className="fixed left-1/2 top-1/2 z-[9991] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl p-6 shadow-2xl"
+            style={{ background: "#111827" }}
+          >
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-800">Nova sala de chat</h3>
+              <h3 className="text-base font-bold text-[#EEF2FF]">Nova sala de chat</h3>
               <button
                 onClick={() => setModalOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[rgba(255,255,255,0.05)]"
               >
                 <X size={16} />
               </button>
@@ -490,23 +547,25 @@ export default function ChatPage() {
             <div className="flex flex-col gap-4">
               {/* Nome */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Nome da sala</label>
+                <label className="mb-1.5 block text-xs font-semibold text-[#94A3B8]">Nome da sala</label>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Ex: Suporte Loja Centro"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-emerald-400"
+                  className="w-full rounded-lg px-3 py-2 text-sm text-[#EEF2FF] outline-none placeholder:text-[#94A3B8]"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
                 />
               </div>
 
               {/* Licensee */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Cliente (licensee)</label>
+                <label className="mb-1.5 block text-xs font-semibold text-[#94A3B8]">Cliente (licensee)</label>
                 <select
                   value={newLicenseeId}
                   onChange={(e) => { setNewLicenseeId(e.target.value); setNewStoreId(""); }}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-emerald-400"
+                  className="w-full rounded-lg px-3 py-2 text-sm text-[#EEF2FF] outline-none"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
                 >
                   <option value="">Selecionar cliente...</option>
                   {licensees.map(l => (
@@ -517,14 +576,15 @@ export default function ChatPage() {
 
               {/* Store (opcional) */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-                  Loja / Unidade <span className="font-normal text-slate-400">(opcional — deixar vazio para sala da franquia)</span>
+                <label className="mb-1.5 block text-xs font-semibold text-[#94A3B8]">
+                  Loja / Unidade <span className="font-normal text-[#94A3B8] opacity-60">(opcional — deixar vazio para sala da franquia)</span>
                 </label>
                 <select
                   value={newStoreId}
                   onChange={(e) => setNewStoreId(e.target.value)}
                   disabled={!newLicenseeId}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-emerald-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg px-3 py-2 text-sm text-[#EEF2FF] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
                 >
                   <option value="">Sala da franquia (todas as lojas)</option>
                   {filteredStores.map(s => (
@@ -537,14 +597,15 @@ export default function ChatPage() {
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setModalOpen(false)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-[#94A3B8] hover:bg-[rgba(255,255,255,0.05)]"
+                style={{ border: "1px solid rgba(255,255,255,0.08)" }}
               >
                 Cancelar
               </button>
               <button
                 onClick={createRoom}
                 disabled={creating || !newName.trim() || !newLicenseeId}
-                className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+                className="rounded-lg bg-[#F59E0B] px-4 py-2 text-sm font-semibold text-white hover:bg-[#D97706] disabled:opacity-50"
               >
                 {creating ? "Criando..." : "Criar sala"}
               </button>

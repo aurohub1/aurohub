@@ -210,25 +210,25 @@ export default function ConsultorChatPage() {
 
   return (
     <div
-      className="-mx-6 -my-5 flex flex-1 overflow-hidden border-t border-slate-200 bg-white"
-      style={{ height: "calc(100dvh - 90px)" }}
+      className="-mx-6 -my-5 flex flex-1 overflow-hidden border-t border-[rgba(255,255,255,0.08)]"
+      style={{ height: "calc(100dvh - 90px)", background: "#0c0c12" }}
     >
       {/* ── Left: room list ── */}
-      <div className="flex w-72 shrink-0 flex-col border-r border-slate-200">
-        <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 px-4 py-3.5">
-          <MessageCircle size={15} className="shrink-0 text-blue-500" />
-          <h1 className="text-sm font-semibold text-slate-800">Chat com a equipe Aurovista</h1>
+      <div className="flex w-72 shrink-0 flex-col border-r border-[rgba(255,255,255,0.08)]">
+        <div className="flex shrink-0 items-center gap-2 border-b border-[rgba(255,255,255,0.08)] px-4 py-3.5">
+          <MessageCircle size={15} className="shrink-0 text-[#94A3B8]" />
+          <h1 className="text-sm font-semibold text-[#EEF2FF]">Chat com a equipe Aurovista</h1>
         </div>
 
         {loading ? (
           <div className="flex flex-1 items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.1)] border-t-[#F59E0B]" />
           </div>
         ) : rooms.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
-            <MessageCircle size={28} className="text-slate-300" />
-            <p className="text-sm text-slate-400">Nenhuma sala configurada</p>
-            <p className="text-xs text-slate-400">Entre em contato com o suporte</p>
+            <MessageCircle size={28} className="text-[rgba(255,255,255,0.2)]" />
+            <p className="text-sm text-[#94A3B8]">Nenhuma sala configurada</p>
+            <p className="text-xs text-[#94A3B8]">Entre em contato com o suporte</p>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto px-2 py-2">
@@ -238,28 +238,28 @@ export default function ConsultorChatPage() {
                 onClick={() => setActiveRoomId(room.id)}
                 className={`mb-1 flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors ${
                   activeRoomId === room.id
-                    ? "border border-blue-200 bg-blue-50"
-                    : "border border-transparent hover:bg-slate-50"
+                    ? "border border-[rgba(99,102,241,0.3)] bg-[rgba(99,102,241,0.1)]"
+                    : "border border-transparent hover:bg-[rgba(255,255,255,0.04)]"
                 }`}
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(99,102,241,0.2)] text-sm font-bold text-[#EEF2FF]">
                   {initials(room.name)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-semibold text-slate-800">{room.name}</span>
+                    <span className="truncate text-sm font-semibold text-[#EEF2FF]">{room.name}</span>
                     {room.unread && (
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" aria-label="Não lido" />
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-[#F59E0B]" aria-label="Não lido" />
                     )}
                   </div>
                   {room.last_msg && (
-                    <div className="mt-0.5 truncate text-[11px] text-slate-400">
+                    <div className="mt-0.5 truncate text-[11px] text-[#94A3B8]">
                       {room.last_msg.sender_name}: {room.last_msg.message}
                     </div>
                   )}
                 </div>
                 {room.last_msg && (
-                  <span className="shrink-0 text-[10px] text-slate-400">{relTime(room.last_msg.created_at)}</span>
+                  <span className="shrink-0 text-[10px] text-[#94A3B8]">{relTime(room.last_msg.created_at)}</span>
                 )}
               </button>
             ))}
@@ -270,16 +270,16 @@ export default function ConsultorChatPage() {
       {/* ── Right: conversation ── */}
       {!activeRoomId ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2">
-          <MessageCircle size={36} className="text-slate-200" />
-          <p className="text-sm text-slate-400">Selecione uma sala para conversar</p>
+          <MessageCircle size={36} className="text-[rgba(255,255,255,0.15)]" />
+          <p className="text-sm text-[#94A3B8]">Selecione uma sala para conversar</p>
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex shrink-0 items-center gap-2.5 border-b border-slate-200 px-4 py-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+          <div className="flex shrink-0 items-center gap-2.5 border-b border-[rgba(255,255,255,0.08)] px-4 py-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(99,102,241,0.2)] text-sm font-bold text-[#EEF2FF]">
               {initials(activeRoom?.name ?? null)}
             </div>
-            <span className="text-sm font-semibold text-slate-800">{activeRoom?.name ?? "Chat"}</span>
+            <span className="text-sm font-semibold text-[#EEF2FF]">{activeRoom?.name ?? "Chat"}</span>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -289,18 +289,19 @@ export default function ConsultorChatPage() {
                 return (
                   <div key={m.id} className={`flex gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                     <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                      isMe ? "bg-blue-500 text-white" : "bg-slate-200 text-slate-600"
+                      isMe ? "bg-[#6366F1] text-white" : "bg-[rgba(255,255,255,0.1)] text-[#94A3B8]"
                     }`}>
                       {initials(displayName(m))}
                     </div>
-                    <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
-                      isMe ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-700"
-                    }`}>
+                    <div
+                      className="max-w-[75%] rounded-xl px-3 py-2 text-sm text-[#EEF2FF]"
+                      style={{ background: isMe ? "#1e3a5f" : "rgba(255,255,255,0.07)" }}
+                    >
                       {!isMe && (
                         <div className="mb-0.5 text-[10px] font-semibold opacity-60">{displayName(m)}</div>
                       )}
                       <div className="whitespace-pre-wrap break-words">{m.message}</div>
-                      <div className={`mt-0.5 text-[9px] ${isMe ? "text-right text-blue-100" : "text-slate-400"}`}>
+                      <div className={`mt-0.5 text-[9px] text-[#94A3B8] ${isMe ? "text-right" : ""}`}>
                         {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
@@ -312,22 +313,23 @@ export default function ConsultorChatPage() {
           </div>
 
           {filterError && (
-            <p className="shrink-0 px-4 pb-1 text-[11px] text-red-500">{filterError}</p>
+            <p className="shrink-0 px-4 pb-1 text-[11px] text-red-400">{filterError}</p>
           )}
-          <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 p-3">
+          <div className="flex shrink-0 items-center gap-2 border-t border-[rgba(255,255,255,0.08)] p-3">
             <input
               type="text"
               value={input}
               onChange={(e) => { setInput(e.target.value); if (filterError) setFilterError(null); }}
               onKeyDown={(e) => e.key === "Enter" && !sending && sendMessage()}
               placeholder="Mensagem..."
-              className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+              className="flex-1 rounded-lg px-3 py-2 text-sm text-[#EEF2FF] outline-none placeholder:text-[#94A3B8]"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
             />
             <button
               onClick={sendMessage}
               disabled={sending || !input.trim()}
               aria-label="Enviar"
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F59E0B] text-white hover:bg-[#D97706] disabled:opacity-50"
             >
               <Send size={14} />
             </button>
