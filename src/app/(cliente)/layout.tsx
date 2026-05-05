@@ -36,6 +36,11 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   }, []);
 
   useEffect(() => {
+    document.body.classList.add("client-bg");
+    return () => { document.body.classList.remove("client-bg"); };
+  }, []);
+
+  useEffect(() => {
     fetch("/api/noticias?segment=turismo")
       .then(r => r.json())
       .then((items: { title: string; url?: string }[]) => {

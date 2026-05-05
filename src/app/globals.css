@@ -8,6 +8,7 @@
 /* ── Dark (default) ──────────────────────────────── */
 :root,
 [data-theme="dark"] {
+  --bg-client: linear-gradient(160deg, #03091a 0%, #060e28 40%, #081535 100%);
   --brand-primary: #1E3A6E;
   --brand-secondary: #3B82F6;
   --brand-gradient: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
@@ -57,6 +58,7 @@
 
 /* ── Light ───────────────────────────────────────── */
 [data-theme="light"] {
+  --bg-client: linear-gradient(160deg, #ddeeff 0%, #e8f4ff 40%, #f5faff 100%);
   --brand-primary: #1E3A6E;
   --brand-secondary: #3B82F6;
   --brand-gradient: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
@@ -118,6 +120,10 @@ body {
   background: var(--bg);
   color: var(--txt);
   height: 100%;
+}
+
+body.client-bg {
+  background: var(--bg-client);
 }
 
 ::-webkit-scrollbar {
