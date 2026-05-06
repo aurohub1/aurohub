@@ -428,14 +428,20 @@ export default function PublicarPageBase({
   }
 
   async function fetchImgFundo(destino: string) {
+    console.log("[fetchImgFundo] destino recebido:", destino);
     const rows = await loadDestinoData();
     const t = normalizar(destino);
     const m = rows.filter((r) => normalizar(r.nome) === t);
-    if (!m.length) return null;
-    return proximaImagem(
+    if (!m.length) {
+      console.log("[fetchImgFundo] nenhuma linha encontrada para:", t);
+      return null;
+    }
+    const result = proximaImagem(
       "dest_" + slugify(destino),
       m.map((r) => r.url)
     );
+    console.log("[fetchImgFundo] resultado:", result);
+    return result;
   }
 
   async function fetchImgHotel(hotel: string) {
@@ -532,10 +538,7 @@ export default function PublicarPageBase({
     const hCap = capitalizeBR(h);
     if (hCap !== values.hotel) setField("hotel", hCap);
     const hUrl = await fetchImgHotel(h);
-    if (hUrl) {
-      setField("imgfundo", hUrl);
-      return;
-    }
+    if (hUrl) setField("imghotel", hUrl);
     const dUrl = await fetchImgFundo(values.destino?.trim() || "");
     if (dUrl) setField("imgfundo", dUrl);
   }
@@ -576,24 +579,39 @@ export default function PublicarPageBase({
     }
   }, [userPerms, visibleTipos, tab]);
 
-  // Sorteia imgfundo quando destino muda — apenas para pacote.
+  // Carrega imgfundo sempre que destino muda ou ao montar com valor já preenchido.
   // Usa cache por destino para não re-sortear em re-renders ou blurs repetidos.
   useEffect(() => {
-    if (tab !== "pacote") return;
+    const activeTab = tab; // captura o tab no início do efeito — evita closure stale na promise
     const destino = (values.destino ?? "").trim();
+    console.log("[useEffect destino] values.destino:", values.destino, "tab:", activeTab);
     if (!destino) return;
     const key = slugify(destino);
     if (resolvedDestinoImgRef.current[key]) {
-      setFormCache(c => ({ ...c, pacote: { ...c.pacote, imgfundo: resolvedDestinoImgRef.current[key] } }));
+      console.log("[useEffect destino] cache hit → setFormCache(imgfundo):", resolvedDestinoImgRef.current[key]);
+      setFormCache(c => ({ ...c, [activeTab]: { ...c[activeTab], imgfundo: resolvedDestinoImgRef.current[key] } }));
       return;
     }
     fetchImgFundo(destino).then(url => {
       if (!url) return;
       resolvedDestinoImgRef.current[key] = url;
-      setFormCache(c => ({ ...c, pacote: { ...c.pacote, imgfundo: url } }));
+      console.log("[useEffect destino] setFormCache(imgfundo) tab=" + activeTab + ":", url);
+      setFormCache(c => ({ ...c, [activeTab]: { ...c[activeTab], imgfundo: url } }));
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.destino, tab]);
+
+  // Carrega imghotel sempre que hotel muda ou ao montar com valor já preenchido.
+  useEffect(() => {
+    const activeTab = tab;
+    const hotel = (values.hotel ?? "").trim();
+    if (!hotel) return;
+    fetchImgHotel(hotel).then(url => {
+      if (!url) return;
+      setFormCache(c => ({ ...c, [activeTab]: { ...c[activeTab], imghotel: url } }));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.hotel, tab]);
 
   const previewValues = useMemo(() => {
     const m: Record<string, string> = { ...(values ?? {}) };

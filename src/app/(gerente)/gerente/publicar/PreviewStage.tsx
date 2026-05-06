@@ -356,8 +356,8 @@ function resolveImage(
   badgeUrls: Record<string, string>,
   feriadoUrls: Record<string, string>,
 ): string | undefined {
-  if (!el.bindParam) return el.src;
-  const bp = el.bindParam;
+  const bp = el.bindParam || (el as any).imageBind;
+  if (!bp) return el.src;
 
   if (bp.endsWith("_badge")) {
     if (el.src && /^https?:\/\//i.test(el.src)) return el.src;
@@ -373,6 +373,9 @@ function resolveImage(
   if (el.src) return el.src;
 
   const val = values[bp];
+  if (bp === "imgfundo" || bp === "imghotel") {
+    console.log(`[PreviewStage resolveImage] bp=${bp} values[bp]=${val} → retornando:`, val || "undefined");
+  }
   if (val) return val;
   return undefined;
 }
@@ -639,8 +642,11 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
   }
 
   if (el.type === "imageBind") {
-    const bp = el.bindParam;
+    const bp = el.bindParam || (el as any).imageBind;
     if (!bp) return null;
+    if (bp === "imgfundo" || bp === "imghotel") {
+      console.log(`[PreviewStage imageBind] bp=${bp} values[bp]=${values[bp]} el.src=${el.src}`);
+    }
     if (!bp.endsWith("_badge")) {
       if (!values[bp] && !el.src) return null;
       if (!values[bp] && el.hideIfEmpty) return null;
@@ -701,6 +707,9 @@ interface Props {
 }
 
 export default function PreviewStage({ schema, width, height, values, maxDisplay = 420, onReady }: Props) {
+  console.log('[PreviewStage] schema elements:', schema?.elements?.map(e => ({ type: e.type, bindParam: e.bindParam, imageBind: (e as any).imageBind, src: (e as any).src })));
+  console.log('[PreviewStage] values.imgfundo:', values?.imgfundo);
+
   const stageRef = useRef<Konva.Stage | null>(null);
 
   const scale = useMemo(() => {
