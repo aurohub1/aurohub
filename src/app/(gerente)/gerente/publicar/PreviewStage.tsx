@@ -350,6 +350,16 @@ const DYNAMIC_BADGES = new Set([
   "ofertas_azul_badge",
 ]);
 
+// Chaves de bind cujo valor é fornecido dinamicamente via values (não são URLs reais).
+const IMG_BIND_KEYS = new Set(["imgfundo", "imghotel"]);
+
+/** Se src é literalmente uma chave de bind (ex: "imgfundo"), resolve pelo values. */
+function resolveElSrc(src: string | undefined, values: Record<string, string>): string | undefined {
+  if (!src) return undefined;
+  if (IMG_BIND_KEYS.has(src)) return values[src] || undefined;
+  return src;
+}
+
 function resolveImage(
   el: EditorElement,
   values: Record<string, string>,
@@ -357,7 +367,7 @@ function resolveImage(
   feriadoUrls: Record<string, string>,
 ): string | undefined {
   const bp = el.bindParam || (el as any).imageBind;
-  if (!bp) return el.src;
+  if (!bp) return resolveElSrc(el.src, values);
 
   if (bp.endsWith("_badge")) {
     if (el.src && /^https?:\/\//i.test(el.src)) return el.src;
@@ -369,8 +379,8 @@ function resolveImage(
     return undefined;
   }
 
-  // IMAGE com src já definida: bind controla só visibilidade, nunca substitui src.
-  if (el.src) return el.src;
+  // IMAGE com src já definida e não é uma chave de bind: bind controla só visibilidade.
+  if (el.src && !IMG_BIND_KEYS.has(el.src)) return el.src;
 
   const val = values[bp];
   if (bp === "imgfundo" || bp === "imghotel") {
@@ -651,7 +661,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
       if (!values[bp] && !el.src) return null;
       if (!values[bp] && el.hideIfEmpty) return null;
     }
-    return <RenderImage el={{ ...el, type: "image", src: el.src || values[bp] }} values={values} />;
+    return <RenderImage el={{ ...el, type: "image", src: resolveElSrc(el.src, values) || values[bp] }} values={values} />;
   }
 
   return null;
