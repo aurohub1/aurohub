@@ -232,12 +232,17 @@ create policy ig_credentials_delete on instagram_credentials for delete
 -- 8. SYSTEM_CONFIG
 -- ────────────────────────────────────────────────────────────────
 -- ADM: tudo
+-- Anon/público: leem apenas keys "landing_*" (config da landing page)
 -- Outros roles: leem apenas keys "tmpl_*" cujo value contém
 -- o licenseeId do chamador.
 -- Match por substring evita parsing de JSON inválido.
 -- ════════════════════════════════════════════════════════════════
 
 alter table system_config enable row level security;
+
+drop policy if exists system_config_public_landing on system_config;
+create policy system_config_public_landing on system_config for select
+  using (key like 'landing_%');
 
 drop policy if exists system_config_select on system_config;
 create policy system_config_select on system_config for select
