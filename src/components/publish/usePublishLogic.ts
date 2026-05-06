@@ -31,10 +31,19 @@ export function usePublishLogic(
   const stageRef = useRef<Konva.Stage | null>(null);
   const publishQueue = usePublishQueue();
 
-  function getPNGDataURL(): string | null {
+  async function getPNGDataURL(): Promise<string | null> {
     if (!enabled) return null;
     const stage = stageRef.current;
     if (!stage) return null;
+    try {
+      await Promise.all([
+        document.fonts.load('400 1em "Helvetica Neue"'),
+        document.fonts.load('700 1em "Helvetica Neue"'),
+        document.fonts.load('800 1em "Helvetica Neue"'),
+        document.fonts.load('900 1em "Helvetica Neue"'),
+      ]);
+      await document.fonts.ready;
+    } catch { /* continua mesmo sem a fonte */ }
     const scale = stage.scaleX() || 1;
     return stage.toDataURL({
       pixelRatio: 1 / scale,
@@ -108,7 +117,7 @@ export function usePublishLogic(
     setStatus("generating");
     setStatusMsg("Gerando imagem...");
 
-    const dataUrl = getPNGDataURL();
+    const dataUrl = await getPNGDataURL();
     if (!dataUrl) {
       setStatus("error");
       setStatusMsg("Falha ao gerar imagem");
@@ -174,7 +183,7 @@ export function usePublishLogic(
 
       setStatus("generating");
       setStatusMsg("Gerando imagem...");
-      const dataUrl = getPNGDataURL();
+      const dataUrl = await getPNGDataURL();
       if (!dataUrl) throw new Error("Falha ao gerar imagem");
 
       const hasAnimation = (currentTemplate?.schema?.elements ?? []).some(
@@ -327,7 +336,7 @@ export function usePublishLogic(
       } else {
         setStatus("generating");
         setStatusMsg("Gerando imagem...");
-        const dataUrl = getPNGDataURL();
+        const dataUrl = await getPNGDataURL();
         if (!dataUrl) throw new Error("Falha ao gerar imagem");
         mediaDataUrl = dataUrl;
       }

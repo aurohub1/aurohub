@@ -803,6 +803,7 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
 /**
  * Exporta o canvas em tamanho real (não escalado).
  */
-export function exportStagePNG(stage: Konva.Stage): string {
+export async function exportStagePNG(stage: Konva.Stage): Promise<string> {
+  try { await Promise.all(['700','900'].map(w => document.fonts.load(`${w} 1em "Helvetica Neue"`))); await document.fonts.ready; } catch { /* noop */ }
   return stage.toDataURL({ pixelRatio: 1 / (stage.scaleX() || 1), mimeType: "image/png" });
 }
