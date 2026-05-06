@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import {
-  Send, MessageCircle, Plus, Search, Archive, X, User,
+  Send, MessageCircle, Plus, Search, Archive, X, User, MoreHorizontal,
 } from "lucide-react";
 
 /* ── Types ─────────────────────────────────────────── */
@@ -83,6 +83,7 @@ export default function ChatPage() {
   const [licensees, setLicensees]       = useState<Licensee[]>([]);
   const [stores, setStores]             = useState<Store[]>([]);
   const [creating, setCreating]         = useState(false);
+  const [menuRoomId, setMenuRoomId]     = useState<string | null>(null);
 
   /* ── Scroll automático ── */
   useEffect(() => {
@@ -274,6 +275,26 @@ export default function ChatPage() {
     setActiveRoomId(null);
   }, [activeRoomId, rooms]);
 
+  /* ── Zerar mensagens de uma sala ── */
+  const clearMessages = useCallback(async (roomId: string) => {
+    setMenuRoomId(null);
+    const room = rooms.find(r => r.id === roomId);
+    if (!window.confirm(`Zerar todas as mensagens da sala "${room?.name ?? ""}"?`)) return;
+    await supabase.from("chat_messages").delete().eq("room_id", roomId);
+    if (activeRoomId === roomId) setMessages([]);
+    setRooms(prev => prev.map(r => r.id === roomId ? { ...r, last_msg: null, unread: false } : r));
+  }, [rooms, activeRoomId]);
+
+  /* ── Deletar sala ── */
+  const deleteRoom = useCallback(async (roomId: string) => {
+    setMenuRoomId(null);
+    const room = rooms.find(r => r.id === roomId);
+    if (!window.confirm(`Deletar a sala "${room?.name ?? ""}"? Esta ação não pode ser desfeita.`)) return;
+    await supabase.from("chat_rooms").delete().eq("id", roomId);
+    setRooms(prev => prev.filter(r => r.id !== roomId));
+    if (activeRoomId === roomId) { setActiveRoomId(null); setMessages([]); }
+  }, [rooms, activeRoomId]);
+
   /* ── Open modal: fetch licensees + stores ── */
   const openModal = useCallback(async () => {
     setNewName(""); setNewLicenseeId(""); setNewStoreId("");
@@ -384,44 +405,75 @@ export default function ChatPage() {
                 {filteredRooms.map(room => {
                   const isActive = activeRoomId === room.id;
                   return (
-                    <button
-                      key={room.id}
-                      onClick={() => setActiveRoomId(room.id)}
-                      className={`flex items-start gap-2.5 px-3 py-3 text-left transition-colors ${
-                        isActive ? "bg-[rgba(99,102,241,0.1)]" : "hover:bg-[var(--hover-bg)]"
-                      }`}
-                    >
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                        isActive ? "bg-[#6366F1] text-white" : "bg-[rgba(99,102,241,0.2)] text-[var(--txt)]"
-                      }`}>
-                        {initials(room.name)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate text-[13px] font-semibold text-[var(--txt)]">
-                            {room.name}
-                          </span>
-                          {room.unread && (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" aria-label="Não lida" />
+                    <div key={room.id} className="group relative">
+                      <button
+                        onClick={() => setActiveRoomId(room.id)}
+                        className={`flex w-full items-start gap-2.5 px-3 py-3 text-left transition-colors ${
+                          isActive ? "bg-[rgba(99,102,241,0.1)]" : "hover:bg-[var(--hover-bg)]"
+                        }`}
+                      >
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                          isActive ? "bg-[#6366F1] text-white" : "bg-[rgba(99,102,241,0.2)] text-[var(--txt)]"
+                        }`}>
+                          {initials(room.name)}
+                        </div>
+                        <div className="flex-1 min-w-0 pr-5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate text-[13px] font-semibold text-[var(--txt)]">
+                              {room.name}
+                            </span>
+                            {room.unread && (
+                              <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" aria-label="Não lida" />
+                            )}
+                          </div>
+                          <div className="truncate text-[11px] text-[var(--txt2)]">
+                            {room.licensee_name ?? "—"}
+                            {room.store_name ? ` · ${room.store_name}` : ""}
+                          </div>
+                          {room.last_msg && (
+                            <div className="mt-0.5 truncate text-[11px] text-[var(--txt2)]">
+                              <span className="font-medium">{room.last_msg.sender_name}:</span>{" "}
+                              {room.last_msg.message}
+                            </div>
                           )}
                         </div>
-                        <div className="truncate text-[11px] text-[var(--txt2)]">
-                          {room.licensee_name ?? "—"}
-                          {room.store_name ? ` · ${room.store_name}` : ""}
-                        </div>
                         {room.last_msg && (
-                          <div className="mt-0.5 truncate text-[11px] text-[var(--txt2)]">
-                            <span className="font-medium">{room.last_msg.sender_name}:</span>{" "}
-                            {room.last_msg.message}
-                          </div>
+                          <span className="shrink-0 text-[10px] text-[var(--txt2)] pt-0.5">
+                            {relTime(room.last_msg.created_at)}
+                          </span>
                         )}
-                      </div>
-                      {room.last_msg && (
-                        <span className="shrink-0 text-[10px] text-[var(--txt2)] pt-0.5">
-                          {relTime(room.last_msg.created_at)}
-                        </span>
+                      </button>
+
+                      {/* ⋯ botão de opções — aparece no hover */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setMenuRoomId(menuRoomId === room.id ? null : room.id); }}
+                        className="absolute right-2 top-2.5 flex h-6 w-6 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)] transition-opacity"
+                        aria-label="Opções da sala"
+                      >
+                        <MoreHorizontal size={14} />
+                      </button>
+
+                      {/* Dropdown de opções */}
+                      {menuRoomId === room.id && (
+                        <div
+                          className="absolute right-2 top-9 z-50 min-w-[168px] rounded-lg border border-[var(--bdr)] py-1 shadow-lg"
+                          style={{ background: "var(--card-bg)" }}
+                        >
+                          <button
+                            onClick={() => clearMessages(room.id)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[var(--txt)] hover:bg-[var(--hover-bg)]"
+                          >
+                            Zerar mensagens
+                          </button>
+                          <button
+                            onClick={() => deleteRoom(room.id)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-red-500 hover:bg-[rgba(239,68,68,0.08)]"
+                          >
+                            Deletar sala
+                          </button>
+                        </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -525,6 +577,11 @@ export default function ChatPage() {
           )}
         </div>
       </div>
+
+      {/* Backdrop para fechar menu de opções ao clicar fora */}
+      {menuRoomId && (
+        <div className="fixed inset-0 z-40" onClick={() => setMenuRoomId(null)} />
+      )}
 
       {/* ── Modal: Nova Sala ─────────────────────────── */}
       {modalOpen && (
