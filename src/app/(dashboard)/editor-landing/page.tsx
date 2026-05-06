@@ -270,6 +270,29 @@ export default function EditorLandingPage() {
                     />
                   </div>
                 </div>
+                <div className="border-t border-[var(--bdr)] pt-4">
+                  <Note>Favicon exibido na aba do browser. Recomendado: PNG quadrado 32x32 ou 64x64.</Note>
+                  <div className="mt-3">
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Favicon atual</label>
+                    <div className="flex items-center gap-4">
+                      {get("landing_favicon_url") ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={get("landing_favicon_url")} alt="Favicon" className="h-8 w-8 rounded object-contain border border-[var(--bdr)]" />
+                      ) : (
+                        <div className="h-8 w-8 rounded bg-[var(--bg3)] flex items-center justify-center text-[var(--txt3)] text-[10px]">ico</div>
+                      )}
+                      <div className="flex flex-col gap-1.5">
+                        <button onClick={() => handleUpload("landing_favicon_url")} disabled={uploading}
+                          className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
+                          {uploading ? "Enviando..." : "Upload favicon (PNG 64x64)"}
+                        </button>
+                        <input type="text" value={get("landing_favicon_url")} onChange={(e) => set("landing_favicon_url", e.target.value)}
+                          placeholder="ou cole URL do favicon"
+                          className="h-7 rounded border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
