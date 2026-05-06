@@ -36,7 +36,7 @@
 
   --txt: #EEF2FF;
   --txt2: #8A9BBF;
-  --txt3: #4A5878;
+  --txt3: #7890B8;
 
   --bdr: rgba(255, 255, 255, 0.055);
   --bdr2: rgba(255, 255, 255, 0.10);
@@ -81,6 +81,10 @@
   --navy: #1E3A6E;          /* brand deep blue — active text */
   --blue: #3B82F6;
   --gold: #D4A843;
+  --gold3: rgba(212, 168, 67, 0.22);
+  --green3: rgba(34, 197, 94, 0.18);
+  --red3: rgba(239, 68, 68, 0.18);
+  --blue3: rgba(59, 130, 246, 0.18);
 
   --card-bg: #FFFFFF;
   --sidebar-bg: #FFFFFF;

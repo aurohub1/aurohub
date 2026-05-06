@@ -156,8 +156,8 @@ export default function ManutencaoAdmPage() {
   }
 
   const cardStyle: React.CSSProperties = {
-    background: "#111827",
-    border: "1px solid rgba(255,255,255,0.07)",
+    background: "var(--card-bg)",
+    border: "1px solid var(--bdr)",
     borderRadius: 12,
     padding: "24px 28px",
   };
@@ -166,14 +166,14 @@ export default function ManutencaoAdmPage() {
     fontWeight: 700,
     letterSpacing: ".1em",
     textTransform: "uppercase",
-    color: "rgba(200,210,255,0.5)",
+    color: "var(--txt3)",
     marginBottom: 10,
   };
   const inputStyle: React.CSSProperties = {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.1)",
+    background: "var(--input-bg)",
+    border: "1px solid var(--bdr)",
     borderRadius: 8,
-    color: "#EEF2FF",
+    color: "var(--txt)",
     fontSize: 13,
     padding: "10px 14px",
     outline: "none",
@@ -181,7 +181,7 @@ export default function ManutencaoAdmPage() {
     fontFamily: "inherit",
   };
   const btnPrimary: React.CSSProperties = {
-    background: "#D4A843",
+    background: "var(--gold)",
     color: "#000",
     border: "none",
     borderRadius: 8,
@@ -192,9 +192,9 @@ export default function ManutencaoAdmPage() {
     opacity: saving ? 0.6 : 1,
   };
   const btnGhost: React.CSSProperties = {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    color: "#EEF2FF",
+    background: "var(--input-bg)",
+    border: "1px solid var(--bdr)",
+    color: "var(--txt)",
     borderRadius: 8,
     padding: "9px 20px",
     fontSize: 12,
@@ -206,8 +206,8 @@ export default function ManutencaoAdmPage() {
   return (
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: "#EEF2FF", margin: 0 }}>Manutenção do Sistema</h1>
-        <p style={{ fontSize: 12, color: "rgba(200,210,255,0.5)", marginTop: 4 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--txt)", margin: 0 }}>Manutenção do Sistema</h1>
+        <p style={{ fontSize: 12, color: "var(--txt3)", marginTop: 4 }}>
           Controla o acesso de usuários ao Aurohub durante atualizações.
         </p>
       </div>
@@ -307,8 +307,8 @@ export default function ManutencaoAdmPage() {
         {/* Mini preview */}
         <div style={{
           marginTop: 14,
-          background: "#060D1A",
-          border: "1px solid rgba(255,255,255,0.07)",
+          background: "var(--bg)",
+          border: "1px solid var(--bdr)",
           borderRadius: 8,
           padding: "16px",
           display: "flex",
@@ -316,9 +316,9 @@ export default function ManutencaoAdmPage() {
           alignItems: "center",
           gap: 8,
         }}>
-          <span style={{ fontSize: 9, color: "rgba(200,210,255,0.3)", letterSpacing: ".1em", textTransform: "uppercase" }}>preview da tela de manutenção</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#EEF2FF" }}>Sistema em Manutenção</span>
-          <span style={{ fontSize: 11, color: "rgba(200,215,255,0.6)", textAlign: "center", maxWidth: 320, lineHeight: 1.5 }}>{cfg.message || "(sem mensagem)"}</span>
+          <span style={{ fontSize: 9, color: "var(--txt3)", letterSpacing: ".1em", textTransform: "uppercase" }}>preview da tela de manutenção</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>Sistema em Manutenção</span>
+          <span style={{ fontSize: 11, color: "var(--txt2)", textAlign: "center", maxWidth: 320, lineHeight: 1.5 }}>{cfg.message || "(sem mensagem)"}</span>
         </div>
 
         <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
@@ -332,7 +332,7 @@ export default function ManutencaoAdmPage() {
       {/* 4. AVISO ANTECIPADO */}
       <div style={{ ...cardStyle, marginBottom: 16 }}>
         <p style={labelStyle}>Aviso antecipado (banner)</p>
-        <p style={{ fontSize: 12, color: "rgba(200,210,255,0.5)", marginBottom: 14 }}>
+        <p style={{ fontSize: 12, color: "var(--txt3)", marginBottom: 14 }}>
           Mostrar banner de aviso X horas antes do início agendado.
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
