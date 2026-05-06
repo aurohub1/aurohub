@@ -125,7 +125,7 @@ export default function LoginPage() {
         if (!profile) { setError("Perfil não encontrado. Contate o suporte."); return; }
         const role = profile.role as string;
         const home = homeForRole(role);
-        const name = profile.nome || profile.email || "Bem-vindo";
+        const name = profile.name || profile.email || "Bem-vindo";
         let splashConfig: Record<string, string | number | boolean | undefined> | null = null;
 
         if (role === "adm") {
