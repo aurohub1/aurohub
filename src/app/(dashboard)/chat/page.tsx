@@ -315,10 +315,10 @@ export default function ChatPage() {
   /* ── Render ── */
   return (
     <>
-      <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] pb-4">
+      <div className="flex items-center justify-between border-b border-[var(--bdr)] pb-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#EEF2FF]">Chat Interno</h2>
-          <p className="mt-0.5 text-sm text-[#94A3B8]">
+          <h2 className="text-2xl font-bold text-[var(--txt)]">Chat Interno</h2>
+          <p className="mt-0.5 text-sm text-[var(--txt2)]">
             {rooms.length} {rooms.length === 1 ? "sala" : "salas"} ·{" "}
             {rooms.filter(r => r.unread).length} não {rooms.filter(r => r.unread).length === 1 ? "lida" : "lidas"}
           </p>
@@ -331,10 +331,10 @@ export default function ChatPage() {
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-60 ${
               chatEnabled
                 ? "border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.1)] text-emerald-400 hover:bg-[rgba(16,185,129,0.15)]"
-                : "border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:bg-[rgba(255,255,255,0.08)]"
+                : "border-[var(--bdr)] bg-[var(--input-bg)] text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
             }`}
           >
-            <div className={`relative h-4 w-7 rounded-full transition-colors ${chatEnabled ? "bg-emerald-500" : "bg-[rgba(255,255,255,0.15)]"}`}>
+            <div className={`relative h-4 w-7 rounded-full transition-colors ${chatEnabled ? "bg-emerald-500" : "bg-[var(--bg3)]"}`}>
               <div className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform ${chatEnabled ? "translate-x-3.5" : "translate-x-0.5"}`} />
             </div>
             Chat ativo
@@ -348,20 +348,20 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className="flex flex-1 min-h-0 gap-0 overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)] -mx-6 mt-0">
+      <div className="flex flex-1 min-h-0 gap-0 overflow-hidden rounded-xl border border-[var(--bdr)] -mx-6 mt-0">
 
         {/* ── Col esquerda: lista de salas ──────────── */}
-        <div className="flex w-80 shrink-0 flex-col border-r border-[rgba(255,255,255,0.08)]" style={{ background: "#111827" }}>
+        <div className="flex w-80 shrink-0 flex-col border-r border-[var(--bdr)]" style={{ background: "var(--bg1)" }}>
           {/* Busca */}
-          <div className="border-b border-[rgba(255,255,255,0.05)] px-3 py-2">
-            <div className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" }}>
-              <Search size={13} className="shrink-0 text-[#94A3B8]" />
+          <div className="border-b border-[var(--bdr)] px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ border: "1px solid var(--bdr)", background: "var(--input-bg)" }}>
+              <Search size={13} className="shrink-0 text-[var(--txt2)]" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar sala..."
-                className="flex-1 bg-transparent text-[13px] text-[#EEF2FF] outline-none placeholder:text-[#94A3B8]"
+                className="flex-1 bg-transparent text-[13px] text-[var(--txt)] outline-none placeholder:text-[var(--txt3)]"
               />
             </div>
           </div>
@@ -370,17 +370,17 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex h-32 items-center justify-center">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.1)] border-t-emerald-400" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--bdr)] border-t-emerald-400" />
               </div>
             ) : filteredRooms.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-12">
-                <MessageCircle size={24} className="text-[rgba(255,255,255,0.2)]" />
-                <span className="text-sm text-[#94A3B8]">
+                <MessageCircle size={24} className="text-[var(--txt3)]" />
+                <span className="text-sm text-[var(--txt2)]">
                   {search ? "Nenhuma sala encontrada" : "Nenhuma sala criada"}
                 </span>
               </div>
             ) : (
-              <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.05)]">
+              <div className="flex flex-col divide-y divide-[var(--bdr)]">
                 {filteredRooms.map(room => {
                   const isActive = activeRoomId === room.id;
                   return (
@@ -388,36 +388,36 @@ export default function ChatPage() {
                       key={room.id}
                       onClick={() => setActiveRoomId(room.id)}
                       className={`flex items-start gap-2.5 px-3 py-3 text-left transition-colors ${
-                        isActive ? "bg-[rgba(99,102,241,0.1)]" : "hover:bg-[rgba(255,255,255,0.04)]"
+                        isActive ? "bg-[rgba(99,102,241,0.1)]" : "hover:bg-[var(--hover-bg)]"
                       }`}
                     >
                       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                        isActive ? "bg-[#6366F1] text-white" : "bg-[rgba(99,102,241,0.2)] text-[#EEF2FF]"
+                        isActive ? "bg-[#6366F1] text-white" : "bg-[rgba(99,102,241,0.2)] text-[var(--txt)]"
                       }`}>
                         {initials(room.name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="truncate text-[13px] font-semibold text-[#EEF2FF]">
+                          <span className="truncate text-[13px] font-semibold text-[var(--txt)]">
                             {room.name}
                           </span>
                           {room.unread && (
                             <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" aria-label="Não lida" />
                           )}
                         </div>
-                        <div className="truncate text-[11px] text-[#94A3B8]">
+                        <div className="truncate text-[11px] text-[var(--txt2)]">
                           {room.licensee_name ?? "—"}
                           {room.store_name ? ` · ${room.store_name}` : ""}
                         </div>
                         {room.last_msg && (
-                          <div className="mt-0.5 truncate text-[11px] text-[#94A3B8]">
+                          <div className="mt-0.5 truncate text-[11px] text-[var(--txt2)]">
                             <span className="font-medium">{room.last_msg.sender_name}:</span>{" "}
                             {room.last_msg.message}
                           </div>
                         )}
                       </div>
                       {room.last_msg && (
-                        <span className="shrink-0 text-[10px] text-[#94A3B8] pt-0.5">
+                        <span className="shrink-0 text-[10px] text-[var(--txt2)] pt-0.5">
                           {relTime(room.last_msg.created_at)}
                         </span>
                       )}
@@ -430,19 +430,19 @@ export default function ChatPage() {
         </div>
 
         {/* ── Col direita: conversa ─────────────────── */}
-        <div className="flex flex-1 flex-col min-w-0" style={{ background: "#0c0c12" }}>
+        <div className="flex flex-1 flex-col min-w-0" style={{ background: "var(--bg)" }}>
           {!activeRoom ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-[#94A3B8]">
-              <MessageCircle size={36} className="text-[rgba(255,255,255,0.15)]" />
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-[var(--txt2)]">
+              <MessageCircle size={36} className="text-[var(--txt3)]" />
               <span className="text-sm">Selecione uma sala para conversar</span>
             </div>
           ) : (
             <>
               {/* Header da conversa */}
-              <div className="flex shrink-0 items-center justify-between border-b border-[rgba(255,255,255,0.08)] px-5 py-3">
+              <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-5 py-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-[#EEF2FF]">{activeRoom.name}</div>
-                  <div className="text-[11px] text-[#94A3B8]">
+                  <div className="text-sm font-semibold text-[var(--txt)]">{activeRoom.name}</div>
+                  <div className="text-[11px] text-[var(--txt2)]">
                     {activeRoom.licensee_name ?? "—"}
                     {activeRoom.store_name ? ` · ${activeRoom.store_name}` : ""}
                     {" · "}
@@ -453,8 +453,8 @@ export default function ChatPage() {
                 </div>
                 <button
                   onClick={archiveRoom}
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-[#94A3B8] transition-colors hover:bg-[rgba(239,68,68,0.1)] hover:text-red-400"
-                  style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--txt2)] transition-colors hover:bg-[rgba(239,68,68,0.1)] hover:text-red-400"
+                  style={{ border: "1px solid var(--bdr)" }}
                 >
                   <Archive size={13} /> Arquivar
                 </button>
@@ -463,8 +463,8 @@ export default function ChatPage() {
               {/* Mensagens */}
               <div className="flex-1 overflow-y-auto px-5 py-4">
                 {messages.length === 0 && (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 text-[#94A3B8]">
-                    <MessageCircle size={24} className="text-[rgba(255,255,255,0.15)]" />
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-[var(--txt2)]">
+                    <MessageCircle size={24} className="text-[var(--txt3)]" />
                     <span className="text-sm">Nenhuma mensagem ainda</span>
                   </div>
                 )}
@@ -474,7 +474,7 @@ export default function ChatPage() {
                     return (
                       <div key={m.id} className={`flex gap-2.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                          isMe ? "bg-[#6366F1] text-white" : "bg-[rgba(255,255,255,0.1)] text-[#94A3B8]"
+                          isMe ? "bg-[#6366F1] text-white" : "bg-[var(--bg3)] text-[var(--txt2)]"
                         }`}>
                           {isMe ? <User size={14} /> : initials(m.sender_name)}
                         </div>
@@ -482,15 +482,15 @@ export default function ChatPage() {
                           className="flex max-w-[65%] flex-col gap-0.5"
                         >
                           {!isMe && (
-                            <span className="pl-1 text-[11px] font-medium text-[#94A3B8]">{m.sender_name}</span>
+                            <span className="pl-1 text-[11px] font-medium text-[var(--txt2)]">{m.sender_name}</span>
                           )}
                           <div
-                            className="rounded-2xl px-4 py-2.5 text-sm text-[#EEF2FF]"
-                            style={{ background: isMe ? "#1e3a5f" : "rgba(255,255,255,0.07)" }}
+                            className="rounded-2xl px-4 py-2.5 text-sm text-[var(--txt)]"
+                            style={{ background: isMe ? "#1e3a5f" : "var(--bg3)" }}
                           >
                             <div className="whitespace-pre-wrap break-words">{m.message}</div>
                           </div>
-                          <span className={`text-[10px] text-[#94A3B8] ${isMe ? "text-right pr-1" : "pl-1"}`}>
+                          <span className={`text-[10px] text-[var(--txt2)] ${isMe ? "text-right pr-1" : "pl-1"}`}>
                             {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                           </span>
                         </div>
@@ -502,15 +502,15 @@ export default function ChatPage() {
               </div>
 
               {/* Input */}
-              <div className="flex shrink-0 items-center gap-2 border-t border-[rgba(255,255,255,0.08)] px-4 py-3">
+              <div className="flex shrink-0 items-center gap-2 border-t border-[var(--bdr)] px-4 py-3">
                 <input
                   type="text"
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !sending && sendMessage()}
                   placeholder="Mensagem..."
-                  className="flex-1 rounded-xl px-4 py-2.5 text-sm text-[#EEF2FF] outline-none placeholder:text-[#94A3B8]"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                  className="flex-1 rounded-xl px-4 py-2.5 text-sm text-[var(--txt)] outline-none placeholder:text-[var(--txt3)]"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--bdr2)" }}
                 />
                 <button
                   onClick={sendMessage}
@@ -532,13 +532,13 @@ export default function ChatPage() {
           <div className="fixed inset-0 z-[9990] bg-black/50" onClick={() => setModalOpen(false)} />
           <div
             className="fixed left-1/2 top-1/2 z-[9991] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl p-6 shadow-2xl"
-            style={{ background: "#111827" }}
+            style={{ background: "var(--card-bg)" }}
           >
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-base font-bold text-[#EEF2FF]">Nova sala de chat</h3>
+              <h3 className="text-base font-bold text-[var(--txt)]">Nova sala de chat</h3>
               <button
                 onClick={() => setModalOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[rgba(255,255,255,0.05)]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
               >
                 <X size={16} />
               </button>
@@ -547,25 +547,25 @@ export default function ChatPage() {
             <div className="flex flex-col gap-4">
               {/* Nome */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#94A3B8]">Nome da sala</label>
+                <label className="mb-1.5 block text-xs font-semibold text-[var(--txt2)]">Nome da sala</label>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Ex: Suporte Loja Centro"
-                  className="w-full rounded-lg px-3 py-2 text-sm text-[#EEF2FF] outline-none placeholder:text-[#94A3B8]"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                  className="w-full rounded-lg px-3 py-2 text-sm text-[var(--txt)] outline-none placeholder:text-[var(--txt3)]"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--bdr2)" }}
                 />
               </div>
 
               {/* Licensee */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#94A3B8]">Cliente (licensee)</label>
+                <label className="mb-1.5 block text-xs font-semibold text-[var(--txt2)]">Cliente (licensee)</label>
                 <select
                   value={newLicenseeId}
                   onChange={(e) => { setNewLicenseeId(e.target.value); setNewStoreId(""); }}
-                  className="w-full rounded-lg px-3 py-2 text-sm text-[#EEF2FF] outline-none"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                  className="w-full rounded-lg px-3 py-2 text-sm text-[var(--txt)] outline-none"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--bdr2)" }}
                 >
                   <option value="">Selecionar cliente...</option>
                   {licensees.map(l => (
@@ -576,15 +576,15 @@ export default function ChatPage() {
 
               {/* Store (opcional) */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#94A3B8]">
-                  Loja / Unidade <span className="font-normal text-[#94A3B8] opacity-60">(opcional — deixar vazio para sala da franquia)</span>
+                <label className="mb-1.5 block text-xs font-semibold text-[var(--txt2)]">
+                  Loja / Unidade <span className="font-normal text-[var(--txt2)] opacity-60">(opcional — deixar vazio para sala da franquia)</span>
                 </label>
                 <select
                   value={newStoreId}
                   onChange={(e) => setNewStoreId(e.target.value)}
                   disabled={!newLicenseeId}
-                  className="w-full rounded-lg px-3 py-2 text-sm text-[#EEF2FF] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                  className="w-full rounded-lg px-3 py-2 text-sm text-[var(--txt)] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--bdr2)" }}
                 >
                   <option value="">Sala da franquia (todas as lojas)</option>
                   {filteredStores.map(s => (
@@ -597,8 +597,8 @@ export default function ChatPage() {
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setModalOpen(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-[#94A3B8] hover:bg-[rgba(255,255,255,0.05)]"
-                style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-[var(--txt2)] hover:bg-[var(--hover-bg)]"
+                style={{ border: "1px solid var(--bdr)" }}
               >
                 Cancelar
               </button>
