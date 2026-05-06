@@ -156,8 +156,12 @@ export default function EditorLandingPage() {
     setSavingAudio(true);
     try {
       const url = config["landing_intro_audio"] ?? "";
+      const vol = config["landing_intro_audio_volume"] ?? "0.4";
       await supabase.from("system_config").upsert(
-        { key: "landing_intro_audio", value: url, updated_at: new Date().toISOString() },
+        [
+          { key: "landing_intro_audio", value: url, updated_at: new Date().toISOString() },
+          { key: "landing_intro_audio_volume", value: vol, updated_at: new Date().toISOString() },
+        ],
         { onConflict: "key" }
       );
       setSaved(true);
@@ -387,6 +391,25 @@ export default function EditorLandingPage() {
                     {audioToast.type === "ok" ? "✓ " : "✗ "}{audioToast.msg}
                   </div>
                 )}
+
+                {/* Volume da intro */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[12px] font-medium text-[var(--txt2)]">Volume da intro</label>
+                    <span className="text-[12px] text-[var(--txt3)]">
+                      {Math.round(Number(get("landing_intro_audio_volume", "0.4")) * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round(Number(get("landing_intro_audio_volume", "0.4")) * 100)}
+                    onChange={(e) => set("landing_intro_audio_volume", String(Number(e.target.value) / 100))}
+                    className="w-full accent-[var(--txt)]"
+                  />
+                </div>
 
                 {/* Ações */}
                 <div className="flex items-center gap-3">
