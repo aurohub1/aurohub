@@ -236,7 +236,7 @@ export default function LoginPage() {
         position: "fixed", top: 16, right: 16, zIndex: 100,
         width: 44, height: 24, borderRadius: 100, border: `.5px solid ${dk ? "rgba(255,255,255,0.1)" : "rgba(29,29,31,0.12)"}`,
         background: dk ? "rgba(255,255,255,0.06)" : "rgba(29,29,31,0.06)",
-        cursor: "pointer", padding: 0, position: "fixed",
+        cursor: "pointer", padding: 0,
       } as React.CSSProperties}>
         <div style={{
           position: "absolute", top: 2, left: 2, width: 20, height: 20, borderRadius: "50%",
