@@ -240,7 +240,7 @@ export default function InicioPage() {
   if (loading) return <div className="flex flex-1 items-center justify-center text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
-    <div className="flex flex-col gap-5 pb-14">
+    <div className="flex flex-col gap-5">
       {/* ═══ Header minimalista ═══ */}
       <div className="flex items-end justify-between gap-4 border-b border-[var(--bdr)] pb-5">
         <div className="min-w-0">
