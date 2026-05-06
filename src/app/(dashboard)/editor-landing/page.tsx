@@ -39,6 +39,7 @@ export default function EditorLandingPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [savingAudio, setSavingAudio] = useState(false);
+  const [audioToast, setAudioToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
   /* ── Load ───────────────────────────────────────── */
   const loadData = useCallback(async () => {
@@ -131,17 +132,22 @@ export default function EditorLandingPage() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       setUploadingAudio(true);
+      setAudioToast(null);
       try {
-        const url = await uploadToCloudinary(file, "aurohubv2/landing");
+        const url = await uploadToCloudinary(file, "aurohubv2/landing", "video");
         set("landing_intro_audio", url);
-        await supabase.from("system_config").upsert(
+        const { error: dbErr } = await supabase.from("system_config").upsert(
           { key: "landing_intro_audio", value: url, updated_at: new Date().toISOString() },
           { onConflict: "key" }
         );
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-      } catch (err) { console.error("[AudioUpload]", err); }
-      finally { setUploadingAudio(false); }
+        if (dbErr) throw new Error(dbErr.message);
+        setAudioToast({ type: "ok", msg: `Áudio salvo: ${url}` });
+        setTimeout(() => setAudioToast(null), 6000);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Erro desconhecido no upload";
+        console.error("[AudioUpload]", err);
+        setAudioToast({ type: "err", msg });
+      } finally { setUploadingAudio(false); }
     };
     input.click();
   }
@@ -374,6 +380,13 @@ export default function EditorLandingPage() {
                     />
                   </div>
                 </div>
+
+                {/* Toast upload */}
+                {audioToast && (
+                  <div className={`rounded-lg px-4 py-2.5 text-[12px] break-all ${audioToast.type === "ok" ? "bg-[var(--green3,#D1FAE5)] text-[var(--green,#16A34A)]" : "bg-[rgba(239,68,68,0.08)] text-[#EF4444]"}`}>
+                    {audioToast.type === "ok" ? "✓ " : "✗ "}{audioToast.msg}
+                  </div>
+                )}
 
                 {/* Ações */}
                 <div className="flex items-center gap-3">
