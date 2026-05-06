@@ -421,25 +421,6 @@ export default function ManutencaoAdmPage() {
           </div>
         </div>
 
-        {/* Volume */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ ...labelStyle, marginBottom: 6 }}>Volume</label>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <input
-              type="range" min={0} max={1} step={0.05}
-              value={cfg.musicVolume}
-              onChange={e => {
-                const v = +e.target.value;
-                setCfg(c => ({ ...c, musicVolume: v }));
-                if (previewAudioRef.current) previewAudioRef.current.volume = v;
-              }}
-              style={{ flex: 1, accentColor: "#D4A843" }}
-            />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#D4A843", minWidth: 36, textAlign: "right" }}>
-              {Math.round(cfg.musicVolume * 100)}%
-            </span>
-          </div>
-        </div>
 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={saveMusic} disabled={saving} style={btnPrimary}>Salvar música</button>

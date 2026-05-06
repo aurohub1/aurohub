@@ -298,32 +298,6 @@ export default function ManutencaoPage() {
           </div>
         </div>
 
-        {/* Botão mute — aparece só quando música está habilitada */}
-        {status?.musicEnabled && status.musicUrl && (
-          <button
-            onClick={toggleMute}
-            title={muted ? "Ativar som" : "Silenciar"}
-            style={{
-              position: "fixed",
-              bottom: 20,
-              left: 20,
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "50%",
-              width: 36,
-              height: 36,
-              cursor: "pointer",
-              fontSize: 16,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#EEF2FF",
-              transition: "background .2s",
-            }}
-          >
-            {muted ? "🔇" : "🔊"}
-          </button>
-        )}
       </div>
   );
 }
