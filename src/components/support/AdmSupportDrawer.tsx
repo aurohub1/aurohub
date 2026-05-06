@@ -193,11 +193,12 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
       role="dialog"
       aria-label="Suporte ADM"
       style={{ display: isOpen ? "flex" : "none", width: 360, height: minimized ? 48 : 560 }}
-      className="fixed bottom-4 right-[50px] z-[9999] flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+      className="fixed bottom-4 right-[50px] z-[9999] flex-col rounded-2xl shadow-2xl overflow-hidden"
+      style={{ background: "var(--bg1)" }}
     >
       {/* ── Header ── */}
       <div
-        className={`flex shrink-0 items-center gap-2 border-b border-slate-200 px-3 ${minimized ? "h-12 cursor-pointer" : "py-2.5"}`}
+        className={`flex shrink-0 items-center gap-2 border-b border-[var(--bdr)] px-3 ${minimized ? "h-12 cursor-pointer" : "py-2.5"}`}
         onClick={minimized ? onRestore : undefined}
       >
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100">
@@ -205,7 +206,7 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
         </div>
 
         <div className="flex-1 min-w-0 flex items-center gap-1.5">
-          <span className="text-sm font-semibold text-slate-800 truncate">
+          <span className="text-sm font-semibold text-[var(--txt)] truncate">
             {activeId && !minimized ? (active?.user_name || "(sem nome)") : "Suporte"}
           </span>
           {!activeId && !minimized && tickets.length > 0 && (
@@ -224,7 +225,7 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
           <button
             onClick={(e) => { e.stopPropagation(); setActiveId(null); }}
             aria-label="Voltar"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
           >
             <ArrowLeft size={14} />
           </button>
@@ -232,14 +233,14 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
         <button
           onClick={(e) => { e.stopPropagation(); minimized ? onRestore() : onMinimize(); }}
           aria-label={minimized ? "Expandir" : "Minimizar"}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
         >
           {minimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onClose(); }}
           aria-label="Fechar"
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
         >
           <X size={14} />
         </button>
@@ -252,12 +253,12 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
             <div className="flex flex-1 flex-col overflow-hidden">
               {loading ? (
                 <div className="flex flex-1 items-center justify-center">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--bdr)] border-t-amber-500" />
                 </div>
               ) : tickets.length === 0 ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-2">
-                  <MessageCircle size={28} className="text-slate-300" />
-                  <span className="text-sm text-slate-400">Nenhum ticket aberto</span>
+                  <MessageCircle size={28} className="text-[var(--txt3)]" />
+                  <span className="text-sm text-[var(--txt2)]">Nenhum ticket aberto</span>
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto px-3 py-2">
@@ -268,14 +269,14 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
                         <button
                           key={t.id}
                           onClick={() => setActiveId(t.id)}
-                          className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5 text-left transition-colors hover:bg-slate-50"
+                          className="flex items-center gap-2.5 rounded-xl border border-[var(--bdr)] bg-[var(--bg2)] p-2.5 text-left transition-colors hover:bg-[var(--hover-bg)]"
                         >
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
                             {initials(t.user_name)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="truncate text-sm font-semibold text-slate-800">
+                              <span className="truncate text-sm font-semibold text-[var(--txt)]">
                                 {t.user_name || "(sem nome)"}
                               </span>
                               {t.unread_adm && (
@@ -286,12 +287,12 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
                               <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${meta.cls}`}>
                                 {meta.label}
                               </span>
-                              <span className="truncate text-[11px] text-slate-400">
+                              <span className="truncate text-[11px] text-[var(--txt2)]">
                                 {t.licensee_name || "—"}
                               </span>
                             </div>
                           </div>
-                          <span className="shrink-0 text-[10px] text-slate-400">{relTime(t.updated_at)}</span>
+                          <span className="shrink-0 text-[10px] text-[var(--txt2)]">{relTime(t.updated_at)}</span>
                         </button>
                       );
                     })}
@@ -313,13 +314,13 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
                       <div key={m.id} className={`flex gap-2 ${isHuman ? "flex-row-reverse" : "flex-row"}`}>
                         <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
                           isHuman ? "bg-amber-100 text-amber-700"
-                          : isBot  ? "bg-slate-100 text-slate-500"
+                          : isBot  ? "bg-[var(--bg3)] text-[var(--txt2)]"
                           : "bg-blue-600 text-white"
                         }`}>
                           {isHuman ? <Headphones size={13} /> : isBot ? <Bot size={13} /> : <User size={13} />}
                         </div>
                         <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
-                          isHuman ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-700"
+                          isHuman ? "bg-amber-100 text-amber-900" : "bg-[var(--bg3)] text-[var(--txt)]"
                         }`}>
                           <div className="whitespace-pre-wrap break-words">{m.message}</div>
                         </div>
@@ -332,7 +333,7 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
 
               {active?.status !== "resolved" && (
                 <>
-                  <div className="shrink-0 border-t border-slate-100 px-3 py-1.5">
+                  <div className="shrink-0 border-t border-[var(--bdr)] px-3 py-1.5">
                     <button
                       onClick={resolve}
                       className="flex w-full items-center justify-center gap-1 rounded-lg bg-green-100 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200"
@@ -340,14 +341,15 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
                       <Check size={12} /> Resolver ticket
                     </button>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 p-3">
+                  <div className="flex shrink-0 items-center gap-2 border-t border-[var(--bdr)] p-3">
                     <input
                       type="text"
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && !sending && sendReply()}
                       placeholder="Responder..."
-                      className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+                      className="flex-1 rounded-lg border border-[var(--bdr)] px-3 py-2 text-sm text-[var(--txt)] outline-none focus:border-blue-400"
+                      style={{ background: "var(--input-bg)" }}
                     />
                     <button
                       onClick={sendReply}

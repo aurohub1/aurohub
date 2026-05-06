@@ -269,10 +269,10 @@ export default function ManutencaoAdmPage() {
               type="datetime-local"
               value={toLocalInput(cfg.scheduledStart)}
               onChange={e => setCfg(c => ({ ...c, scheduledStart: fromLocalInput(e.target.value) }))}
-              style={{ ...inputStyle, colorScheme: "dark" }}
+              style={{ ...inputStyle }}
             />
             {cfg.scheduledStart && (
-              <p style={{ fontSize: 10, color: "#D4A843", marginTop: 4 }}>{timeUntil(cfg.scheduledStart)}</p>
+              <p style={{ fontSize: 10, color: "var(--gold)", marginTop: 4 }}>{timeUntil(cfg.scheduledStart)}</p>
             )}
           </div>
           <div>
@@ -281,7 +281,7 @@ export default function ManutencaoAdmPage() {
               type="datetime-local"
               value={toLocalInput(cfg.scheduledEnd)}
               onChange={e => setCfg(c => ({ ...c, scheduledEnd: fromLocalInput(e.target.value) }))}
-              style={{ ...inputStyle, colorScheme: "dark" }}
+              style={{ ...inputStyle }}
             />
           </div>
         </div>
@@ -369,14 +369,14 @@ export default function ManutencaoAdmPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <p style={{ ...labelStyle, marginBottom: 0 }}>Música de fundo</p>
           <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-            <span style={{ fontSize: 11, color: "rgba(200,210,255,0.5)" }}>
+            <span style={{ fontSize: 11, color: "var(--txt3)" }}>
               {cfg.musicEnabled ? "Ativada" : "Desativada"}
             </span>
             <div
               onClick={() => setCfg(c => ({ ...c, musicEnabled: !c.musicEnabled }))}
               style={{
                 width: 36, height: 20, borderRadius: 10,
-                background: cfg.musicEnabled ? "#D4A843" : "rgba(255,255,255,0.1)",
+                background: cfg.musicEnabled ? "var(--gold)" : "var(--bdr2)",
                 position: "relative", cursor: "pointer", transition: "background .2s",
               }}
             >
