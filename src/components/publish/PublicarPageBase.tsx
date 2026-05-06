@@ -220,6 +220,8 @@ export default function PublicarPageBase({
   const hotelDataRef = useRef<{ nome: string; url: string }[] | null>(null);
   // Cache: destino slug → URL já sorteada. Evita re-sorteio em re-renders.
   const resolvedDestinoImgRef = useRef<Record<string, string>>({});
+  const lastDestinoRef = useRef<string>("");
+  const lastHotelRef = useRef<string>("");
   const previewAreaRef = useRef<HTMLDivElement>(null);
   const tabsWrapRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
@@ -582,10 +584,12 @@ export default function PublicarPageBase({
   // Carrega imgfundo sempre que destino muda ou ao montar com valor já preenchido.
   // Usa cache por destino para não re-sortear em re-renders ou blurs repetidos.
   useEffect(() => {
-    const activeTab = tab; // captura o tab no início do efeito — evita closure stale na promise
+    const activeTab = tab;
     const destino = (values.destino ?? "").trim();
     console.log("[useEffect destino] values.destino:", values.destino, "tab:", activeTab);
     if (!destino) return;
+    if (lastDestinoRef.current === destino) return;
+    lastDestinoRef.current = destino;
     const key = slugify(destino);
     if (resolvedDestinoImgRef.current[key]) {
       console.log("[useEffect destino] cache hit → setFormCache(imgfundo):", resolvedDestinoImgRef.current[key]);
@@ -606,6 +610,8 @@ export default function PublicarPageBase({
     const activeTab = tab;
     const hotel = (values.hotel ?? "").trim();
     if (!hotel) return;
+    if (lastHotelRef.current === hotel) return;
+    lastHotelRef.current = hotel;
     fetchImgHotel(hotel).then(url => {
       if (!url) return;
       setFormCache(c => ({ ...c, [activeTab]: { ...c[activeTab], imghotel: url } }));
