@@ -522,8 +522,6 @@ export default function PublicarPageBase({
 
   const onImgFundo = useCallback(async (nome: string) => {
     if (!nome?.trim()) return;
-    // pacote: gerenciado pelo useEffect + resolvedDestinoImgRef
-    if (tab === "pacote") return;
     const url = await fetchImgFundo(nome);
     if (url) setField("imgfundo", url);
   }, [tab]);
