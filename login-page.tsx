@@ -121,7 +121,7 @@ export default function LoginPage() {
       try {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) { setError("E-mail ou senha incorretos."); return; }
-        const profile = await getProfile();
+        const profile = await getProfile(supabase);
         if (!profile) { setError("Perfil não encontrado. Contate o suporte."); return; }
         const role = profile.role as string;
         const home = homeForRole(role);
