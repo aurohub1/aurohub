@@ -7,7 +7,7 @@ import Toolbar from "./toolbar";
 import ToolsPanel from "./tools-panel";
 import LayersPanel from "./layers-panel";
 import PropsPanel from "./props-panel";
-import CanvasStage from "./canvas-stage";
+import CanvasStage, { PREVIEW_DEFAULTS } from "./canvas-stage";
 import ParameterView from "./parameter-view";
 import { AssetsPanel, ComponentsPanel, DestinosPanel, HistoryPanel, InstagramPreviewModal, VariantsModal, SaveComponentModal, CropModal } from "./modals";
 
@@ -500,6 +500,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
           onUpdate={updateElement}
           onStageRef={(r) => { stageRef.current = r; }}
           onScaleChange={setStageScale}
+          previewValues={PREVIEW_DEFAULTS}
         />
 
         {paramView ? (

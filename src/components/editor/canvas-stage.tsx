@@ -17,6 +17,7 @@ interface Props {
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
   onStageRef: (r: Konva.Stage | null) => void;
   onScaleChange: (s: number) => void;
+  previewValues?: Record<string, string>;
 }
 
 function useImage(src?: string): HTMLImageElement | null {
@@ -42,6 +43,32 @@ function useQrImage(url: string, fg: string, bg: string, size: number): HTMLImag
     return () => { cancel = true; };
   }, [url, fg, bg, size]);
   return img;
+}
+
+/* ── Editor preview — dados de exemplo para o canvas do ADM ─────────── */
+export const PREVIEW_DEFAULTS: Record<string, string> = {
+  destino: "CANCÚN", hotel: "Hard Rock Hotel Cancún", tipovoo: "( Voo Direto )",
+  dataperiodo: "07 a 14/Jun/2026",
+  servicoslista: "• Passagem Aérea\n• Hotel 5★ All Inclusive\n• Transfer in/out\n• Café da manhã",
+  servicos: "Passagem Aérea\nHotel 5★ All Inclusive\nTransfer in/out\nCafé da manhã",
+  servico1: "Passagem Aérea", servico2: "Hotel 5★ All Inclusive",
+  servico3: "Transfer in/out", servico4: "Café da manhã", servico5: "", servico6: "",
+  valorparcela: "1.250,00", valorint: "1.250", valdec: ",00",
+  valortotal: "12.500,00", totalduplo: "1250000", inteiro: "1.250", centavos: "00",
+  parcelas: "10", entrada: "", formapagamento: "Cartão de Crédito",
+  textopagamento: "No Cartão de Crédito Sem Juros",
+  saida: "GRU", periodo: "07 a 14/Jun", voo: "LA 8050", incluso: "Bagagem 23kg",
+  parcelaspassagem: "12", navio: "MSC Grandiosa",
+  itinerario: "Santos → Buenos Aires → Montevidéu", q_vezes: "7", data_correta: "15/07/2026",
+  inicio: "10/06", fim: "17/06", desconto: "30",
+  lojanome: "Filial Centro", lojatelefone: "(11) 99999-9999",
+  forma_pgto: "No Cartão de Crédito Sem Juros", forma_de_pagamento: "No Cartão de Crédito Sem Juros",
+  valortotalfmt: "ou R$ 12.500,00 por pessoa apto. duplo",
+  valortotaltexto: "ou R$ 12.500,00 por pessoa apto. duplo.",
+};
+
+function replacePreviewBinds(text: string, vals: Record<string, string>): string {
+  return text.replace(/\[([a-z0-9_]+)\]/gi, (_, k: string) => vals[k.toLowerCase()] ?? "");
 }
 
 /* ── Gradient helper ──────────────────────────────── */
@@ -145,7 +172,7 @@ function getAnimState(el: EditorElement, time: number): AnimState {
 }
 
 /* ── Per-element renderer (NO Transformer inside) ── */
-function RenderElement({ el, allElements, playing, animState, onClick, onChange, onRegisterRef, onDragMoveSnap, onDragEndClear }: {
+function RenderElement({ el, allElements, playing, animState, onClick, onChange, onRegisterRef, onDragMoveSnap, onDragEndClear, previewValues }: {
   el: EditorElement;
   allElements: EditorElement[];
   playing: boolean;
@@ -155,6 +182,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   onRegisterRef: (id: string, node: Konva.Node | null) => void;
   onDragMoveSnap: (id: string, rawX: number, rawY: number) => { x: number; y: number };
   onDragEndClear: () => void;
+  previewValues?: Record<string, string>;
 }) {
   const shapeRef = useRef<Konva.Node>(null);
   const img = useImage(el.type === "image" ? el.src : undefined);
@@ -212,12 +240,17 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   };
 
   const rawText = animState.textClip !== undefined ? (el.text || "").slice(0, animState.textClip) : (el.text || "");
+  const resolvedText = previewValues
+    ? (el.bindParam
+        ? (previewValues[el.bindParam] ?? replacePreviewBinds(rawText, previewValues))
+        : replacePreviewBinds(rawText, previewValues))
+    : rawText;
   const displayText = (() => {
     switch (el.textTransform) {
-      case "uppercase": return rawText.toUpperCase();
-      case "lowercase": return rawText.toLowerCase();
-      case "capitalize": return rawText.replace(/\b\w/g, c => c.toUpperCase());
-      default: return rawText;
+      case "uppercase": return resolvedText.toUpperCase();
+      case "lowercase": return resolvedText.toLowerCase();
+      case "capitalize": return resolvedText.replace(/\b\w/g, c => c.toUpperCase());
+      default: return resolvedText;
     }
   })();
 
@@ -613,7 +646,8 @@ export default function CanvasStage(p: Props) {
               onChange={attrs => cascadeUpdate(el.id, attrs)}
               onRegisterRef={registerRef}
               onDragMoveSnap={handleDragMoveSnap}
-              onDragEndClear={handleDragEndClear} />
+              onDragEndClear={handleDragEndClear}
+              previewValues={p.previewValues} />
           ))}
           {snapEnabled && guides.map((g, i) => (
             <Line key={`g${i}`}
