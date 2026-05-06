@@ -83,7 +83,7 @@ export default function DashboardLayout({
     <AdmContext.Provider value={{ admLevel, perms: admPerms }}>
       <Sidebar
         activePath={pathname}
-        user={{ name: profile?.name || "Usuário", role: profile?.role || "adm" }}
+        user={{ name: profile?.name || "Usuário", role: profile?.role || "adm", avatar_url: profile?.avatar_url || null }}
         onLogout={handleLogout}
         maintenanceActive={maintenanceActive}
         admPerms={admPerms}

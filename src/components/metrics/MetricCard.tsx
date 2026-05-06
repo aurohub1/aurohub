@@ -28,7 +28,7 @@ export default function MetricCard({ label, value, icon, accent = "blue" }: Prop
   const colorHex = ACCENT_HEX[accent];
   return (
     <div
-      className="relative overflow-hidden p-4"
+      className="metric-card relative overflow-hidden p-4"
       style={{
         background: "var(--input-bg)",
         border: "1px solid var(--bdr2)",

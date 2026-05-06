@@ -104,7 +104,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
       <PublishQueueProvider>
       <Sidebar
         activePath={pathname}
-        user={{ name: profile?.name || "Consultor", role: "vendedor" }}
+        user={{ name: profile?.name || "Consultor", role: "vendedor", avatar_url: profile?.avatar_url || null }}
         onLogout={handleLogout}
         sections={VENDEDOR_SECTIONS}
         activeFeatures={features}

@@ -218,3 +218,62 @@ body.client-bg {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* ── Liquid Glass — cliente (Azul Viagens) ──────── */
+body.client-bg {
+  --glass-bg:           linear-gradient(135deg, rgba(25,55,120,0.4) 0%, rgba(8,18,50,0.55) 100%);
+  --glass-border:       rgba(80,140,220,0.28);
+  --glass-border-t:     rgba(100,160,240,0.35);
+  --glass-border-b:     rgba(80,140,220,0.28);
+  --glass-backdrop:     blur(20px) saturate(150%);
+  --glass-shadow:       0 4px 24px rgba(0,10,40,0.45), inset 0 1px 0 rgba(80,140,220,0.2);
+
+  --card-bg:            linear-gradient(135deg, rgba(25,55,120,0.4) 0%, rgba(8,18,50,0.55) 100%);
+  --card-border:        rgba(80,140,220,0.28);
+  --card-border-bottom: rgba(80,140,220,0.28);
+  --card-backdrop:      blur(20px) saturate(150%);
+  --card-shadow:        0 4px 24px rgba(0,10,40,0.45), inset 0 1px 0 rgba(80,140,220,0.2);
+}
+
+[data-theme="light"] body.client-bg {
+  --glass-bg:           linear-gradient(135deg, rgba(255,255,255,0.78) 0%, rgba(210,235,255,0.5) 100%);
+  --glass-border:       rgba(255,255,255,0.95);
+  --glass-border-t:     rgba(255,255,255,0.95);
+  --glass-border-b:     rgba(180,215,255,0.4);
+  --glass-backdrop:     blur(20px) saturate(160%);
+  --glass-shadow:       0 4px 24px rgba(120,180,240,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+
+  --card-bg:            linear-gradient(135deg, rgba(255,255,255,0.78) 0%, rgba(210,235,255,0.5) 100%);
+  --card-border:        rgba(255,255,255,0.95);
+  --card-border-bottom: rgba(180,215,255,0.4);
+  --card-backdrop:      blur(20px) saturate(160%);
+  --card-shadow:        0 4px 24px rgba(120,180,240,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+body.client-bg .card-glass {
+  background:              var(--card-bg) !important;
+  border:                  1px solid var(--card-border) !important;
+  border-top:              1px solid var(--glass-border-t) !important;
+  border-bottom:           1px solid var(--card-border-bottom) !important;
+  backdrop-filter:         var(--card-backdrop);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  box-shadow:              var(--card-shadow) !important;
+}
+
+body.client-bg aside {
+  background:              var(--glass-bg) !important;
+  border-right:            1px solid var(--glass-border) !important;
+  border-top:              1px solid var(--glass-border-t) !important;
+  backdrop-filter:         var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  box-shadow:              var(--glass-shadow) !important;
+}
+
+body.client-bg .metric-card {
+  background:              var(--card-bg) !important;
+  border:                  1px solid var(--card-border) !important;
+  border-bottom:           1px solid var(--card-border-bottom) !important;
+  backdrop-filter:         var(--card-backdrop);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  box-shadow:              var(--card-shadow) !important;
+}

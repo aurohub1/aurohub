@@ -82,6 +82,7 @@ function homeForRole(role: string | null): string {
     case "cliente": return "/cliente/inicio";
     case "unidade": return "/unidade/inicio";
     case "gerente": return "/gerente/inicio";
+    case "gestor": return "/gerente/inicio";
     case "vendedor": return "/consultor/inicio";
     default: return "/login";
   }
@@ -115,7 +116,7 @@ function isAllowed(role: string, pathname: string): boolean {
         || pathname.startsWith(GERENTE_PREFIX)
         || pathname.startsWith(VENDEDOR_PREFIX);
   }
-  if (role === "gerente") {
+  if (role === "gerente" || role === "gestor") {
     return pathname.startsWith(GERENTE_PREFIX)
         || pathname.startsWith(VENDEDOR_PREFIX);
   }

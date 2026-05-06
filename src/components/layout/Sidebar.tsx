@@ -12,7 +12,7 @@ import type { AdmPermissions } from "@/lib/adm-permissions";
 
 interface SidebarProps {
   activePath: string;
-  user: { name: string; role: string };
+  user: { name: string; role: string; avatar_url?: string | null };
   onLogout: () => void;
   sections?: NavSection[];
   brandLabel?: string;
@@ -426,6 +426,7 @@ function roleBadgeLabel(role: string): string {
     cliente: "CLIENTE",
     unidade: "UNIDADE",
     gerente: "GERENTE",
+    gestor: "GESTOR",
     vendedor: "CONSULTOR",
     licensee: "LICENCIADO",
     store: "LOJA",
@@ -549,7 +550,6 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => { observer.disconnect(); window.removeEventListener("theme-change", onThemeChange); };
   }, []);
-
 
   return (
     <aside
@@ -708,8 +708,16 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
         {/* User row */}
         <div className="flex items-center gap-2.5 overflow-hidden">
           {/* Avatar */}
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--navy)] to-[var(--blue)] text-[12px] font-bold text-white">
-            {initial}
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--navy)] to-[var(--blue)] text-[12px] font-bold text-white overflow-hidden">
+            {user.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+              />
+            ) : (
+              initial
+            )}
           </div>
 
           {/* Name + role */}

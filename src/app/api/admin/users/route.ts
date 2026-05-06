@@ -62,6 +62,24 @@ const CLIENTE_ALLOWED_ROLES = new Set(["unidade", "vendedor"]);
 /** Roles permitidas para uma unidade criar/editar. */
 const UNIDADE_ALLOWED_ROLES = new Set(["vendedor"]);
 
+/* ── GET — buscar email do usuário ───────────────── */
+
+export async function GET(req: NextRequest) {
+  const guard = await requireCaller();
+  if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
+
+  const sb = adminClient();
+  if (!sb) return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY não configurada" }, { status: 500 });
+
+  const id = req.nextUrl.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id obrigatório" }, { status: 400 });
+
+  const { data, error } = await sb.auth.admin.getUserById(id);
+  if (error || !data?.user) return NextResponse.json({ error: error?.message || "Usuário não encontrado" }, { status: 404 });
+
+  return NextResponse.json({ email: data.user.email ?? "" });
+}
+
 /* ── POST — criar usuário ─────────────────────────── */
 
 export async function POST(req: NextRequest) {

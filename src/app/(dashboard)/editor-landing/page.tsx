@@ -173,6 +173,55 @@ export default function EditorLandingPage() {
         </div>
       </div>
 
+      {/* Logo upload */}
+      <div className="flex items-center gap-6 rounded-xl border border-[var(--bdr)] px-6 py-4" style={{ background: "var(--card-bg)" }}>
+        <div className="flex-1">
+          <div className="mb-1 text-[13px] font-semibold text-[var(--txt)]">Logo</div>
+          <div className="flex items-center gap-4">
+            {get("landing_logo") ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={get("landing_logo")} alt="Logo" className="h-12 max-w-[160px] shrink-0 rounded-lg object-contain border border-[var(--bdr)] bg-[var(--bg3)] p-1" />
+            ) : (
+              <div className="flex h-12 w-32 shrink-0 items-center justify-center rounded-lg bg-[var(--bg3)] text-[11px] text-[var(--txt3)]">Sem logo</div>
+            )}
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={() => handleUpload("landing_logo")}
+                disabled={uploading}
+                className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50"
+              >
+                {uploading ? "Enviando..." : "Upload logo"}
+              </button>
+              <input
+                type="text"
+                value={get("landing_logo")}
+                onChange={(e) => set("landing_logo", e.target.value)}
+                placeholder="ou cole URL"
+                className="h-7 rounded border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none"
+              />
+            </div>
+            {get("landing_logo") && (
+              <button onClick={() => set("landing_logo", "")} className="text-[11px] text-[var(--red)] hover:underline">
+                Remover
+              </button>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await supabase.from("system_config").upsert({ key: "landing_logo", value: get("landing_logo"), updated_at: new Date().toISOString() }, { onConflict: "key" });
+              setSaved(true); setTimeout(() => setSaved(false), 3000);
+            } finally { setSaving(false); }
+          }}
+          disabled={saving}
+          className="rounded-lg bg-[var(--txt)] px-4 py-2 text-[12px] font-semibold text-[var(--bg)] disabled:opacity-60"
+        >
+          {saved ? "Salvo!" : "Salvar logo"}
+        </button>
+      </div>
+
       {/* Layout */}
       <div className="flex gap-6" style={{ minHeight: "calc(100vh - 280px)" }}>
         {/* Nav */}

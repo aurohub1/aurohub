@@ -48,7 +48,7 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
     (async () => {
       const p = await getProfile(supabase);
       if (!p) { router.push("/login"); return; }
-      if (p.role !== "gerente" && p.role !== "cliente" && p.role !== "adm") {
+      if (p.role !== "gerente" && p.role !== "gestor" && p.role !== "cliente" && p.role !== "adm") {
         router.push(homeForRole(p.role));
         return;
       }

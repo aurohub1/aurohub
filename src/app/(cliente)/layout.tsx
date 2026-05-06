@@ -115,7 +115,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       <PublishQueueProvider>
       <Sidebar
         activePath={pathname}
-        user={{ name: profile?.name || "Cliente", role: "cliente" }}
+        user={{ name: profile?.name || "Cliente", role: "cliente", avatar_url: profile?.avatar_url || null }}
         onLogout={handleLogout}
         sections={CLIENTE_SECTIONS}
         activeFeatures={features}

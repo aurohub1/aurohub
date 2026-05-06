@@ -192,8 +192,14 @@ export default function UsuariosPage() {
       }
     } catch { /* silent — tabela pode não existir */ }
 
+    let authEmail = "";
+    try {
+      const res = await fetch(`/api/admin/users?id=${p.id}`);
+      if (res.ok) { const j = await res.json(); authEmail = j.email ?? ""; }
+    } catch { /* silent */ }
+
     setForm({
-      name: p.name ?? "", email: "", password: "", role: p.role, status: p.status,
+      name: p.name ?? "", email: authEmail, password: "", role: p.role, status: p.status,
       segment_id: lic?.segment_id ?? "", licensee_id: licId,
       store_ids: storeIds,
       landing: "client", ai, metrics, transmissao, avulso: p.sub_role === "avulso",
@@ -552,7 +558,7 @@ export default function UsuariosPage() {
                     </div>
                   </div>
                   <F label="Nome" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="João Silva" />
-                  {!editId && <F label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} placeholder="joao@agencia.com" type="email" />}
+                  <F label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} placeholder="joao@agencia.com" type="email" disabled={!!editId} />
                   {!editId && (
                     <div>
                       <div className="mb-1 flex items-center justify-between">
@@ -571,6 +577,7 @@ export default function UsuariosPage() {
                       <option value="operador">Operador</option>
                       <option value="unidade">Unidade</option>
                       <option value="gerente">Gerente</option>
+                      <option value="gestor">Gestor</option>
                       <option value="vendedor">Consultor</option>
                       <option value="adm">ADM</option>
                     </select>
@@ -799,8 +806,8 @@ function KI({ label, value, accent }: { label: string; value: string; accent?: b
   return <div className="flex items-baseline gap-2"><span className="text-[12px] text-[var(--txt3)]">{label}</span><span className={`text-[16px] font-bold ${accent ? "text-[var(--green)]" : "text-[var(--txt)]"}`}>{value}</span></div>;
 }
 
-function F({ label, value, onChange, placeholder, type }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
-  return <div><label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">{label}</label><input type={type ?? "text"} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" /></div>;
+function F({ label, value, onChange, placeholder, type, disabled }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; disabled?: boolean }) {
+  return <div><label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">{label}</label><input type={type ?? "text"} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)] disabled:opacity-50 disabled:cursor-not-allowed" /></div>;
 }
 
 const FORM_LABELS: Record<string, string> = {

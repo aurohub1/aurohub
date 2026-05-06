@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type Role = "adm" | "operador" | "cliente" | "unidade" | "gerente" | "vendedor";
+export type Role = "adm" | "operador" | "cliente" | "unidade" | "gerente" | "gestor" | "vendedor";
 
 export interface ProfileLicensee {
   id: string;
@@ -39,6 +39,7 @@ export interface FullProfile {
   licensee_id: string | null;
   store_id: string | null;
   tour_pages: string[] | null;
+  avatar_url: string | null;
   licensee: ProfileLicensee | null;
   store: ProfileStore | null;
   plan: ProfilePlan | null;
@@ -55,7 +56,7 @@ export async function getProfile(client: SupabaseClient): Promise<FullProfile | 
 
   const { data: profile } = await client
     .from("profiles")
-    .select("id,name,email,role,adm_level,licensee_id,store_id,tour_pages")
+    .select("id,name,email,role,adm_level,licensee_id,store_id,tour_pages,avatar_url")
     .eq("id", user.id)
     .single();
 
@@ -70,6 +71,7 @@ export async function getProfile(client: SupabaseClient): Promise<FullProfile | 
     licensee_id: profile.licensee_id,
     store_id: profile.store_id,
     tour_pages: (profile.tour_pages as string[] | null) ?? null,
+    avatar_url: (profile.avatar_url as string | null) ?? null,
     licensee: null,
     store: null,
     plan: null,
@@ -143,6 +145,7 @@ export function homeForRole(role: Role | string | null): string {
     case "cliente": return "/cliente/inicio";
     case "unidade": return "/unidade/inicio";
     case "gerente": return "/gerente/inicio";
+    case "gestor": return "/gerente/inicio";
     case "vendedor": return "/consultor/inicio";
     default: return "/login";
   }
