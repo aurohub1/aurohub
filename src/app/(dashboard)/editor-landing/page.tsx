@@ -6,7 +6,7 @@ import { uploadToCloudinary } from "@/lib/cloudinary";
 
 /* ── Types ─────────────────────────────────────────── */
 type ConfigMap = Record<string, string>;
-type SectionKey = "identidade" | "hero" | "para-quem" | "servicos" | "processo" | "autoridade" | "vagas" | "footer";
+type SectionKey = "identidade" | "hero" | "para-quem" | "servicos" | "processo" | "autoridade" | "vagas" | "footer" | "intro";
 
 interface Vaga { role: string; title: string; desc: string; open: boolean; }
 
@@ -14,6 +14,7 @@ interface Vaga { role: string; title: string; desc: string; open: boolean; }
 const SECTIONS: { key: SectionKey; label: string }[] = [
   { key: "identidade",  label: "Identidade" },
   { key: "hero",        label: "Hero" },
+  { key: "intro",       label: "Intro (Áudio)" },
   { key: "para-quem",   label: "Para Quem" },
   { key: "servicos",    label: "Serviços" },
   { key: "processo",    label: "Processo" },
@@ -36,6 +37,8 @@ export default function EditorLandingPage() {
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [savingAudio, setSavingAudio] = useState(false);
 
   /* ── Load ───────────────────────────────────────── */
   const loadData = useCallback(async () => {
@@ -119,6 +122,44 @@ export default function EditorLandingPage() {
       finally { setUploading(false); }
     };
     input.click();
+  }
+
+  async function handleAudioUpload() {
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = "audio/mpeg,audio/wav,audio/mp3,.mp3,.wav";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      setUploadingAudio(true);
+      try {
+        const url = await uploadToCloudinary(file, "aurohubv2/landing");
+        set("landing_intro_audio", url);
+      } catch (err) { console.error("[AudioUpload]", err); }
+      finally { setUploadingAudio(false); }
+    };
+    input.click();
+  }
+
+  async function saveAudio() {
+    setSavingAudio(true);
+    try {
+      const url = config["landing_intro_audio"] ?? "";
+      await supabase.from("system_config").upsert(
+        { key: "landing_intro_audio", value: url, updated_at: new Date().toISOString() },
+        { onConflict: "key" }
+      );
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) { console.error("[SaveAudio]", err); }
+    finally { setSavingAudio(false); }
+  }
+
+  async function removeAudio() {
+    set("landing_intro_audio", "");
+    await supabase.from("system_config").upsert(
+      { key: "landing_intro_audio", value: "", updated_at: new Date().toISOString() },
+      { onConflict: "key" }
+    );
   }
 
   /* ── Vagas helpers ──────────────────────────────── */
@@ -260,6 +301,68 @@ export default function EditorLandingPage() {
                   <F label="Botão secundário — URL"
                     value={get("landing_hero_cta2_url", "mailto:contato@aurovista.com.br")}
                     onChange={(v) => set("landing_hero_cta2_url", v)} />
+                </div>
+              </div>
+            )}
+
+            {/* ── INTRO (ÁUDIO) ────────────────────── */}
+            {active === "intro" && (
+              <div className="flex flex-col gap-5">
+                <Note>Música de fundo da intro animada da landing. Aceita MP3 ou WAV. Hospedado no Cloudinary.</Note>
+
+                {/* Player de preview */}
+                {get("landing_intro_audio") && (
+                  <div className="rounded-lg border border-[var(--bdr)] p-4">
+                    <div className="mb-2 text-[11px] font-medium text-[var(--txt3)]">Áudio atual</div>
+                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                    <audio controls src={get("landing_intro_audio")} className="w-full h-9" />
+                    <p className="mt-2 break-all text-[10px] text-[var(--txt3)]">{get("landing_intro_audio")}</p>
+                  </div>
+                )}
+
+                {/* Upload */}
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleAudioUpload}
+                    disabled={uploadingAudio}
+                    className="flex w-fit items-center gap-2 rounded-lg border border-[var(--bdr)] px-4 py-2 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50"
+                  >
+                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none">
+                      <path d="M8 2v8M5 5l3-3 3 3M2 12h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    {uploadingAudio ? "Enviando..." : "Upload música da intro (MP3 / WAV)"}
+                  </button>
+
+                  {/* URL manual */}
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">ou cole URL direta</label>
+                    <input
+                      type="text"
+                      value={get("landing_intro_audio")}
+                      onChange={(e) => set("landing_intro_audio", e.target.value)}
+                      placeholder="https://..."
+                      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]"
+                    />
+                  </div>
+                </div>
+
+                {/* Ações */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={saveAudio}
+                    disabled={savingAudio}
+                    className="rounded-lg bg-[var(--txt)] px-5 py-2 text-[12px] font-semibold text-[var(--bg)] disabled:opacity-60"
+                  >
+                    {savingAudio ? "Salvando..." : saved ? "✓ Salvo!" : "Salvar áudio"}
+                  </button>
+                  {get("landing_intro_audio") && (
+                    <button
+                      onClick={removeAudio}
+                      className="text-[12px] text-[var(--txt3)] hover:text-[var(--red)]"
+                    >
+                      Remover áudio
+                    </button>
+                  )}
                 </div>
               </div>
             )}
