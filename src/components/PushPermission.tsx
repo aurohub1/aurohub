@@ -89,7 +89,7 @@ export default function PushPermission() {
     <div
       role="dialog"
       aria-label="Ativar notificações"
-      className="fixed bottom-4 right-4 z-[9500] flex max-w-[340px] items-start gap-3 rounded-2xl border border-[var(--bdr)] bg-[var(--bg1)] p-4 shadow-2xl"
+      className="fixed bottom-4 right-[86px] z-[9500] flex max-w-[340px] items-start gap-3 rounded-2xl border border-[var(--bdr)] bg-[var(--bg1)] p-4 shadow-2xl"
       style={{ backdropFilter: "blur(12px)" }}
     >
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--orange3)] text-[var(--orange)]">
