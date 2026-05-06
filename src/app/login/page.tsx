@@ -285,11 +285,11 @@ export default function LoginPage() {
 
   const dk = theme === "dark";
   const containerBg = dk
-    ? "radial-gradient(ellipse 80% 60% at 20% 50%, rgba(30,58,110,0.5) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 20%, rgba(212,168,67,0.08) 0%, transparent 50%), #060B16"
-    : "radial-gradient(ellipse 100% 80% at 0% 50%, rgba(30,58,110,0.12) 0%, transparent 55%), radial-gradient(ellipse 80% 60% at 100% 20%, rgba(255,122,26,0.08) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 50% 100%, rgba(212,168,67,0.06) 0%, transparent 50%), #EEF2FA";
+    ? "radial-gradient(ellipse 80% 60% at 20% 50%, rgba(10,36,99,0.5) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 20%, rgba(212,168,67,0.07) 0%, transparent 50%), #06090F"
+    : "radial-gradient(ellipse 100% 80% at 0% 50%, rgba(10,36,99,0.07) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 50% 100%, rgba(212,168,67,0.05) 0%, transparent 50%), #F5F5F7";
   const panelBg = dk ? "rgba(8,14,28,0.92)" : "rgba(255,255,255,0.98)";
   const panelBorder = dk ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(13,22,40,0.10)";
-  const heroHeadColor = dk ? "#FFFFFF" : "#1E3A6E";
+  const heroHeadColor = dk ? "rgba(255,255,255,0.88)" : "#1D1D1F";
   const heroStatColor = dk ? "#fff" : "#1E3A6E";
   const heroSubColor = dk ? "var(--txt2)" : "#4A5878";
   const cardText = dk ? "#fff" : "#0D1628";
@@ -341,7 +341,7 @@ export default function LoginPage() {
         <img src="https://res.cloudinary.com/dxgj4bcch/image/upload/v1774115445/Logo_com_fundo_trans22_1_wujniv.png" alt="" style={{width:64,height:64,objectFit:'contain',marginBottom:'2.5rem',mixBlendMode:dk?'normal':'multiply',filter:dk?'none':'brightness(0) saturate(100%) invert(52%) sepia(98%) saturate(1000%) hue-rotate(0deg) brightness(100%)'}} />
         <h1 style={{fontFamily:'var(--font-dm-serif)',fontSize:'3rem',lineHeight:1.05,margin:0}}>
           <span style={{display:'block',color:heroHeadColor}}>Templates profissionais.</span>
-          <span style={{display:'block',color:'var(--orange)'}}>Sua equipe publica sozinha.</span>
+          <span style={{display:'block',color:'#D4A843',fontStyle:'italic'}}>Sua equipe publica sozinha.</span>
         </h1>
         <p style={{marginTop:'1.5rem',color:heroSubColor,fontSize:'1rem',lineHeight:1.6,maxWidth:420}}>
           Identidade visual configurada. Instagram conectado.<br />
@@ -378,7 +378,7 @@ export default function LoginPage() {
             <input type={showPw?'text':'password'} required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" style={{width:'100%',height:42,padding:'0 3rem 0 1rem',background:inputBg,border:inputBorder,borderRadius:12,color:inputColor,fontSize:'0.9rem',outline:'none',boxSizing:'border-box'}} />
             <button type="button" onClick={()=>setShowPw(v=>!v)} style={{position:'absolute',right:12,bottom:14,background:'none',border:'none',color:'#4A5878',cursor:'pointer',fontSize:16}}>{showPw?'🙈':'👁'}</button>
           </div>
-          <button type="submit" disabled={loading} style={{width:'100%',height:44,borderRadius:14,border:'none',background:'linear-gradient(135deg,var(--orange),#D4A843)',color:'#fff',fontWeight:800,fontSize:'0.95rem',cursor:'pointer',letterSpacing:'0.02em'}}>
+          <button type="submit" disabled={loading} style={{width:'100%',height:44,borderRadius:14,border:'none',background:'#1D1D1F',color:'#fff',fontWeight:800,fontSize:'0.95rem',cursor:'pointer',letterSpacing:'0.02em'}}>
             {loading?'Entrando...':'Entrar →'}
           </button>
           {error&&<div style={{marginTop:'1rem',padding:'0.75rem',borderRadius:10,background:'rgba(239,68,68,0.1)',color:'#EF4444',fontSize:'0.8rem',textAlign:'center'}}>{error}</div>}
