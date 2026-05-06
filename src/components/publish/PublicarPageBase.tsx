@@ -103,6 +103,7 @@ const FORMAT_LABELS: Record<Format, string> = {
 const DEFAULTS = {
   formapagamento: "cartao",
   tipovoo: "( Voo Direto )",
+  tipohospedagem: "Hotel",
 };
 
 function normalizar(s: string) {

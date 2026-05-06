@@ -1046,6 +1046,7 @@ export function PacoteForm({
   const showIda = hasBind(binds, "dataida", "dataperiodo");
   const showVolta = hasBind(binds, "datavolta", "dataperiodo");
   const showHotel = hasBind(binds, "hotel", "imghotel");
+  const showTipoHospedagem = hasBind(binds, "tipohospedagem");
   const showServicos =
     !binds ||
     binds.has("servicoslista") ||
@@ -1171,6 +1172,20 @@ export function PacoteForm({
           />
         </Field>
       </Section>
+
+      {showTipoHospedagem && (
+        <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>
+          <Field label="Tipo de Hospedagem *" asSection>
+            <SearchableSelect
+              value={(fields.tipohospedagem as string) || "Hotel"}
+              onChange={(v) => set("tipohospedagem", v)}
+              options={["Hotel", "Pousada", "Resort", "Apart-hotel", "Flat", "Chalé", "Hostel", "Fazenda", "Lodge"]}
+              placeholder="Hotel"
+              readOnly
+            />
+          </Field>
+        </div>
+      )}
 
       {showHotel && (
         <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>
@@ -1392,6 +1407,7 @@ export function CampanhaForm({
   const showIda = hasBind(binds, "dataida");
   const showVolta = hasBind(binds, "datavolta");
   const showHotel = hasBind(binds, "hotel", "imghotel");
+  const showTipoHospedagem = hasBind(binds, "tipohospedagem");
   // Serviços — mostra se qualquer servico1..N estiver presente (sem binds = todos).
   const showServicos = !binds || Array.from({ length: 8 }, (_, i) => `servico${i + 1}`).some((k) => binds.has(k));
   const feriadosNormalizados = [...new Set(
@@ -1473,6 +1489,20 @@ export function CampanhaForm({
           />
         </Field>
       </Section>
+
+      {showTipoHospedagem && (
+        <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>
+          <Field label="Tipo de Hospedagem *" asSection>
+            <SearchableSelect
+              value={(fields.tipohospedagem as string) || "Hotel"}
+              onChange={(v) => set("tipohospedagem", v)}
+              options={["Hotel", "Pousada", "Resort", "Apart-hotel", "Flat", "Chalé", "Hostel", "Fazenda", "Lodge"]}
+              placeholder="Hotel"
+              readOnly
+            />
+          </Field>
+        </div>
+      )}
 
       {showHotel && (
         <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>

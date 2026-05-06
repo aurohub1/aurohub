@@ -47,7 +47,7 @@ function useQrImage(url: string, fg: string, bg: string, size: number): HTMLImag
 
 /* ── Editor preview — dados de exemplo para o canvas do ADM ─────────── */
 export const PREVIEW_DEFAULTS: Record<string, string> = {
-  destino: "CANCÚN", hotel: "Hard Rock Hotel Cancún", tipovoo: "( Voo Direto )",
+  destino: "CANCÚN", hotel: "Hard Rock Hotel Cancún", tipovoo: "( Voo Direto )", tipohospedagem: "Hotel",
   dataperiodo: "07 a 14/Jun/2026",
   servicoslista: "• Passagem Aérea\n• Hotel 5★ All Inclusive\n• Transfer in/out\n• Café da manhã",
   servicos: "Passagem Aérea\nHotel 5★ All Inclusive\nTransfer in/out\nCafé da manhã",
