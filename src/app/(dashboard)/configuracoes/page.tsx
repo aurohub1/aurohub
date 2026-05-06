@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAdmGuard } from "@/contexts/AdmContext";
 import { uploadToCloudinary } from "@/lib/cloudinary";
@@ -368,7 +369,15 @@ export default function ConfiguracoesPage() {
               {/* ── INTEGRAÇÕES ──────────────────────── */}
               {activeSection === "integ" && (
                 <div className="flex flex-col gap-6">
-                  <SectionTitle title="Integrações" desc="Chaves de API e serviços externos" />
+                  <div className="flex items-center justify-between">
+                    <SectionTitle title="Integrações" desc="Chaves de API e serviços externos" />
+                    <Link
+                      href="/adm/vault"
+                      className="flex items-center gap-1.5 rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]"
+                    >
+                      🔐 Gerenciar tokens no Vault
+                    </Link>
+                  </div>
 
                   {/* Mercado Pago */}
                   <div className="flex flex-col gap-3">
