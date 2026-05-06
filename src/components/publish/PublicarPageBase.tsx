@@ -447,14 +447,20 @@ export default function PublicarPageBase({
   }
 
   async function fetchImgHotel(hotel: string) {
+    console.log("[fetchImgHotel] hotel recebido:", hotel);
     const rows = await loadHotelData();
     const t = normalizar(hotel);
     const m = rows.filter((r) => normalizar(r.nome) === t);
-    if (!m.length) return null;
-    return proximaImagem(
+    if (!m.length) {
+      console.log("[fetchImgHotel] nenhuma linha encontrada para:", t);
+      return null;
+    }
+    const result = proximaImagem(
       "hotel_" + slugify(hotel),
       m.map((r) => r.url)
     );
+    console.log("[fetchImgHotel] resultado:", result);
+    return result;
   }
 
   async function loadDestinos(q: string = "") {
@@ -609,6 +615,7 @@ export default function PublicarPageBase({
   useEffect(() => {
     const activeTab = tab;
     const hotel = (values.hotel ?? "").trim();
+    console.log("[useEffect hotel] values.hotel:", values.hotel, "tab:", activeTab);
     if (!hotel) return;
     if (lastHotelRef.current === hotel) return;
     lastHotelRef.current = hotel;
