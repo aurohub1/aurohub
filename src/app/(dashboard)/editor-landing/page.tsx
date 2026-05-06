@@ -134,6 +134,12 @@ export default function EditorLandingPage() {
       try {
         const url = await uploadToCloudinary(file, "aurohubv2/landing");
         set("landing_intro_audio", url);
+        await supabase.from("system_config").upsert(
+          { key: "landing_intro_audio", value: url, updated_at: new Date().toISOString() },
+          { onConflict: "key" }
+        );
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
       } catch (err) { console.error("[AudioUpload]", err); }
       finally { setUploadingAudio(false); }
     };

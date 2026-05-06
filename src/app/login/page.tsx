@@ -270,6 +270,14 @@ export default function LoginPage() {
           return;
         }
 
+        // Frequência: exibe no máximo 1x a cada 12h por dispositivo
+        const lastSeen = Number(localStorage.getItem("intro_last_seen") || 0);
+        if (Date.now() - lastSeen < 43200000) {
+          router.push(home);
+          return;
+        }
+        localStorage.setItem("intro_last_seen", String(Date.now()));
+
         setLoading(false);
         setSplash({ name, home, ...splashConfig });
         return;
