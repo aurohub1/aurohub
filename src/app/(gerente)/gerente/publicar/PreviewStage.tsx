@@ -46,12 +46,18 @@ function getFillProps(fill: string | GradientFill | undefined, width: number, he
 
 function useImage(src?: string): HTMLImageElement | null {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
+  const loadedUrlRef = useRef('');
   useEffect(() => {
-    if (!src) { setImg(null); return; }
+    if (!src) {
+      if (loadedUrlRef.current) { loadedUrlRef.current = ''; setImg(null); }
+      return;
+    }
+    if (src === loadedUrlRef.current) return;
+    loadedUrlRef.current = src;
     const i = new window.Image();
     i.crossOrigin = "anonymous";
     i.onload = () => setImg(i);
-    i.onerror = () => setImg(null);
+    i.onerror = () => { loadedUrlRef.current = ''; setImg(null); }
     i.src = src;
   }, [src]);
   return img;
@@ -386,6 +392,10 @@ function resolveImage(
     }
     return undefined;
   }
+
+  // bindParam imgfundo/imghotel: ignora src (mesmo base64) e usa sempre values.
+  if (bp === "imgfundo") return values.imgfundo || undefined;
+  if (bp === "imghotel") return values.imghotel || undefined;
 
   // IMAGE com src já definida e não é uma chave de bind: bind controla só visibilidade.
   if (el.src && !IMG_BIND_KEYS.has(el.src)) return el.src;

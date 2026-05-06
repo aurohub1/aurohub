@@ -221,7 +221,6 @@ export default function PublicarPageBase({
   // Cache: destino slug → URL já sorteada. Evita re-sorteio em re-renders.
   const resolvedDestinoImgRef = useRef<Record<string, string>>({});
   const lastDestinoRef = useRef<string>("");
-  const lastHotelRef = useRef<string>("");
   const previewAreaRef = useRef<HTMLDivElement>(null);
   const tabsWrapRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
@@ -449,12 +448,14 @@ export default function PublicarPageBase({
   async function fetchImgHotel(hotel: string) {
     console.log("[fetchImgHotel] hotel recebido:", hotel);
     const rows = await loadHotelData();
+    console.log("[fetchImgHotel] total rows carregadas:", rows.length);
     const t = normalizar(hotel);
     const m = rows.filter((r) => normalizar(r.nome) === t);
     if (!m.length) {
-      console.log("[fetchImgHotel] nenhuma linha encontrada para:", t);
+      console.log("[fetchImgHotel] nenhum match para:", t, "— primeiros nomes:", rows.slice(0, 5).map(r => normalizar(r.nome)));
       return null;
     }
+    console.log("[fetchImgHotel] match encontrado:", m.length, "registro(s)");
     const result = proximaImagem(
       "hotel_" + slugify(hotel),
       m.map((r) => r.url)
@@ -536,6 +537,8 @@ export default function PublicarPageBase({
 
   const onImgFundo = useCallback(async (nome: string) => {
     if (!nome?.trim()) return;
+    if (lastDestinoRef.current === nome.trim()) return;
+    lastDestinoRef.current = nome.trim();
     const url = await fetchImgFundo(nome);
     if (url) setField("imgfundo", url);
   }, [tab]);
@@ -546,7 +549,10 @@ export default function PublicarPageBase({
     const hCap = capitalizeBR(h);
     if (hCap !== values.hotel) setField("hotel", hCap);
     const hUrl = await fetchImgHotel(h);
-    if (hUrl) setField("imghotel", hUrl);
+    if (hUrl) {
+      setField("imgfundo", hUrl);
+      return;
+    }
     const dUrl = await fetchImgFundo(values.destino?.trim() || "");
     if (dUrl) setField("imgfundo", dUrl);
   }
@@ -587,44 +593,6 @@ export default function PublicarPageBase({
     }
   }, [userPerms, visibleTipos, tab]);
 
-  // Carrega imgfundo sempre que destino muda ou ao montar com valor já preenchido.
-  // Usa cache por destino para não re-sortear em re-renders ou blurs repetidos.
-  useEffect(() => {
-    const activeTab = tab;
-    const destino = (values.destino ?? "").trim();
-    console.log("[useEffect destino] values.destino:", values.destino, "tab:", activeTab);
-    if (!destino) return;
-    if (lastDestinoRef.current === destino) return;
-    lastDestinoRef.current = destino;
-    const key = slugify(destino);
-    if (resolvedDestinoImgRef.current[key]) {
-      console.log("[useEffect destino] cache hit → setFormCache(imgfundo):", resolvedDestinoImgRef.current[key]);
-      setFormCache(c => ({ ...c, [activeTab]: { ...c[activeTab], imgfundo: resolvedDestinoImgRef.current[key] } }));
-      return;
-    }
-    fetchImgFundo(destino).then(url => {
-      if (!url) return;
-      resolvedDestinoImgRef.current[key] = url;
-      console.log("[useEffect destino] setFormCache(imgfundo) tab=" + activeTab + ":", url);
-      setFormCache(c => ({ ...c, [activeTab]: { ...c[activeTab], imgfundo: url } }));
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.destino, tab]);
-
-  // Carrega imghotel sempre que hotel muda ou ao montar com valor já preenchido.
-  useEffect(() => {
-    const activeTab = tab;
-    const hotel = (values.hotel ?? "").trim();
-    console.log("[useEffect hotel] values.hotel:", values.hotel, "tab:", activeTab);
-    if (!hotel) return;
-    if (lastHotelRef.current === hotel) return;
-    lastHotelRef.current = hotel;
-    fetchImgHotel(hotel).then(url => {
-      if (!url) return;
-      setFormCache(c => ({ ...c, [activeTab]: { ...c[activeTab], imghotel: url } }));
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.hotel, tab]);
 
   const previewValues = useMemo(() => {
     const m: Record<string, string> = { ...(values ?? {}) };
