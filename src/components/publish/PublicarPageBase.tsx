@@ -221,6 +221,9 @@ export default function PublicarPageBase({
   // Cache: destino slug → URL já sorteada. Evita re-sorteio em re-renders.
   const resolvedDestinoImgRef = useRef<Record<string, string>>({});
   const lastDestinoRef = useRef<string>("");
+  const lastHotelRef = useRef<string>("");
+  const destinoImgRef = useRef<string>("");  // URL resolvida para o destino atual
+  const hotelImgRef = useRef<string>("");    // URL resolvida para o hotel atual (prioridade)
   const previewAreaRef = useRef<HTMLDivElement>(null);
   const tabsWrapRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
@@ -540,7 +543,11 @@ export default function PublicarPageBase({
     if (lastDestinoRef.current === nome.trim()) return;
     lastDestinoRef.current = nome.trim();
     const url = await fetchImgFundo(nome);
-    if (url) setField("imgfundo", url);
+    destinoImgRef.current = url ?? "";
+    // Só aplica se hotel não tem imagem própria (hotel tem prioridade)
+    if (!hotelImgRef.current) {
+      if (url) setField("imgfundo", url);
+    }
   }, [tab]);
 
   async function onHotelBlur(hotel?: string) {
@@ -548,13 +555,16 @@ export default function PublicarPageBase({
     if (!h) return;
     const hCap = capitalizeBR(h);
     if (hCap !== values.hotel) setField("hotel", hCap);
+    if (lastHotelRef.current === h) return;
+    lastHotelRef.current = h;
     const hUrl = await fetchImgHotel(h);
     if (hUrl) {
+      hotelImgRef.current = hUrl;
       setField("imgfundo", hUrl);
-      return;
+    } else {
+      hotelImgRef.current = "";
+      if (destinoImgRef.current) setField("imgfundo", destinoImgRef.current);
     }
-    const dUrl = await fetchImgFundo(values.destino?.trim() || "");
-    if (dUrl) setField("imgfundo", dUrl);
   }
 
   const { fields, set, servicos, setServicos } = useFormAdapter({
