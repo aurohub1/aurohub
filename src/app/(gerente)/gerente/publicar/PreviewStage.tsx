@@ -360,12 +360,20 @@ function resolveElSrc(src: string | undefined, values: Record<string, string>): 
   return src;
 }
 
+const NAME_IMGFUNDO = new Set(["imgfundo", "fundo", "background", "bg"]);
+const NAME_IMGHOTEL = new Set(["imghotel", "hotel"]);
+
 function resolveImage(
   el: EditorElement,
   values: Record<string, string>,
   badgeUrls: Record<string, string>,
   feriadoUrls: Record<string, string>,
 ): string | undefined {
+  // Resolução por name: se o elemento tem name que indica fundo ou hotel, usa values diretamente.
+  const elName = ((el as any).name as string | undefined)?.toLowerCase().trim();
+  if (elName && NAME_IMGFUNDO.has(elName) && values.imgfundo) return values.imgfundo;
+  if (elName && NAME_IMGHOTEL.has(elName) && values.imghotel) return values.imghotel;
+
   const bp = el.bindParam || (el as any).imageBind;
   if (!bp) return resolveElSrc(el.src, values);
 
@@ -717,7 +725,7 @@ interface Props {
 }
 
 export default function PreviewStage({ schema, width, height, values, maxDisplay = 420, onReady }: Props) {
-  console.log('[PreviewStage] schema elements:', schema?.elements?.map(e => ({ type: e.type, bindParam: e.bindParam, imageBind: (e as any).imageBind, src: (e as any).src })));
+  console.log('[PreviewStage] schema elements:', schema?.elements?.filter(e => e.type === 'image' || e.type === 'imageBind').map(e => ({ type: e.type, bindParam: e.bindParam, imageBind: (e as any).imageBind, src: (e as any).src })));
   console.log('[PreviewStage] values.imgfundo:', values?.imgfundo);
 
   const stageRef = useRef<Konva.Stage | null>(null);
