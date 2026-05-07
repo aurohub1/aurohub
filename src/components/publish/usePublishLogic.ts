@@ -220,13 +220,18 @@ export function usePublishLogic(
 
       for (const target of targets) {
         const folderId = DRIVE_FOLDERS[target.id]?.[formType];
-        if (folderId) {
-          await fetch("/api/drive/upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imageBase64: dataUrl, fileName, folderId }),
-          });
+        if (!folderId) {
+          setStatus("error");
+          setStatusMsg(`Pasta do Drive não configurada para "${target.name}" (${formType})`);
+          setBusy(false);
+          return;
         }
+        const res = await fetch("/api/drive/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64: dataUrl, fileName, folderId }),
+        });
+        if (!res.ok) throw new Error("Falha no upload para o Drive");
       }
 
       setStatus("publishing");
