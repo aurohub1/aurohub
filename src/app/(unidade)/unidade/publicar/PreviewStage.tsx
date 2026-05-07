@@ -713,6 +713,7 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
   }, [schema.elements, values]);
 
   useEffect(() => {
+    document.fonts.load('700 1em "Helvetica Neue"');
     document.fonts.load('800 1em "Helvetica Neue"');
     document.fonts.load('900 1em "Helvetica Neue"');
   }, []);
