@@ -243,7 +243,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   const rawText = animState.textClip !== undefined ? (el.text || "").slice(0, animState.textClip) : (el.text || "");
   const resolvedText = previewValues
     ? (el.bindParam
-        ? (rawText || previewValues[el.bindParam] || "")
+        ? (rawText && !(rawText.startsWith('[') && rawText.endsWith(']')) ? rawText : (previewValues[el.bindParam] ?? ""))
         : replacePreviewBinds(rawText, previewValues))
     : rawText;
   const displayText = (() => {
