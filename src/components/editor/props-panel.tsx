@@ -297,7 +297,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
                   color: s.textTransform === tc ? "#fff" : "var(--ed-txt2)",
                   cursor: "pointer",
                 }}>
-                {tc === "none" ? "Aa" : tc === "uppercase" ? "AA" : tc === "lowercase" ? "aa" : "Ab"}
+                {tc === "none" ? "Aa" : tc === "uppercase" ? "AA" : tc === "lowercase" ? "aa" : "Aa_"}
               </button>
             ))}
           </div>
