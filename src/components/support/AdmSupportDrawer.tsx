@@ -192,9 +192,8 @@ export default function AdmSupportDrawer({ isOpen, minimized, onClose, onMinimiz
     <div
       role="dialog"
       aria-label="Suporte ADM"
-      style={{ display: isOpen ? "flex" : "none", width: 360, height: minimized ? 48 : 560 }}
+      style={{ display: isOpen ? "flex" : "none", width: 360, height: minimized ? 48 : 560, background: "var(--bg1)" }}
       className="fixed bottom-4 right-[50px] z-[9999] flex-col rounded-2xl shadow-2xl overflow-hidden"
-      style={{ background: "var(--bg1)" }}
     >
       {/* ── Header ── */}
       <div
