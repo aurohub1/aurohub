@@ -1177,10 +1177,10 @@ export function PacoteForm({
         <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>
           <Field label="Tipo de Hospedagem *" asSection>
             <SearchableSelect
-              value={(fields.tipohospedagem as string) || "Hotel"}
+              value={(fields.tipohospedagem as string) || "Hotel:"}
               onChange={(v) => set("tipohospedagem", v)}
-              options={["Hotel", "Pousada", "Resort", "Apart-hotel", "Flat", "Chalé", "Hostel", "Fazenda", "Lodge"]}
-              placeholder="Hotel"
+              options={["Hotel:", "Pousada:", "Resort:", "Apart-hotel:", "Flat:", "Chalé:", "Hostel:", "Fazenda:", "Lodge:"]}
+              placeholder="Hotel:"
               allowCustom
             />
           </Field>
@@ -1494,10 +1494,10 @@ export function CampanhaForm({
         <div className="px-3 py-2 border-b last:border-b-0" style={{ borderColor: "var(--bdr)" }}>
           <Field label="Tipo de Hospedagem *" asSection>
             <SearchableSelect
-              value={(fields.tipohospedagem as string) || "Hotel"}
+              value={(fields.tipohospedagem as string) || "Hotel:"}
               onChange={(v) => set("tipohospedagem", v)}
-              options={["Hotel", "Pousada", "Resort", "Apart-hotel", "Flat", "Chalé", "Hostel", "Fazenda", "Lodge"]}
-              placeholder="Hotel"
+              options={["Hotel:", "Pousada:", "Resort:", "Apart-hotel:", "Flat:", "Chalé:", "Hostel:", "Fazenda:", "Lodge:"]}
+              placeholder="Hotel:"
               allowCustom
             />
           </Field>
