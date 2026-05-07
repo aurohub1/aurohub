@@ -160,15 +160,25 @@ export function applySmartLinks(
           let nx = el.x, ny = el.y;
           switch (track.direction) {
             case "right": {
-              const tw = tgt.type === "text" ? computeTextWidth(tgt, resolvedTexts?.[tgt.id]) : tgt.width;
-              nx = tgt.x + tw + gap + ox; ny = tgt.y + oy; break;
+              if (tgt.type === "text") {
+                const tw = computeTextWidth(tgt, resolvedTexts?.[tgt.id]);
+                let textEnd: number;
+                if (tgt.align === "right")        textEnd = tgt.x + tgt.width;
+                else if (tgt.align === "center")  textEnd = tgt.x + (tgt.width + tw) / 2;
+                else                              textEnd = tgt.x + tw;
+                nx = textEnd + gap + ox;
+              } else {
+                nx = tgt.x + tgt.width + gap + ox;
+              }
+              ny = tgt.y + oy; break;
             }
             case "left": {
               if (tgt.type === "text") {
                 const tw = computeTextWidth(tgt, resolvedTexts?.[tgt.id]);
-                const textStart = tgt.align === "right"
-                  ? tgt.x + tgt.width - tw
-                  : tgt.x;
+                let textStart: number;
+                if (tgt.align === "right")        textStart = tgt.x + tgt.width - tw;
+                else if (tgt.align === "center")  textStart = tgt.x + (tgt.width - tw) / 2;
+                else                              textStart = tgt.x;
                 nx = textStart - el.width - gap + ox;
               } else {
                 nx = tgt.x - el.width - gap + ox;
