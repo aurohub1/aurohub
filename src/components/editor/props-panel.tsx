@@ -255,25 +255,10 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
           <G2>
             <F l="Tamanho"><Num v={s.fontSize || 32} c={v => u({ fontSize: v })} /></F>
             <F l="Peso">
-              <select
-                value={
-                  s.fontStyle?.match(/^\d+$/)
-                    ? s.fontStyle
-                    : s.fontStyle === "bold"
-                    ? "700"
-                    : "400"
-                }
-                onChange={e => u({ fontStyle: e.target.value })}
-                style={selS}
-              >
-                <option value="100">100 · Thin</option>
-                <option value="300">300 · Light</option>
-                <option value="400">400 · Regular</option>
-                <option value="500">500 · Medium</option>
-                <option value="700">700 · Bold</option>
-                <option value="800">800 · Heavy</option>
-                <option value="900">900 · Black</option>
-              </select>
+              <WeightSelect
+                value={s.fontStyle?.match(/^\d+$/) ? s.fontStyle : s.fontStyle === "bold" ? "700" : "400"}
+                onChange={v => u({ fontStyle: v })}
+              />
             </F>
           </G2>
 
@@ -1042,6 +1027,55 @@ function ColorSwatch({ value, onChange, label }: { value: string; onChange: (v: 
 /* ══ UI ATOMS ═════════════════════════════════════ */
 const inpS: React.CSSProperties = { width: "100%", height: 28, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", padding: "0 8px", fontSize: 11, color: "var(--ed-txt)", outline: "none", boxSizing: "border-box", textAlign: "center", transition: "border-color 0.15s" };
 const selS: React.CSSProperties = { ...inpS, cursor: "pointer", textAlign: "left" };
+
+const FONT_WEIGHTS = [
+  { value: "100", label: "Thin" },
+  { value: "200", label: "UltraLight" },
+  { value: "300", label: "Light" },
+  { value: "400", label: "Regular" },
+  { value: "500", label: "Medium" },
+  { value: "700", label: "Bold" },
+  { value: "800", label: "Heavy" },
+  { value: "900", label: "Black" },
+] as const;
+
+function WeightSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+  const current = FONT_WEIGHTS.find(w => w.value === value) ?? FONT_WEIGHTS[3];
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ ...selS, display: "flex", alignItems: "center", justifyContent: "space-between", paddingRight: 6 }}
+      >
+        <span>{current.label} {current.value}</span>
+        <span style={{ fontSize: 8, opacity: 0.5 }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200, marginTop: 2, background: "var(--ed-surface)", border: "1px solid var(--ed-bdr)", borderRadius: 6, boxShadow: "0 6px 20px rgba(0,0,0,0.4)", overflow: "hidden" }}>
+          {FONT_WEIGHTS.map(w => (
+            <div
+              key={w.value}
+              onMouseDown={() => { onChange(w.value); setOpen(false); }}
+              style={{ padding: "6px 10px", fontSize: 11, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", background: w.value === value ? "var(--ed-accent)" : "transparent", color: w.value === value ? "#000" : "var(--ed-txt)", transition: "background 0.1s" }}
+              onMouseEnter={e => { if (w.value !== value) (e.currentTarget as HTMLDivElement).style.background = "var(--ed-hover)"; }}
+              onMouseLeave={e => { if (w.value !== value) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+            >
+              <span>{w.label}</span>
+              <span style={{ fontSize: 9, opacity: 0.6, fontVariantNumeric: "tabular-nums" }}>{w.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Sec({ t, children }: { t: string; children: React.ReactNode }) {
   const [o, setO] = useState(true);
