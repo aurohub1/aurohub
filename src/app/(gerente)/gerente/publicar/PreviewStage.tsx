@@ -560,7 +560,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             text={intPart}
             fontSize={fSize}
             fontFamily={_ff}
-            fontStyle={resolveKonvaFontStyle(el)}
+            fontStyle={el.fontStyle || "normal"}
             {...fillProps}
             width={el.width}
             align={el.align ?? "left"}
@@ -576,7 +576,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             text={`,${decPart}`}
             fontSize={decSize}
             fontFamily={_ff}
-            fontStyle={resolveKonvaFontStyle(el)}
+            fontStyle={el.fontStyle || "normal"}
             {...fillProps}
             letterSpacing={el.letterSpacing ?? 0}
             verticalAlign={el.verticalAlign ?? "top"}
