@@ -566,7 +566,16 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
           <ParameterView schema={schema} onUpdate={updateElement} onExport={onExport ? handleExport : undefined} onExportJpg={onExportJpg ? handleExportJpg : undefined} />
         ) : (
           <PropsPanel
-            selected={selected} canvasW={width} canvasH={height} allElements={schema.elements}
+            selected={selected} canvasW={width} canvasH={height} allElements={schema.elements.flatMap(el => {
+              if (el.priceDisplay && el.bindParam && ["valorparcela", "valorint"].includes(el.bindParam)) {
+                return [
+                  el,
+                  { ...el, id: el.id + "_int", name: "[valorint] inteiro", bindParam: "valorint" },
+                  { ...el, id: el.id + "_dec", name: "[valdec] decimal", bindParam: "valdec" },
+                ];
+              }
+              return [el];
+            })}
             onUpdate={cascadeUpdateElement} onAlign={alignSelected}
             activeTab={propsTab} onTabChange={setPropsTab}
             selectedCount={selectedIds.length}
