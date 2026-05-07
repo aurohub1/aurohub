@@ -131,10 +131,10 @@
 @font-face { font-family: "Helvetica Neue"; font-weight: 500; font-style: italic; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEMEDIUMITALIC_zeeleq.OTF") format("opentype"); font-display: swap; }
 @font-face { font-family: "Helvetica Neue"; font-weight: 700; font-style: normal; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBOLD_mzadvj.OTF") format("opentype"); font-display: swap; }
 @font-face { font-family: "Helvetica Neue"; font-weight: 700; font-style: italic; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBOLDITALIC_qpu01w.OTF") format("opentype"); font-display: swap; }
-@font-face { font-family: "Helvetica Neue"; font-weight: 800; font-style: normal; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEHEAVY_q77zuw.OTF") format("opentype"); font-display: swap; }
-@font-face { font-family: "Helvetica Neue"; font-weight: 800; font-style: italic; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEHEAVYITALIC_irq69g.OTF") format("opentype"); font-display: swap; }
-@font-face { font-family: "Helvetica Neue"; font-weight: 900; font-style: normal; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBLACK_os5dq7.OTF") format("opentype"); font-display: swap; }
-@font-face { font-family: "Helvetica Neue"; font-weight: 900; font-style: italic; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBLACKITALIC_pd4dtg.OTF") format("opentype"); font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; font-weight: 800; font-style: normal; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEHEAVY_q77zuw.OTF") format("opentype"); font-display: optional; }
+@font-face { font-family: "Helvetica Neue"; font-weight: 800; font-style: italic; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEHEAVYITALIC_irq69g.OTF") format("opentype"); font-display: optional; }
+@font-face { font-family: "Helvetica Neue"; font-weight: 900; font-style: normal; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBLACK_os5dq7.OTF") format("opentype"); font-display: optional; }
+@font-face { font-family: "Helvetica Neue"; font-weight: 900; font-style: italic; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBLACKITALIC_pd4dtg.OTF") format("opentype"); font-display: optional; }
 
 html {
   height: 100%;

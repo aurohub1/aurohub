@@ -264,7 +264,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           displayText || el.text || "",
           el.width,
           el.linhas,
-          el.fontFamily || "Helvetica Neue",
+          el.fontFamily || '"Helvetica Neue", Arial, Helvetica, sans-serif',
           el.fontStyle || "normal",
           baseFont,
           el.lineHeight || 1.2
@@ -280,7 +280,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
       wrap="word"
       ellipsis={!!el.linhas}
-      text={displayText} fontSize={fSize} fontFamily={el.fontFamily || "Helvetica Neue"} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+      text={displayText} fontSize={fSize} fontFamily={el.fontFamily || '"Helvetica Neue", Arial, Helvetica, sans-serif'} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "rect") {
     const linkedText = el.autoHeightRef

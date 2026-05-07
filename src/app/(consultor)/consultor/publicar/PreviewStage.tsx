@@ -480,7 +480,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
           txt,
           el.width,
           el.linhas,
-          el.fontFamily ?? "DM Sans",
+          el.fontFamily ?? "Helvetica Neue",
           el.fontStyle ?? "normal",
           baseFont
         )
@@ -491,7 +491,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
       const intPart = resolveBindParam("valorint", values);
       const decPart = resolveBindParam("valdec", values);
       const decSize = Math.round(fSize * 0.38);
-      const _ff = el.fontFamily ?? "DM Sans";
+      const _ff = el.fontFamily ?? "Helvetica Neue";
       let wInt = 0;
       if (typeof document !== "undefined") {
         const _ctx = document.createElement("canvas").getContext("2d");
@@ -542,7 +542,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
       const intPart = (parts[0] || "").trim() || "—";
       const decPart = "," + ((parts[1] || "00").trim() || "00");
       const smallSize = Math.round(fSize * 26 / 44);  // V1 ratio 26/44
-      const ff = el.fontFamily ?? "DM Sans";
+      const ff = el.fontFamily ?? "Helvetica Neue";
       const accent = el.fill || "#000";
       // Branco real — colorMap substitui #ffffff → P.text se paleta tiver .text
       const decFill = "#ffffff";
@@ -603,7 +603,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
         rotation={el.rotation ?? 0}
         text={txt}
         fontSize={fSize}
-        fontFamily={el.fontFamily ?? "DM Sans"}
+        fontFamily={el.fontFamily ?? "Helvetica Neue"}
         fontStyle={resolveKonvaFontStyle(el)}
         textDecoration={el.textDecoration ?? ""}
         {...getFillProps(el.fill, el.width, el.height)}
