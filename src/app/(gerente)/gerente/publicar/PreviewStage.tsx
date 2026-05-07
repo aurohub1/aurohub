@@ -105,14 +105,13 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return ',' + String(dec).padStart(2, '0');
     }
 
-    // Valor total formatado: "ou R$ X.XXX,XX por pessoa apto. duplo"
     case "valortotalfmt": {
       const raw = values.totalduplo || values.totalcruzeiro || "";
       const nums = raw.replace(/\D/g, "");
       if (!nums) return "";
       const n = parseInt(nums, 10);
       const fmt = Math.floor(n / 100).toLocaleString("pt-BR") + "," + String(n % 100).padStart(2, "0");
-      const sufixo = values.totalcruzeiro ? "por pessoa" : "por pessoa apto. duplo";
+      const sufixo = values.totalcruzeiro ? "por pessoa cabine dupla" : "por pessoa apto. duplo";
       return `ou R$ ${fmt} ${sufixo}`;
     }
 
@@ -194,7 +193,9 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     case "valor_total_texto":
     case "valortotaltexto": {
       const v = (values.valortotal as string) || '';
-      return v ? `ou R$ ${v} por pessoa apto. duplo.` : '';
+      if (!v) return '';
+      const isCruzeiro = !!(values.cruzeiro_total || values.valortotal_cruzeiro);
+      return `ou R$ ${v} por pessoa ${isCruzeiro ? "cabine dupla" : "apto. duplo"}.`;
     }
     case "cruzeiro_total":
     case "valortotal_cruzeiro": {
