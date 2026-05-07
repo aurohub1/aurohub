@@ -28,7 +28,7 @@ export interface EditorElement {
   // Text
   text?: string; fontSize?: number; fontFamily?: string; fontStyle?: string; priceDisplay?: boolean; hideIfEmpty?: boolean;
   fill?: string | GradientFill; align?: string; verticalAlign?: string;
-  letterSpacing?: number; lineHeight?: number;
+  letterSpacing?: number; lineHeight?: number; paddingH?: number; paddingV?: number;
   linhas?: number;  // número fixo de linhas — limita altura do texto (0/undefined = livre)
   textDecoration?: string; textTransform?: TextCase;
   // Image

@@ -610,6 +610,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
         verticalAlign={el.verticalAlign ?? "top"}
         letterSpacing={el.letterSpacing ?? 0}
         lineHeight={el.lineHeight ?? 1.2}
+        padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)}
         opacity={el.opacity ?? 1}
         shadowColor={el.shadow?.color}
         shadowBlur={el.shadow?.blur ?? 0}

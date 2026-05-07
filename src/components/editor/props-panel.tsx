@@ -322,6 +322,10 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
           <F l="Linhas máx">
             <Num v={s.linhas || 0} min={0} max={20} c={v => u({ linhas: v || undefined })} />
           </F>
+          <G2>
+            <F l="Padding H"><Num v={s.paddingH ?? 0} min={0} c={v => u({ paddingH: v })} /></F>
+            <F l="Padding V"><Num v={s.paddingV ?? 0} min={0} c={v => u({ paddingV: v })} /></F>
+          </G2>
 
           {/* 7. Stroke */}
           <G2>
