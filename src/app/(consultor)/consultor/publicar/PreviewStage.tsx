@@ -130,7 +130,8 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
 
     // Texto de pagamento derivado
     case "textopagamento": {
-      const forma = values.formapagamento || "";
+      const rawForma0 = values.formapagamento || "";
+      const forma = rawForma0 === "cartao" ? "Cartão de Crédito" : rawForma0 === "boleto" ? "Boleto" : rawForma0 === "debito" ? "Débito" : rawForma0;
       const entrada = values.entrada || "";
       if (forma === "Boleto" && entrada) {
         const nums = entrada.replace(/\D/g, "");
@@ -218,7 +219,8 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     }
 
     case "formapagamento": {
-      const forma = values.formapagamento || "";
+      const rawForma = values.formapagamento || "";
+      const forma = rawForma === "cartao" ? "Cartão de Crédito" : rawForma === "boleto" ? "Boleto" : rawForma === "debito" ? "Débito" : rawForma;
       const entrada = values.entrada || "";
       if (forma === "Boleto" && entrada) {
         const nums = entrada.replace(/\D/g, "");

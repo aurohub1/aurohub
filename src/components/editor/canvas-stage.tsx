@@ -198,6 +198,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   if (el.visible === false) return null;
 
   const common = {
+    id: el.id,
     ref: shapeRef as React.RefObject<Konva.Node>,
     x: el.x + animState.offsetX, y: el.y + animState.offsetY,
     rotation: (el.rotation || 0) + animState.rotation,
@@ -269,7 +270,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       : baseFont;
     const textFillProps = getFillProps(el.fill || "#FFF", el.width, el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : fSize * (el.lineHeight || 1.2));
     return <Text ref={shapeRef as React.RefObject<Konva.Text>}
-      x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
+      id={el.id} x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
       shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled}
       onDragMove={common.onDragMove} onDragEnd={common.onDragEnd} onTransformEnd={common.onTransformEnd}
       onClick={(e) => onClick(e)} onDblClick={() => { if (!playing && !el.locked) { const t = prompt("Editar texto:", el.text || ""); if (t !== null) onChange({ text: t }); } }}
