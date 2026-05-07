@@ -271,16 +271,27 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
         )
       : baseFont;
     const textFillProps = getFillProps(el.fill || "#FFF", el.width, el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : fSize * (el.lineHeight || 1.2));
-    return <Text ref={shapeRef as React.RefObject<Konva.Text>}
-      id={el.id} x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
-      shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled}
-      onDragMove={common.onDragMove} onDragEnd={common.onDragEnd} onTransformEnd={common.onTransformEnd}
-      onClick={(e) => onClick(e)} onDblClick={() => { if (!playing && !el.locked) { const t = prompt("Editar texto:", el.text || ""); if (t !== null) onChange({ text: t }); } }}
-      width={el.width}
-      height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
-      wrap="word"
-      ellipsis={!!el.linhas}
-      text={displayText} fontSize={fSize} fontFamily={el.fontFamily || '"Helvetica Neue", Arial, Helvetica, sans-serif'} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)} />;
+    const textBgHeight = el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : el.height;
+    return <>
+      {el.textBg && (
+        <Rect
+          x={common.x} y={common.y} rotation={common.rotation}
+          width={el.width} height={textBgHeight}
+          fill={el.textBg} opacity={(el.textBgOpacity ?? 100) / 100}
+          listening={false}
+        />
+      )}
+      <Text ref={shapeRef as React.RefObject<Konva.Text>}
+        id={el.id} x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
+        shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled}
+        onDragMove={common.onDragMove} onDragEnd={common.onDragEnd} onTransformEnd={common.onTransformEnd}
+        onClick={(e) => onClick(e)} onDblClick={() => { if (!playing && !el.locked) { const t = prompt("Editar texto:", el.text || ""); if (t !== null) onChange({ text: t }); } }}
+        width={el.width}
+        height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
+        wrap="word"
+        ellipsis={!!el.linhas}
+        text={displayText} fontSize={fSize} fontFamily={el.fontFamily || '"Helvetica Neue", Arial, Helvetica, sans-serif'} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)} />
+    </>;
   }
   if (el.type === "rect") {
     const linkedText = el.autoHeightRef

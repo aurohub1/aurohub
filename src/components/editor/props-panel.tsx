@@ -313,6 +313,12 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
 
           {/* 5. Cor */}
           <F l="Cor texto"><FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
+          <G2>
+            <F l="Fundo do texto">
+              <ColorSwatch value={s.textBg || "#000000"} onChange={v => u({ textBg: v || undefined })} />
+            </F>
+            <F l="Opac. fundo"><Num v={s.textBgOpacity ?? 100} min={0} max={100} c={v => u({ textBgOpacity: v })} /></F>
+          </G2>
 
           {/* 6. Espaçamento */}
           <G2>

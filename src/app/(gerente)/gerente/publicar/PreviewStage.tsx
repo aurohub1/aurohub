@@ -658,32 +658,42 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
     const textHeight = el.linhas ? Math.ceil(fSize * (el.lineHeight ?? 1.2) * el.linhas) : Math.ceil(fSize * (el.lineHeight ?? 1.2));
     const textFillProps = getFillProps(el.fill, el.width, textHeight);
     return (
-      <KText
-        x={el.x} y={el.y}
-        width={el.width}
-        height={el.linhas ? textHeight : undefined}
-        wrap="word"
-        ellipsis={!!el.linhas}
-        rotation={el.rotation ?? 0}
-        text={txt}
-        fontSize={fSize}
-        fontFamily={el.fontFamily ?? "Helvetica Neue"}
-        fontStyle={resolveKonvaFontStyle(el)}
-        textDecoration={el.textDecoration ?? ""}
-        {...textFillProps}
-        stroke={el.stroke}
-        strokeWidth={el.strokeWidth ?? 0}
-        align={el.align ?? "left"}
-        verticalAlign={el.verticalAlign ?? "top"}
-        letterSpacing={el.letterSpacing ?? 0}
-        lineHeight={el.lineHeight ?? 1.2}
-        padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)}
-        opacity={el.opacity ?? 1}
-        shadowColor={el.shadow?.color}
-        shadowBlur={el.shadow?.blur ?? 0}
-        shadowOffsetX={el.shadow?.offsetX ?? 0}
-        shadowOffsetY={el.shadow?.offsetY ?? 0}
-      />
+      <>
+        {el.textBg && (
+          <Rect
+            x={el.x} y={el.y} rotation={el.rotation ?? 0}
+            width={el.width} height={el.linhas ? textHeight : el.height}
+            fill={el.textBg} opacity={(el.textBgOpacity ?? 100) / 100}
+            listening={false}
+          />
+        )}
+        <KText
+          x={el.x} y={el.y}
+          width={el.width}
+          height={el.linhas ? textHeight : undefined}
+          wrap="word"
+          ellipsis={!!el.linhas}
+          rotation={el.rotation ?? 0}
+          text={txt}
+          fontSize={fSize}
+          fontFamily={el.fontFamily ?? "Helvetica Neue"}
+          fontStyle={resolveKonvaFontStyle(el)}
+          textDecoration={el.textDecoration ?? ""}
+          {...textFillProps}
+          stroke={el.stroke}
+          strokeWidth={el.strokeWidth ?? 0}
+          align={el.align ?? "left"}
+          verticalAlign={el.verticalAlign ?? "top"}
+          letterSpacing={el.letterSpacing ?? 0}
+          lineHeight={el.lineHeight ?? 1.2}
+          padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)}
+          opacity={el.opacity ?? 1}
+          shadowColor={el.shadow?.color}
+          shadowBlur={el.shadow?.blur ?? 0}
+          shadowOffsetX={el.shadow?.offsetX ?? 0}
+          shadowOffsetY={el.shadow?.offsetY ?? 0}
+        />
+      </>
     );
   }
 
