@@ -685,6 +685,7 @@ interface Props {
 
 export default function PreviewStage({ schema, width, height, values, maxDisplay = 420, onReady }: Props) {
   const stageRef = useRef<Konva.Stage | null>(null);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
 
   const scale = useMemo(() => {
     const byH = maxDisplay / height;
@@ -724,14 +725,18 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
   }, [schema.elements, values]);
 
   useEffect(() => {
-    document.fonts.load('700 1em "Helvetica Neue"');
-    document.fonts.load('800 1em "Helvetica Neue"');
-    document.fonts.load('900 1em "Helvetica Neue"');
+    Promise.all([
+      document.fonts.load('800 1em "Helvetica Neue"'),
+      document.fonts.load('900 1em "Helvetica Neue"'),
+      document.fonts.load('700 1em "Helvetica Neue"'),
+    ]).then(() => setFontsLoaded(true));
   }, []);
 
   useEffect(() => {
     if (stageRef.current && onReady) onReady(stageRef.current);
   }, [onReady]);
+
+  if (!fontsLoaded) return <div>Carregando...</div>;
 
   return (
     <Stage
