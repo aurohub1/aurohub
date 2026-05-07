@@ -34,9 +34,6 @@ interface PlanFull {
   name: string;
   max_users: number;
   max_posts_day: number;
-  max_feed_reels_day: number;
-  max_stories_day: number;
-  is_enterprise: boolean;
 }
 interface Noticia { title: string; url: string; image?: string | null; source?: string; }
 
@@ -225,7 +222,7 @@ export default function ClienteInicioPage() {
         supabase.from("licensees").select("expires_at").eq("id", p.licensee_id).single(),
         // 3. Plano completo
         slug
-          ? supabase.from("plans").select("slug, name, max_users, max_posts_day, max_feed_reels_day, max_stories_day, is_enterprise").eq("slug", slug).single()
+          ? supabase.from("plans").select("slug, name, max_users, max_posts_day").eq("slug", slug).single()
           : Promise.resolve({ data: null as PlanFull | null, error: null }),
         // 4. Stores (best-effort city/active, fallback id/name)
         (async (): Promise<StoreRow[]> => {
@@ -283,17 +280,17 @@ export default function ClienteInicioPage() {
       if (licResult.data) setExpiresAt((licResult.data as { expires_at: string | null }).expires_at ?? null);
       if (planResult.data) setPlanFull(planResult.data as PlanFull);
 
-      if (planResult.data) {
-        const plan = planResult.data as PlanFull;
-        const fr = plan.max_feed_reels_day ?? 0;
-        const st = plan.max_stories_day ?? 0;
-        setPostLimits({
-          stories: st >= 99 ? 9999 : st,
-          feed: fr,
-          reels: fr,
-          tv: plan.is_enterprise ? (plan.max_posts_day || 999) : 0,
-        });
-      }
+      const { data: limits } = await supabase
+        .from("profiles")
+        .select("limit_stories, limit_feed, limit_reels, limit_tv")
+        .eq("id", p.id)
+        .single();
+      if (limits) setPostLimits({
+        stories: (limits as any).limit_stories ?? 0,
+        feed:    (limits as any).limit_feed    ?? 0,
+        reels:   (limits as any).limit_reels   ?? 0,
+        tv:      (limits as any).limit_tv      ?? 0,
+      });
       setStores(storeRows);
       setUsers((usersResult.data ?? []) as UserRow[]);
 
