@@ -15,6 +15,7 @@ interface Props {
   onShiftSelect: (id: string) => void;
   onMultiSelect?: (ids: string[]) => void;
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
+  onMultiUpdate?: (updates: { id: string; x: number; y: number }[]) => void;
   onStageRef: (r: Konva.Stage | null) => void;
   onScaleChange: (s: number) => void;
   previewValues?: Record<string, string>;
@@ -172,7 +173,7 @@ function getAnimState(el: EditorElement, time: number): AnimState {
 }
 
 /* ── Per-element renderer (NO Transformer inside) ── */
-function RenderElement({ el, allElements, playing, animState, onClick, onChange, onRegisterRef, onDragMoveSnap, onDragEndClear, previewValues }: {
+function RenderElement({ el, allElements, playing, animState, onClick, onChange, onRegisterRef, onDragMoveSnap, onDragEndClear, onDragEndUpdate, previewValues }: {
   el: EditorElement;
   allElements: EditorElement[];
   playing: boolean;
@@ -182,6 +183,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   onRegisterRef: (id: string, node: Konva.Node | null) => void;
   onDragMoveSnap: (id: string, rawX: number, rawY: number) => { x: number; y: number };
   onDragEndClear: () => void;
+  onDragEndUpdate: (id: string, x: number, y: number) => void;
   previewValues?: Record<string, string>;
 }) {
   const shapeRef = useRef<Konva.Node>(null);
@@ -226,7 +228,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     },
     onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
       onDragEndClear();
-      onChange({ x: e.target.x() - animState.offsetX, y: e.target.y() - animState.offsetY });
+      onDragEndUpdate(el.id, e.target.x() - animState.offsetX, e.target.y() - animState.offsetY);
     },
     onTransformEnd: () => {
       const n = shapeRef.current!;
@@ -450,13 +452,13 @@ export default function CanvasStage(p: Props) {
   const [guides, setGuides] = useState<SnapLine[]>([]);
 
   const handleDragMoveSnap = useCallback((id: string, rawX: number, rawY: number) => {
-    if (!snapEnabled) return { x: rawX, y: rawY };
+    if (!snapEnabled || selectedIds.length > 1) return { x: rawX, y: rawY };
     const el = schema.elements.find(e => e.id === id);
     if (!el) return { x: rawX, y: rawY };
     const r = calcSnapLines({ id, x: rawX, y: rawY, width: el.width, height: el.height }, schema.elements, width, height);
     setGuides(r.lines);
     return { x: r.x, y: r.y };
-  }, [schema.elements, width, height, snapEnabled]);
+  }, [schema.elements, width, height, snapEnabled, selectedIds]);
 
   const handleDragEndClear = useCallback(() => setGuides([]), []);
 
@@ -474,6 +476,36 @@ export default function CanvasStage(p: Props) {
       p.onUpdate(depId, patch);
     }
   }, [schema.elements, p.onUpdate]);
+
+  // Multi-drag batching: coleta todas as posições finais e aplica em um único update
+  const pendingMultiDragRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const multiDragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDragEndUpdate = useCallback((id: string, x: number, y: number) => {
+    if (selectedIds.length < 2) {
+      cascadeUpdate(id, { x, y });
+      return;
+    }
+    // Multi-select: acumula e usa setTimeout para coletar todos os dragEnd do mesmo ciclo
+    pendingMultiDragRef.current.set(id, { x, y });
+    if (multiDragTimerRef.current) clearTimeout(multiDragTimerRef.current);
+    multiDragTimerRef.current = setTimeout(() => {
+      multiDragTimerRef.current = null;
+      const updates: { id: string; x: number; y: number }[] = [];
+      for (const selId of selectedIds) {
+        const pending = pendingMultiDragRef.current.get(selId);
+        if (pending) {
+          updates.push({ id: selId, ...pending });
+        } else {
+          // Nó foi movido pelo Transformer mas não disparou dragEnd — lê posição do Konva
+          const node = nodeRefs.current.get(selId);
+          if (node) updates.push({ id: selId, x: node.x(), y: node.y() });
+        }
+      }
+      pendingMultiDragRef.current.clear();
+      p.onMultiUpdate?.(updates);
+    }, 0);
+  }, [selectedIds, cascadeUpdate, p.onMultiUpdate]);
 
   useEffect(() => {
     if (stageRef.current) stageRef.current.position({ x: 0, y: 0 });
@@ -648,6 +680,7 @@ export default function CanvasStage(p: Props) {
               onRegisterRef={registerRef}
               onDragMoveSnap={handleDragMoveSnap}
               onDragEndClear={handleDragEndClear}
+              onDragEndUpdate={handleDragEndUpdate}
               previewValues={p.previewValues} />
           ))}
           {snapEnabled && guides.map((g, i) => (

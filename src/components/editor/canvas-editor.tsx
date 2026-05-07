@@ -147,6 +147,16 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     changeSchema({ ...schemaRef.current, elements: schemaRef.current.elements.map(el => el.id === id ? { ...el, ...attrs } : el) });
   }, [changeSchema]);
 
+  const multiUpdateElements = useCallback((updates: { id: string; x: number; y: number }[]) => {
+    changeSchema({
+      ...schemaRef.current,
+      elements: schemaRef.current.elements.map(el => {
+        const u = updates.find(u => u.id === el.id);
+        return u ? { ...el, x: u.x, y: u.y } : el;
+      }),
+    });
+  }, [changeSchema]);
+
   const addElement = useCallback((el: EditorElement) => {
     changeSchema({ ...schemaRef.current, elements: [...schemaRef.current.elements, el] });
     selectSingle(el.id);
@@ -498,6 +508,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
           snapEnabled={snapEnabled}
           onSelect={selectSingle} onShiftSelect={shiftSelect} onMultiSelect={selectMultiple}
           onUpdate={updateElement}
+          onMultiUpdate={multiUpdateElements}
           onStageRef={(r) => { stageRef.current = r; }}
           onScaleChange={setStageScale}
           previewValues={PREVIEW_DEFAULTS}
