@@ -164,8 +164,16 @@ export function applySmartLinks(
               nx = tgt.x + tw + gap + ox; ny = tgt.y + oy; break;
             }
             case "left": {
-              const tw = tgt.type === "text" ? computeTextWidth(tgt, resolvedTexts?.[tgt.id]) : 0;
-              nx = tgt.x + tw - el.width - gap + ox; ny = tgt.y + oy; break;
+              if (tgt.type === "text") {
+                const tw = computeTextWidth(tgt, resolvedTexts?.[tgt.id]);
+                const textStart = tgt.align === "right"
+                  ? tgt.x + tgt.width - tw
+                  : tgt.x;
+                nx = textStart - el.width - gap + ox;
+              } else {
+                nx = tgt.x - el.width - gap + ox;
+              }
+              ny = tgt.y + oy; break;
             }
             case "down":  nx = tgt.x + ox; ny = tgt.y + computeTextHeight(tgt) + gap + oy; break;
             case "up":    nx = tgt.x + ox; ny = tgt.y - el.height - gap + oy; break;
