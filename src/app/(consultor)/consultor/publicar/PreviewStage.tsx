@@ -400,9 +400,14 @@ function applyLamColorMap(el: EditorElement, map: Record<string, string>): Edito
 
 function resolveKonvaFontStyle(el: any): string {
   const style: string = el.fontStyle || '';
-  // Passa direto valores não-triviais: pesos numéricos ("800"), "italic", "bold italic", etc.
-  if (style && style !== 'normal') return style;
-  // Fallback: lê fontWeight separado (usado em alguns schemas antigos)
+  const numericWeight = parseInt(style, 10);
+  // Peso numérico puro ("700", "800", "900") → Konva só aceita "bold" ou "normal"
+  if (!isNaN(numericWeight) && style.trim() === String(numericWeight)) {
+    return numericWeight >= 700 ? 'bold' : 'normal';
+  }
+  // Valores nativos Konva: passa direto
+  if (style === 'bold' || style === 'italic' || style === 'bold italic') return style;
+  // Fallback: fontWeight separado (schemas antigos)
   const weight = el.fontWeight;
   const isBold = weight === 'bold' || Number(weight) >= 700;
   return isBold ? 'bold' : 'normal';
@@ -709,6 +714,11 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
     }
     return els;
   }, [schema.elements, values]);
+
+  useEffect(() => {
+    document.fonts.load('800 1em "Helvetica Neue"');
+    document.fonts.load('900 1em "Helvetica Neue"');
+  }, []);
 
   useEffect(() => {
     if (stageRef.current && onReady) onReady(stageRef.current);

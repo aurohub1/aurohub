@@ -400,7 +400,11 @@ function applyLamColorMap(el: EditorElement, map: Record<string, string>): Edito
 
 function resolveKonvaFontStyle(el: any): string {
   const style: string = el.fontStyle || '';
-  if (style && style !== 'normal') return style;
+  const numericWeight = parseInt(style, 10);
+  if (!isNaN(numericWeight) && style.trim() === String(numericWeight)) {
+    return numericWeight >= 700 ? 'bold' : 'normal';
+  }
+  if (style === 'bold' || style === 'italic' || style === 'bold italic') return style;
   const weight = el.fontWeight;
   const isBold = weight === 'bold' || Number(weight) >= 700;
   return isBold ? 'bold' : 'normal';
@@ -707,6 +711,11 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
     }
     return els;
   }, [schema.elements, values]);
+
+  useEffect(() => {
+    document.fonts.load('800 1em "Helvetica Neue"');
+    document.fonts.load('900 1em "Helvetica Neue"');
+  }, []);
 
   useEffect(() => {
     if (stageRef.current && onReady) onReady(stageRef.current);
