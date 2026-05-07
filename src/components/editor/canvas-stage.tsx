@@ -210,7 +210,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     draggable: !playing && !el.locked,
     // onClick/onTap handled per-element below
     shadowColor: el.shadow?.color, shadowOffsetX: el.shadow?.offsetX, shadowOffsetY: el.shadow?.offsetY, shadowBlur: el.shadow?.blur, shadowEnabled: !!el.shadow,
-    // globalCompositeOperation applied via node attrs
+    globalCompositeOperation: (el.blendMode || "source-over") as GlobalCompositeOperation,
     onDragStart: (e: Konva.KonvaEventObject<DragEvent>) => {
       // Cancela drag se foi iniciado com botão do meio (pan do canvas)
       if (e.evt.button === 1) {

@@ -614,7 +614,18 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
       <Sec t="Efeitos">
         <F l="Blend Mode">
           <select value={s.blendMode || "source-over"} onChange={e => u({ blendMode: e.target.value as BlendMode })} style={selS}>
-            {BLEND_MODES.map(m => <option key={m} value={m}>{m}</option>)}
+            <option value="source-over">Normal</option>
+            <option value="multiply">Multiply</option>
+            <option value="screen">Screen</option>
+            <option value="overlay">Overlay</option>
+            <option value="darken">Darken</option>
+            <option value="lighten">Lighten</option>
+            <option value="color-dodge">Color Dodge</option>
+            <option value="color-burn">Color Burn</option>
+            <option value="hard-light">Hard Light</option>
+            <option value="soft-light">Soft Light</option>
+            <option value="difference">Difference</option>
+            <option value="exclusion">Exclusion</option>
           </select>
         </F>
         <G2><F l="Skew X"><Num v={s.skewX || 0} c={v => u({ skewX: v })} /></F><F l="Skew Y"><Num v={s.skewY || 0} c={v => u({ skewY: v })} /></F></G2>
