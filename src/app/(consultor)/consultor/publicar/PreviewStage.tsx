@@ -101,12 +101,12 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     }
 
     case "valortotalfmt": {
-      const raw = values.totalduplo || values.totalcruzeiro || "";
+      const raw = values.totalduplo || values.cruzeiro_total || values.valortotal_cruzeiro || "";
       const nums = raw.replace(/\D/g, "");
       if (!nums) return "";
       const n = parseInt(nums, 10);
       const fmt = Math.floor(n / 100).toLocaleString("pt-BR") + "," + String(n % 100).padStart(2, "0");
-      const sufixo = values.totalcruzeiro ? "por pessoa cabine dupla" : "por pessoa apto. duplo";
+      const sufixo = (values.cruzeiro_total || values.valortotal_cruzeiro) ? "por pessoa cabine dupla" : "por pessoa apto. duplo";
       return `ou R$ ${fmt} ${sufixo}`;
     }
 
@@ -417,7 +417,7 @@ function resolveKonvaFontStyle(el: any): string {
   return isBold ? 'bold' : 'normal';
 }
 
-function RenderEl({ el, values }: { el: EditorElement; values: Record<string, string> }) {
+function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<string, string>; formType?: string }) {
   if (el.visible === false) return null;
   if (el.hideIfEmpty && el.bindParam && !values[el.bindParam] && !DYNAMIC_BADGES.has(el.bindParam)) return null;
 
@@ -471,6 +471,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
 
   if (el.type === "text") {
     let txt = resolveText(el, values);
+    if (formType === "cruzeiro") txt = txt.replace(/apto\.? duplo/gi, "cabine dupla");
     // Se tem bindParam mas valor está vazio, não renderiza
     if (!txt) return null;
     const baseFont = el.fontSize ?? 24;
@@ -754,7 +755,7 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
       <Layer>
         <Rect x={0} y={0} width={width} height={height} fill={schema.background || "#fff"} />
         {resolvedElements.map((el) => (
-          <RenderEl key={el.id} el={el} values={values} />
+          <RenderEl key={el.id} el={el} values={values} formType={schema.formType} />
         ))}
       </Layer>
     </Stage>
