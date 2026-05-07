@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Stage, Layer, Rect, Circle, Text, Image as KImage, Transformer, Line, Group } from "react-konva";
 import type Konva from "konva";
 import QRCode from "qrcode";
-import { EditorElement, EditorSchema, SnapLine, calcSnapLines, applySmartLinks, computeTextHeight, GradientFill } from "./types";
+import { EditorElement, EditorSchema, SnapLine, calcSnapLines, computeTextHeight, GradientFill } from "./types";
 
 interface Props {
   width: number; height: number;
@@ -460,43 +460,10 @@ export default function CanvasStage(p: Props) {
 
   const handleDragEndClear = useCallback(() => setGuides([]), []);
 
-  // Wrapper: aplica update no elemento + propaga smart-links (track/resize) nos dependentes
+  // p.onUpdate já é cascadeUpdateElement — propaga smart-links em uma única chamada
   const cascadeUpdate = useCallback((id: string, attrs: Partial<EditorElement>) => {
     p.onUpdate(id, attrs);
-    const geomKeys: (keyof EditorElement)[] = ["x","y","width","height","text","bindParam","linhas","fontSize","lineHeight"];
-    // Smart-config keys: mudar esses em B exige recalcular B partindo dos seus targets
-    const smartConfigKeys: (keyof EditorElement)[] = [
-      "smartTrack","smartTrackOffsetX","smartTrackOffsetY",
-      "smartResize","textAnchor","autoHeightRef",
-    ];
-    const nextElements = schema.elements.map(e => e.id === id ? { ...e, ...attrs } : e);
-    const el = nextElements.find(e => e.id === id);
-
-    // Propaga dependentes normais (geomKeys): o elemento mudou → atualiza quem segue ele
-    const affectsGeom = geomKeys.some(k => k in attrs);
-    if (affectsGeom && el) {
-      const patches = applySmartLinks(id, nextElements);
-      for (const [depId, patch] of Object.entries(patches)) {
-        p.onUpdate(depId, patch);
-      }
-    }
-
-    // Propaga config smart (smartConfigKeys): B mudou sua própria config → recalcula B via target
-    const affectsConfig = smartConfigKeys.some(k => k in attrs);
-    if (affectsConfig && el) {
-      const targetIds = new Set<string>();
-      if (el.smartTrack?.targetId) targetIds.add(el.smartTrack.targetId);
-      if (el.textAnchor?.targetId) targetIds.add(el.textAnchor.targetId);
-      if (el.autoHeightRef) targetIds.add(el.autoHeightRef);
-      if (el.smartResize?.targetId) targetIds.add(el.smartResize.targetId);
-      for (const tgtId of targetIds) {
-        const patches = applySmartLinks(tgtId, nextElements);
-        for (const [depId, patch] of Object.entries(patches)) {
-          p.onUpdate(depId, patch);
-        }
-      }
-    }
-  }, [schema.elements, p.onUpdate]);
+  }, [p.onUpdate]);
 
   // Multi-drag batching: coleta todas as posições finais e aplica em um único update
   const pendingMultiDragRef = useRef<Map<string, { x: number; y: number }>>(new Map());

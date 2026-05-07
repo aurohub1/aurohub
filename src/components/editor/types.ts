@@ -104,6 +104,14 @@ export function applySmartLinks(
     return elements.find(e => e.id === id);
   };
 
+  const followers = elements.filter(el =>
+    el.smartTrack?.targetId === sourceId ||
+    el.smartResize?.targetId === sourceId ||
+    el.textAnchor?.targetId === sourceId ||
+    el.autoHeightRef === sourceId
+  );
+  console.log('[smartLinks] chamado para id:', sourceId, 'seguidores encontrados:', followers.length, followers.map(f => ({ id: f.id, name: f.name, smartTrack: f.smartTrack, smartResize: f.smartResize })));
+
   let dirty = new Set<string>([sourceId]);
   for (let pass = 0; pass < maxPasses && dirty.size > 0; pass++) {
     const next = new Set<string>();
