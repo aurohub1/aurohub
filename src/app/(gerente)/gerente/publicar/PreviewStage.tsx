@@ -562,9 +562,14 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             fontFamily={_ff}
             fontStyle={resolveKonvaFontStyle(el)}
             {...fillProps}
+            width={el.width}
             align={el.align ?? "left"}
             letterSpacing={el.letterSpacing ?? 0}
             lineHeight={el.lineHeight ?? 1.2}
+            verticalAlign={el.verticalAlign ?? "top"}
+            textDecoration={el.textDecoration ?? ""}
+            stroke={el.stroke}
+            strokeWidth={el.strokeWidth ?? 0}
           />
           <KText
             x={Math.round(wInt)}
@@ -574,6 +579,9 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             fontStyle={resolveKonvaFontStyle(el)}
             {...fillProps}
             letterSpacing={el.letterSpacing ?? 0}
+            verticalAlign={el.verticalAlign ?? "top"}
+            stroke={el.stroke}
+            strokeWidth={el.strokeWidth ?? 0}
           />
         </Group>
       );
