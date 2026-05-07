@@ -123,7 +123,13 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     setHistory(h => { const n = [...h.slice(0, historyIdx + 1), s].slice(-HISTORY_LIMIT); setHistoryIdx(n.length - 1); return n; });
   }, [historyIdx]);
 
-  const changeSchema = useCallback((s: EditorSchema) => { onChange(s); pushHistory(s); }, [onChange, pushHistory]);
+  const changeSchema = useCallback((s: EditorSchema) => {
+    const prev = schemaRef.current;
+    const changed = s.elements.filter(e => { const o = prev.elements.find(p => p.id === e.id); return !o || o.x !== e.x || o.y !== e.y || o.width !== e.width || o.height !== e.height; }).map(e => e.id);
+    if (changed.length > 0) console.log('[changeSchema] elementos movidos/redimensionados:', changed);
+    onChange(s);
+    pushHistory(s);
+  }, [onChange, pushHistory]);
   useEffect(() => { if (history.length === 0) { setHistory([schema]); setHistoryIdx(0); } }, []);
 
   const undo = useCallback(() => { if (historyIdx <= 0) return; skipHistoryRef.current = true; setHistoryIdx(historyIdx - 1); onChange(history[historyIdx - 1]); }, [historyIdx, history, onChange]);
@@ -156,9 +162,12 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
       "smartResize","textAnchor","autoHeightRef",
     ];
 
+    console.log('[cascade] keys alteradas:', Object.keys(attrs), 'é geomKey?', Object.keys(attrs).some(k => geomKeys.includes(k as keyof EditorElement)), 'é smartConfig?', Object.keys(attrs).some(k => smartConfigKeys.includes(k as keyof EditorElement)));
+
     const base = schemaRef.current.elements;
     const nextElements = base.map(e => e.id === id ? { ...e, ...attrs } : e);
     const el = nextElements.find(e => e.id === id);
+    console.log('[cascade] elemento encontrado:', el?.id, el?.name, '| smartTrack:', el?.smartTrack, '| smartResize:', el?.smartResize);
 
     // Acumula patches de todos os dependentes afetados
     const allPatches: Record<string, Partial<EditorElement>> = {};
@@ -178,10 +187,13 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
       }
     }
 
+    console.log('[cascade] allPatches:', allPatches);
+    // Aplica o elemento editado + todos os patches de cascata num único changeSchema
     const patchedElements = nextElements.map(e =>
       allPatches[e.id] ? { ...e, ...allPatches[e.id] } : e
     );
     changeSchema({ ...schemaRef.current, elements: patchedElements });
+    console.log('[changeSchema] estado atualizado, novo schema:', Object.keys(allPatches));
   }, [changeSchema]);
 
   const multiUpdateElements = useCallback((updates: { id: string; x: number; y: number }[]) => {

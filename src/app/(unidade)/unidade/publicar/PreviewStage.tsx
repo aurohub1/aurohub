@@ -698,7 +698,6 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
   // Preview-time smart-links: recalcula altura real de textos expansíveis (servicoslista)
   // e propaga para elementos com smartTrack/smartResize apontando para eles.
   const resolvedElements = useMemo(() => {
-    if (!schema?.elements) return [];
     // Detecta Card WhatsApp pelo bindParam — se alguma tem lam_*, colorMap está ativo.
     const isLam = schema.elements.some(e => e.bindParam?.startsWith("lam_"));
     const paletteIdx = isLam ? parseInt(values.lam_palette || "0", 10) || 0 : 0;
