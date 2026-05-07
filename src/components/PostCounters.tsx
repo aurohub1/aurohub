@@ -7,58 +7,72 @@ type Format = "stories" | "feed" | "reels" | "tv";
 
 interface PostCountersProps {
   userId: string;
+  planSlug?: string;
   className?: string;
 }
 
-export function PostCounters({ userId, className = "" }: PostCountersProps) {
+export function PostCounters({ userId, planSlug, className = "" }: PostCountersProps) {
   const [postCounts, setPostCounts] = useState({ stories: 0, feed: 0, reels: 0, tv: 0 });
   const [postLimits, setPostLimits] = useState({ stories: 0, feed: 0, reels: 0, tv: 0 });
 
   useEffect(() => {
     if (!userId) return;
 
-    // Buscar contadores de posts do mês atual
     const inicioMes = new Date();
     inicioMes.setDate(1);
     inicioMes.setHours(0, 0, 0, 0);
 
-    Promise.all([
-      // Contadores
-      supabase
+    async function load() {
+      // Contadores do mês
+      const { data: logs } = await supabase
         .from("activity_logs")
         .select("metadata")
         .gte("created_at", inicioMes.toISOString())
-        .in("event_type", ["post_instagram", "post_scheduled"]),
-      // Limites
-      supabase
-        .from("profiles")
-        .select("limit_stories, limit_feed, limit_reels, limit_tv")
-        .eq("id", userId)
-        .single(),
-    ])
-      .then(([logsRes, limitsRes]) => {
-        // Contar posts por formato
-        const counts = { stories: 0, feed: 0, reels: 0, tv: 0 };
-        (logsRes.data ?? []).forEach((log: any) => {
-          if (log.metadata?.user_id === userId) {
-            const fmt = log.metadata?.format as Format;
-            if (fmt && fmt in counts) counts[fmt]++;
-          }
-        });
-        setPostCounts(counts);
+        .in("event_type", ["post_instagram", "post_scheduled"]);
 
-        // Limites do plano
-        if (limitsRes.data) {
+      const counts = { stories: 0, feed: 0, reels: 0, tv: 0 };
+      (logs ?? []).forEach((log: any) => {
+        if (log.metadata?.user_id === userId) {
+          const fmt = log.metadata?.format as Format;
+          if (fmt && fmt in counts) counts[fmt]++;
+        }
+      });
+      setPostCounts(counts);
+
+      // Limites do plano
+      const slug =
+        planSlug ??
+        await (async () => {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("licensee_id, licensees(plan_slug, plan)")
+            .eq("id", userId)
+            .single();
+          const lic = (prof as any)?.licensees;
+          return lic?.plan_slug || lic?.plan || null;
+        })();
+
+      if (slug) {
+        const { data: plan } = await supabase
+          .from("plans")
+          .select("max_posts_day, max_feed_reels_day, max_stories_day, is_enterprise")
+          .eq("slug", slug)
+          .single();
+        if (plan) {
+          const fr = (plan as any).max_feed_reels_day ?? 0;
+          const st = (plan as any).max_stories_day ?? 0;
           setPostLimits({
-            stories: limitsRes.data.limit_stories ?? 0,
-            feed: limitsRes.data.limit_feed ?? 0,
-            reels: limitsRes.data.limit_reels ?? 0,
-            tv: limitsRes.data.limit_tv ?? 0,
+            stories: st >= 99 ? 9999 : st,
+            feed: fr,
+            reels: fr,
+            tv: (plan as any).is_enterprise ? ((plan as any).max_posts_day || 999) : 0,
           });
         }
-      })
-      .catch((err) => console.error("[PostCounters]", err));
-  }, [userId]);
+      }
+    }
+
+    load().catch((err) => console.error("[PostCounters]", err));
+  }, [userId, planSlug]);
 
   const items = [
     { l: "Stories", k: "stories" as Format, c: "var(--brand-primary)" },

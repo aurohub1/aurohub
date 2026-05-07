@@ -453,7 +453,7 @@ export default function GerenteInicioPage() {
           <div className="mb-3 text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">
             Posts do mês por formato
           </div>
-          <PostCounters userId={profile.id} />
+          <PostCounters userId={profile.id} planSlug={profile.licensee?.plan_slug ?? (profile.licensee as any)?.plan ?? undefined} />
         </div>
       )}
 

@@ -337,19 +337,23 @@ export default function PublicarPageBase({
 
         // Buscar limites do plano
         try {
-          const { data: limits } = await supabase
-            .from("profiles")
-            .select("limit_stories, limit_feed, limit_reels, limit_tv")
-            .eq("id", p.id)
-            .single();
-
-          if (limits) {
-            setPostLimits({
-              stories: limits.limit_stories ?? 0,
-              feed: limits.limit_feed ?? 0,
-              reels: limits.limit_reels ?? 0,
-              tv: limits.limit_tv ?? 0,
-            });
+          const slug = p.licensee?.plan_slug || (p.licensee as any)?.plan;
+          if (slug) {
+            const { data: plan } = await supabase
+              .from("plans")
+              .select("max_posts_day, max_feed_reels_day, max_stories_day, is_enterprise")
+              .eq("slug", slug)
+              .single();
+            if (plan) {
+              const fr = (plan as any).max_feed_reels_day ?? 0;
+              const st = (plan as any).max_stories_day ?? 0;
+              setPostLimits({
+                stories: st >= 99 ? 9999 : st,
+                feed: fr,
+                reels: fr,
+                tv: (plan as any).is_enterprise ? ((plan as any).max_posts_day || 999) : 0,
+              });
+            }
           }
         } catch (err) {
           console.error("[Post limits]", err);
