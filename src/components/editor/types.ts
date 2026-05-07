@@ -66,6 +66,8 @@ export interface EditorElement {
   animEasing?: EasingType; animRepeat?: number;
   // Smart Links
   smartTrack?: { targetId: string; direction: "right"|"left"|"down"|"up"; gap: number };
+  smartTrackOffsetX?: number;
+  smartTrackOffsetY?: number;
   smartResize?: { targetId: string; direction: "vertical"|"horizontal"; padding: number };
   // Text Anchor — este elemento começa onde target termina (A.end → B.start)
   textAnchor?: { targetId: string; position: "after"|"below" };
@@ -113,13 +115,15 @@ export function applySmartLinks(
       if (anchor && dirty.has(anchor.targetId)) {
         const tgt = getEl(anchor.targetId);
         if (tgt) {
+          const ox = el.smartTrackOffsetX ?? 0;
+          const oy = el.smartTrackOffsetY ?? 0;
           let nx = el.x, ny = el.y;
           if (anchor.position === "after") {
-            nx = tgt.x + tgt.width;
-            ny = tgt.y;
+            nx = tgt.x + tgt.width + ox;
+            ny = tgt.y + oy;
           } else {
-            nx = tgt.x;
-            ny = tgt.y + computeTextHeight(tgt);
+            nx = tgt.x + ox;
+            ny = tgt.y + computeTextHeight(tgt) + oy;
           }
           if (nx !== el.x || ny !== el.y) {
             patches[el.id] = { ...(patches[el.id] || {}), x: nx, y: ny };
@@ -131,12 +135,14 @@ export function applySmartLinks(
         const tgt = getEl(track.targetId);
         if (tgt) {
           const gap = track.gap ?? 0;
+          const ox = el.smartTrackOffsetX ?? 0;
+          const oy = el.smartTrackOffsetY ?? 0;
           let nx = el.x, ny = el.y;
           switch (track.direction) {
-            case "right": nx = tgt.x + tgt.width + gap; ny = tgt.y; break;
-            case "left":  nx = tgt.x - el.width - gap; ny = tgt.y; break;
-            case "down":  nx = tgt.x; ny = tgt.y + computeTextHeight(tgt) + gap; break;
-            case "up":    nx = tgt.x; ny = tgt.y - el.height - gap; break;
+            case "right": nx = tgt.x + tgt.width + gap + ox; ny = tgt.y + oy; break;
+            case "left":  nx = tgt.x - el.width - gap + ox; ny = tgt.y + oy; break;
+            case "down":  nx = tgt.x + ox; ny = tgt.y + computeTextHeight(tgt) + gap + oy; break;
+            case "up":    nx = tgt.x + ox; ny = tgt.y - el.height - gap + oy; break;
           }
           if (nx !== el.x || ny !== el.y) {
             patches[el.id] = { ...(patches[el.id] || {}), x: nx, y: ny };

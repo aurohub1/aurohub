@@ -675,6 +675,10 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
               />
             </F>
           </G2>
+          <G2>
+            <F l="X Offset"><Num v={s.smartTrackOffsetX ?? 0} c={v => u({ smartTrackOffsetX: v })} /></F>
+            <F l="Y Offset"><Num v={s.smartTrackOffsetY ?? 0} c={v => u({ smartTrackOffsetY: v })} /></F>
+          </G2>
           {!s.smartTrack && (
             <div style={{ fontSize: 8, color: "var(--ed-txt3)", marginTop: 2, fontStyle: "italic" }}>
               Selecione um alvo para ativar
