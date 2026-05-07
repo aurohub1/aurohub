@@ -152,8 +152,6 @@ export function applySmartLinks(
             case "down":  nx = tgt.x + ox; ny = tgt.y + computeTextHeight(tgt) + gap + oy; break;
             case "up":    nx = tgt.x + ox; ny = tgt.y - el.height - gap + oy; break;
           }
-          const patch = { x: nx, y: ny };
-          console.log('[smartLinks] patch gerado para seguidor:', el.id, el.name, JSON.stringify(patch), '| tgt pos:', tgt.x, tgt.y, '| gap:', gap, '| dir:', track.direction);
           if (nx !== el.x || ny !== el.y) {
             patches[el.id] = { ...(patches[el.id] || {}), x: nx, y: ny };
             next.add(el.id);
