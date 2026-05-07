@@ -193,6 +193,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
       allPatches[e.id] ? { ...e, ...allPatches[e.id] } : e
     );
     changeSchema({ ...schemaRef.current, elements: patchedElements });
+    console.log('[changeSchema] estado atualizado, novo schema:', Object.keys(allPatches));
   }, [changeSchema]);
 
   const multiUpdateElements = useCallback((updates: { id: string; x: number; y: number }[]) => {
