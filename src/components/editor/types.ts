@@ -119,7 +119,7 @@ export function applySmartLinks(
             ny = tgt.y;
           } else {
             nx = tgt.x;
-            ny = tgt.y + tgt.height;
+            ny = tgt.y + computeTextHeight(tgt);
           }
           if (nx !== el.x || ny !== el.y) {
             patches[el.id] = { ...(patches[el.id] || {}), x: nx, y: ny };
@@ -135,7 +135,7 @@ export function applySmartLinks(
           switch (track.direction) {
             case "right": nx = tgt.x + tgt.width + gap; ny = tgt.y; break;
             case "left":  nx = tgt.x - el.width - gap; ny = tgt.y; break;
-            case "down":  nx = tgt.x; ny = tgt.y + tgt.height + gap; break;
+            case "down":  nx = tgt.x; ny = tgt.y + computeTextHeight(tgt) + gap; break;
             case "up":    nx = tgt.x; ny = tgt.y - el.height - gap; break;
           }
           if (nx !== el.x || ny !== el.y) {
