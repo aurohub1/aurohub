@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Stage, Layer, Rect, Circle, Text, Image as KImage, Transformer, Line, Group } from "react-konva";
 import type Konva from "konva";
 import QRCode from "qrcode";
-import { EditorElement, EditorSchema, SnapLine, calcSnapLines, applySmartLinks, GradientFill } from "./types";
+import { EditorElement, EditorSchema, SnapLine, calcSnapLines, applySmartLinks, computeTextHeight, GradientFill } from "./types";
 
 interface Props {
   width: number; height: number;
@@ -286,9 +286,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     const linkedText = el.autoHeightRef
       ? allElements.find(e => e.id === el.autoHeightRef && e.type === "text")
       : null;
-    const rectHeight = linkedText?.linhas
-      ? Math.ceil((linkedText.fontSize || 32) * (linkedText.lineHeight || 1.2) * linkedText.linhas)
-      : el.height;
+    const rectHeight = linkedText ? computeTextHeight(linkedText) : el.height;
     const rectFillProps = getFillProps(el.fill, el.width, rectHeight);
     return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={rectHeight} {...rectFillProps} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
@@ -466,7 +464,7 @@ export default function CanvasStage(p: Props) {
   const cascadeUpdate = useCallback((id: string, attrs: Partial<EditorElement>) => {
     p.onUpdate(id, attrs);
     // Só propaga se a mudança afeta geometria ou conteúdo
-    const geomKeys: (keyof EditorElement)[] = ["x","y","width","height","text","bindParam","linhas","fontSize"];
+    const geomKeys: (keyof EditorElement)[] = ["x","y","width","height","text","bindParam","linhas","fontSize","lineHeight"];
     const affects = geomKeys.some(k => k in attrs);
     if (!affects) return;
     // Clona lista com o update aplicado para calcular cascata com valores novos

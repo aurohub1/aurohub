@@ -72,8 +72,20 @@ export interface EditorElement {
 }
 
 /**
+ * Calcula a altura real de renderização de um elemento de texto.
+ * Quando `linhas` está definido, a altura é determinada por fontSize × lineHeight × linhas.
+ * Para outros tipos ou texto livre, retorna el.height.
+ */
+export function computeTextHeight(el: EditorElement): number {
+  if (el.type === "text" && el.linhas) {
+    return Math.ceil((el.fontSize || 32) * (el.lineHeight || 1.2) * el.linhas);
+  }
+  return el.height;
+}
+
+/**
  * Cascade smart-link updates após mudança de um elemento.
- * Percorre todos os elementos; para cada um que tenha smartTrack/smartResize
+ * Percorre todos os elementos; para cada um que tenha smartTrack/smartResize/autoHeightRef
  * apontando para o elemento fonte, gera um patch para reposicionar/redimensionar.
  *
  * Retorna um mapa `{ [id]: Partial<EditorElement> }` com todos os patches derivados.
@@ -137,7 +149,7 @@ export function applySmartLinks(
         if (tgt) {
           const pad = resize.padding ?? 0;
           if (resize.direction === "vertical") {
-            const nh = Math.max(1, tgt.height + pad * 2);
+            const nh = Math.max(1, computeTextHeight(tgt) + pad * 2);
             if (nh !== el.height) {
               patches[el.id] = { ...(patches[el.id] || {}), height: nh };
               next.add(el.id);
@@ -148,6 +160,16 @@ export function applySmartLinks(
               patches[el.id] = { ...(patches[el.id] || {}), width: nw };
               next.add(el.id);
             }
+          }
+        }
+      }
+      if (el.autoHeightRef && dirty.has(el.autoHeightRef)) {
+        const tgt = getEl(el.autoHeightRef);
+        if (tgt) {
+          const nh = computeTextHeight(tgt);
+          if (nh !== el.height) {
+            patches[el.id] = { ...(patches[el.id] || {}), height: nh };
+            next.add(el.id);
           }
         }
       }
