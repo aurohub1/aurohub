@@ -36,12 +36,12 @@ export function usePublishLogic(
     const stage = stageRef.current;
     if (!stage) return null;
     try {
-      await Promise.all([
-        document.fonts.load('400 1em "Helvetica Neue"'),
-        document.fonts.load('700 1em "Helvetica Neue"'),
-        document.fonts.load('800 1em "Helvetica Neue"'),
-        document.fonts.load('900 1em "Helvetica Neue"'),
-      ]);
+      const fonts = [
+        new FontFace("Helvetica Neue", "url(https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBOLD_mzadvj.OTF)", { weight: "700" }),
+        new FontFace("Helvetica Neue", "url(https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEHEAVY_q77zuw.OTF)", { weight: "800" }),
+        new FontFace("Helvetica Neue", "url(https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBLACK_os5dq7.OTF)", { weight: "900" }),
+      ];
+      await Promise.all(fonts.map(f => f.load().then(loaded => document.fonts.add(loaded))));
       await document.fonts.ready;
     } catch { /* continua mesmo sem a fonte */ }
     const scale = stage.scaleX() || 1;
