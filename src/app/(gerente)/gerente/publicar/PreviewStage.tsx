@@ -407,9 +407,6 @@ function resolveImage(
   if (el.src && !IMG_BIND_KEYS.has(el.src)) return el.src;
 
   const val = values[bp];
-  if (bp === "imgfundo" || bp === "imghotel") {
-    console.log(`[PreviewStage resolveImage] bp=${bp} values[bp]=${val} → retornando:`, val || "undefined");
-  }
   if (val) return val;
   return undefined;
 }
@@ -693,9 +690,6 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
   if (el.type === "imageBind") {
     const bp = el.bindParam || (el as any).imageBind;
     if (!bp) return null;
-    if (bp === "imgfundo" || bp === "imghotel") {
-      console.log(`[PreviewStage imageBind] bp=${bp} values[bp]=${values[bp]} el.src=${el.src}`);
-    }
     if (!bp.endsWith("_badge")) {
       if (!values[bp] && !el.src) return null;
       if (!values[bp] && el.hideIfEmpty) return null;
@@ -756,8 +750,6 @@ interface Props {
 }
 
 export default function PreviewStage({ schema, width, height, values, maxDisplay = 420, onReady }: Props) {
-  console.log('[PreviewStage] schema elements:', schema?.elements?.filter(e => e.type === 'image' || e.type === 'imageBind').map(e => ({ type: e.type, bindParam: e.bindParam, imageBind: (e as any).imageBind, src: (e as any).src })));
-  console.log('[PreviewStage] values.imgfundo:', values?.imgfundo);
 
   const stageRef = useRef<Konva.Stage | null>(null);
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -771,6 +763,7 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
   // Preview-time smart-links: recalcula altura real de textos expansíveis (servicoslista)
   // e propaga para elementos com smartTrack/smartResize apontando para eles.
   const resolvedElements = useMemo(() => {
+    if (!schema?.elements) return [];
     // Detecta Card WhatsApp pelo bindParam — se alguma tem lam_*, colorMap está ativo.
     const isLam = schema.elements.some(e => e.bindParam?.startsWith("lam_"));
     const paletteIdx = isLam ? parseInt(values.lam_palette || "0", 10) || 0 : 0;
@@ -803,9 +796,6 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
       const patches = applySmartLinks(tgtId, els);
       els = els.map(e => patches[e.id] ? { ...e, ...patches[e.id] } : e);
     }
-    const parsEl = els.find(e => e.bindParam === 'parcelas');
-    const valEl = els.find(e => e.bindParam === 'valorint');
-    console.log('[preview smartlinks] parcelas x:', parsEl?.x, 'valorint x:', valEl?.x, 'valorint width:', valEl?.width);
     return els;
   }, [schema.elements, values]);
 

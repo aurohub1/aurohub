@@ -104,14 +104,6 @@ export function applySmartLinks(
     return elements.find(e => e.id === id);
   };
 
-  const followers = elements.filter(el =>
-    el.smartTrack?.targetId === sourceId ||
-    el.smartResize?.targetId === sourceId ||
-    el.textAnchor?.targetId === sourceId ||
-    el.autoHeightRef === sourceId
-  );
-  console.log('[smartLinks] chamado para id:', sourceId, 'seguidores encontrados:', followers.length, followers.map(f => ({ id: f.id, name: f.name, smartTrack: f.smartTrack, smartResize: f.smartResize })));
-
   let dirty = new Set<string>([sourceId]);
   for (let pass = 0; pass < maxPasses && dirty.size > 0; pass++) {
     const next = new Set<string>();
@@ -152,8 +144,6 @@ export function applySmartLinks(
             case "down":  nx = tgt.x + ox; ny = tgt.y + computeTextHeight(tgt) + gap + oy; break;
             case "up":    nx = tgt.x + ox; ny = tgt.y - el.height - gap + oy; break;
           }
-          const patch = { x: nx, y: ny };
-          console.log('[smartLinks] patch gerado para seguidor:', el.id, el.name, JSON.stringify(patch), '| tgt pos:', tgt.x, tgt.y, '| gap:', gap, '| dir:', track.direction);
           if (nx !== el.x || ny !== el.y) {
             patches[el.id] = { ...(patches[el.id] || {}), x: nx, y: ny };
             next.add(el.id);
