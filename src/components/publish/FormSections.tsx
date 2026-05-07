@@ -847,34 +847,38 @@ export function PagamentoSection({
       )}
 
       {(showParcelas || showValorParc) && (
-        <div className="grid grid-cols-2 gap-2">
+        <div style={{ display: "flex", gap: "8px" }}>
           {showParcelas && (
-            <Field label="Parcelas *">
-              <SearchableSelect
-                value={(fields.parcelas as string) || ""}
-                onChange={(v) => set("parcelas", v)}
-                options={PARCELAS_OPTS_FORM}
-                placeholder="Selecionar..."
-                readOnly
-              />
-            </Field>
+            <div style={{ flex: "0 0 40%" }}>
+              <Field label="Parcelas *">
+                <SearchableSelect
+                  value={(fields.parcelas as string) || ""}
+                  onChange={(v) => set("parcelas", v)}
+                  options={PARCELAS_OPTS_FORM}
+                  placeholder="Selecionar..."
+                  readOnly
+                />
+              </Field>
+            </div>
           )}
           {showValorParc && (
-            <Field label="Valor da Parcela *">
-              <input
-                type="text"
-                value={(fields.valorparcela as string) || ""}
-                onChange={(e) => set("valorparcela", e.target.value)}
-                onBlur={(e) => {
-                  const f = applyPriceMask(e.target.value);
-                  set("valorparcela", f.formatted || e.target.value);
-                  set("valorint", f.valorint);
-                  set("valdec", f.valdec);
-                }}
-                placeholder="ex. 890,00"
-                className={INPUT_CLASS}
-              />
-            </Field>
+            <div style={{ flex: 1 }}>
+              <Field label="Valor da Parcela *">
+                <input
+                  type="text"
+                  value={(fields.valorparcela as string) || ""}
+                  onChange={(e) => set("valorparcela", e.target.value)}
+                  onBlur={(e) => {
+                    const f = applyPriceMask(e.target.value);
+                    set("valorparcela", f.formatted || e.target.value);
+                    set("valorint", f.valorint);
+                    set("valdec", f.valdec);
+                  }}
+                  placeholder="ex. 890,00"
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            </div>
           )}
         </div>
       )}
@@ -1295,38 +1299,42 @@ export function PacoteForm({
             </Field>
           )}
           {(showParcelas || showValorParc) && (
-            <div className="grid grid-cols-2 gap-2">
+            <div style={{ display: "flex", gap: "8px" }}>
               {showParcelas && (
-                <Field label="Parcelas *">
-                  <SearchableSelect
-                    value={(fields.parcelas as string) || ""}
-                    onChange={(v) => {
-                      set("parcelas", v);
-                      set("pct_parcelas", v); // Prefixado
-                    }}
-                    options={PARCELAS_OPTS}
-                    placeholder="Selecione..."
-                    readOnly
-                  />
-                </Field>
+                <div style={{ flex: "0 0 40%" }}>
+                  <Field label="Parcelas *">
+                    <SearchableSelect
+                      value={(fields.parcelas as string) || ""}
+                      onChange={(v) => {
+                        set("parcelas", v);
+                        set("pct_parcelas", v); // Prefixado
+                      }}
+                      options={PARCELAS_OPTS}
+                      placeholder="Selecione..."
+                      readOnly
+                    />
+                  </Field>
+                </div>
               )}
               {showValorParc && (
-                <Field label="Valor da Parcela">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={(fields.valorparcela as string) || ""}
-                    onChange={(e) => set("valorparcela", e.target.value)}
-                    onBlur={(e) => {
-                      const f = applyPriceMask(e.target.value);
-                      set("valorparcela", f.formatted || e.target.value);
-                      set("valorint", f.valorint);
-                      set("valdec", f.valdec);
-                    }}
-                    placeholder="ex. 890,00"
-                    className={INPUT_CLASS}
-                  />
-                </Field>
+                <div style={{ flex: 1 }}>
+                  <Field label="Valor da Parcela">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={(fields.valorparcela as string) || ""}
+                      onChange={(e) => set("valorparcela", e.target.value)}
+                      onBlur={(e) => {
+                        const f = applyPriceMask(e.target.value);
+                        set("valorparcela", f.formatted || e.target.value);
+                        set("valorint", f.valorint);
+                        set("valdec", f.valdec);
+                      }}
+                      placeholder="ex. 890,00"
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                </div>
               )}
             </div>
           )}
