@@ -399,16 +399,13 @@ function applyLamColorMap(el: EditorElement, map: Record<string, string>): Edito
 /* ── Per-element ────────────────────────────────── */
 
 function resolveKonvaFontStyle(el: any): string {
+  const style: string = el.fontStyle || '';
+  // Passa direto valores não-triviais: pesos numéricos ("800"), "italic", "bold italic", etc.
+  if (style && style !== 'normal') return style;
+  // Fallback: lê fontWeight separado (usado em alguns schemas antigos)
   const weight = el.fontWeight;
-  const style = el.fontStyle;
-
   const isBold = weight === 'bold' || Number(weight) >= 700;
-  const isItalic = style === 'italic';
-
-  if (isBold && isItalic) return 'bold italic';
-  if (isBold) return 'bold';
-  if (isItalic) return 'italic';
-  return 'normal';
+  return isBold ? 'bold' : 'normal';
 }
 
 function RenderEl({ el, values }: { el: EditorElement; values: Record<string, string> }) {
@@ -484,12 +481,19 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
       const intPart = resolveBindParam("valorint", values);
       const decPart = resolveBindParam("valdec", values);
       const decSize = Math.round(fSize * 0.38);
+      const _ff = el.fontFamily ?? "DM Sans";
+      let wInt = 0;
+      if (typeof document !== "undefined") {
+        const _ctx = document.createElement("canvas").getContext("2d");
+        if (_ctx) { _ctx.font = `${resolveKonvaFontStyle(el)} ${fSize}px "${_ff}", sans-serif`; wInt = _ctx.measureText(intPart).width; }
+      }
+      if (wInt === 0) wInt = intPart.length * fSize * 0.55;
       return (
         <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1}>
           <KText
             text={intPart}
             fontSize={fSize}
-            fontFamily={el.fontFamily ?? "DM Sans"}
+            fontFamily={_ff}
             fontStyle={resolveKonvaFontStyle(el)}
             {...getFillProps(el.fill, el.width, el.height)}
             align={el.align ?? "left"}
@@ -497,10 +501,10 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             lineHeight={el.lineHeight ?? 1.2}
           />
           <KText
-            x={intPart.length * fSize * 0.6}
+            x={Math.round(wInt)}
             text={`,${decPart}`}
             fontSize={decSize}
-            fontFamily={el.fontFamily ?? "DM Sans"}
+            fontFamily={_ff}
             fontStyle={resolveKonvaFontStyle(el)}
             {...getFillProps(el.fill, el.width, el.height)}
             letterSpacing={el.letterSpacing ?? 0}
@@ -532,7 +536,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
         if (c) {
           c.font = `normal ${smallSize}px "${ff}", sans-serif`;
           wRS = c.measureText("R$ ").width;
-          c.font = `bold ${fSize}px "${ff}", sans-serif`;
+          c.font = `${resolveKonvaFontStyle(el)} ${fSize}px "${ff}", sans-serif`;
           wInt = c.measureText(intPart).width;
         }
       }
@@ -556,7 +560,7 @@ function RenderEl({ el, values }: { el: EditorElement; values: Record<string, st
             text={intPart}
             fontSize={fSize}
             fontFamily={ff}
-            fontStyle="bold"
+            fontStyle={resolveKonvaFontStyle(el)}
             {...getFillProps(accent, el.width, el.height)}
           />
           <KText
