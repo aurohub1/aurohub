@@ -528,12 +528,8 @@ export default function PlanosPage() {
                           <MF label="Máx. usuários" value={f.max_users as string} onChange={(v) => ef(plan.id, "max_users", v)} hint="-1 = ∞" />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                          <MF label="Posts/dia" value={f.max_posts_day as string} onChange={(v) => ef(plan.id, "max_posts_day", v)} />
                           <MF label="Feed/Reels/dia" value={f.max_feed_reels_day as string} onChange={(v) => ef(plan.id, "max_feed_reels_day", v)} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
                           <MF label="Stories/dia" value={f.max_stories_day as string} onChange={(v) => ef(plan.id, "max_stories_day", v)} hint="99 = ∞" />
-                          <div />
                         </div>
                         <div className="my-0.5 h-px bg-[var(--bdr)]" />
                         <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
