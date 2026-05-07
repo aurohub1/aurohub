@@ -85,6 +85,19 @@ export function computeTextHeight(el: EditorElement): number {
   return el.height;
 }
 
+export function computeTextWidth(el: EditorElement, text?: string): number {
+  if (el.type !== "text") return el.width;
+  if (typeof document === "undefined") return el.width;
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx) return el.width;
+  const fs = el.fontSize ?? 32;
+  const fw = el.fontStyle || "normal";
+  const ff = el.fontFamily || "Helvetica Neue";
+  ctx.font = `${fw} ${fs}px ${ff}`;
+  const content = text || el.text || "";
+  return ctx.measureText(content).width;
+}
+
 /**
  * Cascade smart-link updates após mudança de um elemento.
  * Percorre todos os elementos; para cada um que tenha smartTrack/smartResize/autoHeightRef
@@ -96,7 +109,8 @@ export function computeTextHeight(el: EditorElement): number {
 export function applySmartLinks(
   sourceId: string,
   elements: EditorElement[],
-  maxPasses = 4
+  maxPasses = 4,
+  resolvedTexts?: Record<string, string>
 ): Record<string, Partial<EditorElement>> {
   const patches: Record<string, Partial<EditorElement>> = {};
   const getEl = (id: string): EditorElement | undefined => {
@@ -110,8 +124,6 @@ export function applySmartLinks(
     el.textAnchor?.targetId === sourceId ||
     el.autoHeightRef === sourceId
   );
-  console.log('[smartLinks] chamado para id:', sourceId, 'seguidores encontrados:', followers.length, followers.map(f => ({ id: f.id, name: f.name, smartTrack: f.smartTrack, smartResize: f.smartResize })));
-
   let dirty = new Set<string>([sourceId]);
   for (let pass = 0; pass < maxPasses && dirty.size > 0; pass++) {
     const next = new Set<string>();
@@ -147,8 +159,14 @@ export function applySmartLinks(
           const oy = el.smartTrackOffsetY ?? 0;
           let nx = el.x, ny = el.y;
           switch (track.direction) {
-            case "right": nx = tgt.x + tgt.width + gap + ox; ny = tgt.y + oy; break;
-            case "left":  nx = tgt.x - el.width - gap + ox; ny = tgt.y + oy; break;
+            case "right": {
+              const tw = tgt.type === "text" ? computeTextWidth(tgt, resolvedTexts?.[tgt.id]) : tgt.width;
+              nx = tgt.x + tw + gap + ox; ny = tgt.y + oy; break;
+            }
+            case "left": {
+              const tw = tgt.type === "text" ? computeTextWidth(tgt, resolvedTexts?.[tgt.id]) : 0;
+              nx = tgt.x + tw - el.width - gap + ox; ny = tgt.y + oy; break;
+            }
             case "down":  nx = tgt.x + ox; ny = tgt.y + computeTextHeight(tgt) + gap + oy; break;
             case "up":    nx = tgt.x + ox; ny = tgt.y - el.height - gap + oy; break;
           }

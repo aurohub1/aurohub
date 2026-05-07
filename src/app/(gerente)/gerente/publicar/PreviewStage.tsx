@@ -790,6 +790,14 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
         el.height = measured;
       }
     }
+    // Mapa de texto resolvido por id — para computeTextWidth no applySmartLinks
+    const resolvedTexts: Record<string, string> = {};
+    for (const el of els) {
+      if (el.type === "text" && el.bindParam) {
+        const txt = resolveBindParam(el.bindParam, values);
+        if (txt) resolvedTexts[el.id] = txt;
+      }
+    }
     // Propaga cascata de smart-links — itera pelos targetIds referenciados
     const targetIds = new Set<string>();
     for (const el of els) {
@@ -799,7 +807,7 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
       if (el.smartResize?.targetId) targetIds.add(el.smartResize.targetId);
     }
     for (const tgtId of targetIds) {
-      const patches = applySmartLinks(tgtId, els);
+      const patches = applySmartLinks(tgtId, els, 4, resolvedTexts);
       els = els.map(e => patches[e.id] ? { ...e, ...patches[e.id] } : e);
     }
     return els;
