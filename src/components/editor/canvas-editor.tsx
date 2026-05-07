@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type Konva from "konva";
-import { EditorElement, EditorSchema, genId } from "./types";
+import { EditorElement, EditorSchema, genId, applySmartLinks } from "./types";
 import Toolbar from "./toolbar";
 import ToolsPanel from "./tools-panel";
 import LayersPanel from "./layers-panel";
@@ -145,6 +145,44 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   // Element ops
   const updateElement = useCallback((id: string, attrs: Partial<EditorElement>) => {
     changeSchema({ ...schemaRef.current, elements: schemaRef.current.elements.map(el => el.id === id ? { ...el, ...attrs } : el) });
+  }, [changeSchema]);
+
+  // cascadeUpdateElement: igual ao updateElement mas propaga smart-links após a mudança.
+  // Usado pelo PropsPanel para que mudanças de offset/gap/direção reflitam imediatamente no canvas.
+  const cascadeUpdateElement = useCallback((id: string, attrs: Partial<EditorElement>) => {
+    const geomKeys: (keyof EditorElement)[] = ["x","y","width","height","text","bindParam","linhas","fontSize","lineHeight"];
+    const smartConfigKeys: (keyof EditorElement)[] = [
+      "smartTrack","smartTrackOffsetX","smartTrackOffsetY",
+      "smartResize","textAnchor","autoHeightRef",
+    ];
+
+    const base = schemaRef.current.elements;
+    const nextElements = base.map(e => e.id === id ? { ...e, ...attrs } : e);
+    const el = nextElements.find(e => e.id === id);
+
+    // Acumula patches de todos os dependentes afetados
+    const allPatches: Record<string, Partial<EditorElement>> = {};
+
+    if (geomKeys.some(k => k in attrs) && el) {
+      Object.assign(allPatches, applySmartLinks(id, nextElements));
+    }
+
+    if (smartConfigKeys.some(k => k in attrs) && el) {
+      const targetIds = new Set<string>();
+      if (el.smartTrack?.targetId) targetIds.add(el.smartTrack.targetId);
+      if (el.textAnchor?.targetId) targetIds.add(el.textAnchor.targetId);
+      if (el.autoHeightRef) targetIds.add(el.autoHeightRef);
+      if (el.smartResize?.targetId) targetIds.add(el.smartResize.targetId);
+      for (const tgtId of targetIds) {
+        Object.assign(allPatches, applySmartLinks(tgtId, nextElements));
+      }
+    }
+
+    // Aplica o elemento editado + todos os patches de cascata num único changeSchema
+    const patchedElements = nextElements.map(e =>
+      allPatches[e.id] ? { ...e, ...allPatches[e.id] } : e
+    );
+    changeSchema({ ...schemaRef.current, elements: patchedElements });
   }, [changeSchema]);
 
   const multiUpdateElements = useCallback((updates: { id: string; x: number; y: number }[]) => {
@@ -519,7 +557,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         ) : (
           <PropsPanel
             selected={selected} canvasW={width} canvasH={height} allElements={schema.elements}
-            onUpdate={updateElement} onAlign={alignSelected}
+            onUpdate={cascadeUpdateElement} onAlign={alignSelected}
             activeTab={propsTab} onTabChange={setPropsTab}
             selectedCount={selectedIds.length}
             selectedIds={selectedIds}

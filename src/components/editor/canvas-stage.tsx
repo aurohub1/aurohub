@@ -463,15 +463,38 @@ export default function CanvasStage(p: Props) {
   // Wrapper: aplica update no elemento + propaga smart-links (track/resize) nos dependentes
   const cascadeUpdate = useCallback((id: string, attrs: Partial<EditorElement>) => {
     p.onUpdate(id, attrs);
-    // Só propaga se a mudança afeta geometria ou conteúdo
     const geomKeys: (keyof EditorElement)[] = ["x","y","width","height","text","bindParam","linhas","fontSize","lineHeight"];
-    const affects = geomKeys.some(k => k in attrs);
-    if (!affects) return;
-    // Clona lista com o update aplicado para calcular cascata com valores novos
+    // Smart-config keys: mudar esses em B exige recalcular B partindo dos seus targets
+    const smartConfigKeys: (keyof EditorElement)[] = [
+      "smartTrack","smartTrackOffsetX","smartTrackOffsetY",
+      "smartResize","textAnchor","autoHeightRef",
+    ];
     const nextElements = schema.elements.map(e => e.id === id ? { ...e, ...attrs } : e);
-    const patches = applySmartLinks(id, nextElements);
-    for (const [depId, patch] of Object.entries(patches)) {
-      p.onUpdate(depId, patch);
+    const el = nextElements.find(e => e.id === id);
+
+    // Propaga dependentes normais (geomKeys): o elemento mudou → atualiza quem segue ele
+    const affectsGeom = geomKeys.some(k => k in attrs);
+    if (affectsGeom && el) {
+      const patches = applySmartLinks(id, nextElements);
+      for (const [depId, patch] of Object.entries(patches)) {
+        p.onUpdate(depId, patch);
+      }
+    }
+
+    // Propaga config smart (smartConfigKeys): B mudou sua própria config → recalcula B via target
+    const affectsConfig = smartConfigKeys.some(k => k in attrs);
+    if (affectsConfig && el) {
+      const targetIds = new Set<string>();
+      if (el.smartTrack?.targetId) targetIds.add(el.smartTrack.targetId);
+      if (el.textAnchor?.targetId) targetIds.add(el.textAnchor.targetId);
+      if (el.autoHeightRef) targetIds.add(el.autoHeightRef);
+      if (el.smartResize?.targetId) targetIds.add(el.smartResize.targetId);
+      for (const tgtId of targetIds) {
+        const patches = applySmartLinks(tgtId, nextElements);
+        for (const [depId, patch] of Object.entries(patches)) {
+          p.onUpdate(depId, patch);
+        }
+      }
     }
   }, [schema.elements, p.onUpdate]);
 
