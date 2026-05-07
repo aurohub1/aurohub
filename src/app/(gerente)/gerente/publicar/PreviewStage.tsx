@@ -790,10 +790,16 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
         el.height = measured;
       }
     }
-    // Propaga cascata de smart-links a partir de cada elemento ajustado
-    for (const src of schema.elements) {
-      if (src.type !== "text" || !src.bindParam) continue;
-      const patches = applySmartLinks(src.id, els);
+    // Propaga cascata de smart-links — itera pelos targetIds referenciados
+    const targetIds = new Set<string>();
+    for (const el of els) {
+      if (el.smartTrack?.targetId) targetIds.add(el.smartTrack.targetId);
+      if (el.textAnchor?.targetId) targetIds.add(el.textAnchor.targetId);
+      if (el.autoHeightRef) targetIds.add(el.autoHeightRef);
+      if (el.smartResize?.targetId) targetIds.add(el.smartResize.targetId);
+    }
+    for (const tgtId of targetIds) {
+      const patches = applySmartLinks(tgtId, els);
       els = els.map(e => patches[e.id] ? { ...e, ...patches[e.id] } : e);
     }
     return els;
