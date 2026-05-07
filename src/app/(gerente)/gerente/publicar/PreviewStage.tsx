@@ -268,6 +268,9 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return String(cents).padStart(2, "0");
     }
 
+    case "tipohospedagem":
+      return (values.tipohospedagem as string) || "Hotel";
+
     default: {
       const raw = values[bindParam] ?? "";
       if (raw === "– nenhum –") return "";

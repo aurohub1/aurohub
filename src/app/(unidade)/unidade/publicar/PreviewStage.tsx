@@ -234,6 +234,9 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return forma;
     }
 
+    case "tipohospedagem":
+      return (values.tipohospedagem as string) || "Hotel";
+
     default: {
       const raw = values[bindParam] ?? "";
       if (raw === "– nenhum –") return "";

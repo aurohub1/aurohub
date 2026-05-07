@@ -1046,7 +1046,7 @@ export function PacoteForm({
   const showIda = hasBind(binds, "dataida", "dataperiodo");
   const showVolta = hasBind(binds, "datavolta", "dataperiodo");
   const showHotel = hasBind(binds, "hotel", "imghotel");
-  const showTipoHospedagem = hasBind(binds, "tipohospedagem");
+  const showTipoHospedagem = showHotel || hasBind(binds, "tipohospedagem");
   const showServicos =
     !binds ||
     binds.has("servicoslista") ||
@@ -1181,7 +1181,7 @@ export function PacoteForm({
               onChange={(v) => set("tipohospedagem", v)}
               options={["Hotel", "Pousada", "Resort", "Apart-hotel", "Flat", "Chalé", "Hostel", "Fazenda", "Lodge"]}
               placeholder="Hotel"
-              readOnly
+              allowCustom
             />
           </Field>
         </div>
@@ -1407,7 +1407,7 @@ export function CampanhaForm({
   const showIda = hasBind(binds, "dataida");
   const showVolta = hasBind(binds, "datavolta");
   const showHotel = hasBind(binds, "hotel", "imghotel");
-  const showTipoHospedagem = hasBind(binds, "tipohospedagem");
+  const showTipoHospedagem = showHotel || hasBind(binds, "tipohospedagem");
   // Serviços — mostra se qualquer servico1..N estiver presente (sem binds = todos).
   const showServicos = !binds || Array.from({ length: 8 }, (_, i) => `servico${i + 1}`).some((k) => binds.has(k));
   const feriadosNormalizados = [...new Set(
@@ -1498,7 +1498,7 @@ export function CampanhaForm({
               onChange={(v) => set("tipohospedagem", v)}
               options={["Hotel", "Pousada", "Resort", "Apart-hotel", "Flat", "Chalé", "Hostel", "Fazenda", "Lodge"]}
               placeholder="Hotel"
-              readOnly
+              allowCustom
             />
           </Field>
         </div>
