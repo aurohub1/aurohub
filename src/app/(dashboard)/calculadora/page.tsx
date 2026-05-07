@@ -7,7 +7,8 @@ import { supabase } from "@/lib/supabase";
 
 interface Plan {
   id: string; slug: string; name: string;
-  price_monthly: number; max_users: number; max_posts_day: number;
+  price_monthly: number; price_setup: number; min_months: number;
+  max_users: number; max_posts_day: number;
   max_feed_reels_day?: number | null;
   max_stories_day?: number | null;
   is_internal?: boolean | null;
@@ -17,11 +18,11 @@ type Periodo = "mensal" | "anual";
 
 /* ── Constants ───────────────────────────────────── */
 
-const PLAN_DISPLAY: Record<string, { label: string; emoji: string; implant: number; fidelity: number }> = {
-  basic:      { label: "Essencial",    emoji: "🎯", implant: 2500, fidelity: 6 },
-  pro:        { label: "Profissional", emoji: "⚡", implant: 3500, fidelity: 12 },
-  business:   { label: "Franquia",     emoji: "🏢", implant: 6500, fidelity: 12 },
-  enterprise: { label: "Enterprise",   emoji: "👑", implant: 0,    fidelity: 12 },
+const SLUG_EMOJI: Record<string, string> = {
+  basic:      "🎯",
+  pro:        "⚡",
+  business:   "🏢",
+  enterprise: "👑",
 };
 
 const ADDONS = [
@@ -62,70 +63,50 @@ export default function CalculadoraPage() {
   /* ── Calc ──────────────────────────────────────── */
 
   const planData = useMemo(() => plans.find((p) => p.slug === selectedPlan), [plans, selectedPlan]);
-  const display = PLAN_DISPLAY[selectedPlan] ?? PLAN_DISPLAY.pro;
 
   const calc = useMemo(() => {
-    const base = planData?.price_monthly ?? 0;
-    const desconto = periodo === "anual" ? 0.85 : 1;
+    const base        = planData?.price_monthly ?? 0;
+    const desconto    = periodo === "anual" ? 0.85 : 1;
     const mensalidade = base * lojas * usuarios * desconto;
-    const implantacao = display.implant * lojas;
+    const implantacao = (planData?.price_setup ?? 0) * lojas;
     const addonMensal = ADDONS.filter((a) => addons.includes(a.key)).reduce((s, a) => s + a.price, 0);
     const totalMensal = mensalidade + addonMensal;
-    const meses = periodo === "anual" ? 12 : display.fidelity;
+    const meses       = periodo === "anual" ? 12 : (planData?.min_months ?? 1);
     const totalPeriodo = totalMensal * meses + implantacao;
     return { mensalidade, implantacao, addonMensal, totalMensal, totalPeriodo, meses, base };
-  }, [planData, lojas, usuarios, periodo, addons, display.implant, display.fidelity]);
+  }, [planData, lojas, usuarios, periodo, addons]);
 
   /* ── Recomendação de plano ────────────────────── */
 
   const recommendation = useMemo(() => {
     if (plans.length === 0 || !planData) return null;
 
-    const desconto = periodo === "anual" ? 0.85 : 1;
+    const desconto    = periodo === "anual" ? 0.85 : 1;
     const addonMensal = ADDONS.filter((a) => addons.includes(a.key)).reduce((s, a) => s + a.price, 0);
 
-    // Custo mensal por plano com configuração atual
-    // Null/undefined nos limites Feed/Stories = não configurado (assume ilimitado).
-    // Exclui planos internos (uso ADM apenas, sem cobrança).
     const costs = plans
-      .filter((p) => PLAN_DISPLAY[p.slug] && p.price_monthly > 0 && !p.is_internal)
+      .filter((p) => p.price_monthly > 0 && !p.is_internal)
       .map((p) => {
-        const total = p.price_monthly * lojas * usuarios * desconto + addonMensal;
-        const coversUsers = p.max_users === -1 || p.max_users >= usuarios;
-        const feedLimit = p.max_feed_reels_day;
-        const storiesLimit = p.max_stories_day;
-        const coversFeed = feedLimit == null || feedLimit === -1 || feedLimit >= feedPosts;
+        const total         = p.price_monthly * lojas * usuarios * desconto + addonMensal;
+        const coversUsers   = p.max_users === -1 || p.max_users >= usuarios;
+        const feedLimit     = p.max_feed_reels_day;
+        const storiesLimit  = p.max_stories_day;
+        const coversFeed    = feedLimit == null || feedLimit === -1 || feedLimit >= feedPosts;
         const coversStories = storiesLimit == null || storiesLimit === -1 || storiesLimit >= storiesQty;
-        const coversAll = coversUsers && coversFeed && coversStories;
+        const coversAll     = coversUsers && coversFeed && coversStories;
         return { plan: p, total, coversUsers, coversFeed, coversStories, coversAll };
       });
 
     const currentCost = costs.find((c) => c.plan.slug === selectedPlan);
-    if (!currentCost) {
-      console.log("[Calc] currentCost not found for", selectedPlan);
-      console.log("[Calc] costs", JSON.stringify(costs.map(c => ({ slug: c.plan.slug, total: c.total, coversAll: c.coversAll, coversUsers: c.coversUsers, coversFeed: c.coversFeed, coversStories: c.coversStories, max_users: c.plan.max_users, max_feed: c.plan.max_feed_reels_day, max_stories: c.plan.max_stories_day })), null, 2));
-      return null;
-    }
-
-    console.log("[Calc] config", { selectedPlan, lojas, usuarios, feedPosts, storiesQty, addons });
-    console.log("[Calc] currentCost", {
-      total: currentCost.total,
-      coversUsers: currentCost.coversUsers,
-      coversFeed: currentCost.coversFeed,
-      coversStories: currentCost.coversStories,
-      coversAll: currentCost.coversAll,
-      plan: { max_users: currentCost.plan.max_users, max_feed: currentCost.plan.max_feed_reels_day, max_stories: currentCost.plan.max_stories_day },
-    });
-    console.log("[Calc] costs", JSON.stringify(costs.map(c => ({ slug: c.plan.slug, total: c.total, coversAll: c.coversAll, coversUsers: c.coversUsers, coversFeed: c.coversFeed, coversStories: c.coversStories, max_users: c.plan.max_users, max_feed: c.plan.max_feed_reels_day, max_stories: c.plan.max_stories_day })), null, 2));
+    if (!currentCost) return null;
 
     // 1. Plano atual não cobre algum limite → upgrade forçado
     if (!currentCost.coversAll) {
       const reasons: string[] = [];
-      if (!currentCost.coversUsers) reasons.push(`${usuarios} usuários por loja`);
-      if (!currentCost.coversFeed) reasons.push(`${feedPosts} Feed/Reels por dia`);
+      if (!currentCost.coversUsers)   reasons.push(`${usuarios} usuários por loja`);
+      if (!currentCost.coversFeed)    reasons.push(`${feedPosts} Feed/Reels por dia`);
       if (!currentCost.coversStories) reasons.push(`${storiesQty} Stories por dia`);
 
-      // Preferência 1: plano que cobre TUDO, mais barato
       const fullCover = costs
         .filter((c) => c.coversAll && c.plan.slug !== selectedPlan)
         .sort((a, b) => a.total - b.total)[0];
@@ -134,15 +115,13 @@ export default function CalculadoraPage() {
           type: "upgrade" as const,
           plan: fullCover.plan,
           diff: fullCover.total - currentCost.total,
-          reason: `Seu uso excede o ${PLAN_DISPLAY[selectedPlan].label}: ${reasons.join(", ")}.`,
+          reason: `Seu uso excede o ${planData.name}: ${reasons.join(", ")}.`,
         };
       }
 
-      // Preferência 2: nenhum cobre 100% → pega o que mais melhora a dimensão faltante
       const ranked = costs
         .filter((c) => c.plan.slug !== selectedPlan)
         .map((c) => {
-          // Score = soma dos limites relevantes (null/-1 = ilimitado = 9999)
           const norm = (v: number | null | undefined) => v == null || v === -1 ? 9999 : v;
           const score =
             norm(c.plan.max_users) +
@@ -160,28 +139,27 @@ export default function CalculadoraPage() {
           type: "upgrade" as const,
           plan: best.plan,
           diff: best.total - currentCost.total,
-          reason: `Nenhum plano cobre 100% (${reasons.join(", ")}), mas o ${PLAN_DISPLAY[best.plan.slug].label} é o mais próximo.`,
+          reason: `Nenhum plano cobre 100% (${reasons.join(", ")}), mas o ${best.plan.name} é o mais próximo.`,
         };
       }
       return null;
     }
 
-    // 2. Entre os planos viáveis, o mais barato — se diferente do atual e mais barato → recomenda
+    // 2. Entre os planos viáveis, o mais barato
     const cheapest = costs
       .filter((c) => c.coversAll)
       .sort((a, b) => a.total - b.total)[0];
 
     if (cheapest && cheapest.plan.slug !== selectedPlan && cheapest.total < currentCost.total) {
-      const saving = currentCost.total - cheapest.total;
-      // Se o plano mais barato tem menos recursos, é downgrade (economia)
+      const saving      = currentCost.total - cheapest.total;
       const isDowngrade = cheapest.plan.max_users < (currentCost.plan.max_users === -1 ? Infinity : currentCost.plan.max_users);
       return {
         type: isDowngrade ? ("savings" as const) : ("better" as const),
         plan: cheapest.plan,
         diff: -saving,
         reason: isDowngrade
-          ? `Sua configuração atual (${lojas} loja${lojas > 1 ? "s" : ""}, ${usuarios} user/loja) cabe no ${PLAN_DISPLAY[cheapest.plan.slug].label}.`
-          : `O ${PLAN_DISPLAY[cheapest.plan.slug].label} oferece mais recursos pelo mesmo custo ou menos.`,
+          ? `Sua configuração atual (${lojas} loja${lojas > 1 ? "s" : ""}, ${usuarios} user/loja) cabe no ${cheapest.plan.name}.`
+          : `O ${cheapest.plan.name} oferece mais recursos pelo mesmo custo ou menos.`,
       };
     }
 
@@ -194,10 +172,12 @@ export default function CalculadoraPage() {
     const addonText = addons.length > 0
       ? ADDONS.filter((a) => addons.includes(a.key)).map((a) => `  • ${a.label}: ${brl(a.price)}/mês`).join("\n")
       : "";
+    const planName  = planData?.name ?? selectedPlan;
+    const planEmoji = SLUG_EMOJI[selectedPlan] ?? "📦";
     const text = [
       `*PROPOSTA AUROHUB*`,
       ``,
-      `*Plano:* ${display.label} ${display.emoji}`,
+      `*Plano:* ${planName} ${planEmoji}`,
       `*Lojas:* ${lojas}`,
       `*Usuários/loja:* ${usuarios}`,
       `*Período:* ${periodo === "anual" ? "Anual (15% desc)" : "Mensal"}`,
@@ -217,8 +197,9 @@ export default function CalculadoraPage() {
   }
 
   async function saveAsLead() {
+    const planName = planData?.name ?? selectedPlan;
     await supabase.from("leads").insert({
-      name: `Lead Calculadora — ${display.label}`,
+      name: `Lead Calculadora — ${planName}`,
       plan_interest: selectedPlan,
       origin: "Calculadora",
       status: "new",
@@ -244,6 +225,9 @@ export default function CalculadoraPage() {
 
   if (loading) return <div className="flex flex-1 items-center justify-center text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
+  const planName  = planData?.name ?? selectedPlan;
+  const planEmoji = SLUG_EMOJI[selectedPlan] ?? "📦";
+
   return (
     <div className="flex flex-1 items-start justify-center page-fade">
       <div className="w-full max-w-[560px] overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
@@ -255,8 +239,7 @@ export default function CalculadoraPage() {
 
         {/* Plan tabs */}
         <div className="grid grid-cols-4 border-b border-[var(--bdr)]">
-          {plans.filter((p) => PLAN_DISPLAY[p.slug]).map((p) => {
-            const d = PLAN_DISPLAY[p.slug];
+          {plans.filter((p) => !p.is_internal).map((p) => {
             const active = selectedPlan === p.slug;
             return (
               <button
@@ -265,9 +248,9 @@ export default function CalculadoraPage() {
                 className={`flex items-center justify-center gap-1.5 py-2 text-center transition-colors ${active ? "bg-[var(--bg3)]" : "hover:bg-[var(--hover-bg)]"}`}
                 style={active ? { borderBottom: "2px solid var(--orange)" } : {}}
               >
-                <span className="text-[14px]">{d.emoji}</span>
+                <span className="text-[14px]">{SLUG_EMOJI[p.slug] ?? "📦"}</span>
                 <div className="flex flex-col leading-tight">
-                  <span className={`text-[11px] font-semibold ${active ? "text-[var(--txt)]" : "text-[var(--txt3)]"}`}>{d.label}</span>
+                  <span className={`text-[11px] font-semibold ${active ? "text-[var(--txt)]" : "text-[var(--txt3)]"}`}>{p.name}</span>
                   <span className={`text-[9px] ${active ? "text-[var(--orange)]" : "text-[var(--txt3)]"}`}>
                     {p.price_monthly > 0 ? brl(p.price_monthly) : "Consulta"}
                   </span>
@@ -288,8 +271,8 @@ export default function CalculadoraPage() {
             <div className="min-w-0 flex-1 leading-tight">
               <div className="text-[11px] font-semibold text-[var(--txt)]">
                 {recommendation.type === "upgrade"
-                  ? `Troque para ${PLAN_DISPLAY[recommendation.plan.slug].label}`
-                  : `Com sua configuração, ${PLAN_DISPLAY[recommendation.plan.slug].label} ${recommendation.diff < 0 ? `economiza ${brl(Math.abs(recommendation.diff))}/mês` : "cobre seu uso"}.`}
+                  ? `Troque para ${recommendation.plan.name}`
+                  : `Com sua configuração, ${recommendation.plan.name} ${recommendation.diff < 0 ? `economiza ${brl(Math.abs(recommendation.diff))}/mês` : "cobre seu uso"}.`}
               </div>
               <div className="truncate text-[10px] text-[var(--txt3)]">{recommendation.reason}</div>
             </div>
@@ -373,7 +356,7 @@ export default function CalculadoraPage() {
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-[11px]">
               <span className="text-[var(--txt3)]">Plano base</span>
-              <span className="font-medium text-[var(--txt)]">{display.label}{periodo === "anual" ? " (anual -15%)" : ""}</span>
+              <span className="font-medium text-[var(--txt)]">{planName}{periodo === "anual" ? " (anual -15%)" : ""}</span>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="text-[var(--txt3)]">Implantação</span>
