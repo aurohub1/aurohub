@@ -803,6 +803,9 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
       const patches = applySmartLinks(tgtId, els);
       els = els.map(e => patches[e.id] ? { ...e, ...patches[e.id] } : e);
     }
+    const parsEl = els.find(e => e.bindParam === 'parcelas');
+    const valEl = els.find(e => e.bindParam === 'valorint');
+    console.log('[preview smartlinks] parcelas x:', parsEl?.x, 'valorint x:', valEl?.x, 'valorint width:', valEl?.width);
     return els;
   }, [schema.elements, values]);
 
