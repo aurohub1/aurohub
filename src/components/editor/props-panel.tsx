@@ -315,7 +315,10 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
           <F l="Cor texto"><FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
 
           {/* 6. Espaçamento */}
-          <G2><F l="Letter"><Num v={s.letterSpacing || 0} c={v => u({ letterSpacing: v })} /></F><F l="Line H"><Num v={s.lineHeight || 1.2} c={v => u({ lineHeight: v })} step={0.1} /></F></G2>
+          <G2>
+            <F l="Espaç. letras"><Num v={s.letterSpacing ?? 0} c={v => u({ letterSpacing: v })} step={0.5} /></F>
+            <F l="Altura da linha"><Num v={s.lineHeight ?? 1.2} c={v => u({ lineHeight: v })} step={0.1} /></F>
+          </G2>
           <F l="Linhas máx">
             <Num v={s.linhas || 0} min={0} max={20} c={v => u({ linhas: v || undefined })} />
           </F>
