@@ -346,14 +346,44 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     const clipShape = el.clipShape || "none";
     if (clipShape !== "none") {
       const radius = el.clipRadius ?? Math.min(el.width, el.height) * 0.25;
-      const clipFunc = clipShape === "circle"
-        ? (rawCtx: unknown) => {
+      let clipFunc: (rawCtx: unknown) => void;
+      switch (clipShape) {
+        case "circle":
+          clipFunc = (rawCtx: unknown) => {
             const ctx = rawCtx as CanvasRenderingContext2D;
             ctx.beginPath();
             ctx.ellipse(el.width / 2, el.height / 2, el.width / 2, el.height / 2, 0, 0, Math.PI * 2);
             ctx.closePath();
-          }
-        : (rawCtx: unknown) => {
+          };
+          break;
+        case "triangle":
+          clipFunc = (rawCtx: unknown) => {
+            const ctx = rawCtx as CanvasRenderingContext2D;
+            ctx.beginPath();
+            ctx.moveTo(el.width / 2, 0);
+            ctx.lineTo(el.width, el.height);
+            ctx.lineTo(0, el.height);
+            ctx.closePath();
+          };
+          break;
+        case "hexagon":
+          clipFunc = (rawCtx: unknown) => {
+            const ctx = rawCtx as CanvasRenderingContext2D;
+            const cx = el.width / 2;
+            const cy = el.height / 2;
+            const r = Math.min(el.width, el.height) / 2;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const angle = (Math.PI / 3) * i - Math.PI / 6;
+              const px = cx + r * Math.cos(angle);
+              const py = cy + r * Math.sin(angle);
+              if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+          };
+          break;
+        default: // "rounded"
+          clipFunc = (rawCtx: unknown) => {
             const ctx = rawCtx as CanvasRenderingContext2D;
             const r = Math.min(radius, el.width / 2, el.height / 2);
             ctx.beginPath();
@@ -368,6 +398,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
             ctx.quadraticCurveTo(0, 0, r, 0);
             ctx.closePath();
           };
+      }
       return (
         <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={(e) => onClick(e)} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
           <KImage image={img} x={0} y={0} width={el.width} height={el.height} crop={crop} />

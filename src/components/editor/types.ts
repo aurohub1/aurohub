@@ -35,7 +35,7 @@ export interface EditorElement {
   // Image
   src?: string; imageFit?: ImageFit;
   cropX?: number; cropY?: number; cropW?: number; cropH?: number;
-  clipShape?: "none" | "circle" | "rounded";
+  clipShape?: "none" | "circle" | "rounded" | "triangle" | "hexagon";
   clipRadius?: number;
   // QR Code
   qrUrl?: string; qrFg?: string; qrBg?: string;

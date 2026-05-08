@@ -530,6 +530,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
               <option value="none">Nenhuma</option>
               <option value="circle">Círculo</option>
               <option value="rounded">Retângulo arredondado</option>
+              <option value="triangle">Triângulo</option>
+              <option value="hexagon">Hexágono</option>
             </select>
           </F>
           {s.clipShape === "rounded" && (
@@ -606,6 +608,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
               <option value="none">Nenhuma</option>
               <option value="circle">Círculo</option>
               <option value="rounded">Retângulo arredondado</option>
+              <option value="triangle">Triângulo</option>
+              <option value="hexagon">Hexágono</option>
             </select>
           </F>
         </Sec>
