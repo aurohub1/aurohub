@@ -654,9 +654,8 @@ export default function PublicarPageBase({
     duration: 5,
   };
   const [pw, ph] = FORMAT_DIMS[format];
-  const _maxDisplayH = Math.round(winH * 0.82);
-  const _factorW = pw > ph ? 1 : 0.75;
-  const _previewScale = Math.min(_maxDisplayH / ph, (_maxDisplayH * _factorW) / pw, 1);
+  const _maxH = Math.round(winH * 0.82);
+  const _previewScale = _maxH / Math.max(pw, ph);
   const containerW = Math.round(pw * _previewScale);
   const containerH = Math.round(ph * _previewScale);
 
@@ -1516,7 +1515,8 @@ export default function PublicarPageBase({
                 width={pw}
                 height={ph}
                 values={previewValues}
-                maxDisplay={Math.round(winH * 0.82)}
+                displayWidth={containerW}
+                displayHeight={containerH}
                 onReady={
                   enablePublishing
                     ? (s: any) => {

@@ -846,10 +846,12 @@ interface Props {
   height: number;
   values: Record<string, string>;
   maxDisplay?: number;
+  displayWidth?: number;
+  displayHeight?: number;
   onReady?: (stage: Konva.Stage) => void;
 }
 
-export default function PreviewStage({ schema, width, height, values, maxDisplay = 420, onReady }: Props) {
+export default function PreviewStage({ schema, width, height, values, maxDisplay = 420, displayWidth, displayHeight, onReady }: Props) {
   console.log('[PreviewStage] schema elements:', schema?.elements?.filter(e => e.type === 'image' || e.type === 'imageBind').map(e => ({ type: e.type, bindParam: e.bindParam, imageBind: (e as any).imageBind, src: (e as any).src })));
   console.log('[PreviewStage] values.imgfundo:', values?.imgfundo);
 
@@ -857,11 +859,14 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   const scale = useMemo(() => {
+    if (displayWidth && displayHeight) {
+      return Math.min(displayWidth / width, displayHeight / height);
+    }
     const byH = maxDisplay / height;
     const factorW = width > height ? 1 : 0.75;
     const byW = (maxDisplay * factorW) / width;
     return Math.min(byH, byW, 1);
-  }, [width, height, maxDisplay]);
+  }, [width, height, maxDisplay, displayWidth, displayHeight]);
 
   // Preview-time smart-links: recalcula altura real de textos expansíveis (servicoslista)
   // e propaga para elementos com smartTrack/smartResize apontando para eles.
@@ -925,8 +930,8 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
   return (
     <Stage
       ref={(r) => { stageRef.current = r; }}
-      width={Math.round(width * scale)}
-      height={Math.round(height * scale)}
+      width={displayWidth ?? Math.round(width * scale)}
+      height={displayHeight ?? Math.round(height * scale)}
       scaleX={scale}
       scaleY={scale}
       style={{ background: schema.background || "#fff", borderRadius: 12, overflow: "hidden" }}
