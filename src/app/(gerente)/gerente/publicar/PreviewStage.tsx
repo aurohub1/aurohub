@@ -482,6 +482,7 @@ function skewProps(el: EditorElement) {
 
 function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<string, string>; formType?: string }) {
   if (el.visible === false) return null;
+  if (el.hideWhenBind && values[el.hideWhenBind]) return null;
   if (el.hideIfEmpty && el.bindParam && !values[el.bindParam] && !DYNAMIC_BADGES.has(el.bindParam)) return null;
 
   {

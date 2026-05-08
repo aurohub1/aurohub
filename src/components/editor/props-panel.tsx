@@ -214,6 +214,15 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
           <SBtn active={!!s.locked} onClick={() => u({ locked: !s.locked })} title="Travar posição — impede mover acidentalmente">{s.locked ? "🔒 Travado" : "🔓 Travar"}</SBtn>
         </div>
+        <F l="Ocultar quando bind:">
+          <input
+            type="text"
+            value={s.hideWhenBind || ""}
+            onChange={e => u({ hideWhenBind: e.target.value || undefined })}
+            placeholder="ex: imgfundo"
+            style={{ ...inpS, textAlign: "left" }}
+          />
+        </F>
 
         {/* Posição & Tamanho */}
         <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Posição & Tamanho</div>

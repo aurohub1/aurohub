@@ -198,6 +198,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   useEffect(() => { onRegisterRef(el.id, shapeRef.current); return () => onRegisterRef(el.id, null); }, [el.id, shapeRef.current]);
 
   if (el.visible === false) return null;
+  if (el.hideWhenBind && previewValues?.[el.hideWhenBind]) return null;
 
   const common = {
     id: el.id,

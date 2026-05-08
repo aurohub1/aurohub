@@ -55,6 +55,7 @@ export interface EditorElement {
   locked?: boolean; visible?: boolean;
   // Bind
   bindParam?: string;
+  hideWhenBind?: string;
   // Form Field — configuração do campo no formulário dinâmico
   formField?: {
     label: string;           // Label visível para o usuário (ex: 'Destino')
