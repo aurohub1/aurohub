@@ -575,7 +575,11 @@ export default function CanvasStage(p: Props) {
       const sy = Math.abs(node.scaleY());
       const updates: Partial<EditorElement> = { x: node.x(), y: node.y(), rotation: node.rotation() };
       if (el.type === "text") {
-        updates.width = Math.max(20, node.width() * sx);
+        // escala fontSize proporcionalmente ao resize
+        const scaleFont = Math.max(sx, sy);
+        updates.fontSize = Math.max(6, Math.round((el.fontSize ?? 16) * scaleFont));
+        updates.width  = Math.max(20, node.width() * sx);
+        updates.height = Math.max(20, node.height() * sy);
       } else if (el.type === "circle") {
         updates.width = Math.max(5, el.width * sx);
         updates.height = Math.max(5, el.height * sy);
@@ -853,7 +857,7 @@ export default function CanvasStage(p: Props) {
               strokeWidth={1 / stageScale} dash={[4 / stageScale, 2 / stageScale]}
               listening={false} />
           )}
-          <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} boundBoxFunc={(_, nw) => nw} onTransformEnd={handleTransformEnd} />
+          <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} keepRatio={true} boundBoxFunc={(_, nw) => nw} onTransformEnd={handleTransformEnd} />
         </Layer>
       </Stage>
       </div>
