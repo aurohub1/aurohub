@@ -45,6 +45,8 @@ export interface EditorElement {
   strokeDashArray?: number[];
   // Effects
   shadow?: ShadowConfig; blendMode?: BlendMode;
+  shadowEnabled?: boolean; shadowColor?: string; shadowOpacity?: number;
+  shadowOffsetX?: number; shadowOffsetY?: number; shadowBlur?: number;
   skewX?: number; skewY?: number; blurAmount?: number;
   // Flip
   flipX?: boolean; flipY?: boolean;

@@ -507,10 +507,12 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
         stroke={el.stroke}
         strokeWidth={el.strokeWidth ?? 0}
         dash={el.strokeDashArray}
-        shadowColor={el.shadow?.color}
-        shadowBlur={el.shadow?.blur ?? 0}
-        shadowOffsetX={el.shadow?.offsetX ?? 0}
-        shadowOffsetY={el.shadow?.offsetY ?? 0}
+        shadowEnabled={el.shadowEnabled ?? !!el.shadow}
+        shadowColor={el.shadowColor ?? el.shadow?.color ?? "#000000"}
+        shadowOpacity={el.shadowOpacity ?? 0.3}
+        shadowOffsetX={el.shadowOffsetX ?? el.shadow?.offsetX ?? 0}
+        shadowOffsetY={el.shadowOffsetY ?? el.shadow?.offsetY ?? 4}
+        shadowBlur={el.shadowBlur ?? el.shadow?.blur ?? 8}
       />
     );
   }
@@ -528,10 +530,12 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
         stroke={el.stroke}
         strokeWidth={el.strokeWidth ?? 0}
         dash={el.strokeDashArray}
-        shadowColor={el.shadow?.color}
-        shadowBlur={el.shadow?.blur ?? 0}
-        shadowOffsetX={el.shadow?.offsetX ?? 0}
-        shadowOffsetY={el.shadow?.offsetY ?? 0}
+        shadowEnabled={el.shadowEnabled ?? !!el.shadow}
+        shadowColor={el.shadowColor ?? el.shadow?.color ?? "#000000"}
+        shadowOpacity={el.shadowOpacity ?? 0.3}
+        shadowOffsetX={el.shadowOffsetX ?? el.shadow?.offsetX ?? 0}
+        shadowOffsetY={el.shadowOffsetY ?? el.shadow?.offsetY ?? 4}
+        shadowBlur={el.shadowBlur ?? el.shadow?.blur ?? 8}
       />
     );
   }
@@ -699,10 +703,12 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
           lineHeight={el.lineHeight ?? 1.2}
           padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)}
           opacity={el.opacity ?? 1}
-          shadowColor={el.shadow?.color}
-          shadowBlur={el.shadow?.blur ?? 0}
-          shadowOffsetX={el.shadow?.offsetX ?? 0}
-          shadowOffsetY={el.shadow?.offsetY ?? 0}
+          shadowEnabled={el.shadowEnabled ?? !!el.shadow}
+          shadowColor={el.shadowColor ?? el.shadow?.color ?? "#000000"}
+          shadowOpacity={el.shadowOpacity ?? 0.3}
+          shadowOffsetX={el.shadowOffsetX ?? el.shadow?.offsetX ?? 0}
+          shadowOffsetY={el.shadowOffsetY ?? el.shadow?.offsetY ?? 4}
+          shadowBlur={el.shadowBlur ?? el.shadow?.blur ?? 8}
         />
       </>
     );
@@ -817,10 +823,12 @@ function RenderImage({ el, values }: { el: EditorElement; values: Record<string,
       cornerRadius={el.cornerRadius ?? 0}
       stroke={el.stroke}
       strokeWidth={el.strokeWidth ?? 0}
-      shadowColor={el.shadow?.color}
-      shadowBlur={el.shadow?.blur ?? 0}
-      shadowOffsetX={el.shadow?.offsetX ?? 0}
-      shadowOffsetY={el.shadow?.offsetY ?? 0}
+      shadowEnabled={el.shadowEnabled ?? !!el.shadow}
+      shadowColor={el.shadowColor ?? el.shadow?.color ?? "#000000"}
+      shadowOpacity={el.shadowOpacity ?? 0.3}
+      shadowOffsetX={el.shadowOffsetX ?? el.shadow?.offsetX ?? 0}
+      shadowOffsetY={el.shadowOffsetY ?? el.shadow?.offsetY ?? 4}
+      shadowBlur={el.shadowBlur ?? el.shadow?.blur ?? 8}
     />
   );
 }

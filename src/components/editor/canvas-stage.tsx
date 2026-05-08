@@ -209,7 +209,12 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     scaleY: animState.scaleY * (el.flipY ? -1 : 1),
     draggable: !playing && !el.locked,
     // onClick/onTap handled per-element below
-    shadowColor: el.shadow?.color, shadowOffsetX: el.shadow?.offsetX, shadowOffsetY: el.shadow?.offsetY, shadowBlur: el.shadow?.blur, shadowEnabled: !!el.shadow,
+    shadowEnabled: el.shadowEnabled ?? !!el.shadow,
+    shadowColor: el.shadowColor ?? el.shadow?.color ?? "#000000",
+    shadowOpacity: el.shadowOpacity ?? 0.3,
+    shadowOffsetX: el.shadowOffsetX ?? el.shadow?.offsetX ?? 0,
+    shadowOffsetY: el.shadowOffsetY ?? el.shadow?.offsetY ?? 4,
+    shadowBlur: el.shadowBlur ?? el.shadow?.blur ?? 8,
     globalCompositeOperation: (el.blendMode || "source-over") as GlobalCompositeOperation,
     skewX: Math.tan((el.skewX ?? 0) * Math.PI / 180),
     skewY: Math.tan((el.skewY ?? 0) * Math.PI / 180),
@@ -285,7 +290,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       )}
       <Text ref={shapeRef as React.RefObject<Konva.Text>}
         id={el.id} x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
-        shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled}
+        shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled} shadowOpacity={common.shadowOpacity}
         onDragMove={common.onDragMove} onDragEnd={common.onDragEnd} onTransformEnd={common.onTransformEnd}
         onClick={(e) => onClick(e)} onDblClick={() => { if (!playing && !el.locked) { const t = prompt("Editar texto:", el.text || ""); if (t !== null) onChange({ text: t }); } }}
         width={el.width}

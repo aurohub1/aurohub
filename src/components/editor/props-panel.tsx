@@ -459,19 +459,22 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         {/* Sombra */}
         <hr style={{ border: "none", borderTop: "1px solid var(--ed-bdr)", margin: "8px 0" }} />
         <SubSec t="Sombra" right={
-          <SBtn active={!!s.shadow}
-            onClick={() => u({ shadow: s.shadow ? undefined : { color: "rgba(0,0,0,0.4)", offsetX: 4, offsetY: 4, blur: 12 } })}>
-            {s.shadow ? "ON" : "OFF"}
+          <SBtn active={s.shadowEnabled ?? false}
+            onClick={() => u({ shadowEnabled: !s.shadowEnabled })}>
+            {s.shadowEnabled ? "ON" : "OFF"}
           </SBtn>
         } />
-        {s.shadow && (
+        {s.shadowEnabled && (
           <>
-            <ColorSwatch value={s.shadow.color} onChange={v => u({ shadow: { ...s.shadow!, color: v } })} label="Cor" />
             <G2>
-              <F l="Off X"><Num v={s.shadow.offsetX} c={v => u({ shadow: { ...s.shadow!, offsetX: v } })} /></F>
-              <F l="Off Y"><Num v={s.shadow.offsetY} c={v => u({ shadow: { ...s.shadow!, offsetY: v } })} /></F>
+              <F l="Cor"><ColorSwatch value={s.shadowColor || "#000000"} onChange={v => u({ shadowColor: v })} /></F>
+              <F l="Opacidade"><Num v={Math.round((s.shadowOpacity ?? 0.3) * 100)} min={0} max={100} step={1} c={v => u({ shadowOpacity: v / 100 })} /></F>
             </G2>
-            <F l="Blur"><Num v={s.shadow.blur} c={v => u({ shadow: { ...s.shadow!, blur: v } })} /></F>
+            <G2>
+              <F l="Off X"><Num v={s.shadowOffsetX ?? 0} c={v => u({ shadowOffsetX: v })} /></F>
+              <F l="Off Y"><Num v={s.shadowOffsetY ?? 4} c={v => u({ shadowOffsetY: v })} /></F>
+            </G2>
+            <F l="Blur"><Num v={s.shadowBlur ?? 8} min={0} c={v => u({ shadowBlur: v })} /></F>
           </>
         )}
       </Sec>
