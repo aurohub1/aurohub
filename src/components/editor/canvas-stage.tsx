@@ -333,7 +333,9 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   onDragEndUpdate: (id: string, x: number, y: number) => void;
   previewValues?: Record<string, string>;
 }) {
-  const shapeRef = useRef<Konva.Node>(null);
+  const callbackRef = useCallback((node: Konva.Node | null) => {
+    onRegisterRef(el.id, node);
+  }, [el.id, onRegisterRef]);
   const img = useImage(resolveImageSrc(el));
   const qrImg = useQrImage(
     el.type === "qrcode" ? (el.qrUrl || "") : "",
@@ -342,14 +344,12 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     el.width
   );
 
-  useEffect(() => { onRegisterRef(el.id, shapeRef.current); return () => onRegisterRef(el.id, null); }, [el.id, shapeRef.current]);
-
   if (el.visible === false) return null;
   if (el.hideWhenBind && previewValues?.[el.hideWhenBind]) return null;
 
   const common = {
     id: el.id,
-    ref: shapeRef as React.RefObject<Konva.Node>,
+    ref: callbackRef as unknown as React.RefObject<Konva.Node>,
     x: el.x + animState.offsetX, y: el.y + animState.offsetY,
     rotation: (el.rotation || 0) + animState.rotation,
     opacity: animState.opacity,
@@ -435,7 +435,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           listening={false}
         />
       )}
-      <Text ref={shapeRef as React.RefObject<Konva.Text>}
+      <Text ref={callbackRef as any}
         id={el.id} x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
         shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled} shadowOpacity={common.shadowOpacity}
         onDragMove={common.onDragMove} onDragEnd={common.onDragEnd}
@@ -453,18 +453,18 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       : null;
     const rectHeight = linkedText ? computeTextHeight(linkedText) : el.height;
     const rectFillProps = getFillProps(el.fill, el.width, rectHeight);
-    return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={handleClick} width={el.width} height={rectHeight} {...rectFillProps} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+    return <Rect {...common} ref={callbackRef as any} onClick={handleClick} width={el.width} height={rectHeight} {...rectFillProps} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "circle") {
     const circleFillProps = getFillProps(el.fill, el.width, el.height);
-    return <Circle {...common} ref={shapeRef as React.RefObject<Konva.Circle>} onClick={handleClick} radius={Math.min(el.width, el.height) / 2} {...circleFillProps} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+    return <Circle {...common} ref={callbackRef as any} onClick={handleClick} radius={Math.min(el.width, el.height) / 2} {...circleFillProps} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "image") {
     if (!img) {
       // Placeholder transparente — mantém border tracejado + label para designers,
       // mas NÃO preenche cinza, deixando o background do template visível por baixo.
       return <>
-        <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={handleClick} width={el.width} height={el.height} fill="" stroke="#aaa" strokeWidth={1.5} dash={[6, 4]} cornerRadius={el.cornerRadius || 0} />
+        <Rect {...common} ref={callbackRef as any} onClick={handleClick} width={el.width} height={el.height} fill="" stroke="#aaa" strokeWidth={1.5} dash={[6, 4]} cornerRadius={el.cornerRadius || 0} />
         <Text x={el.x + el.width / 2 - 40} y={el.y + el.height / 2 - 8} text={el.bindParam ? `📸 ${el.bindParam}` : "Placeholder"} fontSize={14} fill="#aaa" listening={false} />
       </>;
     }
@@ -498,7 +498,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       // no handleTransformEnd (sem eles, Group retorna 0 e resize fica errado).
       if (clipShape === "none") {
         return (
-          <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={handleClick}
+          <Group {...common} ref={callbackRef as any} onClick={handleClick}
             width={el.width} height={el.height}
             clipX={0} clipY={0} clipWidth={el.width} clipHeight={el.height}>
             <KImage image={img} x={imgX} y={imgY} width={imgW} height={imgH} crop={crop} />
@@ -554,12 +554,12 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
         };
       }
       return (
-        <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={handleClick} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
+        <Group {...common} ref={callbackRef as any} onClick={handleClick} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
           <KImage image={img} x={imgX} y={imgY} width={imgW} height={imgH} crop={crop} />
         </Group>
       );
     }
-    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={handleClick} image={img} x={el.x + animState.offsetX + imgX} y={el.y + animState.offsetY + imgY} width={imgW} height={imgH} cornerRadius={el.cornerRadius || 0} crop={crop} />;
+    return <KImage {...common} ref={callbackRef as any} onClick={handleClick} image={img} x={el.x + animState.offsetX + imgX} y={el.y + animState.offsetY + imgY} width={imgW} height={imgH} cornerRadius={el.cornerRadius || 0} crop={crop} />;
   }
   if (el.type === "imageBind") {
     // Placeholder visível apenas no editor ADM: retângulo pontilhado + ícone + label do bind.
@@ -569,7 +569,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     return (
       <Group
         {...common}
-        ref={shapeRef as React.RefObject<Konva.Group>}
+        ref={callbackRef as any}
         onClick={handleClick}
         width={el.width}
         height={el.height}
@@ -609,7 +609,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     return (
       <Rect
         {...common}
-        ref={shapeRef as React.RefObject<Konva.Rect>}
+        ref={callbackRef as any}
         onClick={handleClick}
         width={el.width}
         height={el.height}
@@ -623,9 +623,9 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   }
   if (el.type === "qrcode") {
     if (!qrImg) {
-      return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={handleClick} width={el.width} height={el.height} fill={el.qrBg || "#FFFFFF"} stroke="#aaa" strokeWidth={1} dash={[4, 3]} cornerRadius={4} />;
+      return <Rect {...common} ref={callbackRef as any} onClick={handleClick} width={el.width} height={el.height} fill={el.qrBg || "#FFFFFF"} stroke="#aaa" strokeWidth={1} dash={[4, 3]} cornerRadius={4} />;
     }
-    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={handleClick} image={qrImg} width={el.width} height={el.height} />;
+    return <KImage {...common} ref={callbackRef as any} onClick={handleClick} image={qrImg} width={el.width} height={el.height} />;
   }
   return null;
 }
@@ -737,14 +737,15 @@ export default function CanvasStage(p: Props) {
         updates.width  = Math.max(5, el.width  * sx);
         updates.height = Math.max(5, el.height * sy);
       } else if (el.type === "image") {
-        // usar el.width/height direto: cover usa Group cujo node.width() retorna 0
-        updates.width  = Math.max(5, el.width  * sx);
-        updates.height = Math.max(5, el.height * sy);
-        // resize lateral (sx≠sy) → forçar cover para cortar sem distorcer
+        const newW = Math.max(5, el.width * sx);
+        const newH = Math.max(5, el.height * sy);
+        updates.width  = newW;
+        updates.height = newH;
         const isDiagonal = Math.abs(sx - sy) < 0.02;
         if (!isDiagonal) {
           updates.imageFit = "cover";
         }
+        console.log("IMAGE RESIZE", { sx, sy, isDiagonal, imageFit: updates.imageFit, newW, newH });
       } else {
         updates.width  = Math.max(5, node.width()  * sx);
         updates.height = Math.max(5, node.height() * sy);
