@@ -238,16 +238,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       onDragEndClear();
       onDragEndUpdate(el.id, e.target.x() - animState.offsetX, e.target.y() - animState.offsetY);
     },
-    onTransformEnd: () => {
-      const n = shapeRef.current!;
-      const sx = Math.abs(n.scaleX()); const sy = Math.abs(n.scaleY());
-      if (el.type === "text") {
-        onChange({ x: n.x(), y: n.y(), width: Math.max(20, n.width() * sx), rotation: n.rotation() });
-      } else {
-        onChange({ x: n.x(), y: n.y(), width: Math.max(5, (el.type === "circle" ? el.width : n.width()) * sx), height: Math.max(5, (el.type === "circle" ? el.height : n.height()) * sy), rotation: n.rotation() });
-      }
-      n.scaleX(el.flipX ? -1 : 1); n.scaleY(el.flipY ? -1 : 1);
-    },
+    // onTransformEnd tratado centralmente no Transformer (handleTransformEnd)
   };
 
   const rawText = animState.textClip !== undefined ? (el.text || "").slice(0, animState.textClip) : (el.text || "");
@@ -292,7 +283,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       <Text ref={shapeRef as React.RefObject<Konva.Text>}
         id={el.id} x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
         shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled} shadowOpacity={common.shadowOpacity}
-        onDragMove={common.onDragMove} onDragEnd={common.onDragEnd} onTransformEnd={common.onTransformEnd}
+        onDragMove={common.onDragMove} onDragEnd={common.onDragEnd}
         onClick={(e) => onClick(e)} onDblClick={() => { if (!playing && !el.locked) { const t = prompt("Editar texto:", el.text || ""); if (t !== null) onChange({ text: t }); } }}
         width={el.width}
         height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
@@ -545,6 +536,30 @@ export default function CanvasStage(p: Props) {
     }, 0);
   }, [selectedIds, cascadeUpdate, p.onMultiUpdate]);
 
+  // Transform end — centralizado para funcionar com multi-seleção
+  const handleTransformEnd = useCallback(() => {
+    for (const id of selectedIds) {
+      const el = schema.elements.find(e => e.id === id);
+      const node = nodeRefs.current.get(id);
+      if (!node || !el) continue;
+      const sx = Math.abs(node.scaleX());
+      const sy = Math.abs(node.scaleY());
+      const updates: Partial<EditorElement> = { x: node.x(), y: node.y(), rotation: node.rotation() };
+      if (el.type === "text") {
+        updates.width = Math.max(20, node.width() * sx);
+      } else if (el.type === "circle") {
+        updates.width = Math.max(5, el.width * sx);
+        updates.height = Math.max(5, el.height * sy);
+      } else {
+        updates.width = Math.max(5, node.width() * sx);
+        updates.height = Math.max(5, node.height() * sy);
+      }
+      node.scaleX(el.flipX ? -1 : 1);
+      node.scaleY(el.flipY ? -1 : 1);
+      cascadeUpdate(id, updates);
+    }
+  }, [selectedIds, schema.elements, cascadeUpdate]);
+
   useEffect(() => {
     if (stageRef.current) stageRef.current.position({ x: 0, y: 0 });
     p.onStageRef(stageRef.current);
@@ -780,7 +795,7 @@ export default function CanvasStage(p: Props) {
               strokeWidth={1 / stageScale} dash={[4 / stageScale, 2 / stageScale]}
               listening={false} />
           )}
-          <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} boundBoxFunc={(_, nw) => nw} />
+          <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} boundBoxFunc={(_, nw) => nw} onTransformEnd={handleTransformEnd} />
         </Layer>
       </Stage>
       </div>
