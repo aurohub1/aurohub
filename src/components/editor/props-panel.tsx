@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { HexColorPicker } from "react-colorful";
+import { HslaColorPicker } from "react-colorful";
 import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec, getImageBindFields, GradientFill, GradientDirection, EnterAnimType, ExitAnimType } from "./types";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 
@@ -395,7 +395,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
           <F l="Cor texto"><FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
           <G2>
             <F l="Fundo do texto">
-              <ColorSwatch value={s.textBg || "#000000"} onChange={v => u({ textBg: v || undefined })} />
+              <AdvancedColorPicker value={s.textBg || "#000000"} onChange={v => u({ textBg: v || undefined })} />
             </F>
             <F l="Opac. fundo"><Num v={s.textBgOpacity ?? 100} min={0} max={100} c={v => u({ textBgOpacity: v })} /></F>
           </G2>
@@ -422,7 +422,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
           {s.strokeEnabled && (
             <>
               <G2>
-                <F l="Cor"><ColorSwatch value={s.stroke || "#000000"} onChange={v => u({ stroke: v })} /></F>
+                <F l="Cor"><AdvancedColorPicker value={s.stroke || "#000000"} onChange={v => u({ stroke: v })} /></F>
                 <F l="Opacidade"><Num v={Math.round((s.strokeOpacity ?? 1) * 100)} min={0} max={100} step={1} c={v => u({ strokeOpacity: v / 100 })} /></F>
               </G2>
               <G2>
@@ -472,7 +472,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         {isLine(s) && (
           <>
             <SubSec t="Linha" />
-            <F l="Cor"><ColorField value={typeof s.fill === "string" ? s.fill : "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
+            <F l="Cor"><AdvancedColorPicker value={typeof s.fill === "string" ? s.fill : "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
             <F l="Espessura"><Num v={s.height} c={v => u({ height: Math.max(1, Math.min(100, v)) })} min={1} /></F>
             <F l="Estilo">
               <div style={{ display: "flex", gap: 3 }}>
@@ -513,7 +513,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
             {!!s.strokeWidth && s.strokeWidth > 0 && (
               <>
                 <G2>
-                  <F l="Cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
+                  <F l="Cor"><AdvancedColorPicker value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
                   <F l="Espessura"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} min={0} /></F>
                 </G2>
                 <F l="Estilo">
@@ -566,7 +566,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         {s.shadowEnabled && (
           <>
             <G2>
-              <F l="Cor"><ColorSwatch value={s.shadowColor || "#000000"} onChange={v => u({ shadowColor: v })} /></F>
+              <F l="Cor"><AdvancedColorPicker value={s.shadowColor || "#000000"} onChange={v => u({ shadowColor: v })} /></F>
               <F l="Opacidade"><Num v={Math.round((s.shadowOpacity ?? 0.3) * 100)} min={0} max={100} step={1} c={v => u({ shadowOpacity: v / 100 })} /></F>
             </G2>
             <G2>
@@ -721,8 +721,8 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
       {s.type === "qrcode" && (
         <Sec t="QR Code">
           <F l="URL / Texto"><Inp v={s.qrUrl || ""} c={v => u({ qrUrl: v })} /></F>
-          <F l="Cor frente"><ColorField value={s.qrFg || "#000000"} onChange={v => u({ qrFg: v })} /></F>
-          <F l="Cor fundo"><ColorField value={s.qrBg || "#FFFFFF"} onChange={v => u({ qrBg: v })} /></F>
+          <F l="Cor frente"><AdvancedColorPicker value={s.qrFg || "#000000"} onChange={v => u({ qrFg: v })} /></F>
+          <F l="Cor fundo"><AdvancedColorPicker value={s.qrBg || "#FFFFFF"} onChange={v => u({ qrBg: v })} /></F>
         </Sec>
       )}
 
@@ -1082,7 +1082,7 @@ function FillEditor({ value, onChange }: { value: string | GradientFill; onChang
 
       {/* Sólido: 1 color picker */}
       {!isGradient && (
-        <ColorField value={solidColor} onChange={c => onChange(c)} />
+        <AdvancedColorPicker value={solidColor} onChange={c => onChange(c)} />
       )}
 
       {/* Gradiente: stops customizados + direção */}
@@ -1153,40 +1153,183 @@ function DropperBtn({ onChange }: { onChange: (v: string) => void }) {
   );
 }
 
-function ColorField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+// Color utilities
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "").padEnd(6, "0");
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function rgbToHex(r: number, g: number, b: number): string {
+  return "#" + [r,g,b].map(v => Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,"0")).join("");
+}
+function rgbToHsl(r: number, g: number, b: number): [number,number,number] {
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b), l=(max+min)/2;
+  if (max===min) return [0, 0, Math.round(l*100)];
+  const d=max-min, s=l>0.5?d/(2-max-min):d/(max+min);
+  let h=0;
+  if (max===r) h=((g-b)/d+(g<b?6:0))/6;
+  else if (max===g) h=((b-r)/d+2)/6;
+  else h=((r-g)/d+4)/6;
+  return [Math.round(h*360), Math.round(s*100), Math.round(l*100)];
+}
+function hslToRgb(h: number, s: number, l: number): [number,number,number] {
+  h/=360; s/=100; l/=100;
+  if (s===0) { const v=Math.round(l*255); return [v,v,v]; }
+  const q=l<0.5?l*(1+s):l+s-l*s, p=2*l-q;
+  const hf=(p:number,q:number,t:number)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<0.5)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+  return [Math.round(hf(p,q,h+1/3)*255), Math.round(hf(p,q,h)*255), Math.round(hf(p,q,h-1/3)*255)];
+}
+type AcpHsla = { h: number; s: number; l: number; a: number };
+function parseToHsla(v: string): AcpHsla {
+  if (!v || v==="transparent") return {h:0, s:0, l:100, a:0};
+  const hex=v.replace("#","");
+  if (/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/.test(hex)) {
+    const [r,g,b]=hexToRgb(v);
+    const a=hex.length===8?parseInt(hex.slice(6,8),16)/255:1;
+    const [h,s,l]=rgbToHsl(r,g,b);
+    return {h, s, l, a};
+  }
+  if (v.startsWith("rgb")) {
+    const m=v.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (m) { const [h,s,l]=rgbToHsl(+m[1],+m[2],+m[3]); return {h,s,l,a:m[4]!==undefined?+m[4]:1}; }
+  }
+  return {h:0, s:0, l:100, a:1};
+}
+function hslaToStr({h,s,l,a}: AcpHsla): string {
+  const [r,g,b]=hslToRgb(h,s,l);
+  const hex=rgbToHex(r,g,b);
+  return a<0.999 ? hex+Math.round(a*255).toString(16).padStart(2,"0") : hex;
+}
+const ACP_KEY = "ah_recent_colors";
+function getRecentColors(): string[] { try { return JSON.parse(localStorage.getItem(ACP_KEY)||"[]"); } catch { return []; } }
+function saveRecentColor(c: string): string[] {
+  const u=[c,...getRecentColors().filter(x=>x!==c)].slice(0,8);
+  try { localStorage.setItem(ACP_KEY, JSON.stringify(u)); } catch {}
+  return u;
+}
+
+function AdvancedColorPicker({ value, onChange, label, showTransparent=true }: {
+  value: string; onChange: (v: string) => void; label?: string; showTransparent?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const [hsla, setHsla] = useState<AcpHsla>(() => parseToHsla(value));
+  const [hexIn, setHexIn] = useState(() => { const s=hslaToStr(parseToHsla(value)); return s.startsWith("#")?s.slice(1,7):"ffffff"; });
+  const [recent, setRecent] = useState<string[]>([]);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const rowRef = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  const lastVal = useRef(value);
+
+  useEffect(() => {
+    if (value !== lastVal.current) {
+      lastVal.current = value;
+      const p = parseToHsla(value);
+      setHsla(p);
+      if (value !== "transparent") setHexIn(hslaToStr(p).slice(1,7));
+    }
+  }, [value]);
+
+  useEffect(() => { if (open) setRecent(getRecentColors()); }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (!rowRef.current?.contains(e.target as Node) && !popRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const openPicker = () => {
+    if (rowRef.current) {
+      const r = rowRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom+4, left: Math.max(8, Math.min(r.left, window.innerWidth-220)) });
+    }
+    setOpen(o => !o);
+  };
+
+  const emit = (nh: AcpHsla) => { const s=hslaToStr(nh); lastVal.current=s; onChange(s); };
+
+  const handlePicker = (nh: AcpHsla) => { setHsla(nh); setHexIn(hslaToStr(nh).slice(1,7)); emit(nh); };
+
+  const handleHexInput = (raw: string) => {
+    const c = raw.replace(/[^0-9A-Fa-f]/g,"");
+    setHexIn(c);
+    if (c.length===6) { const p=parseToHsla("#"+c); setHsla(p); lastVal.current="#"+c; onChange("#"+c); }
+  };
+
+  const handleRgb = (ch: "r"|"g"|"b", val: number) => {
+    const [r,g,b] = hslToRgb(hsla.h, hsla.s, hsla.l);
+    const nr=ch==="r"?val:r, ng=ch==="g"?val:g, nb=ch==="b"?val:b;
+    const [nh,ns,nl] = rgbToHsl(nr,ng,nb);
+    const nh2 = {h:nh, s:ns, l:nl, a:hsla.a};
+    setHsla(nh2); setHexIn(rgbToHex(nr,ng,nb).slice(1)); emit(nh2);
+  };
+
+  const closeAndSave = (color?: string) => {
+    const final = color ?? hslaToStr(hsla);
+    setRecent(saveRecentColor(final));
+    if (color) onChange(color);
+    setOpen(false);
+  };
+
+  const [cr,cg,cb] = hslToRgb(hsla.h, hsla.s, hsla.l);
+  const swBg = value==="transparent" ? "repeating-conic-gradient(var(--ed-bdr) 0% 25%, transparent 0% 50%) 0 0/10px 10px" : value;
+  const piS: React.CSSProperties = { ...inpS, height: 24, fontSize: 10, padding: "0 4px", textAlign: "center" };
+
   return (
-    <div>
-      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", flex: 1 }} onClick={() => setOpen(!open)}>
-          <div style={{ width: 28, height: 28, borderRadius: 6, background: value, border: "1px solid var(--ed-bdr)", flexShrink: 0 }} />
-          <input type="text" value={value} onChange={e => onChange(e.target.value)} onClick={e => e.stopPropagation()} style={{ ...inpS, flex: 1 }} />
-        </div>
-        <DropperBtn onChange={onChange} />
+    <div style={{ position: "relative" }}>
+      {label && <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2 }}>{label}</div>}
+      <div ref={rowRef} style={{ display: "flex", gap: 4, alignItems: "center" }}>
+        <div onClick={openPicker} style={{ width: 28, height: 28, borderRadius: 6, background: swBg, border: "1px solid var(--ed-bdr)", cursor: "pointer", flexShrink: 0 }} />
+        <input type="text"
+          value={value==="transparent" ? "transparent" : "#"+hexIn}
+          onChange={e => handleHexInput(e.target.value.replace(/^#/,""))}
+          onClick={e => e.stopPropagation()}
+          style={{ ...inpS, flex: 1 }} />
+        <DropperBtn onChange={v => { onChange(v); setRecent(saveRecentColor(v)); }} />
       </div>
       {open && (
-        <div style={{ marginTop: 6 }}>
-          <HexColorPicker color={value === "transparent" ? "#ffffff" : value} onChange={onChange} />
-          <button onClick={() => { onChange("transparent"); setOpen(false); }} style={{ width: "100%", marginTop: 4, height: 24, borderRadius: 4, border: "1px solid var(--ed-bdr)", background: "repeating-conic-gradient(var(--ed-bdr) 0% 25%, transparent 0% 50%) 0 0/10px 10px", color: "var(--ed-txt2)", fontSize: 9, fontWeight: 600, cursor: "pointer" }}>
-            Transparente
+        <div ref={popRef} style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999, background: "var(--ed-surface)", border: "1px solid var(--ed-bdr)", borderRadius: 10, boxShadow: "0 8px 30px rgba(0,0,0,0.5)", padding: 10, width: 212 }}>
+          <HslaColorPicker color={hsla} onChange={handlePicker} style={{ width: "100%" }} />
+          <div style={{ display: "flex", gap: 3, marginTop: 8 }}>
+            <div style={{ flex: 2 }}>
+              <div style={{ fontSize: 8, color: "var(--ed-txt3)", marginBottom: 2, textAlign: "center" }}>HEX</div>
+              <input value={"#"+hexIn} onChange={e => handleHexInput(e.target.value.replace(/^#/,""))} style={piS} />
+            </div>
+            {(["r","g","b"] as const).map(ch => (
+              <div key={ch} style={{ flex: 1 }}>
+                <div style={{ fontSize: 8, color: "var(--ed-txt3)", marginBottom: 2, textAlign: "center" }}>{ch.toUpperCase()}</div>
+                <input type="number" min={0} max={255}
+                  value={ch==="r"?cr:ch==="g"?cg:cb}
+                  onChange={e => handleRgb(ch, Math.max(0,Math.min(255,+e.target.value)))}
+                  style={piS} />
+              </div>
+            ))}
+          </div>
+          {showTransparent && (
+            <button onClick={() => closeAndSave("transparent")}
+              style={{ width: "100%", marginTop: 6, height: 24, borderRadius: 4, border: "1px solid var(--ed-bdr)", background: "repeating-conic-gradient(var(--ed-bdr) 0% 25%, transparent 0% 50%) 0 0/10px 10px", color: "var(--ed-txt2)", fontSize: 9, fontWeight: 600, cursor: "pointer" }}>
+              Transparente
+            </button>
+          )}
+          {recent.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 8, color: "var(--ed-txt3)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Recentes</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                {recent.map((c, i) => (
+                  <div key={i} onClick={() => { onChange(c); setOpen(false); }} title={c}
+                    style={{ width: 22, height: 22, borderRadius: 4, background: c==="transparent" ? "repeating-conic-gradient(var(--ed-bdr) 0% 25%, transparent 0% 50%) 0 0/8px 8px" : c, border: "1px solid var(--ed-bdr)", cursor: "pointer" }} />
+                ))}
+              </div>
+            </div>
+          )}
+          <button onClick={() => closeAndSave()}
+            style={{ width: "100%", marginTop: 8, height: 26, borderRadius: 6, border: "none", background: "var(--ed-accent)", color: "#000", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+            OK
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-function ColorSwatch({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div>
-      {label && <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginBottom: 2 }}>{label}</div>}
-      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-        <div onClick={() => setOpen(!open)} style={{ width: 28, height: 28, borderRadius: 6, background: value, border: "1px solid var(--ed-bdr)", cursor: "pointer", flexShrink: 0 }} />
-        <input type="text" value={value} onChange={e => onChange(e.target.value)} style={{ ...inpS, flex: 1 }} />
-        <DropperBtn onChange={onChange} />
-      </div>
-      {open && <div style={{ marginTop: 4 }}><HexColorPicker color={value.startsWith("rgba") ? "#000" : value} onChange={onChange} /></div>}
     </div>
   );
 }
