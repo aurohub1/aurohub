@@ -493,12 +493,21 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     const needsGroup = clipShape !== "none" || needsRectClip;
     if (needsGroup) {
       const radius = el.clipRadius ?? Math.min(el.width, el.height) * 0.25;
+      // Rect clip (cover sem clipShape): usa props nativas do Konva — mais confiável que clipFunc
+      if (clipShape === "none") {
+        return (
+          <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={handleClick}
+            clipX={0} clipY={0} clipWidth={el.width} clipHeight={el.height}>
+            <KImage image={img} x={imgX} y={imgY} width={imgW} height={imgH} crop={crop} />
+          </Group>
+        );
+      }
       let clipFunc: (rawCtx: unknown) => void;
       if (clipShape === "circle") {
         clipFunc = (rawCtx: unknown) => {
           const ctx = rawCtx as CanvasRenderingContext2D;
           ctx.beginPath();
-          ctx.ellipse(el.width / 2, el.height / 2, el.width / 2, el.height / 2, 0, 0, Math.PI * 2);
+          ctx.arc(el.width / 2, el.height / 2, Math.min(el.width, el.height) / 2, 0, Math.PI * 2);
           ctx.closePath();
         };
       } else if (clipShape === "triangle") {
@@ -524,7 +533,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           }
           ctx.closePath();
         };
-      } else if (clipShape === "rounded") {
+      } else {
         clipFunc = (rawCtx: unknown) => {
           const ctx = rawCtx as CanvasRenderingContext2D;
           const r = Math.min(radius, el.width / 2, el.height / 2);
@@ -540,14 +549,6 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           ctx.quadraticCurveTo(0, 0, r, 0);
           ctx.closePath();
         };
-      } else {
-        // Rect clip para cover sem clipShape
-        clipFunc = (rawCtx: unknown) => {
-          const ctx = rawCtx as CanvasRenderingContext2D;
-          ctx.beginPath();
-          ctx.rect(0, 0, el.width, el.height);
-          ctx.closePath();
-        };
       }
       return (
         <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={handleClick} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
@@ -555,7 +556,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
         </Group>
       );
     }
-    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={handleClick} image={img} x={0} y={0} width={imgW} height={imgH} cornerRadius={el.cornerRadius || 0} crop={crop} />;
+    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={handleClick} image={img} x={el.x + animState.offsetX + imgX} y={el.y + animState.offsetY + imgY} width={imgW} height={imgH} cornerRadius={el.cornerRadius || 0} crop={crop} />;
   }
   if (el.type === "imageBind") {
     // Placeholder visível apenas no editor ADM: retângulo pontilhado + ícone + label do bind.
