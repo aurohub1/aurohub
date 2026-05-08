@@ -189,6 +189,15 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
             <option value="">Nenhum</option>
             {getBindGroups(formType).map(g => <optgroup key={g.group} label={g.group}>{g.fields.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>)}
           </select>
+          {s.bindParam && (s.bindParam === "destino" || s.bindParam === "hotel" || s.bindParam === "navio") && (
+            <SBtn
+              active={s.autoFetchImage !== false}
+              onClick={() => u({ autoFetchImage: s.autoFetchImage === false ? undefined : false })}
+              title="Se desativado, não busca imagem automaticamente pelo valor deste campo"
+            >
+              {s.autoFetchImage !== false ? "↺ Buscar imagem auto" : "✗ Imagem fixa"}
+            </SBtn>
+          )}
         </Sec>
       )}
 

@@ -533,6 +533,9 @@ export default function PublicarPageBase({
 
   const onImgFundo = useCallback(async (nome: string) => {
     if (!nome?.trim()) return;
+    const elems = currentTemplateRef.current?.schema?.elements ?? [];
+    const shouldFetch = elems.find((el: any) => el.bindParam === "destino")?.autoFetchImage !== false;
+    if (!shouldFetch) return;
     if (lastDestinoRef.current === nome.trim()) return;
     lastDestinoRef.current = nome.trim();
     const url = await fetchImgFundo(nome);
@@ -548,6 +551,9 @@ export default function PublicarPageBase({
     if (!h) return;
     const hCap = capitalizeBR(h);
     if (hCap !== values.hotel) setField("hotel", hCap);
+    const elems = currentTemplateRef.current?.schema?.elements ?? [];
+    const shouldFetch = elems.find((el: any) => el.bindParam === "hotel")?.autoFetchImage !== false;
+    if (!shouldFetch) return;
     if (lastHotelRef.current === h) return;
     lastHotelRef.current = h;
     const hUrl = await fetchImgHotel(h);
@@ -620,6 +626,9 @@ export default function PublicarPageBase({
     if (availableTemplates.length === 1) return availableTemplates[0];
     return templates.find((t) => t.formType === tab);
   }, [templates, tab, format, selectedTemplateId, availableTemplates]);
+
+  const currentTemplateRef = useRef(currentTemplate);
+  currentTemplateRef.current = currentTemplate;
 
   const templateBinds = useMemo(() => {
     const b = new Set<string>();

@@ -61,6 +61,7 @@ export interface EditorElement {
   // Bind
   bindParam?: string;
   hideWhenBind?: string;
+  autoFetchImage?: boolean;
   // Grid Repeat
   repeatGrid?: boolean;
   repeatCols?: number;

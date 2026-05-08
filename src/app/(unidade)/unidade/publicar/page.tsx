@@ -704,6 +704,8 @@ export default function UnidadePublicarPage() {
   async function onDestinoBlur(override?: string) {
     const destino = (override ?? values.destino)?.trim();
     if (!destino) return;
+    const elems = currentTemplate?.schema?.elements ?? [];
+    if (elems.find((el: any) => el.bindParam === "destino")?.autoFetchImage === false) return;
     // Não sobrescreve se já tem imagem (ex.: usuário subiu manual ou hotel já resolveu)
     if (values.imgfundo) return;
     const url = await fetchImgFundo(destino);
@@ -715,6 +717,8 @@ export default function UnidadePublicarPage() {
     // Capitaliza antes de salvar (com preposições minúsculas)
     const hotelCap = capitalizeBR(hotel);
     if (hotelCap !== values.hotel) setField("hotel", hotelCap);
+    const elems = currentTemplate?.schema?.elements ?? [];
+    if (elems.find((el: any) => el.bindParam === "hotel")?.autoFetchImage === false) return;
     // Hotel SEMPRE sobrescreve quando acha imagem própria
     const hUrl = await fetchImgHotel(hotel);
     if (hUrl) { setField("imgfundo", hUrl); return; }
@@ -722,13 +726,17 @@ export default function UnidadePublicarPage() {
     if (values.imgfundo) return;
     const destino = values.destino?.trim();
     if (destino) {
-      const dUrl = await fetchImgFundo(destino);
-      if (dUrl) setField("imgfundo", dUrl);
+      if (elems.find((el: any) => el.bindParam === "destino")?.autoFetchImage !== false) {
+        const dUrl = await fetchImgFundo(destino);
+        if (dUrl) setField("imgfundo", dUrl);
+      }
     }
   }
   async function onNavioBlur(override?: string) {
     const navio = (override ?? values.navio)?.trim();
     if (!navio) return;
+    const elems = currentTemplate?.schema?.elements ?? [];
+    if (elems.find((el: any) => el.bindParam === "navio")?.autoFetchImage === false) return;
     const url = await fetchImgCruise(navio);
     if (url) setField("imgfundo", url);
   }
