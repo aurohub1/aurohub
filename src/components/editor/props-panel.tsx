@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { HexColorPicker } from "react-colorful";
-import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec, getImageBindFields, GradientFill, GradientDirection } from "./types";
+import { EditorElement, FONTS, BLEND_MODES, BlendMode, TextCase, getBindGroups, resolveFontSpec, getImageBindFields, GradientFill, GradientDirection, EnterAnimType, ExitAnimType } from "./types";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 
 interface Props {
@@ -882,7 +882,40 @@ function AnimateTab({ s, u }: { s: EditorElement; u: (up: Partial<EditorElement>
 
   return (
     <>
-      <Sec t="Enter Animation">
+      {/* ── Timeline ── */}
+      <Sec t="Timeline">
+        <G2>
+          <F l="Show At (s)">
+            <Num v={s.showAt ?? 0} c={v => u({ showAt: v > 0 ? v : undefined })} step={0.1} min={0} />
+          </F>
+          <F l="Hide At (s)">
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <SBtn active={s.hideAt === undefined} onClick={() => u({ hideAt: s.hideAt !== undefined ? undefined : 3 })} title="End: elemento nunca some">
+                {s.hideAt === undefined ? "End ✓" : "End"}
+              </SBtn>
+              {s.hideAt !== undefined && (
+                <Num v={s.hideAt} c={v => u({ hideAt: Math.max(0.1, v) })} step={0.1} min={0.1} />
+              )}
+            </div>
+          </F>
+        </G2>
+      </Sec>
+
+      {/* ── Enter Animation ── */}
+      <Sec t="Enter Anim">
+        <select value={s.enterAnim || "none"} onChange={e => u({ enterAnim: e.target.value as EnterAnimType })} style={selS}>
+          {[["none","None"],["fadeIn","Fade In"],["slideInLeft","Slide In Left"],["slideInRight","Slide In Right"],["slideInUp","Slide In Up"],["slideInDown","Slide In Down"],["scaleIn","Scale In"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+      </Sec>
+
+      {/* ── Exit Animation ── */}
+      <Sec t="Exit Anim">
+        <select value={s.exitAnim || "none"} onChange={e => u({ exitAnim: e.target.value as ExitAnimType })} style={selS}>
+          {[["none","None"],["fadeOut","Fade Out"],["slideOutLeft","Slide Out Left"],["slideOutRight","Slide Out Right"],["slideOutUp","Slide Out Up"],["slideOutDown","Slide Out Down"],["scaleOut","Scale Out"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+      </Sec>
+
+      <Sec t="Enter Animation (legado)">
         {/* Mini preview */}
         <div style={{
           height: 80,

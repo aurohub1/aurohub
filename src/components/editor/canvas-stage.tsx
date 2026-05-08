@@ -148,10 +148,56 @@ function easeOutBounce(t: number) { if (t < 1/2.75) return 7.5625*t*t; if (t < 2
 
 interface AnimState { opacity: number; offsetX: number; offsetY: number; scaleX: number; scaleY: number; rotation: number; textClip?: number; }
 
+const TIMELINE_ANIM_DUR = 0.6; // duração fixa de enterAnim/exitAnim
+
 function getAnimState(el: EditorElement, time: number): AnimState {
   const anim = el.animation || "none"; const delay = el.animDelay || 0; const dur = el.animDuration || 0.6;
   const elapsed = time - delay; const base = el.opacity ?? 1;
   const done: AnimState = { opacity: base, offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1, rotation: 0 };
+
+  // ── Timeline showAt/hideAt/enterAnim/exitAnim (time<900 = modo play; 999 = editor) ──
+  if (time < 900) {
+    const showAt = el.showAt ?? 0;
+    const hideAt = el.hideAt;
+    if (time < showAt) return { ...done, opacity: 0 };
+    if (hideAt !== undefined && time >= hideAt) return { ...done, opacity: 0 };
+
+    // exitAnim: últimos TIMELINE_ANIM_DUR segundos antes de hideAt
+    if (el.exitAnim && el.exitAnim !== "none" && hideAt !== undefined) {
+      const exitStart = hideAt - TIMELINE_ANIM_DUR;
+      if (time >= exitStart) {
+        const t = Math.min((time - exitStart) / TIMELINE_ANIM_DUR, 1);
+        const e = easeOut(t);
+        switch (el.exitAnim) {
+          case "fadeOut":       return { ...done, opacity: base * (1 - e) };
+          case "slideOutLeft":  return { ...done, opacity: base * (1 - e), offsetX: -120 * e };
+          case "slideOutRight": return { ...done, opacity: base * (1 - e), offsetX:  120 * e };
+          case "slideOutUp":    return { ...done, opacity: base * (1 - e), offsetY: -120 * e };
+          case "slideOutDown":  return { ...done, opacity: base * (1 - e), offsetY:  120 * e };
+          case "scaleOut":      return { ...done, opacity: base * (1 - e), scaleX: 1 - e * 0.8, scaleY: 1 - e * 0.8 };
+        }
+      }
+    }
+
+    // enterAnim: primeiros TIMELINE_ANIM_DUR segundos após showAt
+    if (el.enterAnim && el.enterAnim !== "none") {
+      const enterElapsed = time - showAt;
+      if (enterElapsed >= 0 && enterElapsed < TIMELINE_ANIM_DUR) {
+        const t = enterElapsed / TIMELINE_ANIM_DUR;
+        const e = easeOut(t);
+        switch (el.enterAnim) {
+          case "fadeIn":       return { ...done, opacity: base * e };
+          case "slideInLeft":  return { ...done, opacity: base * e, offsetX: -120 * (1 - e) };
+          case "slideInRight": return { ...done, opacity: base * e, offsetX:  120 * (1 - e) };
+          case "slideInUp":    return { ...done, opacity: base * e, offsetY:  120 * (1 - e) };
+          case "slideInDown":  return { ...done, opacity: base * e, offsetY: -120 * (1 - e) };
+          case "scaleIn":      return { ...done, opacity: base * e, scaleX: e, scaleY: e };
+        }
+      }
+    }
+  }
+
+  // ── Animação legada (animation / animDelay / animDuration) ────────────────
   if (anim === "none" || elapsed >= dur) return done;
   if (elapsed < 0) return { ...done, opacity: 0 };
   const t = Math.min(elapsed / dur, 1); const e = easeOut(t);

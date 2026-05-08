@@ -3,6 +3,8 @@
 import { BINDS_POR_FORM, getAllBindsForForm } from "@/lib/template-binds";
 
 export type AnimationType = "none"|"fadeIn"|"fadeOut"|"slideUp"|"slideDown"|"slideLeft"|"slideRight"|"zoomIn"|"zoomOut"|"bounce"|"rotate360"|"typewriter"|"pulse"|"shake"|"float"|"blurIn"|"flipX"|"flipY";
+export type EnterAnimType = "none"|"fadeIn"|"slideInLeft"|"slideInRight"|"slideInUp"|"slideInDown"|"scaleIn";
+export type ExitAnimType  = "none"|"fadeOut"|"slideOutLeft"|"slideOutRight"|"slideOutUp"|"slideOutDown"|"scaleOut";
 export type EasingType = "linear"|"easeIn"|"easeOut"|"easeInOut"|"bounce"|"elastic";
 export type BlendMode = "source-over"|"multiply"|"screen"|"overlay"|"darken"|"lighten"|"color-dodge"|"color-burn"|"hard-light"|"soft-light"|"difference"|"exclusion";
 export type TextCase = "none"|"uppercase"|"lowercase"|"capitalize";
@@ -72,6 +74,11 @@ export interface EditorElement {
     triggerImgFundo?: boolean; // Se true, ao preencher busca imgfundo automaticamente
     uppercase?: boolean;     // Se true, converte para maiúsculas
   };
+  // Timeline
+  showAt?: number;
+  hideAt?: number;
+  enterAnim?: EnterAnimType;
+  exitAnim?: ExitAnimType;
   // Animation
   animation?: AnimationType; animDelay?: number; animDuration?: number;
   animEasing?: EasingType; animRepeat?: number;
