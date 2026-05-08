@@ -575,30 +575,24 @@ export default function CanvasStage(p: Props) {
       const sy = Math.abs(node.scaleY());
       const updates: Partial<EditorElement> = { x: node.x(), y: node.y(), rotation: node.rotation() };
       if (el.type === "text") {
-        console.log("TEXT TRANSFORM", {
-          sx, sy,
-          nodeWidth: node.width(),
-          nodeHeight: node.height(),
-          nodeScaleX: node.scaleX(),
-          nodeScaleY: node.scaleY(),
-          elWidth: el.width,
-          elHeight: el.height,
-          elFontSize: el.fontSize,
+        const newFontSize = Math.max(6, Math.round((el.fontSize ?? 32) * sx));
+        const newWidth  = Math.max(20, (el.width  ?? node.width())  * sx);
+        const newHeight = Math.max(20, (el.height ?? node.height()) * sy);
+        console.log("TEXT UPDATE", {
+          elLinhas: el.linhas,
+          oldFontSize: el.fontSize,
+          newFontSize,
+          sx,
         });
-        // Konva text pode modificar width diretamente (sx=1) ou via scale
-        const rawW = node.width() * sx;
-        const rawH = node.height() * sy;
-        const newWidth  = Math.max(20, rawW);
-        const newHeight = Math.max(20, rawH);
-        // calcular ratio baseado na mudança real de tamanho
-        const prevW = el.width  || 1;
-        const prevH = el.height || 1;
-        const ratioW = newWidth  / prevW;
-        const ratioH = newHeight / prevH;
-        const scaleFont = Math.max(ratioW, ratioH);
-        updates.fontSize = Math.max(6, Math.round((el.fontSize ?? 16) * scaleFont));
-        updates.width  = newWidth;
-        updates.height = newHeight;
+        updates.fontSize = newFontSize;
+        updates.width    = newWidth;
+        updates.height   = newHeight;
+        // se tem linhas, atualizar também para que fitFontSize
+        // recalcule com o novo tamanho de caixa
+        if (el.linhas) {
+          updates.linhas = el.linhas; // mantém linhas mas width/height
+          // mudou — fitFontSize vai recalcular automaticamente
+        }
       } else if (el.type === "circle") {
         updates.width = Math.max(5, el.width * sx);
         updates.height = Math.max(5, el.height * sy);
