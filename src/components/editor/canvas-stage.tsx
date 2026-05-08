@@ -173,6 +173,35 @@ function getAnimState(el: EditorElement, time: number): AnimState {
 }
 
 /* ── Per-element renderer (NO Transformer inside) ── */
+function GhostCell({ el, dx, dy, previewValues }: { el: EditorElement; dx: number; dy: number; previewValues?: Record<string, string> }) {
+  const img = useImage(el.type === "image" ? el.src : undefined);
+  const x = el.x + dx;
+  const y = el.y + dy;
+  const op = el.opacity ?? 1;
+  if (el.type === "text") {
+    const raw = el.text || "";
+    const resolved = previewValues
+      ? (el.bindParam ? (previewValues[el.bindParam] ?? raw) : replacePreviewBinds(raw, previewValues))
+      : raw;
+    const fSize = el.fontSize || 32;
+    const fillProps = getFillProps(el.fill || "#FFF", el.width, fSize * (el.lineHeight || 1.2));
+    return <Text x={x} y={y} rotation={el.rotation || 0} opacity={op} width={el.width} text={resolved} fontSize={fSize} fontFamily={el.fontFamily || "Helvetica Neue"} fontStyle={el.fontStyle || "normal"} {...fillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} listening={false} />;
+  }
+  if (el.type === "rect") {
+    const fillProps = getFillProps(el.fill, el.width, el.height);
+    return <Rect x={x} y={y} rotation={el.rotation || 0} opacity={op} width={el.width} height={el.height} {...fillProps} cornerRadius={el.cornerRadius || 0} listening={false} />;
+  }
+  if (el.type === "circle") {
+    const fillProps = getFillProps(el.fill, el.width, el.height);
+    return <Circle x={x} y={y} rotation={el.rotation || 0} opacity={op} radius={Math.min(el.width, el.height) / 2} {...fillProps} listening={false} />;
+  }
+  if (el.type === "image") {
+    if (!img) return <Rect x={x} y={y} width={el.width} height={el.height} stroke="#aaa" strokeWidth={1.5} dash={[6, 4]} listening={false} />;
+    return <KImage x={x} y={y} rotation={el.rotation || 0} opacity={op} image={img} width={el.width} height={el.height} cornerRadius={el.cornerRadius || 0} listening={false} />;
+  }
+  return null;
+}
+
 function RenderElement({ el, allElements, playing, animState, onClick, onChange, onRegisterRef, onDragMoveSnap, onDragEndClear, onDragEndUpdate, previewValues }: {
   el: EditorElement;
   allElements: EditorElement[];
@@ -725,17 +754,46 @@ export default function CanvasStage(p: Props) {
         style={{ borderRadius: 4, boxShadow: "0 10px 48px rgba(0,0,0,0.5)" }}>
         <Layer>
           <Rect x={0} y={0} width={width} height={height} fill={schema.background} listening={false} />
-          {schema.elements.map(el => (
-            <RenderElement key={el.id} el={el} allElements={schema.elements} playing={playing}
-              animState={playing || currentTime > 0 ? getAnimState(el, currentTime) : getAnimState(el, 999)}
-              onClick={(e) => handleElementClick(el.id, e)}
-              onChange={attrs => cascadeUpdate(el.id, attrs)}
-              onRegisterRef={registerRef}
-              onDragMoveSnap={handleDragMoveSnap}
-              onDragEndClear={handleDragEndClear}
-              onDragEndUpdate={handleDragEndUpdate}
-              previewValues={p.previewValues} />
-          ))}
+          {schema.elements.map(el => {
+            if (!el.repeatGrid) {
+              return <RenderElement key={el.id} el={el} allElements={schema.elements} playing={playing}
+                animState={playing || currentTime > 0 ? getAnimState(el, currentTime) : getAnimState(el, 999)}
+                onClick={(e) => handleElementClick(el.id, e)}
+                onChange={attrs => cascadeUpdate(el.id, attrs)}
+                onRegisterRef={registerRef}
+                onDragMoveSnap={handleDragMoveSnap}
+                onDragEndClear={handleDragEndClear}
+                onDragEndUpdate={handleDragEndUpdate}
+                previewValues={p.previewValues} />;
+            }
+            const cols = el.repeatCols ?? 2;
+            const rows = el.repeatRows ?? 2;
+            const gapX = el.repeatGapX ?? 8;
+            const gapY = el.repeatGapY ?? 8;
+            const stepX = el.width + gapX;
+            const stepY = el.height + gapY;
+            const ghosts: React.ReactElement[] = [];
+            for (let r = 0; r < rows; r++) {
+              for (let c = 0; c < cols; c++) {
+                if (r === 0 && c === 0) continue;
+                ghosts.push(<GhostCell key={`${el.id}_${r}_${c}`} el={el} dx={c * stepX} dy={r * stepY} previewValues={p.previewValues} />);
+              }
+            }
+            return (
+              <React.Fragment key={el.id}>
+                <RenderElement el={el} allElements={schema.elements} playing={playing}
+                  animState={playing || currentTime > 0 ? getAnimState(el, currentTime) : getAnimState(el, 999)}
+                  onClick={(e) => handleElementClick(el.id, e)}
+                  onChange={attrs => cascadeUpdate(el.id, attrs)}
+                  onRegisterRef={registerRef}
+                  onDragMoveSnap={handleDragMoveSnap}
+                  onDragEndClear={handleDragEndClear}
+                  onDragEndUpdate={handleDragEndUpdate}
+                  previewValues={p.previewValues} />
+                {ghosts}
+              </React.Fragment>
+            );
+          })}
           {snapEnabled && guides.map((g, i) => (
             <Line key={`g${i}`}
               points={g.orientation === "V"

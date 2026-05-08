@@ -243,6 +243,27 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         </div>
       </Sec>
 
+      {/* ═══ REPETIR EM GRADE ═══ */}
+      <Sec t="Repetir em Grade">
+        <div style={{ display: "flex", gap: 3 }}>
+          <SBtn active={!!s.repeatGrid} onClick={() => u({ repeatGrid: !s.repeatGrid })} title="Repetir elemento em grade">
+            {s.repeatGrid ? "Grade ON" : "Grade OFF"}
+          </SBtn>
+        </div>
+        {s.repeatGrid && (
+          <>
+            <G2>
+              <F l="Colunas"><Num v={s.repeatCols ?? 2} c={v => u({ repeatCols: Math.max(1, v) })} min={1} max={20} /></F>
+              <F l="Linhas"><Num v={s.repeatRows ?? 2} c={v => u({ repeatRows: Math.max(1, v) })} min={1} max={20} /></F>
+            </G2>
+            <G2>
+              <F l="Gap H"><Num v={s.repeatGapX ?? 8} c={v => u({ repeatGapX: v })} min={0} /></F>
+              <F l="Gap V"><Num v={s.repeatGapY ?? 8} c={v => u({ repeatGapY: v })} min={0} /></F>
+            </G2>
+          </>
+        )}
+      </Sec>
+
       {/* ═══ 3. TIPOGRAFIA ═══ */}
       {s.type === "text" && (
         <Sec t="Tipografia">

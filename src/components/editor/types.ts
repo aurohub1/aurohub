@@ -56,6 +56,12 @@ export interface EditorElement {
   // Bind
   bindParam?: string;
   hideWhenBind?: string;
+  // Grid Repeat
+  repeatGrid?: boolean;
+  repeatCols?: number;
+  repeatRows?: number;
+  repeatGapX?: number;
+  repeatGapY?: number;
   // Form Field — configuração do campo no formulário dinâmico
   formField?: {
     label: string;           // Label visível para o usuário (ex: 'Destino')
