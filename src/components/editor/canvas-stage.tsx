@@ -493,10 +493,13 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     const needsGroup = clipShape !== "none" || needsRectClip;
     if (needsGroup) {
       const radius = el.clipRadius ?? Math.min(el.width, el.height) * 0.25;
-      // Rect clip (cover sem clipShape): usa props nativas do Konva — mais confiável que clipFunc
+      // Rect clip (cover sem clipShape): usa props nativas do Konva — mais confiável que clipFunc.
+      // width/height explícitos são obrigatórios para que node.width() retorne el.width
+      // no handleTransformEnd (sem eles, Group retorna 0 e resize fica errado).
       if (clipShape === "none") {
         return (
           <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={handleClick}
+            width={el.width} height={el.height}
             clipX={0} clipY={0} clipWidth={el.width} clipHeight={el.height}>
             <KImage image={img} x={imgX} y={imgY} width={imgW} height={imgH} crop={crop} />
           </Group>
@@ -730,7 +733,10 @@ export default function CanvasStage(p: Props) {
         updates.fontSize = Math.max(6, Math.round((el.fontSize ?? 32) * sx));
         updates.width    = Math.max(20, (el.width  ?? node.width())  * sx);
         updates.height   = Math.max(20, (el.height ?? node.height()) * sy);
-      } else if (el.type === "circle") {
+      } else if (el.type === "circle" || el.type === "image") {
+        // image: quando imageFit="cover" o node é um Group sem width/height reportado
+        // pelo Konva (node.width() pode ser 0); usar el.width/height direto é seguro
+        // para todos os modos (fill/contain o node é KImage onde node.width()=el.width)
         updates.width  = Math.max(5, el.width  * sx);
         updates.height = Math.max(5, el.height * sy);
       } else {
