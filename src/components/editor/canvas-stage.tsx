@@ -73,6 +73,19 @@ function replacePreviewBinds(text: string, vals: Record<string, string>): string
   return text.replace(/\[([a-z0-9_]+)\]/gi, (_, k: string) => vals[k.toLowerCase()] ?? "");
 }
 
+// Retorna src real ou URL de placeholder dimensionado quando o elemento
+// tem bind mas ainda não tem URL real (editor sem previewValues).
+function resolveImageSrc(el: EditorElement): string | undefined {
+  if (el.type !== "image") return undefined;
+  const raw = el.src || "";
+  if (el.bindParam && (!raw || raw.startsWith("[") || raw.startsWith("{"))) {
+    const w = Math.round(el.width) || 400;
+    const h = Math.round(el.height) || 300;
+    return `https://placehold.co/${w}x${h}/1a1a2e/ffffff?text=Imagem`;
+  }
+  return raw || undefined;
+}
+
 /* ── Gradient helper ──────────────────────────────── */
 function getFillProps(fill: string | GradientFill | undefined, width: number, height: number) {
   if (!fill || typeof fill === "string") {
@@ -221,7 +234,7 @@ function getAnimState(el: EditorElement, time: number): AnimState {
 
 /* ── Per-element renderer (NO Transformer inside) ── */
 function GhostCell({ el, dx, dy, previewValues }: { el: EditorElement; dx: number; dy: number; previewValues?: Record<string, string> }) {
-  const img = useImage(el.type === "image" ? el.src : undefined);
+  const img = useImage(resolveImageSrc(el));
   const x = el.x + dx;
   const y = el.y + dy;
   const op = el.opacity ?? 1;
@@ -263,7 +276,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   previewValues?: Record<string, string>;
 }) {
   const shapeRef = useRef<Konva.Node>(null);
-  const img = useImage(el.type === "image" ? el.src : undefined);
+  const img = useImage(resolveImageSrc(el));
   const qrImg = useQrImage(
     el.type === "qrcode" ? (el.qrUrl || "") : "",
     el.qrFg || "#000000",
