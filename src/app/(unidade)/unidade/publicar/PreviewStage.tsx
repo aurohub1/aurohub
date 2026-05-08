@@ -777,24 +777,27 @@ interface Props {
   height: number;
   values: Record<string, string>;
   maxDisplay?: number;
-  displayWidth?: number;
-  displayHeight?: number;
   onReady?: (stage: Konva.Stage) => void;
 }
 
-export default function PreviewStage({ schema, width, height, values, maxDisplay = 420, displayWidth, displayHeight, onReady }: Props) {
+export default function PreviewStage({ schema, width, height, values, onReady }: Props) {
   const stageRef = useRef<Konva.Stage | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [scale, setScale] = useState(1);
 
-  const scale = useMemo(() => {
-    if (displayWidth && displayHeight) {
-      return Math.min(displayWidth / width, displayHeight / height);
-    }
-    const byH = maxDisplay / height;
-    const factorW = width > height ? 1 : 0.75;
-    const byW = (maxDisplay * factorW) / width;
-    return Math.min(byH, byW, 1);
-  }, [width, height, maxDisplay, displayWidth, displayHeight]);
+  useEffect(() => {
+    const update = () => {
+      if (!containerRef.current) return;
+      const cW = containerRef.current.clientWidth;
+      const cH = containerRef.current.clientHeight;
+      setScale(Math.min(cW / width, cH / height));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [width, height]);
 
   // Preview-time smart-links: recalcula altura real de textos expansíveis (servicoslista)
   // e propaga para elementos com smartTrack/smartResize apontando para eles.
@@ -853,24 +856,26 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
     if (stageRef.current && onReady) onReady(stageRef.current);
   }, [onReady]);
 
-  if (!fontsLoaded) return <div>Carregando...</div>;
+  if (!fontsLoaded) return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
 
   return (
-    <Stage
-      ref={(r) => { stageRef.current = r; }}
-      width={displayWidth ?? Math.round(width * scale)}
-      height={displayHeight ?? Math.round(height * scale)}
-      scaleX={scale}
-      scaleY={scale}
-      style={{ background: schema.background || "#fff", borderRadius: 12, overflow: "hidden" }}
-    >
-      <Layer>
-        <Rect x={0} y={0} width={width} height={height} fill={schema.background || "#fff"} />
-        {resolvedElements.map((el) => (
-          <RenderEl key={el.id} el={el} values={values} formType={schema.formType} />
-        ))}
-      </Layer>
-    </Stage>
+    <div ref={containerRef} style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <div style={{ width, height, transform: `scale(${scale})`, transformOrigin: "center center", flexShrink: 0 }}>
+        <Stage
+          ref={(r) => { stageRef.current = r; }}
+          width={width}
+          height={height}
+          style={{ background: schema.background || "#fff", borderRadius: 12, overflow: "hidden" }}
+        >
+          <Layer>
+            <Rect x={0} y={0} width={width} height={height} fill={schema.background || "#fff"} />
+            {resolvedElements.map((el) => (
+              <RenderEl key={el.id} el={el} values={values} formType={schema.formType} />
+            ))}
+          </Layer>
+        </Stage>
+      </div>
+    </div>
   );
 }
 

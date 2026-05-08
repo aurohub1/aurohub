@@ -654,10 +654,7 @@ export default function PublicarPageBase({
     duration: 5,
   };
   const [pw, ph] = FORMAT_DIMS[format];
-  const _maxH = Math.round(winH * 0.82);
-  const _previewScale = _maxH / Math.max(pw, ph);
-  const containerW = Math.round(pw * _previewScale);
-  const containerH = Math.round(ph * _previewScale);
+  const _maxPreview = Math.round(winH * 0.82);
 
   function goToForm(tipo: FormType) {
     setAnimOut(true);
@@ -1504,8 +1501,11 @@ export default function PublicarPageBase({
             <div
               style={{
                 position: "relative",
-                width: containerW + "px",
-                height: containerH + "px",
+                aspectRatio: `${pw} / ${ph}`,
+                maxWidth: _maxPreview + "px",
+                maxHeight: _maxPreview + "px",
+                width: "100%",
+                height: "100%",
                 overflow: "hidden",
                 flexShrink: 0,
               }}
@@ -1515,8 +1515,6 @@ export default function PublicarPageBase({
                 width={pw}
                 height={ph}
                 values={previewValues}
-                displayWidth={containerW}
-                displayHeight={containerH}
                 onReady={
                   enablePublishing
                     ? (s: any) => {
