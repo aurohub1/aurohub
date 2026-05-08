@@ -15,12 +15,24 @@ const CHAT_PATHS = [
 let maintenanceCache: { active: boolean; ts: number } | null = null;
 const MAINTENANCE_TTL = 30_000;
 
+function raceTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("middleware_timeout")), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); }
+    );
+  });
+}
+
 async function isMaintenanceActive(): Promise<boolean> {
   const now = Date.now();
   if (maintenanceCache && now - maintenanceCache.ts < MAINTENANCE_TTL) {
     return maintenanceCache.active;
   }
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/system_config?select=value&key=eq.maintenance_active&limit=1`,
       {
@@ -29,8 +41,10 @@ async function isMaintenanceActive(): Promise<boolean> {
           Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
         },
         cache: "no-store",
+        signal: controller.signal,
       }
     );
+    clearTimeout(timer);
     const rows: { value: string }[] = await res.json();
     const active = rows?.[0]?.value === "true";
     maintenanceCache = { active, ts: now };
@@ -77,34 +91,21 @@ function isAdmRoute(pathname: string): boolean {
 
 function homeForRole(role: string | null): string {
   switch (role) {
-    case "adm": return "/inicio";
+    case "adm":      return "/inicio";
     case "operador": return "/operador/inicio";
-    case "cliente": return "/cliente/inicio";
-    case "unidade": return "/unidade/inicio";
-    case "gerente": return "/gerente/inicio";
-    case "gestor": return "/gerente/inicio";
+    case "cliente":  return "/cliente/inicio";
+    case "unidade":  return "/unidade/inicio";
+    case "gerente":  return "/gerente/inicio";
+    case "gestor":   return "/gerente/inicio";
     case "vendedor": return "/consultor/inicio";
-    default: return "/login";
+    default:         return "/login";
   }
 }
 
-/**
- * Regras de acesso hierárquico (conforme layouts dos route groups):
- *  - adm      → tudo
- *  - cliente  → /cliente, /unidade, /vendedor   (não ADM routes)
- *  - unidade  → /unidade, /vendedor              (não /cliente, não ADM)
- *  - vendedor → /vendedor                        (só o seu)
- */
 function isAllowed(role: string, pathname: string): boolean {
   if (role === "adm") return true;
-
-  if (role === "operador") {
-    // Operador acessa apenas /operador/* — nunca ADM routes
-    return pathname.startsWith(OPERADOR_PREFIX);
-  }
-
+  if (role === "operador") return pathname.startsWith(OPERADOR_PREFIX);
   if (isAdmRoute(pathname)) return false;
-
   if (role === "cliente") {
     return pathname.startsWith(CLIENTE_PREFIX)
         || pathname.startsWith(UNIDADE_PREFIX)
@@ -120,30 +121,25 @@ function isAllowed(role: string, pathname: string): boolean {
     return pathname.startsWith(GERENTE_PREFIX)
         || pathname.startsWith(VENDEDOR_PREFIX);
   }
-  if (role === "vendedor") {
-    return pathname.startsWith(VENDEDOR_PREFIX);
-  }
+  if (role === "vendedor") return pathname.startsWith(VENDEDOR_PREFIX);
   return false;
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Rotas públicas — nunca redirecionar, nunca lopar
+  // Rotas públicas — passa direto sem nenhuma chamada de rede
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next({ request });
   }
 
-  // Supabase server client ligado aos cookies da request
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
+        getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
@@ -155,9 +151,19 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // Auth — timeout de 5s para não travar o middleware
+  let user: { id: string } | null = null;
+  try {
+    const { data } = await raceTimeout(supabase.auth.getUser(), 5000);
+    user = data.user;
+  } catch {
+    // Timeout ou erro de auth: redireciona para login (fail safe)
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("from", pathname);
+    return NextResponse.redirect(url);
+  }
 
-  // Não autenticado
   if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -165,17 +171,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Autenticado — pega role do profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  // Profile — timeout de 5s; falha graciosamente (role null → redireciona para login)
+  let role: string | null = null;
+  try {
+    const { data: profile } = await raceTimeout(
+      supabase.from("profiles").select("role").eq("id", user.id).single(),
+      5000
+    );
+    role = (profile?.role as string | null) ?? null;
+  } catch {
+    // Timeout no profile: deixa passar para o login para não bloquear acesso
+    role = null;
+  }
 
-  const role = (profile?.role as string | null) ?? null;
   const myHome = homeForRole(role);
 
-  // Manutenção — bloqueia usuários não-ADM
+  // Manutenção — bloqueia usuários não-ADM (fetch com AbortController interno)
   if (role !== "adm" && !pathname.startsWith("/manutencao")) {
     const inMaintenance = await isMaintenanceActive();
     if (inMaintenance) {
@@ -185,18 +196,17 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Chat desativado — bloqueia acesso às rotas de chat
+  // Chat desativado — timeout de 3s
   if (CHAT_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"))) {
     try {
       const admin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
       );
-      const { data } = await admin
-        .from("system_config")
-        .select("value")
-        .eq("key", "chat_enabled")
-        .maybeSingle();
+      const { data } = await raceTimeout(
+        admin.from("system_config").select("value").eq("key", "chat_enabled").maybeSingle(),
+        3000
+      );
       if (data?.value === "false") {
         const url = request.nextUrl.clone();
         url.pathname = "/";
@@ -204,18 +214,18 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(url);
       }
     } catch {
-      // on error, let through
+      // Timeout ou erro: deixa entrar no chat (fail open)
     }
   }
 
-  // Usuário logado em /login ou / → manda pra sua home (evita loop se myHome for /login)
+  // Usuário logado em /login ou / → redireciona para sua home
   if ((pathname === "/" || pathname === "/login") && myHome !== pathname) {
     const url = request.nextUrl.clone();
     url.pathname = myHome;
     return NextResponse.redirect(url);
   }
 
-  // Sem role válida → permite ficar no /login (sem redirect loop)
+  // Sem role válida → volta para /login
   if (!role) {
     if (pathname === "/login") return response;
     const url = request.nextUrl.clone();
@@ -237,11 +247,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - _next (static assets)
+     * - _next/static, _next/image (static assets)
      * - favicon.ico
-     * - image files
      * - /api/* (route handlers têm sua própria proteção)
+     * - arquivos de imagem/fonte
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)",
   ],
 };
