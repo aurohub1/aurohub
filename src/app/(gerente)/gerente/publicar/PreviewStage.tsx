@@ -857,7 +857,8 @@ export default function PreviewStage({ schema, width, height, values, maxDisplay
 
   const scale = useMemo(() => {
     const byH = maxDisplay / height;
-    const byW = (maxDisplay * 0.75) / width;
+    const factorW = width > height ? 1 : 0.75;
+    const byW = (maxDisplay * factorW) / width;
     return Math.min(byH, byW, 1);
   }, [width, height, maxDisplay]);
 

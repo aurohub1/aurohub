@@ -404,8 +404,8 @@ export default function PublicarPageBase({
             background: "#0E1520",
             duration: 5,
           },
-          width: r.width || 1080,
-          height: r.height || 1920,
+          width: r.width || FORMAT_DIMS[r.format as Format]?.[0] || 1080,
+          height: r.height || FORMAT_DIMS[r.format as Format]?.[1] || 1920,
         }))
       );
     }
