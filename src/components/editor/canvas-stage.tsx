@@ -16,6 +16,7 @@ interface Props {
   onMultiSelect?: (ids: string[]) => void;
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
   onMultiUpdate?: (updates: { id: string; x: number; y: number }[]) => void;
+  onBatchTransform?: (batch: { id: string; updates: Partial<EditorElement> }[]) => void;
   onStageRef: (r: Konva.Stage | null) => void;
   onScaleChange: (s: number) => void;
   previewValues?: Record<string, string>;
@@ -565,46 +566,46 @@ export default function CanvasStage(p: Props) {
     }, 0);
   }, [selectedIds, cascadeUpdate, p.onMultiUpdate]);
 
-  // Transform end — centralizado para funcionar com multi-seleção
+  // Transform end — batch único para não sobrescrever updates anteriores
   const handleTransformEnd = useCallback(() => {
+    const batch: { id: string; updates: Partial<EditorElement> }[] = [];
+
     for (const id of selectedIds) {
       const el = schema.elements.find(e => e.id === id);
       const node = nodeRefs.current.get(id);
       if (!node || !el) continue;
+
       const sx = Math.abs(node.scaleX());
       const sy = Math.abs(node.scaleY());
-      const updates: Partial<EditorElement> = { x: node.x(), y: node.y(), rotation: node.rotation() };
-      if (el.type === "text") {
-        const newFontSize = Math.max(6, Math.round((el.fontSize ?? 32) * sx));
-        const newWidth  = Math.max(20, (el.width  ?? node.width())  * sx);
-        const newHeight = Math.max(20, (el.height ?? node.height()) * sy);
-        console.log("TEXT UPDATE", {
-          elLinhas: el.linhas,
-          oldFontSize: el.fontSize,
-          newFontSize,
-          sx,
-        });
-        updates.fontSize = newFontSize;
-        updates.width    = newWidth;
-        updates.height   = newHeight;
-        // se tem linhas, atualizar também para que fitFontSize
-        // recalcule com o novo tamanho de caixa
-        if (el.linhas) {
-          updates.linhas = el.linhas; // mantém linhas mas width/height
-          // mudou — fitFontSize vai recalcular automaticamente
-        }
-      } else if (el.type === "circle") {
-        updates.width = Math.max(5, el.width * sx);
-        updates.height = Math.max(5, el.height * sy);
-      } else {
-        updates.width = Math.max(5, node.width() * sx);
-        updates.height = Math.max(5, node.height() * sy);
-      }
+
       node.scaleX(el.flipX ? -1 : 1);
       node.scaleY(el.flipY ? -1 : 1);
-      cascadeUpdate(id, updates);
+
+      const updates: Partial<EditorElement> = {
+        x: node.x(),
+        y: node.y(),
+        rotation: node.rotation(),
+      };
+
+      if (el.type === "text") {
+        updates.fontSize = Math.max(6, Math.round((el.fontSize ?? 32) * sx));
+        updates.width    = Math.max(20, (el.width  ?? node.width())  * sx);
+        updates.height   = Math.max(20, (el.height ?? node.height()) * sy);
+      } else if (el.type === "circle") {
+        updates.width  = Math.max(5, el.width  * sx);
+        updates.height = Math.max(5, el.height * sy);
+      } else {
+        updates.width  = Math.max(5, node.width()  * sx);
+        updates.height = Math.max(5, node.height() * sy);
+      }
+
+      batch.push({ id, updates });
     }
-  }, [selectedIds, schema.elements, cascadeUpdate]);
+
+    if (batch.length === 0) return;
+    // Uma única chamada → um único setState → um único re-render
+    p.onBatchTransform?.(batch);
+  }, [selectedIds, schema.elements, p.onBatchTransform]);
 
   useEffect(() => {
     if (stageRef.current) stageRef.current.position({ x: 0, y: 0 });

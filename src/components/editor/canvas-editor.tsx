@@ -205,6 +205,16 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     });
   }, [changeSchema]);
 
+  const batchTransformElements = useCallback((batch: { id: string; updates: Partial<EditorElement> }[]) => {
+    changeSchema({
+      ...schemaRef.current,
+      elements: schemaRef.current.elements.map(el => {
+        const found = batch.find(b => b.id === el.id);
+        return found ? { ...el, ...found.updates } : el;
+      }),
+    });
+  }, [changeSchema]);
+
   const addElement = useCallback((el: EditorElement) => {
     changeSchema({ ...schemaRef.current, elements: [...schemaRef.current.elements, el] });
     selectSingle(el.id);
@@ -557,6 +567,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
           onSelect={selectSingle} onShiftSelect={shiftSelect} onMultiSelect={selectMultiple}
           onUpdate={cascadeUpdateElement}
           onMultiUpdate={multiUpdateElements}
+          onBatchTransform={batchTransformElements}
           onStageRef={(r) => { stageRef.current = r; }}
           onScaleChange={setStageScale}
           previewValues={PREVIEW_DEFAULTS}
