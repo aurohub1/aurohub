@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Stage, Layer, Rect, Circle, Text, Image as KImage, Transformer, Line, Group } from "react-konva";
 import type Konva from "konva";
 import QRCode from "qrcode";
-import { EditorElement, EditorSchema, SnapLine, calcSnapLines, computeTextHeight, GradientFill } from "./types";
+import { EditorElement, EditorSchema, SnapLine, calcSnapLines, computeTextHeight, GradientFill, blendColorOpacity } from "./types";
 
 interface Props {
   width: number; height: number;
@@ -297,7 +297,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
         height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
         wrap="word"
         ellipsis={!!el.linhas}
-        text={displayText} fontSize={fSize} fontFamily={el.fontFamily || '"Helvetica Neue", Arial, Helvetica, sans-serif'} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)} />
+        text={displayText} fontSize={fSize} fontFamily={el.fontFamily || '"Helvetica Neue", Arial, Helvetica, sans-serif'} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.strokeEnabled ? blendColorOpacity(el.stroke, el.strokeOpacity ?? 1) : undefined} strokeWidth={el.strokeEnabled ? (el.strokeWidth ?? 1) : 0} padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)} />
     </>;
   }
   if (el.type === "rect") {

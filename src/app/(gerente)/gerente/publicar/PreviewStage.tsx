@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Rect, Circle, Text as KText, Image as KImage, Group } from "react-konva";
 import type Konva from "konva";
-import { applySmartLinks, type EditorElement, type EditorSchema, type GradientFill } from "@/components/editor/types";
+import { applySmartLinks, blendColorOpacity, type EditorElement, type EditorSchema, type GradientFill } from "@/components/editor/types";
 import { useBadges } from "@/hooks/useBadges";
 import { resolveBadgeUrl, shouldRenderBadge } from "@/lib/badges";
 
@@ -695,8 +695,8 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
           fontStyle={resolveKonvaFontStyle(el)}
           textDecoration={el.textDecoration ?? ""}
           {...textFillProps}
-          stroke={el.stroke}
-          strokeWidth={el.strokeWidth ?? 0}
+          stroke={el.strokeEnabled ? blendColorOpacity(el.stroke, el.strokeOpacity ?? 1) : undefined}
+          strokeWidth={el.strokeEnabled ? (el.strokeWidth ?? 1) : 0}
           align={el.align ?? "left"}
           verticalAlign={el.verticalAlign ?? "top"}
           letterSpacing={el.letterSpacing ?? 0}

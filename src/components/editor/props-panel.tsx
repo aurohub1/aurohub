@@ -334,10 +334,29 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
           </G2>
 
           {/* 7. Stroke */}
-          <G2>
-            <F l="Stroke cor"><ColorSwatch value={s.stroke || "#000"} onChange={v => u({ stroke: v })} /></F>
-            <F l="Stroke W"><Num v={s.strokeWidth || 0} c={v => u({ strokeWidth: v })} min={0} /></F>
-          </G2>
+          <SubSec t="Stroke" right={
+            <SBtn active={s.strokeEnabled ?? false} onClick={() => u({ strokeEnabled: !s.strokeEnabled })}>
+              {s.strokeEnabled ? "ON" : "OFF"}
+            </SBtn>
+          } />
+          {s.strokeEnabled && (
+            <>
+              <G2>
+                <F l="Cor"><ColorSwatch value={s.stroke || "#000000"} onChange={v => u({ stroke: v })} /></F>
+                <F l="Opacidade"><Num v={Math.round((s.strokeOpacity ?? 1) * 100)} min={0} max={100} step={1} c={v => u({ strokeOpacity: v / 100 })} /></F>
+              </G2>
+              <G2>
+                <F l="Espessura"><Num v={s.strokeWidth ?? 1} min={0} step={0.5} c={v => u({ strokeWidth: v })} /></F>
+                <F l="Tipo">
+                  <select value={s.strokePosition || "center"} onChange={e => u({ strokePosition: e.target.value as EditorElement["strokePosition"] })} style={selS}>
+                    <option value="center">Centralizado</option>
+                    <option value="outside">Externo</option>
+                    <option value="inside">Interno</option>
+                  </select>
+                </F>
+              </G2>
+            </>
+          )}
 
           {/* 8. Comportamento */}
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>

@@ -41,6 +41,7 @@ export interface EditorElement {
   qrUrl?: string; qrFg?: string; qrBg?: string;
   // Shape
   cornerRadius?: number; stroke?: string; strokeWidth?: number;
+  strokeEnabled?: boolean; strokeOpacity?: number; strokePosition?: "outside" | "inside" | "center";
   autoHeightRef?: string;  // ID do elemento texto que este shape acompanha
   strokeDashArray?: number[];
   // Effects
@@ -86,6 +87,17 @@ export function computeTextHeight(el: EditorElement): number {
     return Math.ceil((el.fontSize || 32) * (el.lineHeight || 1.2) * el.linhas);
   }
   return el.height;
+}
+
+export function blendColorOpacity(color: string | undefined, opacity: number): string | undefined {
+  if (!color) return undefined;
+  if (opacity >= 1) return color;
+  const h = color.replace("#", "");
+  if (h.length !== 6) return color;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${opacity.toFixed(3)})`;
 }
 
 export function computeTextWidth(el: EditorElement, text?: string): number {
