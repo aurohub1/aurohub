@@ -654,6 +654,11 @@ export default function PublicarPageBase({
     duration: 5,
   };
   const [pw, ph] = FORMAT_DIMS[format];
+  const _maxDisplayH = Math.round(winH * 0.82);
+  const _factorW = pw > ph ? 1 : 0.75;
+  const _previewScale = Math.min(_maxDisplayH / ph, (_maxDisplayH * _factorW) / pw, 1);
+  const containerW = Math.round(pw * _previewScale);
+  const containerH = Math.round(ph * _previewScale);
 
   function goToForm(tipo: FormType) {
     setAnimOut(true);
@@ -1500,9 +1505,8 @@ export default function PublicarPageBase({
             <div
               style={{
                 position: "relative",
-                width:
-                  Math.round(Math.round(winH * 0.82) * (pw / ph)) + "px",
-                height: Math.round(winH * 0.82) + "px",
+                width: containerW + "px",
+                height: containerH + "px",
                 overflow: "hidden",
                 flexShrink: 0,
               }}
