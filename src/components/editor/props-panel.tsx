@@ -642,7 +642,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
             <option value="exclusion">Exclusion</option>
           </select>
         </F>
-        <G2><F l="Skew X"><Num v={s.skewX || 0} c={v => u({ skewX: v })} /></F><F l="Skew Y"><Num v={s.skewY || 0} c={v => u({ skewY: v })} /></F></G2>
+        <G2><F l="Skew X"><Num v={s.skewX ?? 0} min={-45} max={45} step={1} c={v => u({ skewX: v })} /></F><F l="Skew Y"><Num v={s.skewY ?? 0} min={-45} max={45} step={1} c={v => u({ skewY: v })} /></F></G2>
       </Sec>
 
       {/* ═══ 7. SMART FEATURES ═══ (apenas ADM) */}

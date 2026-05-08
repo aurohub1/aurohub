@@ -417,6 +417,13 @@ function resolveKonvaFontStyle(el: any): string {
   return isBold ? 'bold' : 'normal';
 }
 
+function skewProps(el: EditorElement) {
+  return {
+    skewX: Math.tan((el.skewX ?? 0) * Math.PI / 180),
+    skewY: Math.tan((el.skewY ?? 0) * Math.PI / 180),
+  };
+}
+
 function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<string, string>; formType?: string }) {
   if (el.visible === false) return null;
   if (el.hideIfEmpty && el.bindParam && !values[el.bindParam] && !DYNAMIC_BADGES.has(el.bindParam)) return null;
@@ -436,6 +443,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
       <Rect
         x={el.x} y={el.y} width={el.width} height={el.height}
         rotation={el.rotation ?? 0}
+        {...skewProps(el)}
         {...getFillProps(el.fill, el.width, el.height)}
         opacity={el.opacity ?? 1}
         cornerRadius={el.cornerRadius ?? 0}
@@ -456,6 +464,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
         x={el.x + el.width / 2} y={el.y + el.height / 2}
         radius={Math.min(el.width, el.height) / 2}
         rotation={el.rotation ?? 0}
+        {...skewProps(el)}
         {...getFillProps(el.fill, el.width, el.height)}
         opacity={el.opacity ?? 1}
         stroke={el.stroke}
@@ -499,7 +508,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
       }
       if (wInt === 0) wInt = intPart.length * fSize * 0.55;
       return (
-        <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1}>
+        <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1} {...skewProps(el)}>
           <KText
             text={intPart}
             fontSize={fSize}
@@ -563,7 +572,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
       if (wInt === 0) wInt = intPart.length * fSize * 0.55;
 
       return (
-        <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1}>
+        <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1} {...skewProps(el)}>
           <KText
             x={0}
             y={Math.round(fSize * 0.3)}  /* baseline alignment: R$ sits ~30% lower than big number top */
@@ -599,6 +608,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
         {el.textBg && (
           <Rect
             x={el.x} y={el.y} rotation={el.rotation ?? 0}
+            {...skewProps(el)}
             width={el.width} height={textBgHeight}
             fill={el.textBg} opacity={(el.textBgOpacity ?? 100) / 100}
             listening={false}
@@ -611,6 +621,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
           wrap="word"
           ellipsis={!!el.linhas}
           rotation={el.rotation ?? 0}
+          {...skewProps(el)}
           text={txt}
           fontSize={fSize}
           fontFamily={el.fontFamily ?? "Helvetica Neue"}
@@ -725,7 +736,7 @@ function RenderImage({ el, values }: { el: EditorElement; values: Record<string,
         };
     }
     return (
-      <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
+      <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1} {...skewProps(el)} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
         <KImage image={img} x={0} y={0} width={el.width} height={el.height} />
       </Group>
     );
@@ -735,6 +746,7 @@ function RenderImage({ el, values }: { el: EditorElement; values: Record<string,
       image={img}
       x={el.x} y={el.y} width={el.width} height={el.height}
       rotation={el.rotation ?? 0}
+      {...skewProps(el)}
       opacity={el.opacity ?? 1}
       cornerRadius={el.cornerRadius ?? 0}
       stroke={el.stroke}
