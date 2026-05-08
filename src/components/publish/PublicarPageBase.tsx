@@ -258,14 +258,6 @@ export default function PublicarPageBase({
     pill.style.width = br.width + "px";
   }
 
-  const [winH, setWinH] = useState(
-    typeof window !== "undefined" ? window.innerHeight : 900
-  );
-  useEffect(() => {
-    const onResize = () => setWinH(window.innerHeight);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
 
   useEffect(() => {
     const wrap = tabsWrapRef.current;
@@ -654,7 +646,6 @@ export default function PublicarPageBase({
     duration: 5,
   };
   const [pw, ph] = FORMAT_DIMS[format];
-  const _maxPreview = Math.round(winH * 0.82);
 
   function goToForm(tipo: FormType) {
     setAnimOut(true);
@@ -1491,22 +1482,24 @@ export default function PublicarPageBase({
             ref={previewAreaRef}
             style={{
               flex: 1,
+              minHeight: 0,
               display: "flex",
-              alignItems: "flex-start",
+              alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
               paddingTop: "16px",
+              paddingBottom: "16px",
             }}
           >
             <div
               style={{
-                position: "relative",
                 aspectRatio: `${pw} / ${ph}`,
-                maxWidth: _maxPreview + "px",
-                maxHeight: _maxPreview + "px",
-                width: "100%",
-                height: "100%",
+                width: ph > pw ? "auto" : "100%",
+                height: ph > pw ? "100%" : "auto",
+                maxWidth: "100%",
+                maxHeight: "100%",
                 overflow: "hidden",
+                position: "relative",
                 flexShrink: 0,
               }}
             >
