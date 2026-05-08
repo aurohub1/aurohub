@@ -410,98 +410,94 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
         <Text x={el.x + el.width / 2 - 40} y={el.y + el.height / 2 - 8} text={el.bindParam ? `📸 ${el.bindParam}` : "Placeholder"} fontSize={14} fill="#aaa" listening={false} />
       </>;
     }
-    // Crop: explícito (do CropModal) tem precedência; senão auto-calc via imageFit
-    let crop = (el.cropW && el.cropH) ? { x: el.cropX || 0, y: el.cropY || 0, width: el.cropW, height: el.cropH } : undefined;
+    // Crop manual (do CropModal) tem precedência sobre imageFit
+    const crop = (el.cropW && el.cropH) ? { x: el.cropX || 0, y: el.cropY || 0, width: el.cropW, height: el.cropH } : undefined;
+
+    // Posição e dimensões da imagem dentro do container (cover/contain via offset+scale; fill = padrão)
+    let imgX = 0, imgY = 0, imgW = el.width, imgH = el.height;
+    let needsRectClip = false;
     if (!crop && img.naturalWidth > 0 && img.naturalHeight > 0 && el.imageFit && el.imageFit !== "fill") {
-      const targetAspect = el.width / el.height;
-      const srcAspect = img.naturalWidth / img.naturalHeight;
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      const ew = el.width, eh = el.height;
       if (el.imageFit === "cover") {
-        if (srcAspect > targetAspect) {
-          // Fonte mais larga — corta nas laterais
-          const cw = img.naturalHeight * targetAspect;
-          crop = { x: (img.naturalWidth - cw) / 2, y: 0, width: cw, height: img.naturalHeight };
-        } else {
-          // Fonte mais alta — corta topo/base
-          const ch = img.naturalWidth / targetAspect;
-          crop = { x: 0, y: (img.naturalHeight - ch) / 2, width: img.naturalWidth, height: ch };
-        }
+        const scale = Math.max(ew / iw, eh / ih);
+        imgW = iw * scale; imgH = ih * scale;
+        imgX = (ew - imgW) / 2; imgY = (eh - imgH) / 2;
+        needsRectClip = true;
       } else if (el.imageFit === "contain") {
-        // Contain: expande a source region para que a imagem inteira caiba (letterbox).
-        // Não há "cropsmall" padrão no Konva pro contain, mas podemos simular aumentando o crop além da source — Konva renderiza fundo transparente nas bordas.
-        if (srcAspect > targetAspect) {
-          // Fonte mais larga — adiciona padding vertical
-          const ch = img.naturalWidth / targetAspect;
-          crop = { x: 0, y: (img.naturalHeight - ch) / 2, width: img.naturalWidth, height: ch };
-        } else {
-          // Fonte mais alta — adiciona padding horizontal
-          const cw = img.naturalHeight * targetAspect;
-          crop = { x: (img.naturalWidth - cw) / 2, y: 0, width: cw, height: img.naturalHeight };
-        }
+        const scale = Math.min(ew / iw, eh / ih);
+        imgW = iw * scale; imgH = ih * scale;
+        imgX = (ew - imgW) / 2; imgY = (eh - imgH) / 2;
       }
     }
+
     const clipShape = el.clipShape || "none";
-    if (clipShape !== "none") {
+    const needsGroup = clipShape !== "none" || needsRectClip;
+    if (needsGroup) {
       const radius = el.clipRadius ?? Math.min(el.width, el.height) * 0.25;
       let clipFunc: (rawCtx: unknown) => void;
-      switch (clipShape) {
-        case "circle":
-          clipFunc = (rawCtx: unknown) => {
-            const ctx = rawCtx as CanvasRenderingContext2D;
-            ctx.beginPath();
-            ctx.ellipse(el.width / 2, el.height / 2, el.width / 2, el.height / 2, 0, 0, Math.PI * 2);
-            ctx.closePath();
-          };
-          break;
-        case "triangle":
-          clipFunc = (rawCtx: unknown) => {
-            const ctx = rawCtx as CanvasRenderingContext2D;
-            ctx.beginPath();
-            ctx.moveTo(el.width / 2, 0);
-            ctx.lineTo(el.width, el.height);
-            ctx.lineTo(0, el.height);
-            ctx.closePath();
-          };
-          break;
-        case "hexagon":
-          clipFunc = (rawCtx: unknown) => {
-            const ctx = rawCtx as CanvasRenderingContext2D;
-            const cx = el.width / 2;
-            const cy = el.height / 2;
-            const r = Math.min(el.width, el.height) / 2;
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-              const angle = (Math.PI / 3) * i - Math.PI / 6;
-              const px = cx + r * Math.cos(angle);
-              const py = cy + r * Math.sin(angle);
-              if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-          };
-          break;
-        default: // "rounded"
-          clipFunc = (rawCtx: unknown) => {
-            const ctx = rawCtx as CanvasRenderingContext2D;
-            const r = Math.min(radius, el.width / 2, el.height / 2);
-            ctx.beginPath();
-            ctx.moveTo(r, 0);
-            ctx.lineTo(el.width - r, 0);
-            ctx.quadraticCurveTo(el.width, 0, el.width, r);
-            ctx.lineTo(el.width, el.height - r);
-            ctx.quadraticCurveTo(el.width, el.height, el.width - r, el.height);
-            ctx.lineTo(r, el.height);
-            ctx.quadraticCurveTo(0, el.height, 0, el.height - r);
-            ctx.lineTo(0, r);
-            ctx.quadraticCurveTo(0, 0, r, 0);
-            ctx.closePath();
-          };
+      if (clipShape === "circle") {
+        clipFunc = (rawCtx: unknown) => {
+          const ctx = rawCtx as CanvasRenderingContext2D;
+          ctx.beginPath();
+          ctx.ellipse(el.width / 2, el.height / 2, el.width / 2, el.height / 2, 0, 0, Math.PI * 2);
+          ctx.closePath();
+        };
+      } else if (clipShape === "triangle") {
+        clipFunc = (rawCtx: unknown) => {
+          const ctx = rawCtx as CanvasRenderingContext2D;
+          ctx.beginPath();
+          ctx.moveTo(el.width / 2, 0);
+          ctx.lineTo(el.width, el.height);
+          ctx.lineTo(0, el.height);
+          ctx.closePath();
+        };
+      } else if (clipShape === "hexagon") {
+        clipFunc = (rawCtx: unknown) => {
+          const ctx = rawCtx as CanvasRenderingContext2D;
+          const cx = el.width / 2, cy = el.height / 2;
+          const r = Math.min(el.width, el.height) / 2;
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i - Math.PI / 6;
+            const px = cx + r * Math.cos(angle);
+            const py = cy + r * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+        };
+      } else if (clipShape === "rounded") {
+        clipFunc = (rawCtx: unknown) => {
+          const ctx = rawCtx as CanvasRenderingContext2D;
+          const r = Math.min(radius, el.width / 2, el.height / 2);
+          ctx.beginPath();
+          ctx.moveTo(r, 0);
+          ctx.lineTo(el.width - r, 0);
+          ctx.quadraticCurveTo(el.width, 0, el.width, r);
+          ctx.lineTo(el.width, el.height - r);
+          ctx.quadraticCurveTo(el.width, el.height, el.width - r, el.height);
+          ctx.lineTo(r, el.height);
+          ctx.quadraticCurveTo(0, el.height, 0, el.height - r);
+          ctx.lineTo(0, r);
+          ctx.quadraticCurveTo(0, 0, r, 0);
+          ctx.closePath();
+        };
+      } else {
+        // Rect clip para cover sem clipShape
+        clipFunc = (rawCtx: unknown) => {
+          const ctx = rawCtx as CanvasRenderingContext2D;
+          ctx.beginPath();
+          ctx.rect(0, 0, el.width, el.height);
+          ctx.closePath();
+        };
       }
       return (
         <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={handleClick} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
-          <KImage image={img} x={0} y={0} width={el.width} height={el.height} crop={crop} />
+          <KImage image={img} x={imgX} y={imgY} width={imgW} height={imgH} crop={crop} />
         </Group>
       );
     }
-    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={handleClick} image={img} width={el.width} height={el.height} cornerRadius={el.cornerRadius || 0} crop={crop} />;
+    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={handleClick} image={img} x={0} y={0} width={imgW} height={imgH} cornerRadius={el.cornerRadius || 0} crop={crop} />;
   }
   if (el.type === "imageBind") {
     // Placeholder visível apenas no editor ADM: retângulo pontilhado + ícone + label do bind.

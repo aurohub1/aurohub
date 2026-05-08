@@ -673,26 +673,18 @@ function computeImageFitProps(img: HTMLImageElement, el: EditorElement) {
   const imageFit = el.imageFit || "fill";
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
-  const ew = el.width;
-  const eh = el.height;
+  const ew = el.width, eh = el.height;
   if (imageFit === "cover" && iw > 0 && ih > 0) {
-    const srcAspect = iw / ih;
-    const targetAspect = ew / eh;
-    if (srcAspect > targetAspect) {
-      const cw = ih * targetAspect;
-      return { crop: { x: (iw - cw) / 2, y: 0, width: cw, height: ih }, drawWidth: ew, drawHeight: eh, offsetX: 0, offsetY: 0 };
-    } else {
-      const ch = iw / targetAspect;
-      return { crop: { x: 0, y: (ih - ch) / 2, width: iw, height: ch }, drawWidth: ew, drawHeight: eh, offsetX: 0, offsetY: 0 };
-    }
+    const scale = Math.max(ew / iw, eh / ih);
+    const imgW = iw * scale, imgH = ih * scale;
+    return { imgX: (ew - imgW) / 2, imgY: (eh - imgH) / 2, imgW, imgH, needsRectClip: true };
   }
   if (imageFit === "contain" && iw > 0 && ih > 0) {
     const scale = Math.min(ew / iw, eh / ih);
-    const drawWidth = iw * scale;
-    const drawHeight = ih * scale;
-    return { crop: undefined, drawWidth, drawHeight, offsetX: (ew - drawWidth) / 2, offsetY: (eh - drawHeight) / 2 };
+    const imgW = iw * scale, imgH = ih * scale;
+    return { imgX: (ew - imgW) / 2, imgY: (eh - imgH) / 2, imgW, imgH, needsRectClip: false };
   }
-  return { crop: undefined, drawWidth: ew, drawHeight: eh, offsetX: 0, offsetY: 0 };
+  return { imgX: 0, imgY: 0, imgW: ew, imgH: eh, needsRectClip: false };
 }
 
 function RenderImage({ el, values }: { el: EditorElement; values: Record<string, string> }) {
@@ -714,73 +706,76 @@ function RenderImage({ el, values }: { el: EditorElement; values: Record<string,
   }
   const fit = computeImageFitProps(img, el);
   const clipShape = el.clipShape || "none";
-  if (clipShape !== "none") {
+  const needsGroup = clipShape !== "none" || fit.needsRectClip;
+  if (needsGroup) {
     const radius = el.clipRadius ?? Math.min(el.width, el.height) * 0.25;
     let clipFunc: (rawCtx: unknown) => void;
-    switch (clipShape) {
-      case "circle":
-        clipFunc = (rawCtx: unknown) => {
-          const ctx = rawCtx as CanvasRenderingContext2D;
-          ctx.beginPath();
-          ctx.ellipse(el.width / 2, el.height / 2, el.width / 2, el.height / 2, 0, 0, Math.PI * 2);
-          ctx.closePath();
-        };
-        break;
-      case "triangle":
-        clipFunc = (rawCtx: unknown) => {
-          const ctx = rawCtx as CanvasRenderingContext2D;
-          ctx.beginPath();
-          ctx.moveTo(el.width / 2, 0);
-          ctx.lineTo(el.width, el.height);
-          ctx.lineTo(0, el.height);
-          ctx.closePath();
-        };
-        break;
-      case "hexagon":
-        clipFunc = (rawCtx: unknown) => {
-          const ctx = rawCtx as CanvasRenderingContext2D;
-          const cx = el.width / 2;
-          const cy = el.height / 2;
-          const r = Math.min(el.width, el.height) / 2;
-          ctx.beginPath();
-          for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i - Math.PI / 6;
-            const px = cx + r * Math.cos(angle);
-            const py = cy + r * Math.sin(angle);
-            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-        };
-        break;
-      default: // "rounded"
-        clipFunc = (rawCtx: unknown) => {
-          const ctx = rawCtx as CanvasRenderingContext2D;
-          const r = Math.min(radius, el.width / 2, el.height / 2);
-          ctx.beginPath();
-          ctx.moveTo(r, 0);
-          ctx.lineTo(el.width - r, 0);
-          ctx.quadraticCurveTo(el.width, 0, el.width, r);
-          ctx.lineTo(el.width, el.height - r);
-          ctx.quadraticCurveTo(el.width, el.height, el.width - r, el.height);
-          ctx.lineTo(r, el.height);
-          ctx.quadraticCurveTo(0, el.height, 0, el.height - r);
-          ctx.lineTo(0, r);
-          ctx.quadraticCurveTo(0, 0, r, 0);
-          ctx.closePath();
-        };
+    if (clipShape === "circle") {
+      clipFunc = (rawCtx: unknown) => {
+        const ctx = rawCtx as CanvasRenderingContext2D;
+        ctx.beginPath();
+        ctx.ellipse(el.width / 2, el.height / 2, el.width / 2, el.height / 2, 0, 0, Math.PI * 2);
+        ctx.closePath();
+      };
+    } else if (clipShape === "triangle") {
+      clipFunc = (rawCtx: unknown) => {
+        const ctx = rawCtx as CanvasRenderingContext2D;
+        ctx.beginPath();
+        ctx.moveTo(el.width / 2, 0);
+        ctx.lineTo(el.width, el.height);
+        ctx.lineTo(0, el.height);
+        ctx.closePath();
+      };
+    } else if (clipShape === "hexagon") {
+      clipFunc = (rawCtx: unknown) => {
+        const ctx = rawCtx as CanvasRenderingContext2D;
+        const cx = el.width / 2, cy = el.height / 2;
+        const r = Math.min(el.width, el.height) / 2;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 6;
+          const px = cx + r * Math.cos(angle);
+          const py = cy + r * Math.sin(angle);
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+      };
+    } else if (clipShape === "rounded") {
+      clipFunc = (rawCtx: unknown) => {
+        const ctx = rawCtx as CanvasRenderingContext2D;
+        const r = Math.min(radius, el.width / 2, el.height / 2);
+        ctx.beginPath();
+        ctx.moveTo(r, 0);
+        ctx.lineTo(el.width - r, 0);
+        ctx.quadraticCurveTo(el.width, 0, el.width, r);
+        ctx.lineTo(el.width, el.height - r);
+        ctx.quadraticCurveTo(el.width, el.height, el.width - r, el.height);
+        ctx.lineTo(r, el.height);
+        ctx.quadraticCurveTo(0, el.height, 0, el.height - r);
+        ctx.lineTo(0, r);
+        ctx.quadraticCurveTo(0, 0, r, 0);
+        ctx.closePath();
+      };
+    } else {
+      // Rect clip para cover sem clipShape
+      clipFunc = (rawCtx: unknown) => {
+        const ctx = rawCtx as CanvasRenderingContext2D;
+        ctx.beginPath();
+        ctx.rect(0, 0, el.width, el.height);
+        ctx.closePath();
+      };
     }
     return (
       <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1} {...skewProps(el)} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
-        <KImage image={img} x={fit.offsetX} y={fit.offsetY} width={fit.drawWidth} height={fit.drawHeight} crop={fit.crop} />
+        <KImage image={img} x={fit.imgX} y={fit.imgY} width={fit.imgW} height={fit.imgH} />
       </Group>
     );
   }
   return (
     <KImage
       image={img}
-      x={el.x + fit.offsetX} y={el.y + fit.offsetY}
-      width={fit.drawWidth} height={fit.drawHeight}
-      crop={fit.crop}
+      x={el.x + fit.imgX} y={el.y + fit.imgY}
+      width={fit.imgW} height={fit.imgH}
       rotation={el.rotation ?? 0}
       {...skewProps(el)}
       opacity={el.opacity ?? 1}
