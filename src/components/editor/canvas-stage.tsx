@@ -471,40 +471,30 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     // Crop manual (do CropModal) tem precedência sobre imageFit
     const crop = (el.cropW && el.cropH) ? { x: el.cropX || 0, y: el.cropY || 0, width: el.cropW, height: el.cropH } : undefined;
 
-    // Posição e dimensões da imagem dentro do container (cover/contain via offset+scale; fill = padrão)
-    let imgX = 0, imgY = 0, imgW = el.width, imgH = el.height;
-    let needsRectClip = false;
-    if (!crop && img.naturalWidth > 0 && img.naturalHeight > 0 && el.imageFit && el.imageFit !== "fill") {
+    // cover: crop nativo em coordenadas da imagem fonte — sem Group, KImage tem exatamente el.width×el.height
+    const coverCrop = (() => {
+      if (!img || !el.imageFit || el.imageFit !== "cover") return undefined;
+      if (el.cropW && el.cropH) return undefined;
       const iw = img.naturalWidth, ih = img.naturalHeight;
+      if (!iw || !ih) return undefined;
       const ew = el.width, eh = el.height;
-      if (el.imageFit === "cover") {
-        const scale = Math.max(ew / iw, eh / ih);
-        imgW = iw * scale; imgH = ih * scale;
-        imgX = (ew - imgW) / 2; imgY = (eh - imgH) / 2;
-        needsRectClip = true;
-      } else if (el.imageFit === "contain") {
-        const scale = Math.min(ew / iw, eh / ih);
-        imgW = iw * scale; imgH = ih * scale;
-        imgX = (ew - imgW) / 2; imgY = (eh - imgH) / 2;
-      }
+      const s = Math.max(ew / iw, eh / ih);
+      return { x: (iw - ew / s) / 2, y: (ih - eh / s) / 2, width: ew / s, height: eh / s };
+    })();
+
+    // contain: offset/size para letterbox (cover usa crop nativo, fill usa dimensões diretas)
+    let imgX = 0, imgY = 0, imgW = el.width, imgH = el.height;
+    if (!crop && !coverCrop && img.naturalWidth > 0 && img.naturalHeight > 0 && el.imageFit === "contain") {
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      const s = Math.min(el.width / iw, el.height / ih);
+      imgW = iw * s; imgH = ih * s;
+      imgX = (el.width - imgW) / 2; imgY = (el.height - imgH) / 2;
     }
 
     const clipShape = el.clipShape || "none";
-    const needsGroup = clipShape !== "none" || needsRectClip;
-    if (needsGroup) {
+    if (clipShape !== "none") {
+      // Group com clipFunc apenas para formas não-retangulares
       const radius = el.clipRadius ?? Math.min(el.width, el.height) * 0.25;
-      // Rect clip (cover sem clipShape): usa props nativas do Konva — mais confiável que clipFunc.
-      // width/height explícitos são obrigatórios para que node.width() retorne el.width
-      // no handleTransformEnd (sem eles, Group retorna 0 e resize fica errado).
-      if (clipShape === "none") {
-        return (
-          <Group {...common} ref={callbackRef as any} onClick={handleClick}
-            width={el.width} height={el.height}
-            clipX={0} clipY={0} clipWidth={el.width} clipHeight={el.height}>
-            <KImage image={img} x={imgX} y={imgY} width={imgW} height={imgH} crop={crop} />
-          </Group>
-        );
-      }
       let clipFunc: (rawCtx: unknown) => void;
       if (clipShape === "circle") {
         clipFunc = (rawCtx: unknown) => {
@@ -553,12 +543,23 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           ctx.closePath();
         };
       }
+      // cover dentro de clipShape: crop nativo + KImage em coords relativas ao Group
+      const innerCrop = coverCrop ?? crop;
+      const [kx, ky, kw, kh] = coverCrop ? [0, 0, el.width, el.height] : [imgX, imgY, imgW, imgH];
       return (
         <Group {...common} ref={callbackRef as any} onClick={handleClick} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
-          <KImage image={img} x={imgX} y={imgY} width={imgW} height={imgH} crop={crop} />
+          <KImage image={img} x={kx} y={ky} width={kw} height={kh} crop={innerCrop} />
         </Group>
       );
     }
+
+    // Sem clipShape: cover usa crop nativo do KImage diretamente (sem Group)
+    if (coverCrop) {
+      return <KImage {...common} ref={callbackRef as any} onClick={handleClick}
+        image={img} width={el.width} height={el.height} crop={coverCrop} cornerRadius={el.cornerRadius || 0} />;
+    }
+
+    // contain ou fill: KImage direto com offset de centralização
     return <KImage {...common} ref={callbackRef as any} onClick={handleClick} image={img} x={el.x + animState.offsetX + imgX} y={el.y + animState.offsetY + imgY} width={imgW} height={imgH} cornerRadius={el.cornerRadius || 0} crop={crop} />;
   }
   if (el.type === "imageBind") {
