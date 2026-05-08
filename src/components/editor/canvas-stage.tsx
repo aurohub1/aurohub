@@ -575,11 +575,20 @@ export default function CanvasStage(p: Props) {
       const sy = Math.abs(node.scaleY());
       const updates: Partial<EditorElement> = { x: node.x(), y: node.y(), rotation: node.rotation() };
       if (el.type === "text") {
-        // escala fontSize proporcionalmente ao resize
-        const scaleFont = Math.max(sx, sy);
+        // Konva text pode modificar width diretamente (sx=1) ou via scale
+        const rawW = node.width() * sx;
+        const rawH = node.height() * sy;
+        const newWidth  = Math.max(20, rawW);
+        const newHeight = Math.max(20, rawH);
+        // calcular ratio baseado na mudança real de tamanho
+        const prevW = el.width  || 1;
+        const prevH = el.height || 1;
+        const ratioW = newWidth  / prevW;
+        const ratioH = newHeight / prevH;
+        const scaleFont = Math.max(ratioW, ratioH);
         updates.fontSize = Math.max(6, Math.round((el.fontSize ?? 16) * scaleFont));
-        updates.width  = Math.max(20, node.width() * sx);
-        updates.height = Math.max(20, node.height() * sy);
+        updates.width  = newWidth;
+        updates.height = newHeight;
       } else if (el.type === "circle") {
         updates.width = Math.max(5, el.width * sx);
         updates.height = Math.max(5, el.height * sy);
