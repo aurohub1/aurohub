@@ -55,6 +55,9 @@ export interface EditorElement {
   flipX?: boolean; flipY?: boolean;
   // Lock/Vis
   locked?: boolean; visible?: boolean;
+  // Interação
+  cursor?: "default" | "pointer" | "text" | "move" | "not-allowed";
+  linkUrl?: string;
   // Bind
   bindParam?: string;
   hideWhenBind?: string;

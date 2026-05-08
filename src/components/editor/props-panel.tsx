@@ -223,6 +223,24 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
             style={{ ...inpS, textAlign: "left" }}
           />
         </F>
+        <F l="Cursor">
+          <select value={s.cursor || "default"} onChange={e => u({ cursor: e.target.value as EditorElement["cursor"] })} style={selS}>
+            <option value="default">Padrão</option>
+            <option value="pointer">Pointer (mãozinha)</option>
+            <option value="text">Texto</option>
+            <option value="move">Mover</option>
+            <option value="not-allowed">Não permitido</option>
+          </select>
+        </F>
+        <F l="Link URL">
+          <input
+            type="text"
+            value={s.linkUrl || ""}
+            onChange={e => u({ linkUrl: e.target.value || undefined })}
+            placeholder="https://..."
+            style={{ ...inpS, textAlign: "left" }}
+          />
+        </F>
 
         {/* Posição & Tamanho */}
         <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Posição & Tamanho</div>

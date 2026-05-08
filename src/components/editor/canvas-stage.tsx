@@ -327,7 +327,15 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       onDragEndClear();
       onDragEndUpdate(el.id, e.target.x() - animState.offsetX, e.target.y() - animState.offsetY);
     },
+    onMouseEnter: () => { document.body.style.cursor = el.cursor || "default"; },
+    onMouseLeave: () => { document.body.style.cursor = "default"; },
     // onTransformEnd tratado centralmente no Transformer (handleTransformEnd)
+  };
+
+  // Link URL: abre em nova aba apenas no modo play; em edit mode apenas seleciona
+  const handleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (playing && el.linkUrl) window.open(el.linkUrl, "_blank", "noopener,noreferrer");
+    onClick(e);
   };
 
   const rawText = animState.textClip !== undefined ? (el.text || "").slice(0, animState.textClip) : (el.text || "");
@@ -373,7 +381,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
         id={el.id} x={common.x} y={common.y} rotation={common.rotation} opacity={common.opacity} scaleX={common.scaleX} scaleY={common.scaleY} draggable={common.draggable}
         shadowColor={common.shadowColor} shadowOffsetX={common.shadowOffsetX} shadowOffsetY={common.shadowOffsetY} shadowBlur={common.shadowBlur} shadowEnabled={common.shadowEnabled} shadowOpacity={common.shadowOpacity}
         onDragMove={common.onDragMove} onDragEnd={common.onDragEnd}
-        onClick={(e) => onClick(e)} onDblClick={() => { if (!playing && !el.locked) { const t = prompt("Editar texto:", el.text || ""); if (t !== null) onChange({ text: t }); } }}
+        onClick={handleClick} onDblClick={() => { if (!playing && !el.locked) { const t = prompt("Editar texto:", el.text || ""); if (t !== null) onChange({ text: t }); } }}
         width={el.width}
         height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
         wrap="word"
@@ -387,18 +395,18 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       : null;
     const rectHeight = linkedText ? computeTextHeight(linkedText) : el.height;
     const rectFillProps = getFillProps(el.fill, el.width, rectHeight);
-    return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={rectHeight} {...rectFillProps} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+    return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={handleClick} width={el.width} height={rectHeight} {...rectFillProps} cornerRadius={el.cornerRadius || 0} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "circle") {
     const circleFillProps = getFillProps(el.fill, el.width, el.height);
-    return <Circle {...common} ref={shapeRef as React.RefObject<Konva.Circle>} onClick={(e) => onClick(e)} radius={Math.min(el.width, el.height) / 2} {...circleFillProps} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
+    return <Circle {...common} ref={shapeRef as React.RefObject<Konva.Circle>} onClick={handleClick} radius={Math.min(el.width, el.height) / 2} {...circleFillProps} stroke={el.stroke} strokeWidth={el.strokeWidth || 0} />;
   }
   if (el.type === "image") {
     if (!img) {
       // Placeholder transparente — mantém border tracejado + label para designers,
       // mas NÃO preenche cinza, deixando o background do template visível por baixo.
       return <>
-        <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={el.height} fill="" stroke="#aaa" strokeWidth={1.5} dash={[6, 4]} cornerRadius={el.cornerRadius || 0} />
+        <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={handleClick} width={el.width} height={el.height} fill="" stroke="#aaa" strokeWidth={1.5} dash={[6, 4]} cornerRadius={el.cornerRadius || 0} />
         <Text x={el.x + el.width / 2 - 40} y={el.y + el.height / 2 - 8} text={el.bindParam ? `📸 ${el.bindParam}` : "Placeholder"} fontSize={14} fill="#aaa" listening={false} />
       </>;
     }
@@ -488,12 +496,12 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           };
       }
       return (
-        <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={(e) => onClick(e)} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
+        <Group {...common} ref={shapeRef as React.RefObject<Konva.Group>} onClick={handleClick} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
           <KImage image={img} x={0} y={0} width={el.width} height={el.height} crop={crop} />
         </Group>
       );
     }
-    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={(e) => onClick(e)} image={img} width={el.width} height={el.height} cornerRadius={el.cornerRadius || 0} crop={crop} />;
+    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={handleClick} image={img} width={el.width} height={el.height} cornerRadius={el.cornerRadius || 0} crop={crop} />;
   }
   if (el.type === "imageBind") {
     // Placeholder visível apenas no editor ADM: retângulo pontilhado + ícone + label do bind.
@@ -504,7 +512,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       <Group
         {...common}
         ref={shapeRef as React.RefObject<Konva.Group>}
-        onClick={(e) => onClick(e)}
+        onClick={handleClick}
         width={el.width}
         height={el.height}
       >
@@ -544,7 +552,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       <Rect
         {...common}
         ref={shapeRef as React.RefObject<Konva.Rect>}
-        onClick={(e) => onClick(e)}
+        onClick={handleClick}
         width={el.width}
         height={el.height}
         fill="rgba(255,122,26,0.04)"
@@ -557,9 +565,9 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
   }
   if (el.type === "qrcode") {
     if (!qrImg) {
-      return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={(e) => onClick(e)} width={el.width} height={el.height} fill={el.qrBg || "#FFFFFF"} stroke="#aaa" strokeWidth={1} dash={[4, 3]} cornerRadius={4} />;
+      return <Rect {...common} ref={shapeRef as React.RefObject<Konva.Rect>} onClick={handleClick} width={el.width} height={el.height} fill={el.qrBg || "#FFFFFF"} stroke="#aaa" strokeWidth={1} dash={[4, 3]} cornerRadius={4} />;
     }
-    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={(e) => onClick(e)} image={qrImg} width={el.width} height={el.height} />;
+    return <KImage {...common} ref={shapeRef as React.RefObject<Konva.Image>} onClick={handleClick} image={qrImg} width={el.width} height={el.height} />;
   }
   return null;
 }
