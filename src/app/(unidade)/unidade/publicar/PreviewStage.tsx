@@ -666,6 +666,32 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
   return null;
 }
 
+function computeImageFitProps(img: HTMLImageElement, el: EditorElement) {
+  const imageFit = el.imageFit || "fill";
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  const ew = el.width;
+  const eh = el.height;
+  if (imageFit === "cover" && iw > 0 && ih > 0) {
+    const srcAspect = iw / ih;
+    const targetAspect = ew / eh;
+    if (srcAspect > targetAspect) {
+      const cw = ih * targetAspect;
+      return { crop: { x: (iw - cw) / 2, y: 0, width: cw, height: ih }, drawWidth: ew, drawHeight: eh, offsetX: 0, offsetY: 0 };
+    } else {
+      const ch = iw / targetAspect;
+      return { crop: { x: 0, y: (ih - ch) / 2, width: iw, height: ch }, drawWidth: ew, drawHeight: eh, offsetX: 0, offsetY: 0 };
+    }
+  }
+  if (imageFit === "contain" && iw > 0 && ih > 0) {
+    const scale = Math.min(ew / iw, eh / ih);
+    const drawWidth = iw * scale;
+    const drawHeight = ih * scale;
+    return { crop: undefined, drawWidth, drawHeight, offsetX: (ew - drawWidth) / 2, offsetY: (eh - drawHeight) / 2 };
+  }
+  return { crop: undefined, drawWidth: ew, drawHeight: eh, offsetX: 0, offsetY: 0 };
+}
+
 function RenderImage({ el, values }: { el: EditorElement; values: Record<string, string> }) {
   const { badges, feriados } = useBadges();
   const src = resolveImage(el, values, badges, feriados);
@@ -683,6 +709,7 @@ function RenderImage({ el, values }: { el: EditorElement; values: Record<string,
       />
     );
   }
+  const fit = computeImageFitProps(img, el);
   const clipShape = el.clipShape || "none";
   if (clipShape !== "none") {
     const radius = el.clipRadius ?? Math.min(el.width, el.height) * 0.25;
@@ -741,14 +768,16 @@ function RenderImage({ el, values }: { el: EditorElement; values: Record<string,
     }
     return (
       <Group x={el.x} y={el.y} rotation={el.rotation ?? 0} opacity={el.opacity ?? 1} {...skewProps(el)} width={el.width} height={el.height} clipFunc={clipFunc as unknown as (ctx: Konva.Context) => void}>
-        <KImage image={img} x={0} y={0} width={el.width} height={el.height} />
+        <KImage image={img} x={fit.offsetX} y={fit.offsetY} width={fit.drawWidth} height={fit.drawHeight} crop={fit.crop} />
       </Group>
     );
   }
   return (
     <KImage
       image={img}
-      x={el.x} y={el.y} width={el.width} height={el.height}
+      x={el.x + fit.offsetX} y={el.y + fit.offsetY}
+      width={fit.drawWidth} height={fit.drawHeight}
+      crop={fit.crop}
       rotation={el.rotation ?? 0}
       {...skewProps(el)}
       opacity={el.opacity ?? 1}
