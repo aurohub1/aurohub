@@ -125,7 +125,9 @@ export default function LoginPage() {
   useParticles(canvasRef);
 
   useEffect(() => {
-    const saved = (localStorage.getItem("ah_theme") as "dark" | "light") || "dark";
+    const h = new Date().getHours();
+    const auto = (h >= 6 && h < 19) ? "light" : "dark";
+    const saved = (localStorage.getItem("ah_theme") as "dark" | "light") || auto;
     setTheme(saved);
     document.documentElement.setAttribute("data-theme", saved);
 
