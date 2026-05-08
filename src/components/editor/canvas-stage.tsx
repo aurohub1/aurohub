@@ -733,12 +733,18 @@ export default function CanvasStage(p: Props) {
         updates.fontSize = Math.max(6, Math.round((el.fontSize ?? 32) * sx));
         updates.width    = Math.max(20, (el.width  ?? node.width())  * sx);
         updates.height   = Math.max(20, (el.height ?? node.height()) * sy);
-      } else if (el.type === "circle" || el.type === "image") {
-        // image: quando imageFit="cover" o node é um Group sem width/height reportado
-        // pelo Konva (node.width() pode ser 0); usar el.width/height direto é seguro
-        // para todos os modos (fill/contain o node é KImage onde node.width()=el.width)
+      } else if (el.type === "circle") {
         updates.width  = Math.max(5, el.width  * sx);
         updates.height = Math.max(5, el.height * sy);
+      } else if (el.type === "image") {
+        // usar el.width/height direto: cover usa Group cujo node.width() retorna 0
+        updates.width  = Math.max(5, el.width  * sx);
+        updates.height = Math.max(5, el.height * sy);
+        // resize lateral (sx≠sy) → forçar cover para cortar sem distorcer
+        const isDiagonal = Math.abs(sx - sy) < 0.02;
+        if (!isDiagonal) {
+          updates.imageFit = "cover";
+        }
       } else {
         updates.width  = Math.max(5, node.width()  * sx);
         updates.height = Math.max(5, node.height() * sy);
