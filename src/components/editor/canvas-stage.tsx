@@ -575,6 +575,16 @@ export default function CanvasStage(p: Props) {
       const sy = Math.abs(node.scaleY());
       const updates: Partial<EditorElement> = { x: node.x(), y: node.y(), rotation: node.rotation() };
       if (el.type === "text") {
+        console.log("TEXT TRANSFORM", {
+          sx, sy,
+          nodeWidth: node.width(),
+          nodeHeight: node.height(),
+          nodeScaleX: node.scaleX(),
+          nodeScaleY: node.scaleY(),
+          elWidth: el.width,
+          elHeight: el.height,
+          elFontSize: el.fontSize,
+        });
         // Konva text pode modificar width diretamente (sx=1) ou via scale
         const rawW = node.width() * sx;
         const rawH = node.height() * sy;
