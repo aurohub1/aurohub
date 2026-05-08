@@ -54,7 +54,7 @@ export interface EditorElement {
   // Flip
   flipX?: boolean; flipY?: boolean;
   // Lock/Vis
-  locked?: boolean; visible?: boolean;
+  locked?: boolean; visible?: boolean; lockAspectRatio?: boolean;
   // Interação
   cursor?: "default" | "pointer" | "text" | "move" | "not-allowed";
   linkUrl?: string;

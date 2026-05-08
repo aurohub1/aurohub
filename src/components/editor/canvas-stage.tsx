@@ -578,6 +578,7 @@ function rectsIntersect(
 /* ── Main canvas component ───────────────────────── */
 export default function CanvasStage(p: Props) {
   const { width, height, schema, selectedIds, stageScale, playing, currentTime, snapEnabled = true } = p;
+  const selectedEl = selectedIds.length === 1 ? (schema.elements.find(e => e.id === selectedIds[0]) ?? null) : null;
   const stageRef = useRef<Konva.Stage>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const nodeRefs = useRef<Map<string, Konva.Node>>(new Map());
@@ -934,7 +935,7 @@ export default function CanvasStage(p: Props) {
               strokeWidth={1 / stageScale} dash={[4 / stageScale, 2 / stageScale]}
               listening={false} />
           )}
-          <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} keepRatio={true} boundBoxFunc={(_, nw) => nw} onTransformEnd={handleTransformEnd} />
+          <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} keepRatio={selectedEl?.lockAspectRatio === true} boundBoxFunc={(_, nw) => nw} onTransformEnd={handleTransformEnd} />
         </Layer>
       </Stage>
       </div>

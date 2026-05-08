@@ -257,7 +257,27 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         {/* Posição & Tamanho */}
         <div style={{ fontSize: 10, color: "var(--ed-txt2)", marginTop: 8, marginBottom: 4, fontWeight: 600 }}>Posição & Tamanho</div>
         <G2><F l="X"><Num v={Math.round(s.x)} c={v => u({ x: v })} /></F><F l="Y"><Num v={Math.round(s.y)} c={v => u({ y: v })} /></F></G2>
-        <G2><F l="W"><Num v={Math.round(s.width)} c={v => u({ width: v })} /></F><F l="H"><Num v={Math.round(s.height)} c={v => u({ height: v })} /></F></G2>
+        <div style={{ display: "flex", gap: 4, alignItems: "flex-end" }}>
+          <div style={{ flex: 1 }}>
+            <F l="W"><Num v={Math.round(s.width)} c={v => {
+              if (s.lockAspectRatio && s.width > 0 && s.height > 0)
+                u({ width: v, height: Math.max(1, Math.round(v * s.height / s.width)) });
+              else u({ width: v });
+            }} /></F>
+          </div>
+          <button
+            onClick={() => u({ lockAspectRatio: !s.lockAspectRatio })}
+            title={s.lockAspectRatio ? "Proporção travada — clique para liberar" : "Travar proporção"}
+            style={{ flexShrink: 0, width: 20, height: 22, marginBottom: 2, border: "1px solid var(--ed-bdr)", borderRadius: 4, background: s.lockAspectRatio ? "var(--ed-active)" : "var(--ed-input)", color: s.lockAspectRatio ? "var(--ed-active-txt)" : "var(--ed-txt3)", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+          >{s.lockAspectRatio ? "🔒" : "🔓"}</button>
+          <div style={{ flex: 1 }}>
+            <F l="H"><Num v={Math.round(s.height)} c={v => {
+              if (s.lockAspectRatio && s.width > 0 && s.height > 0)
+                u({ height: v, width: Math.max(1, Math.round(v * s.width / s.height)) });
+              else u({ height: v });
+            }} /></F>
+          </div>
+        </div>
         <G2>
           <F l="Rotação"><Num v={Math.round(s.rotation || 0)} c={v => u({ rotation: v })} /></F>
           <F l="Opacidade">
