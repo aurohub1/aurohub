@@ -20,6 +20,8 @@ export interface GradientFill {
 
 export interface ShadowConfig { color: string; offsetX: number; offsetY: number; blur: number; spread?: number; }
 
+export interface UserGuide { id: string; orientation: "H" | "V"; pos: number; }
+
 export interface EditorElement {
   id: string;
   type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind"|"group";

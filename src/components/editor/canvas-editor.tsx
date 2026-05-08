@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type Konva from "konva";
-import { EditorElement, EditorSchema, genId, applySmartLinks } from "./types";
+import { EditorElement, EditorSchema, genId, applySmartLinks, UserGuide } from "./types";
 import Toolbar from "./toolbar";
 import ToolsPanel from "./tools-panel";
 import LayersPanel from "./layers-panel";
@@ -52,6 +52,8 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   const [propsTab, setPropsTab] = useState<"design" | "animate">("design");
   const [paramView, setParamView] = useState(false);
   const [snapEnabled, setSnapEnabled] = useState(true);
+  const [showRulers, setShowRulers] = useState(false);
+  const [userGuides, setUserGuides] = useState<UserGuide[]>([]);
   const [showAssets, setShowAssets] = useState(false);
   const [showComponents, setShowComponents] = useState(false);
   const [showDestinos, setShowDestinos] = useState(false);
@@ -290,47 +292,31 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     if (!selectedId) return;
     const el = schemaRef.current.elements.find(e => e.id === selectedId);
     if (!el) return;
-
     const keysArr = Array.isArray(keys) ? keys : [keys];
     const u: Partial<EditorElement> = {};
 
-    // Tentar pegar o bounding box real via Konva
     const stage = stageRef.current;
     const node = stage?.findOne(`#${selectedId}`);
 
-    if (node && stage) {
-      const scale = stage.scaleX();
-      // getClientRect retorna coordenadas absolutas (escaladas)
-      const box = node.getClientRect({ relativeTo: stage });
-      // Converter para coordenadas lógicas do canvas
-      const bx = box.x / scale;
-      const by = box.y / scale;
-      const bw = box.width / scale;
-      const bh = box.height / scale;
+    // pegar dimensões reais do nó (resolve undefined em texto)
+    const scale = stage?.scaleX() || 1;
+    const box = node?.getClientRect({ relativeTo: stage ?? undefined });
+    const bw = box ? box.width  / scale : (el.width  || 0);
+    const bh = box ? box.height / scale : (el.height || 0);
+    const bx = box ? box.x      / scale : el.x;
+    const by = box ? box.y      / scale : el.y;
 
-      // Diferença entre origem do elemento e origem do bbox
-      // (necessário porque rotação desloca o bbox)
-      const dx = el.x - bx;
-      const dy = el.y - by;
+    // offset entre origem lógica do el e origem do bbox (rotação)
+    const dx = el.x - bx;
+    const dy = el.y - by;
 
-      for (const key of keysArr) {
-        if (key === "left")     u.x = dx;
-        if (key === "right")    u.x = width - bw + dx;
-        if (key === "center-h") u.x = (width - bw) / 2 + dx;
-        if (key === "top")      u.y = dy;
-        if (key === "bottom")   u.y = height - bh + dy;
-        if (key === "center-v") u.y = (height - bh) / 2 + dy;
-      }
-    } else {
-      // Fallback sem rotação (elemento simples)
-      for (const key of keysArr) {
-        if (key === "left")     u.x = 0;
-        if (key === "right")    u.x = width - el.width;
-        if (key === "center-h") u.x = (width - el.width) / 2;
-        if (key === "top")      u.y = 0;
-        if (key === "bottom")   u.y = height - el.height;
-        if (key === "center-v") u.y = (height - el.height) / 2;
-      }
+    for (const key of keysArr) {
+      if (key === "left")     u.x = dx;
+      if (key === "right")    u.x = width  - bw + dx;
+      if (key === "center-h") u.x = (width  - bw) / 2 + dx;
+      if (key === "top")      u.y = dy;
+      if (key === "bottom")   u.y = height - bh + dy;
+      if (key === "center-v") u.y = (height - bh) / 2 + dy;
     }
 
     if (Object.keys(u).length > 0) updateElement(selectedId, u);
@@ -528,6 +514,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         canUndo={historyIdx > 0} canRedo={historyIdx < history.length - 1}
         onToggleParamView={() => setParamView(!paramView)} paramViewActive={paramView}
         onToggleSnap={toggleSnap} snapEnabled={snapEnabled}
+        onToggleRulers={() => setShowRulers(r => !r)} showRulers={showRulers}
         onPreview={openPreview}
         onVariants={() => setShowVariants(true)} variantsEnabled={!!variantsEnabled}
         onHistory={templateId ? () => setShowHistory(true) : undefined}
@@ -571,6 +558,11 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
           onStageRef={(r) => { stageRef.current = r; }}
           onScaleChange={setStageScale}
           previewValues={PREVIEW_DEFAULTS}
+          showRulers={showRulers}
+          userGuides={userGuides}
+          onGuideAdd={g => setUserGuides(prev => [...prev, g])}
+          onGuideMove={(id, pos) => setUserGuides(prev => prev.map(g => g.id === id ? { ...g, pos } : g))}
+          onGuideRemove={id => setUserGuides(prev => prev.filter(g => g.id !== id))}
         />
 
         {paramView ? (

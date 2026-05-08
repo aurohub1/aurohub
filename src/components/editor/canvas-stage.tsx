@@ -2,7 +2,60 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Stage, Layer, Rect, Circle, Text, Image as KImage, Transformer, Line, Group } from "react-konva";
 import type Konva from "konva";
 import QRCode from "qrcode";
-import { EditorElement, EditorSchema, SnapLine, calcSnapLines, computeTextHeight, GradientFill, blendColorOpacity } from "./types";
+import { EditorElement, EditorSchema, SnapLine, calcSnapLines, computeTextHeight, GradientFill, blendColorOpacity, UserGuide } from "./types";
+
+const RULER_SIZE = 18;
+
+function drawRulerH(ctx: CanvasRenderingContext2D, totalW: number, rh: number, ox: number, scale: number, canvasW: number) {
+  ctx.clearRect(0, 0, totalW, rh);
+  ctx.fillStyle = "#1a1a28"; ctx.fillRect(0, 0, totalW, rh);
+  const rawInt = 50 / scale;
+  const NICE = [1, 2, 5, 10, 25, 50, 100, 200, 500, 1000];
+  const major = NICE.find(n => n >= rawInt) ?? 1000;
+  const minor = major / 5;
+  const start = Math.floor(-ox / scale / minor) * minor;
+  const end   = Math.ceil((totalW - ox) / scale / minor) * minor;
+  ctx.strokeStyle = "#55556a"; ctx.lineWidth = 1;
+  ctx.fillStyle = "#8888a8"; ctx.font = "9px monospace"; ctx.textBaseline = "top";
+  for (let px = start; px <= end; px += minor) {
+    const sx = Math.round(ox + px * scale);
+    if (sx < 0 || sx > totalW) continue;
+    const isMaj = Math.round(px / minor) % 5 === 0;
+    ctx.beginPath(); ctx.moveTo(sx, rh - (isMaj ? 7 : 3)); ctx.lineTo(sx, rh); ctx.stroke();
+    if (isMaj) { ctx.textAlign = "left"; ctx.fillText(String(Math.round(px)), sx + 2, 1); }
+  }
+  ctx.strokeStyle = "rgba(255,122,26,0.7)"; ctx.lineWidth = 1;
+  for (const sx of [Math.round(ox), Math.round(ox + canvasW * scale)]) {
+    if (sx >= 0 && sx <= totalW) { ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, rh); ctx.stroke(); }
+  }
+}
+
+function drawRulerV(ctx: CanvasRenderingContext2D, rw: number, totalH: number, oy: number, scale: number, canvasH: number) {
+  ctx.clearRect(0, 0, rw, totalH);
+  ctx.fillStyle = "#1a1a28"; ctx.fillRect(0, 0, rw, totalH);
+  const rawInt = 50 / scale;
+  const NICE = [1, 2, 5, 10, 25, 50, 100, 200, 500, 1000];
+  const major = NICE.find(n => n >= rawInt) ?? 1000;
+  const minor = major / 5;
+  const start = Math.floor(-oy / scale / minor) * minor;
+  const end   = Math.ceil((totalH - oy) / scale / minor) * minor;
+  ctx.strokeStyle = "#55556a"; ctx.lineWidth = 1;
+  ctx.fillStyle = "#8888a8"; ctx.font = "9px monospace"; ctx.textAlign = "center";
+  for (let px = start; px <= end; px += minor) {
+    const sy = Math.round(oy + px * scale);
+    if (sy < 0 || sy > totalH) continue;
+    const isMaj = Math.round(px / minor) % 5 === 0;
+    ctx.beginPath(); ctx.moveTo(rw - (isMaj ? 7 : 3), sy); ctx.lineTo(rw, sy); ctx.stroke();
+    if (isMaj) {
+      ctx.save(); ctx.translate(rw - 8, sy); ctx.rotate(-Math.PI / 2);
+      ctx.textBaseline = "middle"; ctx.fillText(String(Math.round(px)), 0, 0); ctx.restore();
+    }
+  }
+  ctx.strokeStyle = "rgba(255,122,26,0.7)"; ctx.lineWidth = 1;
+  for (const sy of [Math.round(oy), Math.round(oy + canvasH * scale)]) {
+    if (sy >= 0 && sy <= totalH) { ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(rw, sy); ctx.stroke(); }
+  }
+}
 
 interface Props {
   width: number; height: number;
@@ -20,6 +73,11 @@ interface Props {
   onStageRef: (r: Konva.Stage | null) => void;
   onScaleChange: (s: number) => void;
   previewValues?: Record<string, string>;
+  showRulers?: boolean;
+  userGuides?: UserGuide[];
+  onGuideAdd?: (g: UserGuide) => void;
+  onGuideMove?: (id: string, pos: number) => void;
+  onGuideRemove?: (id: string) => void;
 }
 
 function useImage(src?: string): HTMLImageElement | null {
@@ -583,6 +641,9 @@ export default function CanvasStage(p: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const nodeRefs = useRef<Map<string, Konva.Node>>(new Map());
   const [guides, setGuides] = useState<SnapLine[]>([]);
+  const hRulerRef = useRef<HTMLCanvasElement>(null);
+  const vRulerRef = useRef<HTMLCanvasElement>(null);
+  const [pendingGuide, setPendingGuide] = useState<{ orientation: "H" | "V"; pos: number } | null>(null);
 
   const handleDragMoveSnap = useCallback((id: string, rawX: number, rawY: number) => {
     if (!snapEnabled || selectedIds.length > 1) return { x: rawX, y: rawY };
@@ -590,8 +651,21 @@ export default function CanvasStage(p: Props) {
     if (!el) return { x: rawX, y: rawY };
     const r = calcSnapLines({ id, x: rawX, y: rawY, width: el.width, height: el.height }, schema.elements, width, height);
     setGuides(r.lines);
-    return { x: r.x, y: r.y };
-  }, [schema.elements, width, height, snapEnabled, selectedIds]);
+    let { x, y } = r;
+    const thr = 8;
+    for (const g of (p.userGuides ?? [])) {
+      if (g.orientation === "V") {
+        if (Math.abs(rawX - g.pos) < thr) x = g.pos;
+        else if (Math.abs(rawX + el.width / 2 - g.pos) < thr) x = g.pos - el.width / 2;
+        else if (Math.abs(rawX + el.width - g.pos) < thr) x = g.pos - el.width;
+      } else {
+        if (Math.abs(rawY - g.pos) < thr) y = g.pos;
+        else if (Math.abs(rawY + el.height / 2 - g.pos) < thr) y = g.pos - el.height / 2;
+        else if (Math.abs(rawY + el.height - g.pos) < thr) y = g.pos - el.height;
+      }
+    }
+    return { x, y };
+  }, [schema.elements, width, height, snapEnabled, selectedIds, p.userGuides]);
 
   const handleDragEndClear = useCallback(() => setGuides([]), []);
 
@@ -784,6 +858,49 @@ export default function CanvasStage(p: Props) {
     }
   }, [p.onSelect, p.onShiftSelect]);
 
+  // Réguas — useEffect e handler ficam aqui (após panOffset ser declarado)
+  useEffect(() => {
+    if (!p.showRulers) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const ox = (cw - width * stageScale) / 2 + panOffset.x;
+    const oy = (ch - height * stageScale) / 2 + panOffset.y;
+    const hc = hRulerRef.current;
+    if (hc) { hc.width = cw; hc.height = RULER_SIZE; const ctx = hc.getContext("2d"); if (ctx) drawRulerH(ctx, cw, RULER_SIZE, ox, stageScale, width); }
+    const vc = vRulerRef.current;
+    if (vc) { vc.width = RULER_SIZE; vc.height = ch; const ctx = vc.getContext("2d"); if (ctx) drawRulerV(ctx, RULER_SIZE, ch, oy, stageScale, height); }
+  }, [p.showRulers, panOffset, stageScale, width, height]);
+
+  const handleRulerMouseDown = useCallback((e: React.MouseEvent, orientation: "H" | "V") => {
+    e.stopPropagation(); e.preventDefault();
+    const container = containerRef.current;
+    if (!container) return;
+    const getPos = (clientX: number, clientY: number) => {
+      const r = container.getBoundingClientRect();
+      const cw = container.clientWidth; const ch = container.clientHeight;
+      const ox = (cw - width * stageScale) / 2 + panOffset.x;
+      const oy = (ch - height * stageScale) / 2 + panOffset.y;
+      return { x: Math.round((clientX - r.left - ox) / stageScale), y: Math.round((clientY - r.top - oy) / stageScale) };
+    };
+    const onMove = (ev: MouseEvent) => {
+      const pos = getPos(ev.clientX, ev.clientY);
+      setPendingGuide({ orientation, pos: orientation === "H" ? pos.y : pos.x });
+    };
+    const onUp = (ev: MouseEvent) => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      const pos = getPos(ev.clientX, ev.clientY);
+      const gPos = orientation === "H" ? pos.y : pos.x;
+      if (gPos >= 0 && gPos <= (orientation === "H" ? height : width))
+        p.onGuideAdd?.({ id: `g${Date.now()}`, orientation, pos: gPos });
+      setPendingGuide(null);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [width, height, stageScale, panOffset, p.onGuideAdd]);
+
   return (
     <div style={{
       flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative",
@@ -796,6 +913,11 @@ export default function CanvasStage(p: Props) {
       onClick={e => { if (e.target === e.currentTarget) p.onSelect(null); }}
       onMouseDown={handleContainerMouseDown}
       onAuxClick={e => { if (e.button === 1) e.preventDefault(); }}>
+      {p.showRulers && <>
+        <div style={{ position: "absolute", top: 0, left: 0, width: RULER_SIZE, height: RULER_SIZE, background: "#1a1a28", zIndex: 10 }} />
+        <canvas ref={hRulerRef} style={{ position: "absolute", top: 0, left: RULER_SIZE, right: 0, height: RULER_SIZE, zIndex: 10, cursor: "s-resize", display: "block" }} onMouseDown={e => handleRulerMouseDown(e, "H")} />
+        <canvas ref={vRulerRef} style={{ position: "absolute", top: RULER_SIZE, left: 0, width: RULER_SIZE, bottom: 0, zIndex: 10, cursor: "e-resize", display: "block" }} onMouseDown={e => handleRulerMouseDown(e, "V")} />
+      </>}
       <div style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px)` }}>
       <Stage ref={stageRef} width={width * stageScale} height={height * stageScale} scaleX={stageScale} scaleY={stageScale}
         onWheel={handleWheel}
@@ -886,6 +1008,34 @@ export default function CanvasStage(p: Props) {
               dash={[4 / stageScale, 4 / stageScale]}
               opacity={0.8}
               listening={false} />
+          ))}
+          {p.userGuides?.map(g => g.orientation === "H" ? (
+            <Line key={g.id} points={[0, 0, width, 0]} x={0} y={g.pos}
+              stroke="#2563EB" strokeWidth={1 / stageScale} opacity={0.75}
+              hitStrokeWidth={8 / stageScale} draggable
+              dragBoundFunc={pos => ({ x: 0, y: Math.max(0, Math.min(height, pos.y)) })}
+              onDragEnd={e => p.onGuideMove?.(g.id, Math.round(e.target.y()))}
+              onDblClick={() => p.onGuideRemove?.(g.id)}
+              onMouseEnter={() => { document.body.style.cursor = "row-resize"; }}
+              onMouseLeave={() => { document.body.style.cursor = "default"; }} />
+          ) : (
+            <Line key={g.id} points={[0, 0, 0, height]} x={g.pos} y={0}
+              stroke="#2563EB" strokeWidth={1 / stageScale} opacity={0.75}
+              hitStrokeWidth={8 / stageScale} draggable
+              dragBoundFunc={pos => ({ x: Math.max(0, Math.min(width, pos.x)), y: 0 })}
+              onDragEnd={e => p.onGuideMove?.(g.id, Math.round(e.target.x()))}
+              onDblClick={() => p.onGuideRemove?.(g.id)}
+              onMouseEnter={() => { document.body.style.cursor = "col-resize"; }}
+              onMouseLeave={() => { document.body.style.cursor = "default"; }} />
+          ))}
+          {pendingGuide && (pendingGuide.orientation === "H" ? (
+            <Line points={[0, 0, width, 0]} x={0} y={pendingGuide.pos}
+              stroke="#2563EB" strokeWidth={1 / stageScale} opacity={0.45}
+              dash={[4 / stageScale, 4 / stageScale]} listening={false} />
+          ) : (
+            <Line points={[0, 0, 0, height]} x={pendingGuide.pos} y={0}
+              stroke="#2563EB" strokeWidth={1 / stageScale} opacity={0.45}
+              dash={[4 / stageScale, 4 / stageScale]} listening={false} />
           ))}
           {/* Smart-link dotted connectors (apenas para elementos selecionados) */}
           {!playing && selectedIds.length > 0 && schema.elements.map(el => {

@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet, Group, Ungroup } from "lucide-react";
+import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet, Group, Ungroup, Ruler } from "lucide-react";
 
 interface Props {
   onUndo: () => void; onRedo: () => void;
@@ -9,6 +9,7 @@ interface Props {
   canUndo: boolean; canRedo: boolean;
   onToggleParamView?: () => void; paramViewActive?: boolean;
   onToggleSnap?: () => void; snapEnabled?: boolean;
+  onToggleRulers?: () => void; showRulers?: boolean;
   format?: string; onFormatChange?: (f: string) => void;
   formType?: string; onFormTypeChange?: (f: string) => void;
   qtdDestinos?: number; onQtdDestinosChange?: (n: number) => void;
@@ -69,6 +70,7 @@ export default function Toolbar(p: Props) {
       <Btn icon={<Trash2 size={14} />} tip="Deletar (Del)" o={p.onDelete} danger />
       {p.onSaveComponent && <Btn icon={<Package size={14} />} tip="Salvar como componente" o={p.onSaveComponent} d={!p.canSaveComponent} />}
       {p.onToggleSnap && <Btn icon={<Magnet size={14} />} tip={p.snapEnabled ? "Smart Guides ativo" : "Smart Guides desativado"} o={p.onToggleSnap} active={p.snapEnabled} />}
+      {p.onToggleRulers && <Btn icon={<Ruler size={14} />} tip={p.showRulers ? "Réguas ativas" : "Mostrar réguas"} o={p.onToggleRulers} active={p.showRulers} />}
       {p.onGroup && <><Sep /><Btn icon={<Group size={14} />} tip="Agrupar (Ctrl+G)" o={p.onGroup} /></>}
       {p.onUngroup && <Btn icon={<Ungroup size={14} />} tip="Desagrupar (Ctrl+Shift+G)" o={p.onUngroup} />}
       {p.onToggleParamView && <><Sep /><Btn icon={p.paramViewActive ? <EyeOff size={14} /> : <Eye size={14} />} tip="Parameter View (Ctrl+P)" o={p.onToggleParamView} active={p.paramViewActive} /></>}
