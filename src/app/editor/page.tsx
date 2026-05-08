@@ -47,7 +47,6 @@ function EditorInner() {
   const [loadedThumbnail, setLoadedThumbnail] = useState<string | null>(null);
   const [loadedAccessSelections, setLoadedAccessSelections] = useState<Map<string, Set<string>>>(new Map());
   const [isAdm, setIsAdm] = useState(false);
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | "idle">("idle");
   const persistSchemaRef = useRef<(() => Promise<void>) | null>(null);
   const FMTS: Record<string, [number,number]> = { stories: [1080,1920], reels: [1080,1920], feed: [1080,1350], tv: [1920,1080] };
@@ -148,20 +147,16 @@ function EditorInner() {
 
   persistSchemaRef.current = persistSchema;
 
-  const triggerAutoSave = useCallback(() => {
+  useEffect(() => {
     if (!templateId) return;
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    setAutoSaveStatus("saving");
-    autoSaveTimer.current = setTimeout(async () => {
+    const interval = setInterval(async () => {
+      setAutoSaveStatus("saving");
       try { await persistSchemaRef.current?.(); } catch { /* silent */ }
       setAutoSaveStatus("saved");
       setTimeout(() => setAutoSaveStatus("idle"), 2000);
-    }, 2000);
+    }, 60000);
+    return () => clearInterval(interval);
   }, [templateId]);
-
-  useEffect(() => {
-    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, []);
 
   if (loading) return <LoadingScreen text="Carregando template..." />;
 
@@ -178,7 +173,7 @@ function EditorInner() {
         qtdDestinos={qtdDestinos}
         onQtdDestinosChange={setQtdDestinos}
         schema={schema}
-        onChange={(s) => { setSchema(s); triggerAutoSave(); }}
+        onChange={(s) => setSchema(s)}
         autoSaveStatus={autoSaveStatus}
         saving={saving}
         templateId={templateId}
