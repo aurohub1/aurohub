@@ -176,7 +176,7 @@ export default function ClienteInicioPage() {
       void (async () => {
         try {
           const pos = await new Promise<{ lat: number; lon: number } | null>((resolve) => {
-            if (typeof window === "undefined" || !navigator.geolocation) { resolve(null); return; }
+            if (typeof window === "undefined" || !navigator.geolocation || localStorage.getItem("geo_granted") !== "true") { resolve(null); return; }
             navigator.geolocation.getCurrentPosition(
               (g) => resolve({ lat: g.coords.latitude, lon: g.coords.longitude }),
               () => resolve(null),

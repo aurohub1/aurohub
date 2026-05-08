@@ -6,6 +6,7 @@ import {
   Sun, Moon, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
 import { useSupportDrawer } from "@/components/support/SupportDrawerProvider";
+import GeoPermissionBanner from "@/components/layout/GeoPermissionBanner";
 import type { AdmPermissions } from "@/lib/adm-permissions";
 
 /* ── Types ───────────────────────────────────────── */
@@ -506,7 +507,7 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
       let lat = -20.8116, lon = -49.3755;
       try {
         const pos = await new Promise<{ lat: number; lon: number } | null>((resolve) => {
-          if (typeof window === "undefined" || !navigator.geolocation) { resolve(null); return; }
+          if (typeof window === "undefined" || !navigator.geolocation || localStorage.getItem("geo_granted") !== "true") { resolve(null); return; }
           navigator.geolocation.getCurrentPosition(
             (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
             () => resolve(null),
@@ -552,6 +553,8 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
   }, []);
 
   return (
+    <>
+    <GeoPermissionBanner />
     <aside
       className="fixed left-0 top-0 z-50 flex h-dvh w-[220px] flex-col border-r border-[var(--bdr)] bg-[var(--sidebar-bg)] backdrop-blur-[24px]"
       style={{ WebkitBackdropFilter: "blur(24px)" }}
@@ -763,5 +766,6 @@ export default function Sidebar({ activePath, user, onLogout, sections, brandLab
         </div>
       </div>
     </aside>
+    </>
   );
 }
