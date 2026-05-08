@@ -767,13 +767,20 @@ export default function CanvasStage(p: Props) {
   // Sync Transformer with selectedIds
   useEffect(() => {
     if (!trRef.current || playing) { trRef.current?.nodes([]); return; }
-    const nodes: Konva.Node[] = [];
-    for (const id of selectedIds) {
-      const node = nodeRefs.current.get(id);
-      if (node) nodes.push(node);
-    }
-    trRef.current.nodes(nodes);
-    trRef.current.getLayer()?.batchDraw();
+
+    const attach = () => {
+      const nodes: Konva.Node[] = [];
+      for (const id of selectedIds) {
+        const node = nodeRefs.current.get(id);
+        if (node) nodes.push(node);
+      }
+      trRef.current?.nodes(nodes);
+      trRef.current?.getLayer()?.batchDraw();
+    };
+
+    // aguarda o commit do React antes de reconectar
+    const raf = requestAnimationFrame(attach);
+    return () => cancelAnimationFrame(raf);
   }, [selectedIds, playing, schema.elements]);
 
   const registerRef = useCallback((id: string, node: Konva.Node | null) => {
