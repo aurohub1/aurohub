@@ -32,7 +32,7 @@ export function PostCounters({ userId, className = "" }: PostCountersProps) {
       // Limites
       supabase
         .from("profiles")
-        .select("limit_stories, limit_feed, limit_reels, limit_tv")
+        .select("stories_limit, feed_limit, reels_limit, tv_limit")
         .eq("id", userId)
         .single(),
     ])
@@ -50,10 +50,10 @@ export function PostCounters({ userId, className = "" }: PostCountersProps) {
         // Limites do plano
         if (limitsRes.data) {
           setPostLimits({
-            stories: limitsRes.data.limit_stories ?? 0,
-            feed: limitsRes.data.limit_feed ?? 0,
-            reels: limitsRes.data.limit_reels ?? 0,
-            tv: limitsRes.data.limit_tv ?? 0,
+            stories: limitsRes.data.stories_limit ?? 0,
+            feed: limitsRes.data.feed_limit ?? 0,
+            reels: limitsRes.data.reels_limit ?? 0,
+            tv: limitsRes.data.tv_limit ?? 0,
           });
         }
       })

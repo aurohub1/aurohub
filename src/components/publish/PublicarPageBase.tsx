@@ -331,16 +331,16 @@ export default function PublicarPageBase({
         try {
           const { data: limits } = await supabase
             .from("profiles")
-            .select("limit_stories, limit_feed, limit_reels, limit_tv")
+            .select("stories_limit, feed_limit, reels_limit, tv_limit")
             .eq("id", p.id)
             .single();
 
           if (limits) {
             setPostLimits({
-              stories: limits.limit_stories ?? 0,
-              feed: limits.limit_feed ?? 0,
-              reels: limits.limit_reels ?? 0,
-              tv: limits.limit_tv ?? 0,
+              stories: limits.stories_limit ?? 0,
+              feed: limits.feed_limit ?? 0,
+              reels: limits.reels_limit ?? 0,
+              tv: limits.tv_limit ?? 0,
             });
           }
         } catch (err) {

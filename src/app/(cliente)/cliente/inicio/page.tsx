@@ -282,14 +282,14 @@ export default function ClienteInicioPage() {
 
       const { data: limits } = await supabase
         .from("profiles")
-        .select("limit_stories, limit_feed, limit_reels, limit_tv")
+        .select("stories_limit, feed_limit, reels_limit, tv_limit")
         .eq("id", p.id)
         .single();
       if (limits) setPostLimits({
-        stories: (limits as any).limit_stories ?? 0,
-        feed:    (limits as any).limit_feed    ?? 0,
-        reels:   (limits as any).limit_reels   ?? 0,
-        tv:      (limits as any).limit_tv      ?? 0,
+        stories: (limits as any).stories_limit ?? 0,
+        feed:    (limits as any).feed_limit    ?? 0,
+        reels:   (limits as any).reels_limit   ?? 0,
+        tv:      (limits as any).tv_limit      ?? 0,
       });
       setStores(storeRows);
       setUsers((usersResult.data ?? []) as UserRow[]);
