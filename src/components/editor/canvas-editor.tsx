@@ -66,6 +66,8 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   const [showVariants, setShowVariants] = useState(false);
   const [showAdaptFormat, setShowAdaptFormat] = useState(false);
   const [showSaveComponent, setShowSaveComponent] = useState(false);
+  const [commentMode, setCommentMode] = useState(false);
+  const [showComments, setShowComments] = useState(true);
   const [cropElementId, setCropElementId] = useState<string | null>(null);
   const lastBadgeCheckRef = useRef<string>("");
   const schemaRef = useRef(schema);
@@ -489,6 +491,20 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     setShowVariants(false);
   }, [onSaveVariants]);
 
+  /* ── Comentários ─────────────────────────────────── */
+  const addComment = useCallback((x: number, y: number) => {
+    const el: EditorElement = { id: genId(), type: "comment", name: "Comentário", x, y, width: 24, height: 24, commentText: "", opacity: 1 };
+    changeSchema({ ...schema, elements: [...schema.elements, el] });
+  }, [schema, changeSchema]);
+
+  const updateComment = useCallback((id: string, text: string) => {
+    updateElement(id, { commentText: text });
+  }, [updateElement]);
+
+  const removeComment = useCallback((id: string) => {
+    changeSchema({ ...schema, elements: schema.elements.filter(e => e.id !== id) });
+  }, [schema, changeSchema]);
+
   /* ── Save Component (item 5) ──────────────────────── */
   const selectedElements = schema.elements.filter(el => selectedIds.includes(el.id));
 
@@ -523,6 +539,8 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         onToggleSnap={toggleSnap} snapEnabled={snapEnabled}
         onToggleRulers={() => setShowRulers(r => !r)} showRulers={showRulers}
         onPreview={openPreview}
+        onCommentMode={() => setCommentMode(m => !m)} commentModeActive={commentMode}
+        onToggleComments={() => setShowComments(s => !s)} showComments={showComments}
         onAdaptFormat={onAdaptFormat ? () => setShowAdaptFormat(true) : undefined}
         onVariants={() => setShowVariants(true)} variantsEnabled={!!variantsEnabled}
         onHistory={templateId ? () => setShowHistory(true) : undefined}
@@ -547,7 +565,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         />
 
         <LayersPanel
-          elements={schema.elements}
+          elements={schema.elements.filter(e => e.type !== "comment")}
           selectedIds={selectedIds}
           onSelect={selectSingle}
           onShiftSelect={shiftSelect}
@@ -572,6 +590,11 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
           onGuideAdd={g => setUserGuides(prev => [...prev, g])}
           onGuideMove={(id, pos) => setUserGuides(prev => prev.map(g => g.id === id ? { ...g, pos } : g))}
           onGuideRemove={id => setUserGuides(prev => prev.filter(g => g.id !== id))}
+          commentMode={commentMode}
+          showComments={showComments}
+          onAddComment={addComment}
+          onUpdateComment={updateComment}
+          onRemoveComment={removeComment}
         />
 
         {paramView ? (

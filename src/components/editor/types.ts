@@ -24,7 +24,8 @@ export interface UserGuide { id: string; orientation: "H" | "V"; pos: number; }
 
 export interface EditorElement {
   id: string;
-  type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind"|"group";
+  type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind"|"group"|"comment";
+  commentText?: string;
   name?: string;
   x: number; y: number; width: number; height: number;
   rotation?: number; opacity?: number;

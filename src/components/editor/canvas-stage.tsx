@@ -73,6 +73,11 @@ interface Props {
   onStageRef: (r: Konva.Stage | null) => void;
   onScaleChange: (s: number) => void;
   onResetPan?: (fn: () => void) => void;
+  commentMode?: boolean;
+  showComments?: boolean;
+  onAddComment?: (x: number, y: number) => void;
+  onUpdateComment?: (id: string, text: string) => void;
+  onRemoveComment?: (id: string) => void;
   previewValues?: Record<string, string>;
   showRulers?: boolean;
   userGuides?: UserGuide[];
@@ -639,6 +644,42 @@ function rectsIntersect(
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+/* ── Comment pin overlay ─────────────────────────── */
+function CommentPin({ el, stageScale, isActive, onActivate, onUpdate, onRemove }: {
+  el: EditorElement; stageScale: number; isActive: boolean;
+  onActivate: () => void; onUpdate: (text: string) => void; onRemove: () => void;
+}) {
+  const [draft, setDraft] = useState(el.commentText || "");
+  useEffect(() => { setDraft(el.commentText || ""); }, [el.commentText]);
+  return (
+    <div style={{ position: "absolute", left: el.x * stageScale, top: el.y * stageScale, zIndex: 201 }}>
+      <button
+        onClick={e => { e.stopPropagation(); onActivate(); }}
+        title={el.commentText || "Comentário"}
+        style={{ width: 24, height: 24, borderRadius: "50%", background: "#FF7A1A", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.5)", fontSize: 11 }}
+      >💬</button>
+      {isActive && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{ position: "absolute", top: 28, left: 0, width: 220, background: "var(--ed-surface)", border: "1px solid var(--ed-bdr)", borderRadius: 8, padding: 10, zIndex: 300, boxShadow: "0 4px 24px rgba(0,0,0,0.6)" }}
+        >
+          <textarea
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            placeholder="Escreva uma anotação..."
+            autoFocus
+            style={{ width: "100%", minHeight: 64, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", color: "var(--ed-txt)", fontSize: 11, padding: "6px 8px", resize: "vertical" as const, outline: "none", boxSizing: "border-box" as const }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, gap: 6 }}>
+            <button onClick={() => onRemove()} style={{ padding: "4px 10px", borderRadius: 5, border: "1px solid var(--ed-bdr)", background: "transparent", color: "var(--ed-danger)", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>Excluir</button>
+            <button onClick={() => { onUpdate(draft); onActivate(); }} style={{ padding: "4px 12px", borderRadius: 5, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, cursor: "pointer", fontWeight: 700 }}>Salvar</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main canvas component ───────────────────────── */
 export default function CanvasStage(p: Props) {
   const { width, height, schema, selectedIds, stageScale, playing, currentTime, snapEnabled = true } = p;
@@ -646,6 +687,7 @@ export default function CanvasStage(p: Props) {
   const stageRef = useRef<Konva.Stage>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const nodeRefs = useRef<Map<string, Konva.Node>>(new Map());
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [guides, setGuides] = useState<SnapLine[]>([]);
   const hRulerRef = useRef<HTMLCanvasElement>(null);
   const vRulerRef = useRef<HTMLCanvasElement>(null);
@@ -1003,7 +1045,7 @@ export default function CanvasStage(p: Props) {
           const r = { x: Math.min(s.x, pos.x), y: Math.min(s.y, pos.y), w: Math.abs(pos.x - s.x), h: Math.abs(pos.y - s.y) };
           if (r.w < 4 || r.h < 4) return;
           const ids = schema.elements
-            .filter(el => !el.locked && rectsIntersect(r, { x: el.x, y: el.y, w: el.width, h: el.height }))
+            .filter(el => el.type !== "comment" && !el.locked && rectsIntersect(r, { x: el.x, y: el.y, w: el.width, h: el.height }))
             .map(el => el.id);
           if (ids.length > 0) p.onMultiSelect?.(ids);
         }}
@@ -1011,6 +1053,7 @@ export default function CanvasStage(p: Props) {
         <Layer>
           <Rect x={0} y={0} width={width} height={height} fill={schema.background} listening={false} />
           {schema.elements.map(el => {
+            if (el.type === "comment") return null;
             if (!el.repeatGrid) {
               return <RenderElement key={el.id} el={el} allElements={schema.elements} playing={playing}
                 animState={playing || currentTime > 0 ? getAnimState(el, currentTime) : getAnimState(el, 999)}
@@ -1140,6 +1183,33 @@ export default function CanvasStage(p: Props) {
           <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} keepRatio={selectedEl?.lockAspectRatio === true} boundBoxFunc={(_, nw) => nw} onTransformEnd={handleTransformEnd} />
         </Layer>
       </Stage>
+
+      {/* Comment pins — renderizados como HTML sobre o Stage */}
+      {(p.showComments || p.commentMode) && schema.elements.filter(e => e.type === "comment").map(el => (
+        <CommentPin
+          key={el.id}
+          el={el}
+          stageScale={stageScale}
+          isActive={activeCommentId === el.id}
+          onActivate={() => setActiveCommentId(activeCommentId === el.id ? null : el.id)}
+          onUpdate={(text) => p.onUpdateComment?.(el.id, text)}
+          onRemove={() => { p.onRemoveComment?.(el.id); setActiveCommentId(null); }}
+        />
+      ))}
+
+      {/* Overlay transparente para capturar cliques em modo comentário */}
+      {p.commentMode && (
+        <div
+          style={{ position: "absolute", inset: 0, zIndex: 200, cursor: "crosshair" }}
+          onClick={e => {
+            if (activeCommentId) { setActiveCommentId(null); return; }
+            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+            const cx = (e.clientX - rect.left) / stageScale;
+            const cy = (e.clientY - rect.top) / stageScale;
+            p.onAddComment?.(Math.round(cx), Math.round(cy));
+          }}
+        />
+      )}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet, Group, Ungroup, Ruler, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet, Group, Ungroup, Ruler, LayoutGrid, MessageSquare, MessageSquareOff } from "lucide-react";
 
 interface Props {
   onUndo: () => void; onRedo: () => void;
@@ -17,6 +17,8 @@ interface Props {
   onPreview?: () => void;
   onVariants?: () => void; variantsEnabled?: boolean;
   onAdaptFormat?: () => void;
+  onCommentMode?: () => void; commentModeActive?: boolean;
+  onToggleComments?: () => void; showComments?: boolean;
   onHistory?: () => void;
   onSaveComponent?: () => void; canSaveComponent?: boolean;
   onNew?: () => void;
@@ -77,6 +79,8 @@ export default function Toolbar(p: Props) {
       {p.onToggleParamView && <><Sep /><Btn icon={p.paramViewActive ? <EyeOff size={14} /> : <Eye size={14} />} tip="Parameter View (Ctrl+P)" o={p.onToggleParamView} active={p.paramViewActive} /></>}
       {p.onHistory && <Btn icon={<History size={14} />} tip="Histórico" o={p.onHistory} />}
       {p.onPreview && <Btn icon={<Smartphone size={14} />} tip="Preview Instagram" o={p.onPreview} />}
+      {p.onCommentMode && <><Sep /><Btn icon={<MessageSquare size={14} />} tip="Modo comentário — clique no canvas para anotar" o={p.onCommentMode} active={p.commentModeActive} label="Comentar" /></>}
+      {p.onToggleComments && <Btn icon={p.showComments ? <MessageSquareOff size={14} /> : <MessageSquare size={14} />} tip={p.showComments ? "Ocultar comentários" : "Mostrar comentários"} o={p.onToggleComments} active={p.showComments} />}
       {p.onAdaptFormat && <Btn icon={<LayoutGrid size={14} />} tip="Adaptar formato — duplica para outro formato" o={p.onAdaptFormat} label="Adaptar" />}
       {p.onVariants && p.variantsEnabled && <Btn icon={<Layers size={14} />} tip="Gerar variantes" o={p.onVariants} gold label="Variantes" />}
       <div style={{ position: "absolute", right: 240, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 4 }}>
