@@ -9,7 +9,8 @@ import LayersPanel from "./layers-panel";
 import PropsPanel from "./props-panel";
 import CanvasStage, { PREVIEW_DEFAULTS } from "./canvas-stage";
 import ParameterView from "./parameter-view";
-import { AssetsPanel, ComponentsPanel, DestinosPanel, HistoryPanel, InstagramPreviewModal, VariantsModal, SaveComponentModal, CropModal } from "./modals";
+import { AssetsPanel, ComponentsPanel, DestinosPanel, HistoryPanel, InstagramPreviewModal, VariantsModal, SaveComponentModal, CropModal, AdaptFormatModal } from "./modals";
+import { rescaleSchema } from "./types";
 
 const BADGE_ALLINCLUSIVE_URL = "https://res.cloudinary.com/dxgj4bcch/image/upload/aurohubv2/badges/allinclusive.png";
 
@@ -31,12 +32,13 @@ interface CanvasEditorProps {
   templateId?: string | null;
   variantsEnabled?: boolean;
   onSaveVariants?: (variants: { format: string; width: number; height: number; schema: EditorSchema }[]) => void;
+  onAdaptFormat?: (format: string, width: number, height: number, schema: EditorSchema) => void;
   onNew?: () => void;
   isAdm?: boolean;
   autoSaveStatus?: "saved" | "saving" | "idle";
 }
 
-export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onNew, isAdm, autoSaveStatus }: CanvasEditorProps) {
+export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onAdaptFormat, onNew, isAdm, autoSaveStatus }: CanvasEditorProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -61,6 +63,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<string>("");
   const [showVariants, setShowVariants] = useState(false);
+  const [showAdaptFormat, setShowAdaptFormat] = useState(false);
   const [showSaveComponent, setShowSaveComponent] = useState(false);
   const [cropElementId, setCropElementId] = useState<string | null>(null);
   const lastBadgeCheckRef = useRef<string>("");
@@ -516,6 +519,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         onToggleSnap={toggleSnap} snapEnabled={snapEnabled}
         onToggleRulers={() => setShowRulers(r => !r)} showRulers={showRulers}
         onPreview={openPreview}
+        onAdaptFormat={onAdaptFormat ? () => setShowAdaptFormat(true) : undefined}
         onVariants={() => setShowVariants(true)} variantsEnabled={!!variantsEnabled}
         onHistory={templateId ? () => setShowHistory(true) : undefined}
         onSaveComponent={() => setShowSaveComponent(true)} canSaveComponent={selectedIds.length > 0}
@@ -618,6 +622,17 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
       {showPreview && <InstagramPreviewModal dataUrl={previewData} format={format || "stories"} onClose={() => setShowPreview(false)} />}
       {showVariants && <VariantsModal schema={schema} srcFormat={format || "stories"} srcW={width} srcH={height} onClose={() => setShowVariants(false)} onConfirm={handleVariantsConfirm} />}
       {showSaveComponent && <SaveComponentModal elements={selectedElements} onClose={() => setShowSaveComponent(false)} onSaved={() => {}} />}
+      {showAdaptFormat && onAdaptFormat && (
+        <AdaptFormatModal
+          srcFormat={format || "stories"}
+          onClose={() => setShowAdaptFormat(false)}
+          onConfirm={(targetFormat, targetW, targetH) => {
+            const adapted = rescaleSchema(schema, width, height, targetW, targetH);
+            onAdaptFormat(targetFormat, targetW, targetH, adapted);
+            setShowAdaptFormat(false);
+          }}
+        />
+      )}
       {croppingEl?.src && <CropModal src={croppingEl.src} initial={croppingEl.cropW && croppingEl.cropH ? { x: croppingEl.cropX || 0, y: croppingEl.cropY || 0, width: croppingEl.cropW, height: croppingEl.cropH } : undefined} onClose={() => setCropElementId(null)} onConfirm={handleCropConfirm} />}
     </div>
   );

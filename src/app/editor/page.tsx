@@ -179,6 +179,63 @@ function EditorInner() {
         templateId={templateId}
         variantsEnabled={variantsEnabled}
         onNew={() => setShowQuickStart(true)}
+        onAdaptFormat={async (targetFormat, targetW, targetH, adaptedSchema) => {
+          const baseName = loadedNome || "Template";
+          const newName = `${baseName} (${targetFormat})`;
+          const slug = slugifyTemplateName(newName);
+          const newKey = `${slug}_${Date.now()}`;
+          const payload = {
+            ...adaptedSchema,
+            width: targetW, height: targetH,
+            format: targetFormat,
+            formType,
+            qtdDestinos,
+            nome: newName,
+            licenseeId: loadedLicenseeId,
+            lojaId: loadedLojaId,
+            licenseeNome: loadedLicenseeNome,
+            lojaNome: loadedLojaNome,
+            thumbnail: null,
+          };
+          try {
+            await supabase.from("system_config").upsert({
+              key: `tmpl_${newKey}`,
+              value: JSON.stringify(payload),
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "key" });
+            invalidateSystemConfig(`tmpl_${newKey}`);
+            // Sync form_templates
+            const ftData = {
+              config_key: `tmpl_${newKey}`,
+              name: newName,
+              form_type: formType.replace("lamina", "card_whatsapp"),
+              format: targetFormat,
+              is_base: !loadedLicenseeId,
+              active: true,
+              licensee_id: loadedLicenseeId || null,
+              schema: { elements: adaptedSchema.elements, background: adaptedSchema.background, formType, width: targetW, height: targetH },
+              width: targetW,
+              height: targetH,
+            };
+            await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
+            // Copia permissões de acesso do template original
+            if (templateId) {
+              const { data: accessRows } = await supabase
+                .from("template_access")
+                .select("licensee_id,store_id")
+                .eq("template_key", `tmpl_${templateId}`);
+              if (accessRows && accessRows.length > 0) {
+                const newRows = (accessRows as { licensee_id: string; store_id: string | null }[]).map(r => ({
+                  template_key: `tmpl_${newKey}`,
+                  licensee_id: r.licensee_id,
+                  store_id: r.store_id,
+                }));
+                await supabase.from("template_access").insert(newRows);
+              }
+            }
+            router.push(`/editor?id=${newKey}`);
+          } catch (err) { console.error("[AdaptFormat]", err); alert("Erro ao criar cópia adaptada."); }
+        }}
         onSaveVariants={(variants) => {
           // Stash as variantes e abre o modal pra coletar licensee/loja
           setPendingVariants(variants);

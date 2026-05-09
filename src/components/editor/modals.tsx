@@ -866,6 +866,67 @@ export function SaveTemplateModal({ initialName, initialFormType, initialFormat,
   );
 }
 
+/* ══ 13. ADAPTAR FORMATO ════════════════════════════ */
+const ADAPT_FMTS = [
+  { id: "stories", label: "Stories", ratio: "9:16", w: 1080, h: 1920, ar: 9/16 },
+  { id: "feed",    label: "Feed",    ratio: "4:5",  w: 1080, h: 1350, ar: 4/5 },
+  { id: "reels",   label: "Reels",   ratio: "9:16", w: 1080, h: 1920, ar: 9/16 },
+  { id: "tv",      label: "TV",      ratio: "16:9", w: 1920, h: 1080, ar: 16/9 },
+];
+export function AdaptFormatModal({ srcFormat, onClose, onConfirm }: {
+  srcFormat: string;
+  onClose: () => void;
+  onConfirm: (format: string, width: number, height: number) => void;
+}) {
+  return (
+    <Modal title="Adaptar formato" onClose={onClose} width={400}>
+      <p style={{ fontSize: 12, color: "var(--ed-txt2)", marginBottom: 16, marginTop: 0 }}>
+        Cria uma cópia deste template com os elementos reposicionados proporcionalmente para o formato selecionado.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {ADAPT_FMTS.map(f => {
+          const isCurrent = f.id === srcFormat;
+          const thumbW = 80;
+          const thumbH = Math.round(thumbW / f.ar);
+          const clampH = Math.min(thumbH, 100);
+          const clampW = Math.round(clampH * f.ar);
+          return (
+            <button
+              key={f.id}
+              disabled={isCurrent}
+              onClick={() => onConfirm(f.id, f.w, f.h)}
+              style={{
+                padding: "14px 10px",
+                borderRadius: 10,
+                border: `1.5px solid ${isCurrent ? "var(--ed-accent)" : "var(--ed-bdr)"}`,
+                background: isCurrent ? "rgba(255,122,26,0.08)" : "var(--ed-hover)",
+                color: isCurrent ? "var(--ed-bind)" : "var(--ed-txt)",
+                cursor: isCurrent ? "default" : "pointer",
+                opacity: isCurrent ? 0.6 : 1,
+                textAlign: "center" as const,
+                display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 8,
+                transition: "border-color 0.15s, background 0.15s",
+              }}
+            >
+              <div style={{ width: clampW, height: clampH, borderRadius: 4, background: "var(--ed-input)", border: "1px solid var(--ed-bdr)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 8, color: "var(--ed-txt3)" }}>{f.ratio}</span>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700 }}>{f.label}</div>
+                <div style={{ fontSize: 10, color: "var(--ed-txt3)" }}>{f.w}×{f.h}</div>
+                {isCurrent && <div style={{ fontSize: 9, color: "var(--ed-bind)", marginTop: 2 }}>formato atual</div>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+        <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--ed-bdr)", background: "transparent", color: "var(--ed-txt2)", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Cancelar</button>
+      </div>
+    </Modal>
+  );
+}
+
 function L({ label, children }: { label: string; children: React.ReactNode }) {
   return <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
     <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: "var(--ed-txt3)" }}>{label}</span>
