@@ -901,12 +901,14 @@ export default function CanvasStage(p: Props) {
   }, [panOffset.x, panOffset.y]);
 
   const handleElementClick = useCallback((elId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+    const el = schema.elements.find(el => el.id === elId);
+    if (el?.locked) return;
     if (e.evt.shiftKey) {
       p.onShiftSelect(elId);
     } else {
       p.onSelect(elId);
     }
-  }, [p.onSelect, p.onShiftSelect]);
+  }, [p.onSelect, p.onShiftSelect, schema.elements]);
 
   // Réguas — useEffect e handler ficam aqui (após panOffset ser declarado)
   useEffect(() => {
