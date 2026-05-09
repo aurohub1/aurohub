@@ -30,7 +30,7 @@ import { usePublishLogic } from "./usePublishLogic";
 import { PublishFooter } from "./PublishFooter";
 
 const PreviewStage = dynamic(
-  () => import("@/app/(gerente)/gerente/publicar/PreviewStage"),
+  () => import("@/components/publish/SharedPreviewStage"),
   { ssr: false }
 );
 

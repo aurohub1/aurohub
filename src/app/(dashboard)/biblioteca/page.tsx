@@ -271,7 +271,7 @@ export default function BibliotecaPage() {
                   >
                     <div className="relative aspect-[4/5] w-full overflow-hidden border-b border-[var(--bdr)] bg-[var(--bg2)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={badge.url} alt={badge.nome} className="h-full w-full object-cover" />
+                      <img src={badge.url} alt={badge.nome} loading="lazy" className="h-full w-full object-cover" />
                       <button
                         onClick={() => handleDelete("badges", badge.id)}
                         title="Excluir"
@@ -305,7 +305,7 @@ export default function BibliotecaPage() {
                   >
                     <div className="relative aspect-[4/5] w-full overflow-hidden border-b border-[var(--bdr)] bg-[var(--bg2)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={badge.url} alt={badge.nome} className="h-full w-full object-cover" />
+                      <img src={badge.url} alt={badge.nome} loading="lazy" className="h-full w-full object-cover" />
                       <button
                         onClick={() => handleDelete("badges", badge.id)}
                         title="Excluir"
@@ -341,7 +341,7 @@ export default function BibliotecaPage() {
               >
                 <div className="relative aspect-[4/5] w-full overflow-hidden border-b border-[var(--bdr)] bg-[var(--bg2)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.url} alt={hasNome ? (item as ImgDestino).nome : "imagem"} className="h-full w-full object-cover" />
+                  <img src={item.url} alt={hasNome ? (item as ImgDestino).nome : "imagem"} loading="lazy" className="h-full w-full object-cover" />
                   <button
                     onClick={() => handleDelete(tabMeta.table, item.id)}
                     title="Excluir"

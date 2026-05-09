@@ -267,7 +267,7 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
       >
         {tpl.thumbnail ? (
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={tpl.thumbnail} alt={tpl.nome} className="h-full w-full object-cover" />
+          <img src={tpl.thumbnail} alt={tpl.nome} loading="lazy" className="h-full w-full object-cover" />
         ) : (
           <div
             className="flex h-full w-full items-center justify-center"

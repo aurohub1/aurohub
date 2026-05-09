@@ -18,7 +18,7 @@ import SlidingTabs from "@/components/publish/SlidingTabs";
 import { PacoteForm, CardWhatsAppForm, AnoiteceuForm } from "@/components/publish/FormSections";
 import { useFormAdapter } from "@/components/publish/useFormAdapter";
 
-const PreviewStage = dynamic(() => import("./PreviewStage"), { ssr: false });
+const PreviewStage = dynamic(() => import("@/components/publish/SharedPreviewStage"), { ssr: false });
 
 /* ── Tipos ───────────────────────────────────────── */
 

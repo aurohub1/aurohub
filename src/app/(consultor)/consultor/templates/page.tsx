@@ -263,7 +263,7 @@ function TemplateCard({ tpl, onUse }: { tpl: TemplateRow; onUse: () => void }) {
       <div style={{ height: 140, background: "#1E3A6E", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
         {tpl.thumbnail && (
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={tpl.thumbnail} alt={tpl.nome} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          <img src={tpl.thumbnail} alt={tpl.nome} loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
         )}
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
           <span style={{ background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 9, padding: "2px 8px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
