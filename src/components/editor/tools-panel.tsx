@@ -25,7 +25,7 @@ export default function ToolsPanel(p: Props) {
 
   const add = (type: EditorElement["type"], overrides: Partial<EditorElement> = {}) => {
     const defaults: Record<string, Partial<EditorElement>> = {
-      text: { name: "Texto", x: p.canvasW / 4, y: p.canvasH / 3, width: p.canvasW / 2, height: 60, text: "Texto", fontSize: 32, fontFamily: FONTS[0], fontStyle: "bold", fill: "#FFFFFF", align: "center", opacity: 1 },
+      text: { name: "Texto", x: p.canvasW / 4, y: p.canvasH / 3, width: p.canvasW / 2, height: 60, text: "Texto", fontSize: 32, fontFamily: "Helvetica Neue", fontStyle: "700", fill: "#FFFFFF", align: "center", opacity: 1 },
       rect: { name: "Retângulo", x: p.canvasW / 4, y: p.canvasH / 3, width: p.canvasW / 3, height: p.canvasH / 6, fill: "#D4A843", cornerRadius: 0, opacity: 1 },
       circle: { name: "Círculo", x: p.canvasW / 2, y: p.canvasH / 2, width: 120, height: 120, fill: "#3B82F6", opacity: 1 },
       image: { name: "Imagem", x: p.canvasW / 4, y: p.canvasH / 4, width: p.canvasW / 2, height: p.canvasH / 3, opacity: 1 },

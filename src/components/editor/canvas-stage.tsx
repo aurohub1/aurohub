@@ -418,7 +418,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           displayText || el.text || "",
           el.width,
           el.linhas,
-          el.fontFamily || '"Helvetica Neue", Arial, Helvetica, sans-serif',
+          el.fontFamily || "Helvetica Neue",
           el.fontStyle || "normal",
           baseFont,
           el.lineHeight || 1.2
@@ -444,7 +444,7 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
         height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
         wrap="word"
         ellipsis={!!el.linhas}
-        text={displayText} fontSize={fSize} fontFamily={el.fontFamily || '"Helvetica Neue", Arial, Helvetica, sans-serif'} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.strokeEnabled ? blendColorOpacity(el.stroke, el.strokeOpacity ?? 1) : undefined} strokeWidth={el.strokeEnabled ? (el.strokeWidth ?? 1) : 0} padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)} />
+        text={displayText} fontSize={fSize} fontFamily={el.fontFamily || "Helvetica Neue"} fontStyle={el.fontStyle || "normal"} {...textFillProps} align={el.align || "left"} letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2} textDecoration={el.textDecoration || ""} stroke={el.strokeEnabled ? blendColorOpacity(el.stroke, el.strokeOpacity ?? 1) : undefined} strokeWidth={el.strokeEnabled ? (el.strokeWidth ?? 1) : 0} padding={Math.max(el.paddingH ?? 0, el.paddingV ?? 0)} />
     </>;
   }
   if (el.type === "rect") {

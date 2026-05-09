@@ -321,7 +321,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
           <F l="Conteúdo"><textarea value={s.text || ""} onChange={e => u({ text: e.target.value })} rows={3} style={{ ...inpS, height: "auto", resize: "vertical", padding: "6px 8px" }} /></F>
 
           {/* 2. Fonte + Tamanho + Peso */}
-          <F l="Fonte"><select value={s.fontFamily && s.fontStyle && s.fontStyle.match(/^\d+$/) ? `Helvetica Neue ${({"100":"Thin","300":"Light","400":"","500":"Medium","700":"Bold","800":"Heavy","900":"Black"} as Record<string,string>)[s.fontStyle] || ""}`.trim() || s.fontFamily : (s.fontFamily || FONTS[0])} onChange={e => {
+          <F l="Fonte"><select value={s.fontFamily && s.fontStyle && s.fontStyle.match(/^\d+$/) ? `Helvetica Neue ${({"100":"Thin","300":"Light","400":"","500":"Medium","700":"Bold","800":"Heavy","900":"Black"} as Record<string,string>)[s.fontStyle] || ""}`.trim() || s.fontFamily : (s.fontFamily || "Helvetica Neue")} onChange={e => {
             const picked = e.target.value;
             const spec = resolveFontSpec(picked);
             // Se for variante de Helvetica Neue, grava fontFamily "Helvetica Neue" + fontStyle numérico
