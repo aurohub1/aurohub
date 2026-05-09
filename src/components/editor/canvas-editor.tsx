@@ -9,7 +9,7 @@ import LayersPanel from "./layers-panel";
 import PropsPanel from "./props-panel";
 import CanvasStage, { PREVIEW_DEFAULTS } from "./canvas-stage";
 import ParameterView from "./parameter-view";
-import { AssetsPanel, ComponentsPanel, DestinosPanel, HistoryPanel, InstagramPreviewModal, VariantsModal, SaveComponentModal, CropModal, AdaptFormatModal } from "./modals";
+import { AssetsPanel, ComponentsPanel, DestinosPanel, HistoryPanel, InstagramPreviewModal, VariantsModal, SaveComponentModal, CropModal, AdaptFormatModal, KeyboardShortcutsModal } from "./modals";
 import IconLibrary from "./icon-library";
 import type { EditorIcon } from "./icon-data";
 import FindReplacePanel from "./find-replace";
@@ -74,6 +74,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   const [cropElementId, setCropElementId] = useState<string | null>(null);
   const [showIcons, setShowIcons] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const lastBadgeCheckRef = useRef<string>("");
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
@@ -388,6 +389,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
       const mod = e.ctrlKey || e.metaKey;   // Ctrl (Win/Linux) ou Cmd (Mac)
       const key = e.key.toLowerCase();      // normaliza pra não quebrar com Caps Lock
       if (mod && key === "h") { e.preventDefault(); setShowFindReplace(s => !s); return; }
+      if (mod && e.key === "/") { e.preventDefault(); setShowShortcuts(s => !s); return; }
       const active = document.activeElement as HTMLElement | null;
       const tag = active?.tagName || "";
       const isTextField = tag === "INPUT" || tag === "TEXTAREA" || !!active?.isContentEditable;
@@ -411,6 +413,15 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
       if (mod && key === "a") { e.preventDefault(); selectAll(); }
       if (mod && !e.shiftKey && key === "g") { e.preventDefault(); groupSelected(); }
       if (mod && e.shiftKey && key === "g") { e.preventDefault(); ungroupSelected(); }
+      // Alignment shortcuts — Ctrl+Shift+letter
+      if (mod && e.shiftKey && selectedId) {
+        if (key === "l") { e.preventDefault(); alignSelected("left"); }
+        if (key === "r") { e.preventDefault(); alignSelected("right"); }
+        if (key === "t") { e.preventDefault(); alignSelected("top"); }
+        if (key === "b") { e.preventDefault(); alignSelected("bottom"); }
+        if (key === "h") { e.preventDefault(); alignSelected("center-h"); }
+        if (key === "v") { e.preventDefault(); alignSelected("center-v"); }
+      }
       // Arrows move ALL selected
       if (selectedIds.length > 0 && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
         e.preventDefault(); const step = e.shiftKey ? 10 : 1;
@@ -429,7 +440,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [deleteSelected, clearSelection, playing, pause, play, undo, redo, copySelected, paste, duplicateSelected, selectAll, selectedIds, schema, changeSchema, handleExport, handleSaveClick, moveLayer, groupSelected, ungroupSelected]);
+  }, [deleteSelected, clearSelection, playing, pause, play, undo, redo, copySelected, paste, duplicateSelected, selectAll, selectedIds, selectedId, schema, changeSchema, handleExport, handleSaveClick, moveLayer, groupSelected, ungroupSelected, alignSelected]);
 
   /* ── Badge automático (item 10) ───────────────────── */
   useEffect(() => {
@@ -562,6 +573,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         onAdaptFormat={onAdaptFormat ? () => setShowAdaptFormat(true) : undefined}
         onVariants={() => setShowVariants(true)} variantsEnabled={!!variantsEnabled}
         onHistory={templateId ? () => setShowHistory(true) : undefined}
+        onShortcuts={() => setShowShortcuts(true)}
         onSaveComponent={() => setShowSaveComponent(true)} canSaveComponent={selectedIds.length > 0}
         onNew={onNew}
         autoSaveStatus={autoSaveStatus}
@@ -690,6 +702,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         />
       )}
       {croppingEl?.src && <CropModal src={croppingEl.src} initial={croppingEl.cropW && croppingEl.cropH ? { x: croppingEl.cropX || 0, y: croppingEl.cropY || 0, width: croppingEl.cropW, height: croppingEl.cropH } : undefined} onClose={() => setCropElementId(null)} onConfirm={handleCropConfirm} />}
+      {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
     </div>
   );
 }

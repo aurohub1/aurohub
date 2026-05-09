@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet, Group, Ungroup, Ruler, LayoutGrid, MessageSquare, MessageSquareOff } from "lucide-react";
+import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet, Group, Ungroup, Ruler, LayoutGrid, MessageSquare, MessageSquareOff, Keyboard } from "lucide-react";
 
 interface Props {
   onUndo: () => void; onRedo: () => void;
@@ -24,6 +24,7 @@ interface Props {
   onNew?: () => void;
   autoSaveStatus?: "saved" | "saving" | "idle";
   onGroup?: () => void; onUngroup?: () => void;
+  onShortcuts?: () => void;
 }
 
 export default function Toolbar(p: Props) {
@@ -78,6 +79,7 @@ export default function Toolbar(p: Props) {
       {p.onUngroup && <Btn icon={<Ungroup size={14} />} tip="Desagrupar (Ctrl+Shift+G)" o={p.onUngroup} />}
       {p.onToggleParamView && <><Sep /><Btn icon={p.paramViewActive ? <EyeOff size={14} /> : <Eye size={14} />} tip="Parameter View (Ctrl+P)" o={p.onToggleParamView} active={p.paramViewActive} /></>}
       {p.onHistory && <Btn icon={<History size={14} />} tip="Histórico" o={p.onHistory} />}
+      {p.onShortcuts && <Btn icon={<Keyboard size={14} />} tip="Atalhos de teclado (Ctrl+/)" o={p.onShortcuts} />}
       {p.onPreview && <Btn icon={<Smartphone size={14} />} tip="Preview Instagram" o={p.onPreview} />}
       {p.onCommentMode && <><Sep /><Btn icon={<MessageSquare size={14} />} tip="Modo comentário — clique no canvas para anotar" o={p.onCommentMode} active={p.commentModeActive} label="Comentar" /></>}
       {p.onToggleComments && <Btn icon={p.showComments ? <MessageSquareOff size={14} /> : <MessageSquare size={14} />} tip={p.showComments ? "Ocultar comentários" : "Mostrar comentários"} o={p.onToggleComments} active={p.showComments} />}

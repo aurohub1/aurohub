@@ -998,6 +998,90 @@ function L({ label, children }: { label: string; children: React.ReactNode }) {
   </label>;
 }
 
+/* ══ KEYBOARD SHORTCUTS MODAL ═══════════════════════ */
+const KB_GROUPS: { cat: string; items: { keys: string[]; label: string }[] }[] = [
+  { cat: "Edição", items: [
+    { keys: ["Ctrl", "Z"],          label: "Desfazer" },
+    { keys: ["Ctrl", "Y"],          label: "Refazer" },
+    { keys: ["Ctrl", "C"],          label: "Copiar" },
+    { keys: ["Ctrl", "V"],          label: "Colar" },
+    { keys: ["Ctrl", "D"],          label: "Duplicar" },
+    { keys: ["Del"],                 label: "Deletar selecionado" },
+    { keys: ["Ctrl", "S"],          label: "Salvar" },
+    { keys: ["Ctrl", "H"],          label: "Buscar e substituir" },
+    { keys: ["Ctrl", "E"],          label: "Exportar PNG" },
+  ]},
+  { cat: "Seleção", items: [
+    { keys: ["Ctrl", "A"],          label: "Selecionar tudo" },
+    { keys: ["Esc"],                 label: "Cancelar seleção" },
+    { keys: ["Ctrl", "G"],          label: "Agrupar" },
+    { keys: ["Ctrl", "⇧", "G"],    label: "Desagrupar" },
+  ]},
+  { cat: "Mover", items: [
+    { keys: ["↑ ↓ ← →"],           label: "Mover 1px" },
+    { keys: ["⇧", "↑↓←→"],        label: "Mover 10px" },
+  ]},
+  { cat: "Zoom", items: [
+    { keys: ["Ctrl", "+"],          label: "Ampliar" },
+    { keys: ["Ctrl", "−"],          label: "Reduzir" },
+    { keys: ["Ctrl", "0"],          label: "Zoom 100%" },
+  ]},
+  { cat: "Camadas", items: [
+    { keys: ["Ctrl", "]"],          label: "Trazer para frente" },
+    { keys: ["Ctrl", "["],          label: "Enviar para trás" },
+  ]},
+  { cat: "Alinhamento ao canvas", items: [
+    { keys: ["Ctrl", "⇧", "L"],    label: "Alinhar à esquerda" },
+    { keys: ["Ctrl", "⇧", "R"],    label: "Alinhar à direita" },
+    { keys: ["Ctrl", "⇧", "T"],    label: "Alinhar ao topo" },
+    { keys: ["Ctrl", "⇧", "B"],    label: "Alinhar à base" },
+    { keys: ["Ctrl", "⇧", "H"],    label: "Centralizar horizontalmente" },
+    { keys: ["Ctrl", "⇧", "V"],    label: "Centralizar verticalmente" },
+  ]},
+  { cat: "Animação & Interface", items: [
+    { keys: ["Espaço"],             label: "Play / Pause" },
+    { keys: ["Ctrl", "/"],          label: "Mostrar atalhos" },
+  ]},
+];
+
+const kbdS: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  height: 20, padding: "0 5px", minWidth: 20,
+  borderRadius: 4, border: "1px solid var(--ed-bdr)",
+  background: "var(--ed-input)", color: "var(--ed-txt)",
+  fontSize: 9, fontFamily: "monospace", fontWeight: 700,
+  boxShadow: "0 1px 0 var(--ed-bdr)", whiteSpace: "nowrap" as const,
+};
+
+export function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
+  return (
+    <Modal title="⌨  Atalhos de Teclado" onClose={onClose} width={760}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
+        {KB_GROUPS.map(g => (
+          <div key={g.cat}>
+            <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase" as const, color: "var(--ed-txt3)", marginBottom: 8, paddingBottom: 4, borderBottom: "1px solid var(--ed-bdr)" }}>{g.cat}</div>
+            <div style={{ display: "flex", flexDirection: "column" as const, gap: 5 }}>
+              {g.items.map((item, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ fontSize: 11, color: "var(--ed-txt2)" }}>{item.label}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                    {item.keys.map((k, ki) => (
+                      <kbd key={ki} style={kbdS}>{k}</kbd>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--ed-bdr)", fontSize: 9, color: "var(--ed-txt3)", textAlign: "center" as const }}>
+        Mac: use ⌘ Cmd no lugar de Ctrl · ⇧ = Shift
+      </div>
+    </Modal>
+  );
+}
+
 const fieldS: React.CSSProperties = {
   height: 38, borderRadius: 8, border: "1px solid var(--ed-bdr)",
   background: "var(--ed-input)", color: "var(--ed-txt)",
