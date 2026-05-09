@@ -141,27 +141,91 @@ interface HistoryEntry { id: string; template_id: string; schema: EditorSchema; 
 export function HistoryPanel({ templateId, onClose, onRestore }: { templateId: string; onClose: () => void; onRestore: (s: EditorSchema) => void }) {
   const [list, setList] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirming, setConfirming] = useState<HistoryEntry | null>(null);
+
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await supabase.from("template_history").select("*").eq("template_id", templateId).order("created_at", { ascending: false }).limit(40);
+        const { data } = await supabase
+          .from("template_history")
+          .select("*")
+          .eq("template_id", templateId)
+          .order("created_at", { ascending: false })
+          .limit(10);
         setList((data as HistoryEntry[]) || []);
       } catch (err) { console.error("[History]", err); }
       finally { setLoading(false); }
     })();
   }, [templateId]);
-  return (
-    <Modal title="Histórico de versões" onClose={onClose} width={720}>
-      {loading ? <div style={{ textAlign: "center", padding: 40, color: "var(--ed-txt3)", fontSize: 11 }}>Carregando...</div>
-        : list.length === 0 ? <div style={{ textAlign: "center", padding: 40, color: "var(--ed-txt3)", fontSize: 11 }}>Nenhuma versão ainda. Salve o template para criar a primeira.</div>
-        : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-          {list.map(h => (
-            <button key={h.id} onClick={() => { onRestore(h.schema); onClose(); }} style={{ display: "flex", flexDirection: "column", padding: 6, borderRadius: 8, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", cursor: "pointer", color: "var(--ed-txt)" }}>
-              <div style={{ aspectRatio: "9/16", background: h.thumbnail ? `url(${h.thumbnail}) center/contain no-repeat #000` : "var(--ed-hover)", borderRadius: 6, marginBottom: 4 }} />
-              <span style={{ fontSize: 10, color: "var(--ed-txt2)", textAlign: "left" }}>{new Date(h.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+
+  const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+  if (confirming) {
+    return (
+      <Modal title="Restaurar versão" onClose={() => setConfirming(null)} width={400}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
+          <div style={{ width: 120, aspectRatio: "9/16", background: confirming.thumbnail ? `url(${confirming.thumbnail}) center/contain no-repeat #000` : "var(--ed-hover)", borderRadius: 8 }} />
+          <p style={{ fontSize: 12, color: "var(--ed-txt2)", textAlign: "center", margin: 0 }}>
+            Restaurar versão de <strong>{fmt(confirming.created_at)}</strong>?<br />
+            <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>As alterações não salvas do estado atual serão descartadas.</span>
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => setConfirming(null)} style={{ padding: "8px 20px", borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-hover)", color: "var(--ed-txt)", fontSize: 11, cursor: "pointer" }}>
+              Cancelar
             </button>
+            <button onClick={() => { onRestore(confirming.schema); onClose(); }} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              Restaurar esta versão
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal title={`Histórico de versões (${list.length}/10)`} onClose={onClose} width={760}>
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 40, color: "var(--ed-txt3)", fontSize: 11 }}>Carregando...</div>
+      ) : list.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 40, color: "var(--ed-txt3)", fontSize: 11 }}>
+          Nenhuma versão salva ainda.<br />
+          <span style={{ fontSize: 10 }}>Cada vez que você salvar o template uma versão é criada automaticamente.</span>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+          {list.map((h, i) => (
+            <div key={h.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: `1px solid ${i === 0 ? "#FF7A1A" : "var(--ed-bdr)"}`, background: "var(--ed-input)" }}>
+              {/* Badge versão */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                <span style={{ fontSize: 9, fontWeight: 800, color: i === 0 ? "#FF7A1A" : "var(--ed-txt3)", letterSpacing: 0.5 }}>
+                  {i === 0 ? "★ ATUAL" : `V${list.length - i}`}
+                </span>
+                <span style={{ fontSize: 8, color: "var(--ed-txt3)" }}>
+                  {h.schema && (h.schema as any).elements ? `${(h.schema as any).elements.length} elem` : ""}
+                </span>
+              </div>
+              {/* Thumbnail */}
+              <div style={{ aspectRatio: "9/16", background: h.thumbnail ? `url(${h.thumbnail}) center/contain no-repeat #111` : "var(--ed-hover)", borderRadius: 6 }} />
+              {/* Data */}
+              <span style={{ fontSize: 9, color: "var(--ed-txt2)", textAlign: "center" }}>{fmt(h.created_at)}</span>
+              {/* Botão restaurar — desabilitado para a versão mais recente */}
+              <button
+                onClick={() => i === 0 ? undefined : setConfirming(h)}
+                disabled={i === 0}
+                style={{
+                  padding: "5px 0", borderRadius: 5, border: "none",
+                  background: i === 0 ? "transparent" : "rgba(255,122,26,0.12)",
+                  color: i === 0 ? "var(--ed-txt3)" : "#FF7A1A",
+                  fontSize: 9, fontWeight: 700, cursor: i === 0 ? "default" : "pointer",
+                  opacity: i === 0 ? 0.5 : 1,
+                }}
+              >
+                {i === 0 ? "Versão atual" : "Restaurar"}
+              </button>
+            </div>
           ))}
-        </div>}
+        </div>
+      )}
     </Modal>
   );
 }

@@ -479,15 +479,27 @@ function EditorInner() {
               }
 
               try {
+                const { data: { user: authUser } } = await supabase.auth.getUser();
                 const { error: hErr } = await supabase.from("template_history").insert({
                   template_id: key,
                   schema: payload,
                   thumbnail: thumbnail || null,
+                  created_by: authUser?.id ?? null,
                 });
                 if (hErr) throw hErr;
+                // Manter apenas as últimas 10 versões
+                const { data: oldRows } = await supabase
+                  .from("template_history")
+                  .select("id, created_at")
+                  .eq("template_id", key)
+                  .order("created_at", { ascending: false })
+                  .range(10, 999);
+                if (oldRows && oldRows.length > 0) {
+                  await supabase.from("template_history")
+                    .delete()
+                    .in("id", oldRows.map((r: { id: string }) => r.id));
+                }
               } catch (hErr) {
-                // Alert silenciado até a tabela `template_history` existir (AUDIT_TODO item 1).
-                // Quando a tabela for criada, restaurar o alert para alinhar com o fail-loud do upload-thumb.
                 console.warn("[History save] falhou:", hErr);
               }
 
