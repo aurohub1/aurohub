@@ -1,9 +1,16 @@
-/* Aurohub — Service Worker básico (app shell cache) */
-const CACHE_VERSION = "aurohub-v2";
+/* Aurohub — Service Worker (app shell cache) */
+// Atualizar esta string a cada deploy significativo para bustar o cache anterior.
+const CACHE_VERSION = "aurohub-v3-20260509";
 const APP_SHELL = [
   "/",
+  "/offline.html",
   "/manifest.json",
+  "/favicon.png",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/apple-touch-icon.png",
   "/logo-laranja.png",
+  "/logo-dark.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -60,7 +67,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML/páginas: network-first com fallback ao cache
+  // HTML/páginas: network-first com fallback ao cache, depois offline.html
   event.respondWith(
     fetch(req).then((res) => {
       if (res.ok) {
@@ -68,7 +75,9 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE_VERSION).then((cache) => cache.put(req, clone)).catch(() => null);
       }
       return res;
-    }).catch(() => caches.match(req).then((c) => c || caches.match("/")))
+    }).catch(() =>
+      caches.match(req).then((c) => c || caches.match("/offline.html"))
+    )
   );
 });
 
