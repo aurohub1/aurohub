@@ -317,6 +317,7 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
       {/* ═══ 3. TIPOGRAFIA ═══ */}
       {s.type === "text" && (
         <Sec t="Tipografia">
+          <TextStylesPanel el={s} isAdm={isAdm} onApply={u} />
           {/* 1. Conteúdo */}
           <F l="Conteúdo"><textarea value={s.text || ""} onChange={e => u({ text: e.target.value })} rows={3} style={{ ...inpS, height: "auto", resize: "vertical", padding: "6px 8px" }} /></F>
 
@@ -1329,6 +1330,142 @@ function AdvancedColorPicker({ value, onChange, label, showTransparent=true }: {
             OK
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ══ TEXT STYLES PANEL ════════════════════════════ */
+interface TextStyleDef {
+  id: string; name: string;
+  fontFamily: string; fontStyle: string; fontSize: number;
+  fill: string; letterSpacing: number; lineHeight: number;
+  custom?: boolean;
+}
+
+const PRESET_STYLES: TextStyleDef[] = [
+  { id: "titulo-grande", name: "Título Grande",  fontFamily: "Helvetica Neue", fontStyle: "700", fontSize: 72, fill: "#FFFFFF", letterSpacing: -1,   lineHeight: 1.0 },
+  { id: "titulo-medio",  name: "Título Médio",   fontFamily: "Helvetica Neue", fontStyle: "700", fontSize: 48, fill: "#FFFFFF", letterSpacing: -0.5,  lineHeight: 1.1 },
+  { id: "subtitulo",     name: "Subtítulo",      fontFamily: "Helvetica Neue", fontStyle: "500", fontSize: 32, fill: "#FFFFFF", letterSpacing: 0,     lineHeight: 1.2 },
+  { id: "corpo",         name: "Corpo",          fontFamily: "Helvetica Neue", fontStyle: "400", fontSize: 24, fill: "#FFFFFF", letterSpacing: 0,     lineHeight: 1.4 },
+  { id: "destaque",      name: "Destaque",       fontFamily: "Helvetica Neue", fontStyle: "800", fontSize: 56, fill: "#D4A843", letterSpacing: 1,     lineHeight: 1.0 },
+  { id: "preco",         name: "Preço",          fontFamily: "Helvetica Neue", fontStyle: "700", fontSize: 64, fill: "#D4A843", letterSpacing: -1,    lineHeight: 1.0 },
+  { id: "label",         name: "Label Pequeno",  fontFamily: "Helvetica Neue", fontStyle: "400", fontSize: 16, fill: "#FFFFFF", letterSpacing: 2,     lineHeight: 1.3 },
+];
+
+const TS_KEY = "ah_text_styles";
+function loadCustomStyles(): TextStyleDef[] {
+  try { return JSON.parse(localStorage.getItem(TS_KEY) || "[]"); } catch { return []; }
+}
+function saveCustomStyles(list: TextStyleDef[]) {
+  localStorage.setItem(TS_KEY, JSON.stringify(list));
+}
+
+function TextStylesPanel({ el, isAdm, onApply }: {
+  el: EditorElement; isAdm?: boolean;
+  onApply: (style: Partial<EditorElement>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [custom, setCustom] = useState<TextStyleDef[]>([]);
+
+  useEffect(() => { if (open) setCustom(loadCustomStyles()); }, [open]);
+
+  const apply = (st: TextStyleDef) => {
+    onApply({ fontFamily: st.fontFamily, fontStyle: st.fontStyle, fontSize: st.fontSize, fill: st.fill, letterSpacing: st.letterSpacing, lineHeight: st.lineHeight });
+    setOpen(false);
+  };
+
+  const saveAsStyle = () => {
+    const name = prompt("Nome do estilo:", el.name || "Meu Estilo");
+    if (!name) return;
+    const ns: TextStyleDef = {
+      id: `custom_${Date.now()}`, name, custom: true,
+      fontFamily: el.fontFamily || "Helvetica Neue",
+      fontStyle: el.fontStyle || "400",
+      fontSize: el.fontSize || 32,
+      fill: typeof el.fill === "string" ? el.fill : "#FFFFFF",
+      letterSpacing: el.letterSpacing || 0,
+      lineHeight: el.lineHeight || 1.2,
+    };
+    const updated = [...loadCustomStyles(), ns];
+    saveCustomStyles(updated);
+    setCustom(updated);
+  };
+
+  const deleteCustom = (id: string) => {
+    const updated = custom.filter(c => c.id !== id);
+    saveCustomStyles(updated);
+    setCustom(updated);
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: "100%", height: 26, borderRadius: 6, border: "1px solid var(--ed-bdr)", background: open ? "var(--ed-accent)" : "var(--ed-input)", color: open ? "#000" : "var(--ed-txt2)", fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginBottom: 2 }}
+      >
+        <span>✦</span> Estilos de texto
+      </button>
+
+      {open && (
+        <div style={{ position: "fixed", right: 232, top: 44, bottom: 0, width: 200, background: "var(--ed-surface)", borderLeft: "1px solid var(--ed-bdr)", display: "flex", flexDirection: "column", zIndex: 1000, boxShadow: "-6px 0 24px rgba(0,0,0,0.4)" }}>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", padding: "10px 12px", borderBottom: "1px solid var(--ed-bdr)", flexShrink: 0 }}>
+            <span style={{ flex: 1, fontSize: 11, fontWeight: 800, color: "var(--ed-txt)", letterSpacing: 0.5 }}>Estilos de texto</span>
+            <button onClick={() => setOpen(false)} style={{ width: 22, height: 22, borderRadius: 5, border: "none", background: "var(--ed-hover)", color: "var(--ed-txt2)", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+          </div>
+
+          {/* List */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "8px 8px 4px" }}>
+            <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase" as const, color: "var(--ed-txt3)", marginBottom: 6 }}>Pré-definidos</div>
+            {PRESET_STYLES.map(st => (
+              <StyleCard key={st.id} st={st} onApply={() => apply(st)} />
+            ))}
+
+            {custom.length > 0 && (
+              <>
+                <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase" as const, color: "var(--ed-txt3)", margin: "12px 0 6px" }}>Personalizados</div>
+                {custom.map(st => (
+                  <StyleCard key={st.id} st={st} onApply={() => apply(st)} onDelete={() => deleteCustom(st.id)} />
+                ))}
+              </>
+            )}
+          </div>
+
+          {/* Save button (ADM) */}
+          {isAdm && (
+            <div style={{ padding: 8, borderTop: "1px solid var(--ed-bdr)", flexShrink: 0 }}>
+              <button onClick={saveAsStyle} style={{ width: "100%", height: 28, borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                + Salvar como estilo
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+function StyleCard({ st, onApply, onDelete }: { st: TextStyleDef; onApply: () => void; onDelete?: () => void }) {
+  const [hover, setHover] = useState(false);
+  const previewSize = Math.min(20, Math.max(10, st.fontSize / 5));
+  return (
+    <div
+      onClick={onApply}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ position: "relative", padding: "7px 8px", borderRadius: 6, border: "1px solid var(--ed-bdr)", cursor: "pointer", background: hover ? "var(--ed-active)" : "var(--ed-hover)", marginBottom: 4, transition: "background 0.12s" }}
+    >
+      <div style={{ fontSize: 8, color: "var(--ed-txt3)", marginBottom: 3 }}>{st.name}</div>
+      <div style={{ fontFamily: st.fontFamily, fontSize: previewSize, fontWeight: parseInt(st.fontStyle) || 400, color: st.fill, letterSpacing: Math.max(-1, Math.min(2, st.letterSpacing * 0.3)), lineHeight: st.lineHeight, overflow: "hidden", whiteSpace: "nowrap" as const, textOverflow: "ellipsis" }}>
+        {st.name}
+      </div>
+      <div style={{ fontSize: 8, color: "var(--ed-txt3)", marginTop: 3 }}>{st.fontSize}px · {st.fontStyle}w</div>
+      {onDelete && hover && (
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(); }}
+          style={{ position: "absolute", top: 4, right: 4, width: 16, height: 16, borderRadius: 4, border: "none", background: "var(--ed-danger)", color: "#fff", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+        >×</button>
       )}
     </div>
   );
