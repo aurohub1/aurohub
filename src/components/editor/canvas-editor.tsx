@@ -10,6 +10,8 @@ import PropsPanel from "./props-panel";
 import CanvasStage, { PREVIEW_DEFAULTS } from "./canvas-stage";
 import ParameterView from "./parameter-view";
 import { AssetsPanel, ComponentsPanel, DestinosPanel, HistoryPanel, InstagramPreviewModal, VariantsModal, SaveComponentModal, CropModal, AdaptFormatModal } from "./modals";
+import IconLibrary from "./icon-library";
+import type { EditorIcon } from "./icon-data";
 import { rescaleSchema } from "./types";
 
 const BADGE_ALLINCLUSIVE_URL = "https://res.cloudinary.com/dxgj4bcch/image/upload/aurohubv2/badges/allinclusive.png";
@@ -69,6 +71,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   const [commentMode, setCommentMode] = useState(false);
   const [showComments, setShowComments] = useState(true);
   const [cropElementId, setCropElementId] = useState<string | null>(null);
+  const [showIcons, setShowIcons] = useState(false);
   const lastBadgeCheckRef = useRef<string>("");
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
@@ -445,6 +448,18 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   }, [schema.elements, width, changeSchema]);
 
   /* ── Assets / Components / Destinos inserts ───────── */
+  const addIcon = useCallback((icon: EditorIcon) => {
+    const size = Math.round(Math.min(width, height) * 0.1);
+    addElement({
+      id: genId(), type: "svg", name: icon.name,
+      x: width / 2 - size / 2, y: height / 2 - size / 2,
+      width: size, height: size,
+      fill: "#FFFFFF", opacity: 1,
+      svgPaths: icon.paths, svgStyle: icon.style,
+    });
+    setShowIcons(false);
+  }, [addElement, width, height]);
+
   const insertImageFromUrl = useCallback((url: string, imgW: number, imgH: number, name = "Imagem") => {
     const ratio = imgW / imgH;
     const maxW = width * 0.5;
@@ -551,7 +566,8 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         onUngroup={selected?.type === "group" ? ungroupSelected : undefined}
       />
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
+        {showIcons && <IconLibrary onSelect={addIcon} onClose={() => setShowIcons(false)} />}
         <ToolsPanel
           schema={schema} selectedId={selectedId} selectedIds={selectedIds}
           canvasW={width} canvasH={height}
@@ -559,6 +575,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
           onUpdate={updateElement} onMoveLayer={moveLayer} onRemove={deleteSelected}
           stageScale={stageScale} onZoom={setStageScale} onFit={fitScreen}
           formType={formType} qtdDestinos={qtdDestinos}
+          onOpenIcons={() => setShowIcons(s => !s)} iconsActive={showIcons}
           onOpenAssets={() => setShowAssets(true)}
           onOpenComponents={() => setShowComponents(true)}
           onOpenDestinos={() => setShowDestinos(true)}

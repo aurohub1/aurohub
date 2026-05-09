@@ -92,6 +92,23 @@ function useImage(src?: string): HTMLImageElement | null {
   return img;
 }
 
+function useSvgImage(paths: string | undefined, color: string, svgStyle: "stroke" | "fill", w: number, h: number): HTMLImageElement | null {
+  const [img, setImg] = useState<HTMLImageElement | null>(null);
+  useEffect(() => {
+    if (!paths) { setImg(null); return; }
+    const strokeAttrs = `fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`;
+    const fillAttrs = `fill="${color}"`;
+    const attrs = svgStyle === "stroke" ? strokeAttrs : fillAttrs;
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${w}" height="${h}" ${attrs}>${paths}</svg>`;
+    const encoded = btoa(unescape(encodeURIComponent(svgStr)));
+    const src = `data:image/svg+xml;base64,${encoded}`;
+    const i = new window.Image();
+    i.onload = () => setImg(i);
+    i.src = src;
+  }, [paths, color, svgStyle, w, h]);
+  return img;
+}
+
 function useQrImage(url: string, fg: string, bg: string, size: number): HTMLImageElement | null {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
@@ -349,6 +366,8 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     el.qrBg || "#FFFFFF",
     el.width
   );
+  const svgFill = typeof el.fill === "string" ? el.fill : "#FFFFFF";
+  const svgImg = useSvgImage(el.type === "svg" ? (el.svgPaths || "") : undefined, svgFill, el.svgStyle || "stroke", Math.round(el.width), Math.round(el.height));
 
   // Text Clipping Mask — hooks must be unconditional
   const elIdx = allElements.findIndex(e => e.id === el.id);
@@ -695,6 +714,12 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       return <Rect {...common} ref={callbackRef as any} onClick={handleClick} width={el.width} height={el.height} fill={el.qrBg || "#FFFFFF"} stroke="#aaa" strokeWidth={1} dash={[4, 3]} cornerRadius={4} />;
     }
     return <KImage {...common} ref={callbackRef as any} onClick={handleClick} image={qrImg} width={el.width} height={el.height} />;
+  }
+  if (el.type === "svg") {
+    if (!svgImg) {
+      return <Rect {...common} ref={callbackRef as any} onClick={handleClick} width={el.width} height={el.height} fill="" stroke="#aaa" strokeWidth={1.5} dash={[6, 4]} cornerRadius={4} />;
+    }
+    return <KImage {...common} ref={callbackRef as any} onClick={handleClick} image={svgImg} width={el.width} height={el.height} />;
   }
   return null;
 }

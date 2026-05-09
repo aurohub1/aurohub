@@ -1,4 +1,4 @@
-import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Hexagon, AlignCenter, ArrowUp, ArrowDown, ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Eye, EyeOff, Trash2, QrCode, FolderOpen, Package, MapPin } from "lucide-react";
+import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Hexagon, AlignCenter, ArrowUp, ArrowDown, ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Eye, EyeOff, Trash2, QrCode, FolderOpen, Package, MapPin, Shapes } from "lucide-react";
 import { EditorElement, EditorSchema, FONTS, genId, getBindGroups, getLaminaBindGroups, getImageBindFields } from "./types";
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
   onOpenAssets?: () => void;
   onOpenComponents?: () => void;
   onOpenDestinos?: () => void;
+  onOpenIcons?: () => void;
+  iconsActive?: boolean;
 }
 
 export default function ToolsPanel(p: Props) {
@@ -98,6 +100,7 @@ export default function ToolsPanel(p: Props) {
         </div>
 
         <GL>LIB</GL>
+        {p.onOpenIcons && <TB icon={<Shapes size={18} />} t="Biblioteca de Ícones" o={p.onOpenIcons} active={p.iconsActive} />}
         {p.onOpenAssets && <TB icon={<FolderOpen size={18} />} t="Assets (Cloudinary)" o={p.onOpenAssets} />}
         {p.onOpenComponents && <TB icon={<Package size={18} />} t="Componentes" o={p.onOpenComponents} />}
         {p.onOpenDestinos && <TB icon={<MapPin size={18} />} t="Destinos" o={p.onOpenDestinos} gold />}
@@ -126,8 +129,8 @@ export default function ToolsPanel(p: Props) {
   );
 }
 
-function TB({ icon, t, o, gold }: { icon: React.ReactNode; t: string; o: () => void; gold?: boolean }) {
-  return <button onClick={o} title={t} className="ah-tool-btn" style={{ width: 38, height: 38, borderRadius: 8, border: "2px solid transparent", background: "var(--ed-hover)", color: gold ? "var(--ed-bind)" : "var(--ed-txt2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>{icon}</button>;
+function TB({ icon, t, o, gold, active }: { icon: React.ReactNode; t: string; o: () => void; gold?: boolean; active?: boolean }) {
+  return <button onClick={o} title={t} className="ah-tool-btn" style={{ width: 38, height: 38, borderRadius: 8, border: `2px solid ${active ? "var(--ed-accent)" : "transparent"}`, background: active ? "var(--ed-active)" : "var(--ed-hover)", color: gold ? "var(--ed-bind)" : active ? "var(--ed-active-txt)" : "var(--ed-txt2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>{icon}</button>;
 }
 function GL({ children }: { children: string }) {
   return <div style={{ fontSize: 6, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--ed-txt3)", margin: "4px 0 1px", textAlign: "center", width: "100%" }}>{children}</div>;

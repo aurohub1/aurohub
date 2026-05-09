@@ -112,6 +112,12 @@ export default function PropsPanel({ selected: s, canvasW, canvasH, allElements,
         {s.type === "qrcode" && (
           <div style={{ width: 36, height: 36, background: s.qrBg || "#FFFFFF", border: `2px solid ${s.qrFg || "#000000"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>▦</div>
         )}
+        {/* Para SVG icon */}
+        {s.type === "svg" && s.svgPaths && (
+          <div style={{ width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}
+            dangerouslySetInnerHTML={{ __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" ${s.svgStyle === "fill" ? `fill="${typeof s.fill === "string" ? s.fill : "#FFF"}"` : `fill="none" stroke="${typeof s.fill === "string" ? s.fill : "#FFF"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`}>${s.svgPaths}</svg>` }}
+          />
+        )}
         {/* Label do tipo no canto */}
         <span style={{
           position: "absolute",
@@ -471,8 +477,11 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         {/* Preenchimento — hide for lines, images and qrcode */}
         {s.type !== "image" && s.type !== "qrcode" && !isLine(s) && (
           <>
-            <SubSec t="Preenchimento" />
-            <FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
+            <SubSec t={s.type === "svg" ? "Cor do Ícone" : "Preenchimento"} />
+            {s.type === "svg"
+              ? <F l="Cor"><AdvancedColorPicker value={typeof s.fill === "string" ? s.fill : "#FFFFFF"} onChange={v => u({ fill: v })} /></F>
+              : <FillEditor value={s.fill || "#FFFFFF"} onChange={v => u({ fill: v })} />
+            }
           </>
         )}
 

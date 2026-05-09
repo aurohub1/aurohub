@@ -24,7 +24,7 @@ export interface UserGuide { id: string; orientation: "H" | "V"; pos: number; }
 
 export interface EditorElement {
   id: string;
-  type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind"|"group"|"comment";
+  type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind"|"group"|"comment"|"svg";
   commentText?: string;
   name?: string;
   x: number; y: number; width: number; height: number;
@@ -38,6 +38,9 @@ export interface EditorElement {
   linhas?: number;  // número fixo de linhas — limita altura do texto (0/undefined = livre)
   textDecoration?: string; textTransform?: TextCase;
   textMask?: boolean;
+  // SVG Icon
+  svgPaths?: string;
+  svgStyle?: "stroke" | "fill";
   // Image
   src?: string; imageFit?: ImageFit;
   cropX?: number; cropY?: number; cropW?: number; cropH?: number;
