@@ -72,6 +72,7 @@ interface Props {
   onBatchTransform?: (batch: { id: string; updates: Partial<EditorElement> }[]) => void;
   onStageRef: (r: Konva.Stage | null) => void;
   onScaleChange: (s: number) => void;
+  onResetPan?: (fn: () => void) => void;
   previewValues?: Record<string, string>;
   showRulers?: boolean;
   userGuides?: UserGuide[];
@@ -789,6 +790,20 @@ export default function CanvasStage(p: Props) {
     else nodeRefs.current.delete(id);
   }, []);
 
+  // Pan via botão do meio do mouse: move o wrapper CSS — Stage + borda movem juntos.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef<{ clientX: number; clientY: number; offsetX: number; offsetY: number } | null>(null);
+  const selRectStart = useRef<{ x: number; y: number } | null>(null);
+  const [selRect, setSelRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  // Expõe função de reset de pan ao parent (para Ctrl+0 centrar o canvas)
+  useEffect(() => {
+    p.onResetPan?.(() => setPanOffset({ x: 0, y: 0 }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.onResetPan]);
+
   // Clamp da posição do stage: canvas deve manter ao menos 20% visível em cada eixo
   const clampStagePos = useCallback((x: number, y: number) => {
     const canvasW = width * stageScale;
@@ -814,34 +829,47 @@ export default function CanvasStage(p: Props) {
 
   const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
-    const stage = stageRef.current;
-    if (!stage) return;
+    if (!stageRef.current) return;
 
-    // Ctrl/Cmd+wheel = zoom (mantém comportamento antigo)
-    // Wheel puro com zoom > 100% = scroll/pan
+    // Ctrl/Cmd+wheel = zoom centrado no cursor
     if (e.evt.ctrlKey || e.evt.metaKey || stageScale <= 1.01) {
-      p.onScaleChange(Math.min(3, Math.max(0.1, stageScale * (e.evt.deltaY < 0 ? 1.08 : 0.92))));
+      const oldScale = stageScale;
+      const factor = e.evt.deltaY < 0 ? 1.1 : 1 / 1.1;
+      const newScale = Math.min(4, Math.max(0.25, oldScale * factor));
+      if (newScale === oldScale) return;
+
+      const container = containerRef.current;
+      if (!container) { p.onScaleChange(newScale); return; }
+
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.evt.clientX - rect.left;
+      const mouseY = e.evt.clientY - rect.top;
+      const cw = rect.width;
+      const ch = rect.height;
+
+      // Ponto do canvas sob o cursor antes do zoom
+      const stageLeft = (cw - width * oldScale) / 2 + panOffset.x;
+      const stageTop  = (ch - height * oldScale) / 2 + panOffset.y;
+      const canvasX = (mouseX - stageLeft) / oldScale;
+      const canvasY = (mouseY - stageTop) / oldScale;
+
+      // Novo pan para que o mesmo ponto fique sob o cursor
+      const newPanX = mouseX - canvasX * newScale - (cw - width * newScale) / 2;
+      const newPanY = mouseY - canvasY * newScale - (ch - height * newScale) / 2;
+
+      p.onScaleChange(newScale);
+      setPanOffset({ x: newPanX, y: newPanY });
       return;
     }
 
-    // Scroll/pan com o stage
+    // Scroll/pan sem Ctrl
     const scrollSpeed = 1.2;
     const dx = (e.evt.shiftKey || Math.abs(e.evt.deltaX) > 0) ? e.evt.deltaX * scrollSpeed : 0;
     const dy = e.evt.deltaY * scrollSpeed;
-
     const offsetX = e.evt.shiftKey ? e.evt.deltaY * scrollSpeed : dx;
     const offsetY = e.evt.shiftKey ? 0 : dy;
-
     setPanOffset(prev => clampStagePos(prev.x - offsetX, prev.y - offsetY));
-  }, [stageScale, p.onScaleChange, clampStagePos]);
-
-  // Pan via botão do meio do mouse: move o wrapper CSS — Stage + borda movem juntos.
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const panStartRef = useRef<{ clientX: number; clientY: number; offsetX: number; offsetY: number } | null>(null);
-  const selRectStart = useRef<{ x: number; y: number } | null>(null);
-  const [selRect, setSelRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  }, [stageScale, width, height, panOffset, p.onScaleChange, clampStagePos]);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 1) return;

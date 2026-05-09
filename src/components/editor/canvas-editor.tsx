@@ -40,6 +40,7 @@ interface CanvasEditorProps {
 
 export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onAdaptFormat, onNew, isAdm, autoSaveStatus }: CanvasEditorProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
+  const resetPanRef = useRef<() => void>(() => {});
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [stageScale, setStageScale] = useState(1);
@@ -393,6 +394,9 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
       if (mod && key === "v") { e.preventDefault(); paste(); }
       if (mod && key === "d") { e.preventDefault(); duplicateSelected(); }
       if (mod && key === "s") { e.preventDefault(); handleSaveClick(); }
+      if (mod && key === "0") { e.preventDefault(); setStageScale(1); resetPanRef.current(); }
+      if (mod && (key === "=" || key === "+")) { e.preventDefault(); setStageScale(s => Math.min(4, s * 1.2)); }
+      if (mod && key === "-") { e.preventDefault(); setStageScale(s => Math.max(0.25, s / 1.2)); }
       if (mod && key === "e") { e.preventDefault(); handleExport(); }
       if (mod && e.key === "[") { e.preventDefault(); moveLayer("down"); }
       if (mod && e.key === "]") { e.preventDefault(); moveLayer("up"); }
@@ -561,6 +565,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
           onBatchTransform={batchTransformElements}
           onStageRef={(r) => { stageRef.current = r; }}
           onScaleChange={setStageScale}
+          onResetPan={(fn) => { resetPanRef.current = fn; }}
           previewValues={PREVIEW_DEFAULTS}
           showRulers={showRulers}
           userGuides={userGuides}

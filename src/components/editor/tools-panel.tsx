@@ -107,8 +107,8 @@ export default function ToolsPanel(p: Props) {
         <TB icon={<ArrowDown size={18} />} t="Camada -" o={() => p.onMoveLayer("down")} />
 
         <GL>ZOOM</GL>
-        <TB icon={<ZoomIn size={18} />} t="Zoom In" o={() => p.onZoom(Math.min(3, p.stageScale * 1.2))} />
-        <TB icon={<ZoomOut size={18} />} t="Zoom Out" o={() => p.onZoom(Math.max(0.1, p.stageScale * 0.8))} />
+        <TB icon={<ZoomIn size={18} />} t="Zoom In" o={() => p.onZoom(Math.min(4, p.stageScale * 1.2))} />
+        <TB icon={<ZoomOut size={18} />} t="Zoom Out" o={() => p.onZoom(Math.max(0.25, p.stageScale * 0.8))} />
         <TB icon={<Maximize2 size={18} />} t="Fit Screen" o={p.onFit} />
       </div>
 
