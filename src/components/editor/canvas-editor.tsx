@@ -12,6 +12,7 @@ import ParameterView from "./parameter-view";
 import { AssetsPanel, ComponentsPanel, DestinosPanel, HistoryPanel, InstagramPreviewModal, VariantsModal, SaveComponentModal, CropModal, AdaptFormatModal } from "./modals";
 import IconLibrary from "./icon-library";
 import type { EditorIcon } from "./icon-data";
+import FindReplacePanel from "./find-replace";
 import { rescaleSchema } from "./types";
 
 const BADGE_ALLINCLUSIVE_URL = "https://res.cloudinary.com/dxgj4bcch/image/upload/aurohubv2/badges/allinclusive.png";
@@ -72,6 +73,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   const [showComments, setShowComments] = useState(true);
   const [cropElementId, setCropElementId] = useState<string | null>(null);
   const [showIcons, setShowIcons] = useState(false);
+  const [showFindReplace, setShowFindReplace] = useState(false);
   const lastBadgeCheckRef = useRef<string>("");
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
@@ -383,12 +385,13 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     const handler = (e: KeyboardEvent) => {
       // Guard: não dispara atalhos se estiver digitando num campo de texto.
       // SELECT focado não bloqueia mais — user deve poder desfazer/copiar com um select aberto.
+      const mod = e.ctrlKey || e.metaKey;   // Ctrl (Win/Linux) ou Cmd (Mac)
+      const key = e.key.toLowerCase();      // normaliza pra não quebrar com Caps Lock
+      if (mod && key === "h") { e.preventDefault(); setShowFindReplace(s => !s); return; }
       const active = document.activeElement as HTMLElement | null;
       const tag = active?.tagName || "";
       const isTextField = tag === "INPUT" || tag === "TEXTAREA" || !!active?.isContentEditable;
       if (isTextField) return;
-      const mod = e.ctrlKey || e.metaKey;   // Ctrl (Win/Linux) ou Cmd (Mac)
-      const key = e.key.toLowerCase();      // normaliza pra não quebrar com Caps Lock
       if (e.key === "Delete" || e.key === "Backspace") { deleteSelected(); e.preventDefault(); }
       if (e.key === "Escape") { clearSelection(); e.preventDefault(); }
       if (e.key === " ") { e.preventDefault(); playing ? pause() : play(); }
@@ -568,6 +571,14 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
         {showIcons && <IconLibrary onSelect={addIcon} onClose={() => setShowIcons(false)} />}
+        {showFindReplace && (
+          <FindReplacePanel
+            elements={schema.elements}
+            onUpdate={cascadeUpdateElement}
+            onSelect={selectSingle}
+            onClose={() => setShowFindReplace(false)}
+          />
+        )}
         <ToolsPanel
           schema={schema} selectedId={selectedId} selectedIds={selectedIds}
           canvasW={width} canvasH={height}
