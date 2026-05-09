@@ -24,7 +24,7 @@ export interface UserGuide { id: string; orientation: "H" | "V"; pos: number; }
 
 export interface EditorElement {
   id: string;
-  type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind"|"group"|"comment"|"svg";
+  type: "text"|"image"|"rect"|"circle"|"qrcode"|"imageBind"|"group"|"comment"|"svg"|"particles";
   commentText?: string;
   name?: string;
   x: number; y: number; width: number; height: number;
@@ -41,6 +41,13 @@ export interface EditorElement {
   // SVG Icon
   svgPaths?: string;
   svgStyle?: "stroke" | "fill";
+  // Particles
+  particlePreset?: "float" | "snow" | "confetti" | "bokeh";
+  particleCount?: number;
+  particleColor?: string;
+  particleSpeed?: number;
+  particleSizeMin?: number;
+  particleSizeMax?: number;
   // Image
   src?: string; imageFit?: ImageFit;
   cropX?: number; cropY?: number; cropW?: number; cropH?: number;

@@ -1,4 +1,4 @@
-import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Hexagon, AlignCenter, ArrowUp, ArrowDown, ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Eye, EyeOff, Trash2, QrCode, FolderOpen, Package, MapPin, Shapes } from "lucide-react";
+import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Hexagon, AlignCenter, ArrowUp, ArrowDown, ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Eye, EyeOff, Trash2, QrCode, FolderOpen, Package, MapPin, Shapes, Sparkles } from "lucide-react";
 import { EditorElement, EditorSchema, FONTS, genId, getBindGroups, getLaminaBindGroups, getImageBindFields } from "./types";
 
 interface Props {
@@ -33,6 +33,7 @@ export default function ToolsPanel(p: Props) {
       image: { name: "Imagem", x: p.canvasW / 4, y: p.canvasH / 4, width: p.canvasW / 2, height: p.canvasH / 3, opacity: 1 },
       imageBind: { name: "🖼 Bind Imagem", x: p.canvasW / 4, y: p.canvasH / 4, width: p.canvasW / 2, height: p.canvasH / 3, opacity: 1, imageFit: "cover", cornerRadius: 8 },
       qrcode: { name: "QR Code", x: p.canvasW / 2 - 150, y: p.canvasH / 2 - 150, width: 300, height: 300, qrUrl: "https://aurohub.com.br", qrFg: "#000000", qrBg: "#FFFFFF", opacity: 1 },
+      particles: { name: "Partículas", x: 0, y: 0, width: p.canvasW, height: p.canvasH, opacity: 1, particlePreset: "float", particleCount: 60, particleColor: "#FFFFFF", particleSpeed: 1, particleSizeMin: 2, particleSizeMax: 6 },
     };
     p.onAdd({ id: genId(), type, ...defaults[type], ...overrides } as EditorElement);
   };
@@ -98,6 +99,9 @@ export default function ToolsPanel(p: Props) {
             ))}
           </div>
         </div>
+
+        <GL>FX</GL>
+        <TB icon={<Sparkles size={18} />} t="Partículas / Animação de fundo" o={() => add("particles")} />
 
         <GL>LIB</GL>
         {p.onOpenIcons && <TB icon={<Shapes size={18} />} t="Biblioteca de Ícones" o={p.onOpenIcons} active={p.iconsActive} />}

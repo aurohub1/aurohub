@@ -743,6 +743,35 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
         </Sec>
       )}
 
+      {/* Partículas */}
+      {s.type === "particles" && (
+        <Sec t="Partículas">
+          <F l="Tipo">
+            <select value={s.particlePreset ?? "float"} onChange={e => u({ particlePreset: e.target.value as EditorElement["particlePreset"] })} style={selS}>
+              <option value="float">Pontos flutuantes</option>
+              <option value="snow">Neve</option>
+              <option value="confetti">Confete</option>
+              <option value="bokeh">Bokeh</option>
+            </select>
+          </F>
+          <F l="Quantidade">
+            <Num v={s.particleCount ?? 60} min={10} max={200} step={5} c={v => u({ particleCount: Math.round(v) })} />
+          </F>
+          <F l="Cor"><AdvancedColorPicker value={s.particleColor || "#FFFFFF"} onChange={v => u({ particleColor: v })} /></F>
+          <F l="Velocidade">
+            <Num v={s.particleSpeed ?? 1} min={0.1} max={5} step={0.1} c={v => u({ particleSpeed: v })} />
+          </F>
+          <SubSec t="Tamanho das partículas" />
+          <G2>
+            <F l="Mín"><Num v={s.particleSizeMin ?? 2} min={1} max={50} c={v => u({ particleSizeMin: v })} /></F>
+            <F l="Máx"><Num v={s.particleSizeMax ?? 8} min={1} max={100} c={v => u({ particleSizeMax: Math.max(v, s.particleSizeMin ?? 2) })} /></F>
+          </G2>
+          <div style={{ fontSize: 9, color: "var(--ed-txt3)", marginTop: 4, lineHeight: 1.5 }}>
+            Pressione ▶ para ver a animação.
+          </div>
+        </Sec>
+      )}
+
       {/* ═══ 6. EFEITOS ═══ */}
       <Sec t="Efeitos">
         <F l="Blend Mode">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Lock, Unlock, Type, Square, Circle, Image as ImgIcon, QrCode, Hexagon, Search, Shapes } from "lucide-react";
+import { Eye, EyeOff, Lock, Unlock, Type, Square, Circle, Image as ImgIcon, QrCode, Hexagon, Search, Shapes, Sparkles } from "lucide-react";
 import { EditorElement } from "./types";
 
 interface Props {
@@ -22,6 +22,7 @@ function TypeIcon({ el }: { el: EditorElement }) {
   if (el.type === "imageBind") return <ImgIcon size={size} color="#3B82F6" strokeWidth={2.5} />;
   if (el.type === "qrcode") return <QrCode size={size} color={color} strokeWidth={2.5} />;
   if (el.type === "svg") return <Shapes size={size} color={color} strokeWidth={2.5} />;
+  if (el.type === "particles") return <Sparkles size={size} color={color} strokeWidth={2.5} />;
   return null;
 }
 

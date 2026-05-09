@@ -313,6 +313,145 @@ function getAnimState(el: EditorElement, time: number): AnimState {
   }
 }
 
+/* ── Particles ───────────────────────────────────────── */
+const CONFETTI_PALETTE = ["#FF5B8D","#FF7A1A","#D4A843","#22C55E","#3B82F6","#A855F7","#F9FAFB"];
+
+interface PState {
+  x: number; y: number; vx: number; vy: number;
+  size: number; alpha: number;
+  life: number; maxLife: number;
+  rotation: number; vr: number;
+  color: string;
+}
+
+function spawnP(el: EditorElement, stagger = false): PState {
+  const preset = el.particlePreset ?? "float";
+  const spd = el.particleSpeed ?? 1;
+  const minS = el.particleSizeMin ?? 3;
+  const maxS = el.particleSizeMax ?? 8;
+  const size = minS + Math.random() * Math.max(0, maxS - minS);
+  const color = el.particleColor || "#FFFFFF";
+  let p: PState;
+  if (preset === "snow") {
+    p = { x: Math.random() * el.width, y: -size,
+      vx: (Math.random() - 0.5) * 25 * spd, vy: (35 + Math.random() * 55) * spd,
+      size, alpha: 0.5 + Math.random() * 0.5, life: 0, maxLife: 3 + Math.random() * 4,
+      rotation: 0, vr: 0, color };
+  } else if (preset === "confetti") {
+    p = { x: Math.random() * el.width, y: -8,
+      vx: (Math.random() - 0.5) * 90 * spd, vy: (55 + Math.random() * 70) * spd,
+      size: 4 + Math.random() * 6, alpha: 0.85 + Math.random() * 0.15,
+      life: 0, maxLife: 2 + Math.random() * 3,
+      rotation: Math.random() * 360, vr: (Math.random() - 0.5) * 380 * spd,
+      color: CONFETTI_PALETTE[Math.floor(Math.random() * CONFETTI_PALETTE.length)] };
+  } else if (preset === "bokeh") {
+    p = { x: Math.random() * el.width, y: Math.random() * el.height,
+      vx: (Math.random() - 0.5) * 18 * spd, vy: (Math.random() - 0.5) * 14 * spd,
+      size: size * 2.5, alpha: 0.05 + Math.random() * 0.15,
+      life: 0, maxLife: 6 + Math.random() * 6, rotation: 0, vr: 0, color };
+  } else {
+    p = { x: Math.random() * el.width, y: Math.random() * el.height,
+      vx: (Math.random() - 0.5) * 35 * spd, vy: (Math.random() - 0.5) * 35 * spd,
+      size, alpha: 0.4 + Math.random() * 0.6, life: 0, maxLife: 4 + Math.random() * 6,
+      rotation: 0, vr: 0, color };
+  }
+  if (stagger) p.life = Math.random() * p.maxLife;
+  return p;
+}
+
+function tickP(p: PState, dt: number, el: EditorElement): PState {
+  const preset = el.particlePreset ?? "float";
+  let { x, y, vx, vy, life, maxLife, rotation, vr, alpha, size, color } = p;
+  life += dt; x += vx * dt; y += vy * dt; rotation += vr * dt;
+  if (preset === "float") {
+    vx += (Math.random() - 0.5) * 8 * dt;
+    vy += (Math.random() - 0.5) * 8 * dt;
+    const mv = 40 * (el.particleSpeed ?? 1);
+    vx = Math.max(-mv, Math.min(mv, vx)); vy = Math.max(-mv, Math.min(mv, vy));
+    if (x <= 0) { vx = Math.abs(vx); x = 0; } if (x >= el.width) { vx = -Math.abs(vx); x = el.width; }
+    if (y <= 0) { vy = Math.abs(vy); y = 0; } if (y >= el.height) { vy = -Math.abs(vy); y = el.height; }
+    const t = life / maxLife;
+    alpha = 0.8 * (t < 0.2 ? t / 0.2 : t > 0.8 ? (1 - t) / 0.2 : 1);
+    if (life >= maxLife) return spawnP(el, false);
+  } else if (preset === "bokeh") {
+    if (x <= 0) { vx = Math.abs(vx); x = 0; } if (x >= el.width) { vx = -Math.abs(vx); x = el.width; }
+    if (y <= 0) { vy = Math.abs(vy); y = 0; } if (y >= el.height) { vy = -Math.abs(vy); y = el.height; }
+    const t = life / maxLife;
+    alpha = 0.18 * (t < 0.3 ? t / 0.3 : t > 0.7 ? (1 - t) / 0.3 : 1);
+    if (life >= maxLife) return spawnP(el, false);
+  } else if ((preset === "snow" || preset === "confetti") && y > el.height + 20) {
+    return spawnP(el, false);
+  }
+  return { x, y, vx, vy, size, alpha, life, maxLife, rotation, vr, color };
+}
+
+function ParticlesEl({ el, playing, common, onClick, onRegisterRef }: {
+  el: EditorElement; playing: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  common: Record<string, any>;
+  onClick: (e: Konva.KonvaEventObject<MouseEvent>) => void;
+  onRegisterRef: (id: string, node: Konva.Node | null) => void;
+}) {
+  const count = Math.min(Math.max(el.particleCount ?? 50, 1), 300);
+  const preset = el.particlePreset ?? "float";
+  const groupRef = useRef<Konva.Group | null>(null);
+  const nodeRefsRef = useRef<(Konva.Circle | Konva.Rect | null)[]>([]);
+  const stateRef = useRef<PState[]>([]);
+  const rafRef = useRef<number>(0);
+  const keyRef = useRef<string>("");
+
+  // Re-init synchronously when key changes (safe for refs — no state mutation)
+  const initKey = `${count}|${preset}|${el.width}|${el.height}`;
+  if (keyRef.current !== initKey) {
+    keyRef.current = initKey;
+    stateRef.current = Array.from({ length: count }, () => spawnP(el, true));
+    nodeRefsRef.current = new Array(count).fill(null);
+  }
+
+  const groupCb = useCallback((node: Konva.Group | null) => {
+    groupRef.current = node;
+    onRegisterRef(el.id, node);
+  }, [el.id, onRegisterRef]);
+
+  useEffect(() => {
+    if (!playing) { cancelAnimationFrame(rafRef.current); return; }
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      for (let i = 0; i < stateRef.current.length; i++) {
+        stateRef.current[i] = tickP(stateRef.current[i], dt, el);
+        const node = nodeRefsRef.current[i];
+        const p = stateRef.current[i];
+        if (!node) continue;
+        node.x(p.x); node.y(p.y); node.opacity(p.alpha);
+        if (preset === "confetti") (node as Konva.Rect).rotation(p.rotation);
+      }
+      groupRef.current?.getLayer()?.batchDraw();
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, preset, el.particleSpeed]);
+
+  const { ref: _r, ...rest } = common;
+  return (
+    <Group ref={groupCb} {...rest} clipX={0} clipY={0} clipWidth={el.width} clipHeight={el.height} onClick={onClick}>
+      <Rect width={el.width} height={el.height} fill="transparent" />
+      {stateRef.current.map((p, i) => preset === "confetti" ? (
+        <Rect key={i} ref={node => { nodeRefsRef.current[i] = node; }}
+          x={p.x} y={p.y} width={p.size} height={p.size * 0.5}
+          fill={p.color} opacity={p.alpha} rotation={p.rotation}
+          offsetX={p.size / 2} offsetY={p.size * 0.25} listening={false} />
+      ) : (
+        <Circle key={i} ref={node => { nodeRefsRef.current[i] = node; }}
+          x={p.x} y={p.y} radius={p.size / 2} fill={p.color} opacity={p.alpha} listening={false} />
+      ))}
+    </Group>
+  );
+}
+
 /* ── Per-element renderer (NO Transformer inside) ── */
 function GhostCell({ el, dx, dy, previewValues }: { el: EditorElement; dx: number; dy: number; previewValues?: Record<string, string> }) {
   const img = useImage(resolveImageSrc(el));
@@ -720,6 +859,9 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
       return <Rect {...common} ref={callbackRef as any} onClick={handleClick} width={el.width} height={el.height} fill="" stroke="#aaa" strokeWidth={1.5} dash={[6, 4]} cornerRadius={4} />;
     }
     return <KImage {...common} ref={callbackRef as any} onClick={handleClick} image={svgImg} width={el.width} height={el.height} />;
+  }
+  if (el.type === "particles") {
+    return <ParticlesEl el={el} playing={playing} common={common} onClick={handleClick} onRegisterRef={onRegisterRef} />;
   }
   return null;
 }
