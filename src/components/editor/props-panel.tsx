@@ -440,13 +440,20 @@ function DesignTab({ s, u, allElements, onAlign, onOpenCrop, formType, isAdm }: 
           )}
 
           {/* 8. Comportamento */}
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
             <label
               title="Divide o valor em inteiro (grande) e centavos (pequeno) no canvas. Ex: R$ 1.234 ,56"
               style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--ed-txt2)", cursor: "pointer" }}
             >
               <input type="checkbox" checked={!!s.priceDisplay} onChange={e => u({ priceDisplay: e.target.checked })} />
               Split R$
+            </label>
+            <label
+              title="O texto recorta a imagem do elemento abaixo — letras preenchidas com a imagem (efeito máscara)"
+              style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: s.textMask ? "var(--ed-bind)" : "var(--ed-txt2)", cursor: "pointer", fontWeight: s.textMask ? 700 : 400 }}
+            >
+              <input type="checkbox" checked={!!s.textMask} onChange={e => u({ textMask: e.target.checked || undefined })} />
+              Máscara
             </label>
             <label
               title="Se o bind não tiver valor preenchido no formulário, o elemento some da arte final"

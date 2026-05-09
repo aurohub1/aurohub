@@ -37,6 +37,7 @@ export interface EditorElement {
   textBg?: string; textBgOpacity?: number;
   linhas?: number;  // número fixo de linhas — limita altura do texto (0/undefined = livre)
   textDecoration?: string; textTransform?: TextCase;
+  textMask?: boolean;
   // Image
   src?: string; imageFit?: ImageFit;
   cropX?: number; cropY?: number; cropW?: number; cropH?: number;

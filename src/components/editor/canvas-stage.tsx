@@ -350,6 +350,19 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
     el.width
   );
 
+  // Text Clipping Mask — hooks must be unconditional
+  const elIdx = allElements.findIndex(e => e.id === el.id);
+  const maskSrcEl = allElements.slice(0, elIdx).reverse().find(e => (e.type === "image") && !!(e.src || e.bindParam)) ?? null;
+  const maskImgSrc = (el.type === "text" && el.textMask && maskSrcEl) ? resolveImageSrc(maskSrcEl) : undefined;
+  const maskImg = useImage(maskImgSrc);
+  const maskGroupRef = useRef<Konva.Group | null>(null);
+  useEffect(() => {
+    if (el.textMask && maskGroupRef.current && maskImg) {
+      maskGroupRef.current.cache({ x: 0, y: 0, width: el.width, height: el.height });
+      maskGroupRef.current.getLayer()?.batchDraw();
+    }
+  }, [el.textMask, el.text, el.fontSize, el.fontFamily, el.fontStyle, el.width, el.height, maskImg]);
+
   if (el.visible === false) return null;
   if (el.hideWhenBind && previewValues?.[el.hideWhenBind]) return null;
 
@@ -430,6 +443,55 @@ function RenderElement({ el, allElements, playing, animState, onClick, onChange,
           el.lineHeight || 1.2
         )
       : baseFont;
+
+    // Text Clipping Mask: show image through text letters
+    if (el.textMask && maskSrcEl && maskImg) {
+      return (
+        <Group
+          ref={(node: Konva.Group | null) => { maskGroupRef.current = node; onRegisterRef(el.id, node); }}
+          id={el.id}
+          x={common.x} y={common.y}
+          rotation={common.rotation}
+          opacity={common.opacity}
+          scaleX={common.scaleX} scaleY={common.scaleY}
+          draggable={common.draggable}
+          onDragStart={common.onDragStart}
+          onDragMove={common.onDragMove}
+          onDragEnd={common.onDragEnd}
+          onMouseEnter={common.onMouseEnter}
+          onMouseLeave={common.onMouseLeave}
+          onClick={handleClick}
+        >
+          <KImage
+            x={maskSrcEl.x - el.x}
+            y={maskSrcEl.y - el.y}
+            width={maskSrcEl.width}
+            height={maskSrcEl.height}
+            image={maskImg}
+            listening={false}
+          />
+          <Text
+            x={0} y={0}
+            width={el.width}
+            height={el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : undefined}
+            wrap="word"
+            ellipsis={!!el.linhas}
+            text={displayText}
+            fontSize={fSize}
+            fontFamily={el.fontFamily || "Helvetica Neue"}
+            fontStyle={el.fontStyle || "normal"}
+            fill="#ffffff"
+            align={el.align || "left"}
+            letterSpacing={el.letterSpacing || 0}
+            lineHeight={el.lineHeight || 1.2}
+            textDecoration={el.textDecoration || ""}
+            globalCompositeOperation={"destination-in" as GlobalCompositeOperation}
+            listening={false}
+          />
+        </Group>
+      );
+    }
+
     const textFillProps = getFillProps(el.fill || "#FFF", el.width, el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : fSize * (el.lineHeight || 1.2));
     const textBgHeight = el.linhas ? Math.ceil(fSize * (el.lineHeight || 1.2) * el.linhas) : el.height;
     return <>
