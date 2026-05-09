@@ -1180,17 +1180,52 @@ export default function CanvasStage(p: Props) {
               </React.Fragment>
             );
           })}
-          {snapEnabled && guides.map((g, i) => (
-            <Line key={`g${i}`}
-              points={g.orientation === "V"
-                ? [g.position, 0, g.position, height]
-                : [0, g.position, width, g.position]}
-              stroke={g.kind === "edge" ? "#4444FF" : "#FF4444"}
-              strokeWidth={1 / stageScale}
-              dash={[4 / stageScale, 4 / stageScale]}
-              opacity={0.8}
-              listening={false} />
-          ))}
+          {snapEnabled && guides.map((g, i) => {
+            const color = g.kind === "edge" ? "#4499FF" : "#FF5B8D";
+            const sw = 1 / stageScale;
+            const isV = g.orientation === "V";
+            const pos = g.position;
+            const showDist = g.kind === "element"
+              && g.gapPx !== undefined && g.gapPx > 0
+              && g.lineFrom !== undefined && g.lineTo !== undefined
+              && (g.lineTo - g.lineFrom) * stageScale > 8;
+            const from = g.lineFrom ?? 0;
+            const to = g.lineTo ?? 0;
+            const mid = g.labelAt ?? (from + to) / 2;
+            const tick = 5 / stageScale;
+            const fs = 9 / stageScale;
+            const padH = 3 / stageScale;
+            const padV = 2 / stageScale;
+            const label = showDist ? `${Math.round(g.gapPx!)}px` : "";
+            const lw = label.length * fs * 0.62 + padH * 2;
+            const lh = fs + padV * 2;
+            return (
+              <React.Fragment key={`g${i}`}>
+                <Line
+                  points={isV ? [pos, 0, pos, height] : [0, pos, width, pos]}
+                  stroke={color} strokeWidth={sw}
+                  dash={[4 / stageScale, 4 / stageScale]} opacity={0.75} listening={false} />
+                {showDist && isV && <>
+                  <Line points={[pos, from, pos, to]} stroke={color} strokeWidth={1.5 / stageScale} opacity={1} listening={false} />
+                  <Line points={[pos - tick, from, pos + tick, from]} stroke={color} strokeWidth={1.5 / stageScale} listening={false} />
+                  <Line points={[pos - tick, to, pos + tick, to]} stroke={color} strokeWidth={1.5 / stageScale} listening={false} />
+                  <Group x={pos + 4 / stageScale} y={mid - lh / 2} listening={false}>
+                    <Rect width={lw} height={lh} fill="#1A1A2E" cornerRadius={2 / stageScale} opacity={0.9} />
+                    <Text text={label} fontSize={fs} fill={color} fontFamily="monospace" x={padH} y={padV} listening={false} />
+                  </Group>
+                </>}
+                {showDist && !isV && <>
+                  <Line points={[from, pos, to, pos]} stroke={color} strokeWidth={1.5 / stageScale} opacity={1} listening={false} />
+                  <Line points={[from, pos - tick, from, pos + tick]} stroke={color} strokeWidth={1.5 / stageScale} listening={false} />
+                  <Line points={[to, pos - tick, to, pos + tick]} stroke={color} strokeWidth={1.5 / stageScale} listening={false} />
+                  <Group x={mid - lw / 2} y={pos - lh - 4 / stageScale} listening={false}>
+                    <Rect width={lw} height={lh} fill="#1A1A2E" cornerRadius={2 / stageScale} opacity={0.9} />
+                    <Text text={label} fontSize={fs} fill={color} fontFamily="monospace" x={padH} y={padV} listening={false} />
+                  </Group>
+                </>}
+              </React.Fragment>
+            );
+          })}
           {p.userGuides?.map(g => g.orientation === "H" ? (
             <Line key={g.id} points={[0, 0, width, 0]} x={0} y={g.pos}
               stroke="#2563EB" strokeWidth={1 / stageScale} opacity={0.75}

@@ -379,6 +379,11 @@ export interface SnapLine {
   orientation: "V" | "H";
   position: number;
   kind: "edge" | "element";
+  // distance display — only set when kind === "element"
+  gapPx?: number;    // pixel gap between dragged and matched element (0 = touching)
+  lineFrom?: number; // start of gap indicator along the snap axis
+  lineTo?: number;   // end of gap indicator
+  labelAt?: number;  // midpoint for the distance badge
 }
 export interface SnapResult {
   x: number;
@@ -386,25 +391,23 @@ export interface SnapResult {
   lines: SnapLine[];
 }
 
-/**
- * Calcula snap de um elemento arrastado contra bordas do canvas e outros elementos.
- * Considera 3 pontos por eixo (início, centro, fim). Threshold default 6px.
- */
+// Calcula snap de um elemento arrastado contra bordas do canvas e outros elementos.
+// Considera 3 pontos por eixo (início, centro, fim). Threshold default 5px.
 export function calcSnapLines(
   dragging: { id: string; x: number; y: number; width: number; height: number },
   all: EditorElement[],
   canvasW: number,
   canvasH: number,
-  threshold = 6
+  threshold = 5
 ): SnapResult {
   const { x, y, width, height } = dragging;
 
-  const targetsX: { pos: number; kind: "edge" | "element" }[] = [
+  const targetsX: { pos: number; kind: "edge" | "element"; elY?: number; elH?: number }[] = [
     { pos: 0, kind: "edge" },
     { pos: canvasW / 2, kind: "edge" },
     { pos: canvasW, kind: "edge" },
   ];
-  const targetsY: { pos: number; kind: "edge" | "element" }[] = [
+  const targetsY: { pos: number; kind: "edge" | "element"; elX?: number; elW?: number }[] = [
     { pos: 0, kind: "edge" },
     { pos: canvasH / 2, kind: "edge" },
     { pos: canvasH, kind: "edge" },
@@ -412,12 +415,12 @@ export function calcSnapLines(
 
   for (const el of all) {
     if (el.id === dragging.id || el.visible === false) continue;
-    targetsX.push({ pos: el.x, kind: "element" });
-    targetsX.push({ pos: el.x + el.width / 2, kind: "element" });
-    targetsX.push({ pos: el.x + el.width, kind: "element" });
-    targetsY.push({ pos: el.y, kind: "element" });
-    targetsY.push({ pos: el.y + el.height / 2, kind: "element" });
-    targetsY.push({ pos: el.y + el.height, kind: "element" });
+    targetsX.push({ pos: el.x,                kind: "element", elY: el.y, elH: el.height });
+    targetsX.push({ pos: el.x + el.width / 2, kind: "element", elY: el.y, elH: el.height });
+    targetsX.push({ pos: el.x + el.width,     kind: "element", elY: el.y, elH: el.height });
+    targetsY.push({ pos: el.y,                 kind: "element", elX: el.x, elW: el.width });
+    targetsY.push({ pos: el.y + el.height / 2, kind: "element", elX: el.x, elW: el.width });
+    targetsY.push({ pos: el.y + el.height,     kind: "element", elX: el.x, elW: el.width });
   }
 
   const srcX = [x, x + width / 2, x + width];
@@ -430,7 +433,21 @@ export function calcSnapLines(
       const d = t.pos - s;
       if (Math.abs(d) <= threshold && (snapDX === null || Math.abs(d) < Math.abs(snapDX))) {
         snapDX = d;
-        lineX = { orientation: "V", position: t.pos, kind: t.kind };
+        const line: SnapLine = { orientation: "V", position: t.pos, kind: t.kind };
+        if (t.kind === "element" && t.elY !== undefined && t.elH !== undefined) {
+          const mTop = t.elY, mBot = t.elY + t.elH;
+          const dTop = y, dBot = y + height;
+          if (dTop >= mBot) {
+            line.gapPx = dTop - mBot; line.lineFrom = mBot; line.lineTo = dTop;
+          } else if (dBot <= mTop) {
+            line.gapPx = mTop - dBot; line.lineFrom = dBot; line.lineTo = mTop;
+          } else {
+            line.gapPx = 0;
+            line.lineFrom = Math.min(mTop, dTop); line.lineTo = Math.max(mBot, dBot);
+          }
+          line.labelAt = (line.lineFrom + line.lineTo) / 2;
+        }
+        lineX = line;
       }
     }
   }
@@ -442,7 +459,21 @@ export function calcSnapLines(
       const d = t.pos - s;
       if (Math.abs(d) <= threshold && (snapDY === null || Math.abs(d) < Math.abs(snapDY))) {
         snapDY = d;
-        lineY = { orientation: "H", position: t.pos, kind: t.kind };
+        const line: SnapLine = { orientation: "H", position: t.pos, kind: t.kind };
+        if (t.kind === "element" && t.elX !== undefined && t.elW !== undefined) {
+          const mLeft = t.elX, mRight = t.elX + t.elW;
+          const dLeft = x, dRight = x + width;
+          if (dLeft >= mRight) {
+            line.gapPx = dLeft - mRight; line.lineFrom = mRight; line.lineTo = dLeft;
+          } else if (dRight <= mLeft) {
+            line.gapPx = mLeft - dRight; line.lineFrom = dRight; line.lineTo = mLeft;
+          } else {
+            line.gapPx = 0;
+            line.lineFrom = Math.min(mLeft, dLeft); line.lineTo = Math.max(mRight, dRight);
+          }
+          line.labelAt = (line.lineFrom + line.lineTo) / 2;
+        }
+        lineY = line;
       }
     }
   }
