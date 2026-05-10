@@ -199,6 +199,7 @@ export default function ClienteHistoricoPage() {
         totalPages={totalPages}
         onPage={goPage}
         storeMap={storeMap}
+        mediaFilter={mediaFilter}
         publishHref="/cliente/publicar"
       />
     </div>

@@ -148,6 +148,7 @@ export default function GerenteHistoricoPage() {
         totalPages={totalPages}
         onPage={goPage}
         storeMap={storeMap}
+        mediaFilter={mediaFilter}
         publishHref="/gerente/publicar"
       />
     </div>

@@ -148,6 +148,7 @@ export default function ConsultorHistoricoPage() {
         totalPages={totalPages}
         onPage={goPage}
         storeMap={storeMap}
+        mediaFilter={mediaFilter}
         publishHref="/consultor/publicar"
       />
     </div>

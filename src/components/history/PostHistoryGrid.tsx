@@ -55,10 +55,10 @@ export function fmtDate(s: string) {
 
 /* ── SkeletonCard ─────────────────────────────────────────── */
 
-export function SkeletonCard() {
+export function SkeletonCard({ aspectRatio = "1/1" }: { aspectRatio?: string }) {
   return (
     <div className="card-glass" style={{ borderRadius: 12, overflow: "hidden" }}>
-      <div style={{ aspectRatio: "1/1", background: "var(--bg2)", opacity: 0.6 }} />
+      <div style={{ aspectRatio, background: "var(--bg2)", opacity: 0.6 }} />
       <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ height: 12, width: "60%", borderRadius: 6, background: "var(--bg2)" }} />
         <div style={{ height: 10, width: "80%", borderRadius: 6, background: "var(--bg2)" }} />
@@ -80,6 +80,7 @@ export function PostCard({
   onDelete?: (id: string) => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const m = log.metadata;
   const thumb   = m.thumbnail_url ?? m.image_url ?? null;
   const isVideo = !!m.video_url && !m.image_url;
@@ -96,24 +97,24 @@ export function PostCard({
     >
       {/* Thumbnail */}
       <div style={{ position: "relative", aspectRatio: "1/1", overflow: "hidden", background: "var(--bg2)", flexShrink: 0 }}>
-        {thumb ? (
-          <img src={thumb} alt="" style={{
+        {!imgError && thumb ? (
+          <img src={thumb} alt="" onError={() => setImgError(true)} style={{
             width: "100%", height: "100%", objectFit: "cover", display: "block",
             transition: "transform 0.3s", transform: hovered ? "scale(1.05)" : "scale(1)",
           }} />
-        ) : isVideo ? (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg viewBox="0 0 20 20" fill="none" style={{ width: 36, height: 36, color: "var(--txt3)" }}>
-              <path d="M5 4l12 6-12 6V4z" fill="currentColor" />
-            </svg>
-          </div>
         ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg viewBox="0 0 20 20" fill="none" style={{ width: 36, height: 36, color: "var(--txt3)", opacity: 0.3 }}>
-              <rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-              <circle cx="7" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M2 14l4-4 4 4 3-3 5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", background: "var(--bg2)" }}>
+            {isVideo && !imgError ? (
+              <svg viewBox="0 0 20 20" fill="none" style={{ width: 36, height: 36, color: "var(--txt3)" }}>
+                <path d="M5 4l12 6-12 6V4z" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 20 20" fill="none" style={{ width: 36, height: 36, color: "var(--txt3)", opacity: 0.3 }}>
+                <rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                <circle cx="7" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M2 14l4-4 4 4 3-3 5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            )}
           </div>
         )}
 
@@ -217,6 +218,7 @@ interface PostHistoryGridProps {
   storeMap: Record<string, string>;
   licMap?: Record<string, string>;
   publishHref?: string;
+  mediaFilter?: string;
 }
 
 export default function PostHistoryGrid({
@@ -224,18 +226,16 @@ export default function PostHistoryGrid({
   showDeleteButton = false, onDelete,
   storeMap, licMap = {},
   publishHref = "/central-de-publicacao",
+  mediaFilter,
 }: PostHistoryGridProps) {
-  if (loading) {
-    return (
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 16 }}>
-        {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
-      </div>
-    );
-  }
+  const skeletonRatio =
+    mediaFilter === "STORIES" || mediaFilter === "REELS" ? "9/16"
+    : mediaFilter === "IMAGE" ? "4/5"
+    : "1/1";
 
-  if (logs.length === 0) {
+  if (!loading && logs.length === 0) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "400px", gap: 16 }}>
         <svg viewBox="0 0 64 64" fill="none" style={{ width: 64, height: 64, color: "var(--txt3)", opacity: 0.3 }}>
           <rect x="8" y="8" width="48" height="48" rx="12" stroke="currentColor" strokeWidth="3" />
           <path d="M20 36l8-8 8 8 8-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
@@ -256,21 +256,24 @@ export default function PostHistoryGrid({
 
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 16 }}>
-        {logs.map(log => (
-          <PostCard
-            key={log.id}
-            log={log}
-            licName={licMap[log.metadata?.licensee_id ?? ""] ?? ""}
-            storeName={storeMap[log.metadata?.store_id ?? ""] ?? ""}
-            showDeleteButton={showDeleteButton}
-            onDelete={onDelete}
-          />
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, minHeight: "400px", alignContent: "start" }}>
+        {loading
+          ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} aspectRatio={skeletonRatio} />)
+          : logs.map(log => (
+              <PostCard
+                key={log.id}
+                log={log}
+                licName={licMap[log.metadata?.licensee_id ?? ""] ?? ""}
+                storeName={storeMap[log.metadata?.store_id ?? ""] ?? ""}
+                showDeleteButton={showDeleteButton}
+                onDelete={onDelete}
+              />
+            ))
+        }
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!loading && totalPages > 1 && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 32, flexWrap: "wrap" }}>
           <button
             onClick={() => onPage(page - 1)}
