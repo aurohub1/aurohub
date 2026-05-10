@@ -15,6 +15,7 @@ interface Post {
   loja_nome?: string;
   template_nome?: string;
   tipo?: string;
+  thumbnail_url?: string;
 }
 
 interface Store {
@@ -112,11 +113,32 @@ export default function ClienteResumoPage() {
         .gte("created_at", prevStart.toISOString())
         .lte("created_at", prevEnd.toISOString());
 
-      // Enriquecer com nome da loja
-      const enriched = (postsData || []).map((post: any) => ({
-        ...post,
-        loja_nome: storesData?.find((s) => s.id === post.loja_id)?.name || "—",
-      }));
+      // Buscar thumbnails via activity_logs (best-effort, mapa por store_id + dia)
+      const { data: thumbLogs } = await supabase
+        .from("activity_logs")
+        .select("created_at, metadata")
+        .eq("event_type", "post_instagram")
+        .filter("metadata->>licensee_id", "eq", p.licensee_id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      const thumbMap: Record<string, string> = {};
+      (thumbLogs ?? []).forEach((log: { created_at: string; metadata: Record<string, string> | null }) => {
+        const m = log.metadata;
+        if (!m?.thumbnail_url) return;
+        const key = `${m.store_id ?? ""}|${log.created_at.slice(0, 10)}`;
+        if (!thumbMap[key]) thumbMap[key] = m.thumbnail_url;
+      });
+
+      // Enriquecer com nome da loja + thumbnail
+      const enriched = (postsData || []).map((post: any) => {
+        const key = `${post.loja_id}|${post.created_at.slice(0, 10)}`;
+        return {
+          ...post,
+          loja_nome: storesData?.find((s: { id: string }) => s.id === post.loja_id)?.name || "—",
+          thumbnail_url: thumbMap[key] ?? undefined,
+        };
+      });
 
       setPosts(enriched as Post[]);
       setPreviousMonthPosts((prevPostsData as Post[]) || []);
@@ -507,10 +529,18 @@ export default function ClienteResumoPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
                           <div
-                            className="h-10 w-10 rounded-lg flex items-center justify-center"
-                            style={{ background: "var(--bg2)" }}
+                            className="h-10 w-10 rounded-lg flex items-center justify-center overflow-hidden"
+                            style={{ background: "var(--bg2)", flexShrink: 0 }}
                           >
-                            <Icon size={18} style={{ color: "var(--txt2)" }} />
+                            {post.thumbnail_url ? (
+                              <img
+                                src={post.thumbnail_url}
+                                alt=""
+                                style={{ width: 40, height: 40, objectFit: "cover", display: "block" }}
+                              />
+                            ) : (
+                              <Icon size={18} style={{ color: "var(--txt2)" }} />
+                            )}
                           </div>
                           <div>
                             <div className="text-xs font-bold" style={{ color: "var(--txt)" }}>

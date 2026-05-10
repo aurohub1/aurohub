@@ -63,7 +63,8 @@ const I = {
   support: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" /><path d="M8 8a2 2 0 012-2 2 2 0 012 2c0 1-1 1.5-2 2M10 14h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
   whatsapp: (<svg viewBox="0 0 20 20" fill="none"><path d="M3 17l1-3.5A7 7 0 113 17z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M7 9c0 2 1.5 3.5 3.5 3.5L12 11l2 1c-.5 1-2 1.5-3 1.5-2.5 0-5-2.5-5-5 0-1 .5-2.5 1.5-3l1 2-1 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" /></svg>),
   resumo: (<svg viewBox="0 0 20 20" fill="none"><path d="M3 16v-6M8 16V8M13 16v-4M18 16V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
-  chat: (<svg viewBox="0 0 20 20" fill="none"><path d="M4 4h12a1 1 0 011 1v7a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>),
+  chat:  (<svg viewBox="0 0 20 20" fill="none"><path d="M4 4h12a1 1 0 011 1v7a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>),
+  clock: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5" /><path d="M10 6v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
 };
 
 /* ── ADM Sections (default) ───────────────────── */
@@ -347,7 +348,8 @@ export const CLIENTE_SECTIONS: NavSection[] = [
     title: "Gestão",
     items: [
       { label: "Início", href: "/cliente/inicio", icon: I.home },
-      { label: "Publicar", href: "/cliente/publicar", icon: I.publish },
+      { label: "Publicar",  href: "/cliente/publicar",  icon: I.publish },
+      { label: "Histórico", href: "/cliente/historico", icon: I.clock   },
       { label: "Calendário", href: "/cliente/calendario", icon: I.calendar },
       { label: "Métricas", href: "/cliente/metricas", icon: I.metrics, feature: "metricas" },
       { label: "Resumo", href: "/cliente/resumo", icon: I.resumo },
@@ -385,7 +387,8 @@ export const GERENTE_SECTIONS: NavSection[] = [
     title: "Operação",
     items: [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
-      { label: "Publicar", href: "/gerente/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Publicar",  href: "/gerente/publicar",  icon: I.publish, feature: "publicar" },
+      { label: "Histórico", href: "/gerente/historico", icon: I.clock   },
       { label: "Calendário", href: "/gerente/calendario", icon: I.calendar },
       { label: "Métricas", href: "/gerente/metricas", icon: I.metrics, feature: "metricas" },
       { label: "Resumo", href: "/gerente/resumo", icon: I.resumo },
@@ -403,7 +406,8 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
     title: "Minhas atividades",
     items: [
       { label: "Início", href: "/consultor/inicio", icon: I.home },
-      { label: "Publicar", href: "/consultor/publicar", icon: I.publish, feature: "publicar" },
+      { label: "Publicar",  href: "/consultor/publicar",  icon: I.publish, feature: "publicar" },
+      { label: "Histórico", href: "/consultor/historico", icon: I.clock   },
       { label: "Calendário", href: "/consultor/calendario", icon: I.calendar },
       { label: "Card WhatsApp", href: "/consultor/publicar/cards", icon: I.whatsapp, feature: "card_whatsapp" },
       { label: "Chat", href: "/consultor/chat", icon: I.chat },

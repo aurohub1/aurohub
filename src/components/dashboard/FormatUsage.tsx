@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { getProfile } from "@/lib/auth";
 
 interface FormatData {
   name: string;
@@ -11,16 +12,16 @@ interface FormatData {
 
 const FORMAT_COLORS: Record<string, string> = {
   stories: "#FF7A1A",
-  feed: "#3B82F6",
-  reels: "#A78BFA",
-  tv: "#22C55E",
+  feed:    "#3B82F6",
+  reels:   "#A78BFA",
+  tv:      "#22C55E",
 };
 
 const FORMAT_LABELS: Record<string, string> = {
   stories: "Stories",
-  feed: "Feed",
-  reels: "Reels",
-  tv: "TV / IGTV",
+  feed:    "Feed",
+  reels:   "Reels",
+  tv:      "TV / IGTV",
 };
 
 export default function FormatUsage() {
@@ -33,21 +34,32 @@ export default function FormatUsage() {
 
   async function loadFormats() {
     try {
-      const { data } = await supabase
+      const profile = await getProfile(supabase);
+      const licenseeId = profile?.licensee_id;
+
+      let q = supabase
         .from("activity_logs")
-        .select("event_type");
+        .select("metadata")
+        .eq("event_type", "post_instagram");
+
+      if (licenseeId) {
+        q = q.filter("metadata->>licensee_id", "eq", licenseeId);
+      }
+
+      const { data } = await q;
 
       const counts: Record<string, number> = {};
       (data ?? []).forEach((row) => {
-        const fmt = (row.event_type || "stories").toLowerCase();
+        const fmt = ((row.metadata as Record<string, string>)?.format ?? "").toLowerCase();
+        if (!fmt) return;
         counts[fmt] = (counts[fmt] || 0) + 1;
       });
 
       const result: FormatData[] = Object.entries(counts)
-        .map(([name, count]) => ({
-          name: FORMAT_LABELS[name] ?? name,
+        .map(([key, count]) => ({
+          name: FORMAT_LABELS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
           count,
-          color: FORMAT_COLORS[name] ?? "var(--txt2)",
+          color: FORMAT_COLORS[key] ?? "var(--txt2)",
         }))
         .sort((a, b) => b.count - a.count);
 
