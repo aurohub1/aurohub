@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   Send, Sparkles, Upload, X, Check, Loader2, Image as ImageIcon,
-  Film, AtSign, Store as StoreIcon, Clock, AlertCircle,
+  AtSign, AlertCircle,
 } from "lucide-react";
 
 /* ── Tipos ───────────────────────────────────────── */
@@ -23,6 +23,7 @@ interface Store {
 }
 
 type FormatType = "stories" | "feed" | "reels" | "tv";
+type StoreSelectMode = "loja" | "lojas" | "cliente";
 
 type PublishStatus =
   | "idle"
@@ -30,12 +31,6 @@ type PublishStatus =
   | "publishing"
   | "success"
   | "error";
-
-interface HistoryLog {
-  id: string;
-  created_at: string;
-  metadata: Record<string, unknown> | null;
-}
 
 /* ── Constantes ──────────────────────────────────── */
 
@@ -102,7 +97,9 @@ export default function CentralPublicacaoPage() {
   const [loading, setLoading] = useState(true);
 
   const [selectedLicenseeId, setSelectedLicenseeId] = useState<string>("");
+  const [storeSelectMode, setStoreSelectMode] = useState<StoreSelectMode>("loja");
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
+  const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
 
   // Upload state
   const [mediaDataUrl, setMediaDataUrl] = useState<string | null>(null);
@@ -111,7 +108,7 @@ export default function CentralPublicacaoPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [pubType, setPubType] = useState<"stories" | "feed" | "reels" | "carrossel">("feed");
+  const [pubType, setPubType] = useState<"stories" | "feed" | "reels" | "carrossel">("stories");
   const [scheduleMode, setScheduleMode] = useState<"now" | "schedule">("now");
   const [scheduledAt, setScheduledAt] = useState<string>("");
 
@@ -121,39 +118,16 @@ export default function CentralPublicacaoPage() {
   const [status, setStatus] = useState<PublishStatus>("idle");
   const [statusMsg, setStatusMsg] = useState<string>("");
 
-  // Histórico
-  const [history, setHistory] = useState<HistoryLog[]>([]);
-
   /* ── Load ──────────────────────────────────────── */
 
   const loadData = useCallback(async () => {
     try {
-      const [licR, storeR, logsR] = await Promise.all([
-        supabase
-          .from("licensees")
-          .select("id, name, status")
-          .eq("status", "active")
-          .order("name"),
-        supabase
-          .from("stores")
-          .select("id, name, licensee_id, ig_user_id")
-          .order("name"),
-        supabase
-          .from("activity_logs")
-          .select("id, created_at, metadata")
-          .eq("event_type", "post_instagram")
-          .order("created_at", { ascending: false })
-          .limit(20),
+      const [licR, storeR] = await Promise.all([
+        supabase.from("licensees").select("id, name, status").eq("status", "active").order("name"),
+        supabase.from("stores").select("id, name, licensee_id, ig_user_id").order("name"),
       ]);
-
       setLicensees((licR.data ?? []) as Licensee[]);
       setStores((storeR.data ?? []) as Store[]);
-      // Filtra os logs da central
-      const logs = ((logsR.data ?? []) as HistoryLog[]).filter((l) => {
-        const m = l.metadata as Record<string, unknown> | null;
-        return m?.source === "central";
-      }).slice(0, 10);
-      setHistory(logs);
     } catch (err) {
       console.error("[Central] load error:", err);
     } finally {
@@ -182,13 +156,17 @@ export default function CentralPublicacaoPage() {
     return stores.filter((s) => s.licensee_id === selectedLicenseeId);
   }, [stores, selectedLicenseeId]);
 
-  const selectedStore = selectedStoreId ? storeMap[selectedStoreId] : null;
-  const igHandle = selectedStore?.ig_user_id ?? null;
+  const storesToPublish = useMemo(() => {
+    if (!selectedLicenseeId) return [];
+    if (storeSelectMode === "loja") return selectedStoreId ? [selectedStoreId] : [];
+    if (storeSelectMode === "lojas") return selectedStoreIds;
+    return storesForLic.map(s => s.id);
+  }, [storeSelectMode, selectedStoreId, selectedStoreIds, storesForLic, selectedLicenseeId]);
 
   const canPublish =
     !!selectedLicenseeId &&
-    !!selectedStoreId &&
     !!mediaDataUrl &&
+    storesToPublish.length > 0 &&
     status !== "uploading" &&
     status !== "publishing";
 
@@ -196,6 +174,7 @@ export default function CentralPublicacaoPage() {
 
   function resetSelection() {
     setSelectedStoreId("");
+    setSelectedStoreIds([]);
     setMediaDataUrl(null);
     setMediaIsVideo(false);
     setCaption("");
@@ -283,9 +262,13 @@ export default function CentralPublicacaoPage() {
   }
 
   async function handlePublish() {
-    if (!selectedLicenseeId || !selectedStoreId || !mediaDataUrl) return;
-    const store = storeMap[selectedStoreId];
-    if (!store) return;
+    if (!selectedLicenseeId || !mediaDataUrl) return;
+    if (storesToPublish.length === 0) return;
+
+    const mediaType =
+      pubType === "reels" ? "REELS"
+      : pubType === "stories" ? "STORIES"
+      : "IMAGE";
 
     try {
       setStatus("uploading");
@@ -304,40 +287,50 @@ export default function CentralPublicacaoPage() {
         throw new Error(upData.error || "Upload falhou");
       }
 
-      setStatus("publishing");
-      setStatusMsg(`Publicando em @${store.ig_user_id || store.name}...`);
-      const mediaType =
-        mediaFormat === "reels" || (mediaIsVideo && mediaFormat !== "stories")
-          ? "REELS"
-          : mediaFormat === "stories"
-            ? "STORIES"
-            : "IMAGE";
-      const body: Record<string, unknown> = {
-        licensee_id: selectedLicenseeId,
-        store_id: selectedStoreId,
-        caption,
-        media_type: mediaType,
-      };
-      if (mediaIsVideo) body.video_url = upData.secure_url;
-      else body.image_url = upData.secure_url;
+      const errors: string[] = [];
+      let successCount = 0;
 
-      const pubRes = await fetch("/api/instagram/post", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const pubData = await pubRes.json();
-      if (!pubRes.ok || !pubData.success) {
-        throw new Error(pubData.error || pubData.detail || "Falhou");
+      for (const storeId of storesToPublish) {
+        const store = storeMap[storeId];
+        if (!store) continue;
+        setStatus("publishing");
+        setStatusMsg(`Publicando em @${store.ig_user_id || store.name}...`);
+
+        const body: Record<string, unknown> = {
+          licensee_id: selectedLicenseeId,
+          store_id: storeId,
+          caption,
+          media_type: mediaType,
+          ...(scheduleMode === "schedule" && scheduledAt
+            ? { scheduled_publish_time: new Date(scheduledAt).toISOString() }
+            : {}),
+        };
+        if (mediaIsVideo) body.video_url = upData.secure_url;
+        else body.image_url = upData.secure_url;
+
+        const pubRes = await fetch("/api/instagram/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const pubData = await pubRes.json();
+        if (!pubRes.ok || !pubData.success) {
+          errors.push(`${store.name}: ${pubData.error || pubData.detail || "falhou"}`);
+        } else {
+          successCount++;
+        }
       }
 
-      setStatus("success");
-      setStatusMsg(`Publicado em @${store.ig_user_id || store.name}!`);
-      setTimeout(async () => {
-        clearMedia();
-        setCaption("");
+      if (errors.length === 0) {
+        setStatus("success");
+        setStatusMsg(`Publicado em ${successCount} unidade${successCount !== 1 ? "s" : ""}!`);
+        setTimeout(() => { clearMedia(); setCaption(""); }, 2500);
         await loadData();
-      }, 2500);
+      } else {
+        setStatus("error");
+        setStatusMsg(errors.join(" | "));
+        if (successCount > 0) await loadData();
+      }
     } catch (err) {
       console.error("[Central] publish:", err);
       setStatus("error");
@@ -349,259 +342,206 @@ export default function CentralPublicacaoPage() {
 
   const busy = status === "uploading" || status === "publishing";
 
+  const previewAspect: Record<typeof pubType, string> = {
+    stories: "9/16", feed: "4/5", reels: "9/16", carrossel: "4/5",
+  };
+
   return (
-    <>
+    <div className="flex flex-col gap-3">
+
       {/* ═══ HEADER ═══ */}
-      <div className="card-glass relative overflow-hidden px-7 py-6">
+      <div className="card-glass relative shrink-0 overflow-hidden px-7 py-5">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
           style={{ background: "linear-gradient(135deg, #1E3A6E 0%, var(--orange) 50%, #D4A843 100%)" }}
         />
         <div className="relative z-10">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">
-            Central ADM
-          </p>
-          <h1 className="mt-1.5 font-[family-name:var(--font-dm-serif)] text-[24px] font-bold leading-tight text-[var(--txt)]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">Central ADM</p>
+          <h1 className="mt-1 font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-tight text-[var(--txt)]">
             Central de Publicação
           </h1>
-          <p className="mt-1 text-[12px] text-[var(--txt3)]">
-            Publique diretamente em qualquer unidade dos seus clientes.
-          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_380px]">
-        {/* ─── COLUNA PRINCIPAL ─── */}
-        <div className="flex flex-col gap-5">
-          {/* ═══ SELETOR DE DESTINO ═══ */}
-          <div className="card-glass flex flex-col">
-            <div className="border-b border-[var(--bdr)] px-5 py-4">
-              <h3 className="text-[14px] font-bold text-[var(--txt)]">Destino da publicação</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-3">
-              <Field label="Cliente">
-                <select
-                  value={selectedLicenseeId}
-                  onChange={(e) => onLicenseeChange(e.target.value)}
-                  disabled={loading}
-                  className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
-                >
-                  <option value="">— Selecione —</option>
-                  {licensees.map((l) => (
-                    <option key={l.id} value={l.id}>{l.name}</option>
-                  ))}
-                </select>
-              </Field>
+      {/* ═══ GRID 3 COLUNAS ═══ */}
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: "300px 1fr 300px" }}
+      >
 
-              <Field label="Unidade">
-                <select
-                  value={selectedStoreId}
-                  onChange={(e) => onStoreChange(e.target.value)}
-                  disabled={!selectedLicenseeId}
-                  className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none disabled:opacity-50"
-                >
-                  <option value="">🏢 Todas as unidades</option>
-                  {storesForLic.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="Instagram">
-                <div className="flex h-9 w-full items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3">
-                  <AtSign size={13} className="shrink-0 text-[var(--orange)]" />
-                  <span className="truncate text-[12px] font-semibold text-[var(--txt)]">
-                    {igHandle ? `@${igHandle}` : <span className="text-[var(--txt3)]">— Sem conta vinculada —</span>}
-                  </span>
-                </div>
-              </Field>
-            </div>
+        {/* ── COL 1: CONFIGURAÇÕES ── */}
+        <div className="card-glass flex flex-col overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
+          <div className="shrink-0 border-b border-[var(--bdr)] px-4 py-3">
+            <h3 className="text-[13px] font-bold text-[var(--txt)]">Configurações</h3>
           </div>
+          <div className="flex flex-1 flex-col">
 
-          {/* ═══ UPLOAD DE MÍDIA ═══ */}
-          <div className="card-glass flex flex-col">
-            <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
-              <h3 className="text-[14px] font-bold text-[var(--txt)]">Mídia</h3>
-              {mediaDataUrl && (
-                <span
-                  className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                  style={{
-                    background: `${FORMAT_META[mediaFormat].color}22`,
-                    color: FORMAT_META[mediaFormat].color,
-                  }}
-                >
-                  {FORMAT_META[mediaFormat].label} · {FORMAT_META[mediaFormat].aspect}
-                </span>
-              )}
-            </div>
+            {/* Destino */}
+            <div className="flex flex-col gap-3 px-4 py-3">
+              <ColLabel>Cliente</ColLabel>
+              <select
+                value={selectedLicenseeId}
+                onChange={(e) => onLicenseeChange(e.target.value)}
+                disabled={loading}
+                className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
+              >
+                <option value="">— Selecione —</option>
+                {licensees.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
 
-            <div className="p-5">
-              {!mediaDataUrl ? (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={onDrop}
-                  className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-14 text-center transition-colors ${
-                    dragOver
-                      ? "border-[var(--orange)] bg-[rgba(255,122,26,0.06)]"
-                      : "border-[var(--bdr2)] hover:border-[var(--orange)]"
-                  }`}
-                >
-                  <div
-                    className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--orange)]"
-                    style={{
-                      background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))",
-                      border: "1px solid var(--bdr2)",
-                    }}
-                  >
-                    <Upload size={22} />
+              {selectedLicenseeId && (
+                <>
+                  {/* Toggle de modo */}
+                  <div className="flex overflow-hidden rounded-lg border border-[var(--bdr)]">
+                    {(["loja", "lojas", "cliente"] as StoreSelectMode[]).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => { setStoreSelectMode(mode); setSelectedStoreId(""); setSelectedStoreIds([]); }}
+                        className="flex-1 py-1.5 text-[11px] font-semibold capitalize transition-colors"
+                        style={storeSelectMode === mode
+                          ? { background: "var(--orange)", color: "#fff" }
+                          : { color: "var(--txt3)" }
+                        }
+                      >
+                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <div className="text-[14px] font-bold text-[var(--txt)]">
-                      Arraste uma mídia ou clique para selecionar
-                    </div>
-                    <div className="mt-1 text-[11px] text-[var(--txt3)]">
-                      Imagem (Stories/Feed/TV) ou vídeo (Reels) · máx 100MB
-                    </div>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept={pubType === "reels" ? "video/*" : "image/*"}
-                    multiple={pubType === "carrossel"}
-                    onChange={onFileInput}
-                    className="hidden"
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <div className="relative overflow-hidden rounded-xl border border-[var(--bdr)] bg-black">
-                    {mediaIsVideo ? (
-                      <video
-                        src={mediaDataUrl}
-                        controls
-                        className="mx-auto max-h-[420px] w-auto"
-                      />
-                    ) : (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={mediaDataUrl}
-                        alt="Preview"
-                        className="mx-auto max-h-[420px] w-auto object-contain"
-                      />
-                    )}
-                    <button
-                      onClick={clearMedia}
-                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
-                      title="Remover mídia"
+
+                  {/* Modo Loja: dropdown único */}
+                  {storeSelectMode === "loja" && (
+                    <select
+                      value={selectedStoreId}
+                      onChange={(e) => onStoreChange(e.target.value)}
+                      className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
                     >
-                      <X size={14} />
-                    </button>
-                  </div>
+                      <option value="">— Selecione uma unidade —</option>
+                      {storesForLic.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  )}
 
-                  {/* Override manual do formato */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">
-                      Formato detectado:
-                    </span>
-                    <div className="flex gap-1">
-                      {(Object.keys(FORMAT_META) as FormatType[]).map((f) => {
-                        const meta = FORMAT_META[f];
-                        const active = mediaFormat === f;
-                        // Vídeos só podem ser Reels/Stories; imagens todos os outros
-                        const allowed = mediaIsVideo ? f === "reels" || f === "stories" : true;
-                        if (!allowed) return null;
-                        return (
-                          <button
-                            key={f}
-                            onClick={() => setMediaFormat(f)}
-                            className="rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors"
-                            style={
-                              active
-                                ? { borderColor: meta.color, background: `${meta.color}22`, color: meta.color }
-                                : { borderColor: "var(--bdr)", color: "var(--txt3)" }
-                            }
-                          >
-                            {meta.label}
-                          </button>
-                        );
+                  {/* Modo Lojas: chips multi-select */}
+                  {storeSelectMode === "lojas" && (
+                    <div className="flex flex-wrap gap-1.5">
+                      <StoreChip
+                        active={selectedStoreIds.length === storesForLic.length && storesForLic.length > 0}
+                        onClick={() => setSelectedStoreIds(
+                          selectedStoreIds.length === storesForLic.length ? [] : storesForLic.map(s => s.id)
+                        )}
+                      >
+                        🏢 Todas
+                      </StoreChip>
+                      {storesForLic.map((s) => (
+                        <StoreChip
+                          key={s.id}
+                          active={selectedStoreIds.includes(s.id)}
+                          onClick={() => setSelectedStoreIds(prev =>
+                            prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                          )}
+                        >
+                          {s.name}
+                        </StoreChip>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Modo Cliente: badge de cobertura */}
+                  {storeSelectMode === "cliente" && (
+                    <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2">
+                      <span className="text-[12px] font-semibold text-[var(--txt)]">
+                        Todas as unidades
+                      </span>
+                      <span
+                        className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        style={{ background: "rgba(255,122,26,0.12)", color: "var(--orange)" }}
+                      >
+                        {storesForLic.length} {storesForLic.length === 1 ? "loja" : "lojas"}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Handle(s) Instagram */}
+                  {storeSelectMode === "loja" && (
+                    <div className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2">
+                      <AtSign size={12} className="shrink-0 text-[var(--orange)]" />
+                      <span className="truncate text-[11px] font-semibold text-[var(--txt)]">
+                        {selectedStoreId && storeMap[selectedStoreId]?.ig_user_id
+                          ? `@${storeMap[selectedStoreId].ig_user_id}`
+                          : <span className="text-[var(--txt3)]">Sem conta vinculada</span>}
+                      </span>
+                    </div>
+                  )}
+                  {storeSelectMode === "lojas" && selectedStoreIds.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      {selectedStoreIds.map(id => {
+                        const handle = storeMap[id]?.ig_user_id;
+                        return handle ? (
+                          <div key={id} className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-1.5">
+                            <AtSign size={11} className="shrink-0 text-[var(--orange)]" />
+                            <span className="truncate text-[11px] font-semibold text-[var(--txt)]">@{handle}</span>
+                          </div>
+                        ) : null;
                       })}
                     </div>
-                  </div>
-                </div>
+                  )}
+                  {storeSelectMode === "cliente" && (
+                    <div className="flex flex-col gap-1">
+                      {storesForLic.filter(s => s.ig_user_id).map(s => (
+                        <div key={s.id} className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-1.5">
+                          <AtSign size={11} className="shrink-0 text-[var(--orange)]" />
+                          <span className="truncate text-[11px] font-semibold text-[var(--txt)]">@{s.ig_user_id}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
-          </div>
 
-          {/* ═══ TIPO DE PUBLICAÇÃO ═══ */}
-          <div className="card-glass flex flex-col">
-            <div className="border-b border-[var(--bdr)] px-5 py-4">
-              <h3 className="text-[14px] font-bold text-[var(--txt)]">Tipo de Publicação</h3>
-            </div>
-            <div className="flex flex-wrap gap-2 p-5">
-              {([
-                { key: "stories" as const, label: "Stories", desc: "9:16" },
-                { key: "feed" as const, label: "Feed", desc: "1:1" },
-                { key: "reels" as const, label: "Reels", desc: "Vídeo 9:16" },
-                { key: "carrossel" as const, label: "Carrossel", desc: "Múltiplas imagens" },
-              ]).map(t => {
-                const active = pubType === t.key;
-                return (
-                  <button
-                    key={t.key}
-                    onClick={() => { setPubType(t.key); if (t.key !== "reels") setMediaIsVideo(false); }}
-                    className="flex flex-col items-center gap-1 rounded-xl border px-4 py-3 text-center transition-colors"
-                    style={active
-                      ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }
-                      : { borderColor: "var(--bdr)", color: "var(--txt3)" }
-                    }
-                  >
-                    <span className="text-[12px] font-bold">{t.label}</span>
-                    <span className="text-[9px]">{t.desc}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+            <ColDivider />
 
-          {/* ═══ LEGENDA ═══ */}
-          <div className="card-glass flex flex-col">
-            <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
-              <h3 className="text-[14px] font-bold text-[var(--txt)]">Legenda</h3>
-              <button
-                onClick={generateCaption}
-                disabled={generatingCaption || !selectedLicenseeId}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--orange)] hover:underline disabled:opacity-50"
-              >
-                {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                Gerar com IA
-              </button>
-            </div>
-            <div className="p-5">
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                rows={5}
-                placeholder="Digite a legenda ou gere com IA..."
-                className="w-full resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] p-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
-              />
-              <div className="mt-1 text-right text-[10px] text-[var(--txt3)] tabular-nums">
-                {caption.length} caracteres
+            {/* Tipo de publicação */}
+            <div className="flex flex-col gap-2 px-4 py-3">
+              <ColLabel>Tipo</ColLabel>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { key: "stories"   as const, label: "Stories",   desc: "9:16" },
+                  { key: "feed"      as const, label: "Feed",       desc: "4:5" },
+                  { key: "reels"     as const, label: "Reels",      desc: "Vídeo 9:16" },
+                  { key: "carrossel" as const, label: "Carrossel",  desc: "Múltiplas" },
+                ]).map(t => {
+                  const active = pubType === t.key;
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => { setPubType(t.key); if (t.key !== "reels") setMediaIsVideo(false); }}
+                      className="flex flex-col items-center gap-0.5 rounded-xl border px-2 py-2.5 text-center transition-colors"
+                      style={active
+                        ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }
+                        : { borderColor: "var(--bdr)", color: "var(--txt3)" }
+                      }
+                    >
+                      <span className="text-[12px] font-bold">{t.label}</span>
+                      <span className="text-[9px]">{t.desc}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </div>
 
-          {/* ═══ AGENDAMENTO ═══ */}
-          <div className="card-glass flex flex-col">
-            <div className="border-b border-[var(--bdr)] px-5 py-4">
-              <h3 className="text-[14px] font-bold text-[var(--txt)]">Agendamento</h3>
-            </div>
-            <div className="flex flex-col gap-3 p-5">
+            <ColDivider />
+
+            {/* Agendamento */}
+            <div className="flex flex-col gap-2 px-4 py-3">
+              <ColLabel>Agendamento</ColLabel>
               <div className="flex gap-2">
                 <button
                   onClick={() => setScheduleMode("now")}
-                  className="flex-1 rounded-lg border px-3 py-2 text-[12px] font-semibold transition-colors"
+                  className="flex-1 rounded-lg border px-2 py-2 text-[11px] font-semibold transition-colors"
                   style={scheduleMode === "now"
                     ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }
                     : { borderColor: "var(--bdr)", color: "var(--txt3)" }
@@ -611,7 +551,7 @@ export default function CentralPublicacaoPage() {
                 </button>
                 <button
                   onClick={() => setScheduleMode("schedule")}
-                  className="flex-1 rounded-lg border px-3 py-2 text-[12px] font-semibold transition-colors"
+                  className="flex-1 rounded-lg border px-2 py-2 text-[11px] font-semibold transition-colors"
                   style={scheduleMode === "schedule"
                     ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }
                     : { borderColor: "var(--bdr)", color: "var(--txt3)" }
@@ -625,137 +565,233 @@ export default function CentralPublicacaoPage() {
                   type="datetime-local"
                   value={scheduledAt}
                   onChange={(e) => setScheduledAt(e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)}
-                  className="w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[13px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
+                  min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)}
+                  className="w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[12px] text-[var(--txt)] focus:border-[var(--orange)] focus:outline-none"
                 />
               )}
+
+              {/* Botão publicar */}
+              <div className="flex flex-col gap-2 pt-1">
+                <button
+                  onClick={handlePublish}
+                  disabled={!canPublish || (scheduleMode === "schedule" && !scheduledAt)}
+                  className="flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                  style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
+                >
+                  {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  {status === "uploading" ? "Enviando..." : status === "publishing" ? "Publicando..." : scheduleMode === "schedule" ? "✦ Agendar publicação" : "✦ Publicar agora"}
+                </button>
+                {status !== "idle" && (
+                  <div className="flex flex-col gap-1.5">
+                    <div
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold"
+                      style={
+                        status === "success"
+                          ? { background: "var(--green3)", color: "var(--green)" }
+                          : status === "error"
+                            ? { background: "var(--red3)", color: "var(--red)" }
+                            : { background: "var(--blue3)", color: "var(--blue)" }
+                      }
+                    >
+                      {status === "success" ? <Check size={12} /> : status === "error" ? <AlertCircle size={12} /> : <Loader2 size={12} className="animate-spin" />}
+                      <span>{statusMsg}</span>
+                    </div>
+                    {status === "error" && (
+                      <button
+                        onClick={() => { setStatus("idle"); setStatusMsg(""); }}
+                        className="rounded-lg border border-[var(--bdr)] py-1.5 text-[11px] font-semibold text-[var(--txt3)] transition-colors hover:text-[var(--txt)]"
+                      >
+                        Tentar novamente
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* ═══ PUBLICAR ═══ */}
-          <div className="card-glass flex flex-col gap-3 p-5">
-            <button
-              onClick={handlePublish}
-              disabled={!canPublish || (scheduleMode === "schedule" && !scheduledAt)}
-              className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14px] font-bold text-white shadow-lg transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-              style={{ background: "linear-gradient(135deg, var(--orange), #D4A843)" }}
-            >
-              {busy ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-              {status === "uploading" ? "Enviando..." : status === "publishing" ? "Publicando..." : scheduleMode === "schedule" ? "✦ Agendar publicação" : "✦ Publicar agora"}
-            </button>
+        {/* ── COL 2: CONTEÚDO ── */}
+        <div className="card-glass flex flex-col overflow-hidden" style={{ maxHeight: "calc(100vh - 170px)" }}>
 
-            {status !== "idle" && (
-              <div
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold"
-                style={
-                  status === "success"
-                    ? { background: "var(--green3)", color: "var(--green)" }
-                    : status === "error"
-                      ? { background: "var(--red3)", color: "var(--red)" }
-                      : { background: "var(--blue3)", color: "var(--blue)" }
-                }
+          {/* Header mídia */}
+          <div className="flex shrink-0 items-center justify-between border-b border-[var(--bdr)] px-4 py-3">
+            <h3 className="text-[13px] font-bold text-[var(--txt)]">Mídia</h3>
+            {mediaDataUrl && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                style={{ background: `${FORMAT_META[mediaFormat].color}22`, color: FORMAT_META[mediaFormat].color }}
               >
-                {status === "success" ? <Check size={13} /> : status === "error" ? <AlertCircle size={13} /> : <Loader2 size={13} className="animate-spin" />}
-                <span>{statusMsg}</span>
-              </div>
+                {FORMAT_META[mediaFormat].label} · {FORMAT_META[mediaFormat].aspect}
+              </span>
             )}
+          </div>
+
+          {/* Conteúdo scrollável */}
+          <div className="flex flex-1 flex-col overflow-y-auto">
+
+            {/* Upload / preview mídia */}
+            <div className="p-4">
+              {!mediaDataUrl ? (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={onDrop}
+                  className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
+                    dragOver
+                      ? "border-[var(--orange)] bg-[rgba(255,122,26,0.06)]"
+                      : "border-[var(--bdr2)] hover:border-[var(--orange)]"
+                  }`}
+                >
+                  <div
+                    className="flex h-12 w-12 items-center justify-center rounded-2xl text-[var(--orange)]"
+                    style={{ background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.12))", border: "1px solid var(--bdr2)" }}
+                  >
+                    <Upload size={20} />
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-bold text-[var(--txt)]">Arraste ou clique para selecionar</div>
+                    <div className="mt-1 text-[10px] text-[var(--txt3)]">Imagem ou vídeo · máx 100MB</div>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={pubType === "reels" ? "video/*" : "image/*"}
+                    multiple={pubType === "carrossel"}
+                    onChange={onFileInput}
+                    className="hidden"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="relative overflow-hidden rounded-xl border border-[var(--bdr)] bg-black">
+                    {mediaIsVideo ? (
+                      <video src={mediaDataUrl} controls className="mx-auto max-h-[280px] w-auto" />
+                    ) : (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={mediaDataUrl} alt="Preview" className="mx-auto max-h-[280px] w-auto object-contain" />
+                    )}
+                    <button
+                      onClick={clearMedia}
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Formato:</span>
+                    {(Object.keys(FORMAT_META) as FormatType[]).map((f) => {
+                      const meta = FORMAT_META[f];
+                      const active = mediaFormat === f;
+                      const allowed = mediaIsVideo ? f === "reels" || f === "stories" : true;
+                      if (!allowed) return null;
+                      return (
+                        <button
+                          key={f}
+                          onClick={() => setMediaFormat(f)}
+                          className="rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                          style={active
+                            ? { borderColor: meta.color, background: `${meta.color}22`, color: meta.color }
+                            : { borderColor: "var(--bdr)", color: "var(--txt3)" }
+                          }
+                        >
+                          {meta.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <ColDivider />
+
+            {/* Legenda */}
+            <div className="flex flex-1 flex-col gap-2 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <ColLabel>Legenda</ColLabel>
+                <button
+                  onClick={generateCaption}
+                  disabled={generatingCaption || !selectedLicenseeId}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-[var(--orange)] hover:underline disabled:opacity-50"
+                >
+                  {generatingCaption ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                  Gerar com IA
+                </button>
+              </div>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={6}
+                placeholder="Digite a legenda ou gere com IA..."
+                className="w-full resize-none rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] p-3 text-[12px] text-[var(--txt)] placeholder:text-[var(--txt3)] focus:border-[var(--orange)] focus:outline-none"
+              />
+              <div className="text-right text-[10px] text-[var(--txt3)] tabular-nums">{caption.length} caracteres</div>
+            </div>
+
           </div>
         </div>
 
-        {/* ─── COLUNA LATERAL: HISTÓRICO ─── */}
-        <div className="card-glass flex flex-col">
-          <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
-            <h3 className="flex items-center gap-2 text-[14px] font-bold text-[var(--txt)]">
-              <Clock size={14} className="text-[var(--orange)]" />
-              Histórico
-            </h3>
-            <span className="rounded-full bg-[var(--bg2)] px-2 py-0.5 text-[10px] font-semibold text-[var(--txt3)]">
-              Últimos 10
-            </span>
+        {/* ── COL 3: PREVIEW ── */}
+        <div className="card-glass flex flex-col overflow-hidden" style={{ maxHeight: "calc(100vh - 170px)" }}>
+          <div className="shrink-0 border-b border-[var(--bdr)] px-4 py-3">
+            <h3 className="text-[13px] font-bold text-[var(--txt)]">Preview</h3>
           </div>
-          <div className="flex flex-col gap-2 p-4">
-            {loading ? (
-              <div className="py-8 text-center text-[12px] text-[var(--txt3)]">Carregando...</div>
-            ) : history.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-10 text-center">
-                <Clock size={24} className="text-[var(--txt3)]" />
-                <div className="text-[12px] text-[var(--txt3)]">Nenhuma publicação ainda</div>
-              </div>
-            ) : (
-              history
-                .filter((log) => {
-                  const m = (log.metadata ?? {}) as Record<string, unknown>;
-                  // Filtro por licensee (se selecionado)
-                  if (selectedLicenseeId && m.licensee_id !== selectedLicenseeId) return false;
-                  // Filtro por store (se selecionado); "" = Todas as unidades = sem filtro
-                  if (selectedStoreId && m.store_id !== selectedStoreId) return false;
-                  return true;
-                })
-                .map((log) => {
-                const m = (log.metadata ?? {}) as Record<string, unknown>;
-                const licId = m.licensee_id as string | undefined;
-                const storeId = m.store_id as string | undefined;
-                const mediaType = m.media_type as string | undefined;
-                const imageUrl = m.image_url as string | undefined;
-                const videoUrl = m.video_url as string | undefined;
-                const lic = licId ? licMap[licId] : null;
-                const store = storeId ? storeMap[storeId] : null;
-                const thumb = imageUrl ?? null;
-                const isVideo = !!videoUrl;
-                return (
-                  <div
-                    key={log.id}
-                    className="flex items-start gap-3 rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] p-3 page-fade"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--bdr)] bg-[var(--bg2)]">
-                      {thumb ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={thumb} alt="" className="h-full w-full object-cover" />
-                      ) : isVideo ? (
-                        <Film size={18} className="text-[var(--txt3)]" />
-                      ) : (
-                        <ImageIcon size={18} className="text-[var(--txt3)]" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-[12px] font-bold text-[var(--txt)]">
-                          {lic?.name || "Cliente removido"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] text-[var(--txt3)]">
-                        <StoreIcon size={9} />
-                        <span className="truncate">{store?.name || "—"}</span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between gap-2">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--txt3)]">
-                          {mediaType || "IMAGE"}
-                        </span>
-                        <span className="text-[9px] text-[var(--txt3)] tabular-nums">
-                          {formatDate(log.created_at)}
-                        </span>
-                      </div>
-                    </div>
+          <div className="flex flex-1 flex-col overflow-y-auto">
+            <div className="p-4">
+              <div
+                className="relative w-full overflow-hidden rounded-xl border border-[var(--bdr)] bg-[var(--bg2)]"
+                style={{ aspectRatio: previewAspect[pubType] }}
+              >
+                {mediaDataUrl ? (
+                  mediaIsVideo ? (
+                    <video src={mediaDataUrl} className="absolute inset-0 h-full w-full object-cover" muted />
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={mediaDataUrl} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />
+                  )
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[var(--txt3)]">
+                    <ImageIcon size={28} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">{previewAspect[pubType]}</span>
                   </div>
-                );
-              })
-            )}
+                )}
+              </div>
+            </div>
           </div>
         </div>
+
       </div>
-    </>
+    </div>
   );
 }
 
 /* ── Sub-components ──────────────────────────────── */
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function ColLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">
-        {label}
-      </label>
+    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">
       {children}
-    </div>
+    </span>
+  );
+}
+
+function ColDivider() {
+  return <div className="shrink-0 border-t border-[var(--bdr)]" />;
+}
+
+function StoreChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors"
+      style={active
+        ? { borderColor: "var(--orange)", background: "rgba(255,122,26,0.10)", color: "var(--orange)" }
+        : { borderColor: "var(--bdr)", color: "var(--txt3)" }
+      }
+    >
+      {children}
+    </button>
   );
 }

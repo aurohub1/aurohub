@@ -153,6 +153,16 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
+        label: "Histórico de Postagens",
+        href: "/historico-postagens",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M10 6v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ),
+      },
+      {
         label: "Métricas",
         href: "/adm/metricas",
         icon: (

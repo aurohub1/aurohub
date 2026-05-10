@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { notifyPush } from "@/lib/pushNotify";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -33,6 +36,14 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    const cookieStore = await cookies();
+    const authClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+    );
+    const { data: { user } } = await authClient.auth.getUser();
 
     // Access token sempre vem por licensee. IG user id pode vir por store (caso fornecido).
     let credQuery = sb
@@ -90,6 +101,25 @@ export async function POST(req: NextRequest) {
 
     // Vídeo: retorna credentials para o client fazer polling de status_code
     if (video_url && (mediaType === "REELS" || mediaType === "STORIES")) {
+      try {
+        await sb.from("activity_logs").insert({
+          event_type: "post_instagram",
+          user_id: user?.id ?? user_id ?? null,
+          metadata: {
+            licensee_id,
+            store_id: store_id ?? null,
+            image_url: null,
+            video_url: video_url ?? null,
+            media_type: mediaType,
+            format: format ?? null,
+            creation_id: creationId,
+            caption: caption ?? "",
+            source: "central",
+            user_id: user?.id ?? user_id ?? null,
+            status: "queued",
+          },
+        });
+      } catch { /* silent */ }
       return NextResponse.json({
         success: true,
         queued: true,
@@ -132,21 +162,64 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Buscar thumbnail do Instagram após publicação bem-sucedida
+    let thumbnailUrl: string | null = null;
+    try {
+      const mediaRes = await fetch(
+        `https://graph.instagram.com/${igPostId}?fields=media_url,thumbnail_url,media_type&access_token=${ig.access_token}`
+      );
+      if (mediaRes.ok) {
+        const mediaData = await mediaRes.json();
+        thumbnailUrl = mediaData.thumbnail_url ?? mediaData.media_url ?? null;
+      }
+    } catch { /* silent — thumbnail é best-effort */ }
+
     try {
       await sb.from("activity_logs").insert({
         event_type: "post_instagram",
+        user_id: user?.id ?? user_id ?? null,
         metadata: {
           licensee_id,
-          store_id,
+          store_id: store_id ?? null,
           image_url: image_url ?? null,
           video_url: video_url ?? null,
+          thumbnail_url: thumbnailUrl,
           media_type: mediaType,
           format: format ?? null,
           ig_post_id: igPostId,
           caption: caption ?? "",
           source: "central",
+          user_id: user?.id ?? user_id ?? null,
+          status: "published",
         },
       });
+    } catch { /* silent */ }
+
+    // Deletar imagem do Cloudinary após log (liberação de espaço)
+    try {
+      const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const key = process.env.CLOUDINARY_API_KEY;
+      const secret = process.env.CLOUDINARY_API_SECRET;
+      const publicId = image_url
+        ?.split("/upload/")[1]
+        ?.replace(/^v\d+\//, "")
+        ?.replace(/\.[^/.]+$/, "");
+      if (publicId && cloud && key && secret) {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const signature = crypto
+          .createHash("sha1")
+          .update(`public_id=${publicId}&timestamp=${timestamp}${secret}`)
+          .digest("hex");
+        const fd = new FormData();
+        fd.append("public_id", publicId);
+        fd.append("api_key", key);
+        fd.append("timestamp", String(timestamp));
+        fd.append("signature", signature);
+        await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/destroy`, {
+          method: "POST",
+          body: fd,
+        });
+      }
     } catch { /* silent */ }
 
     return NextResponse.json({ success: true, ig_post_id: igPostId });

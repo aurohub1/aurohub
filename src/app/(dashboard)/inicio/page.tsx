@@ -7,24 +7,8 @@ import {
   Users, DollarSign, Send, Camera, AlertTriangle,
   UserPlus, Palette, CalendarClock, UserCog, Gem, Calculator,
   ArrowRight,
-  Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
 } from "lucide-react";
-import { useWeather } from "@/hooks/useWeather";
 import { useCountUp } from "@/hooks/useCountUp";
-
-/* ── Weather icon helper ─────────────────────────── */
-
-function WeatherIcon({ code, size = 22 }: { code: number | null; size?: number }) {
-  const color = "var(--orange)";
-  if (code === null) return <Cloud size={size} color={color} />;
-  if (code === 0) return <Sun size={size} color={color} />;
-  if (code <= 3) return <CloudSun size={size} color={color} />;
-  if (code <= 48) return <CloudFog size={size} color={color} />;
-  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return <CloudRain size={size} color={color} />;
-  if (code >= 71 && code <= 77) return <CloudSnow size={size} color={color} />;
-  if (code >= 95) return <CloudLightning size={size} color={color} />;
-  return <Cloud size={size} color={color} />;
-}
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -46,13 +30,6 @@ interface LogRow {
 }
 
 /* ── Helpers ─────────────────────────────────────── */
-
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Bom dia";
-  if (h < 18) return "Boa tarde";
-  return "Boa noite";
-}
 
 function brl(n: number): string {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -78,7 +55,6 @@ function shortDate(iso: string | null | undefined): string {
 
 export default function InicioPage() {
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState("");
 
   const [clientesAtivos, setClientesAtivos] = useState(0);
   const [mrr, setMrr] = useState(0);
@@ -97,11 +73,6 @@ export default function InicioPage() {
   const load = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        const n = user.email.split("@")[0];
-        setUserName(n.charAt(0).toUpperCase() + n.slice(1));
-      }
-
       const [{ data: licData }, { data: plansData }, { data: igData }] = await Promise.all([
         supabase.from("licensees").select("id, name, status, plan, plan_slug, expires_at, created_at"),
         supabase.from("plans").select("slug, name, price_monthly, max_posts_day"),
@@ -218,7 +189,6 @@ export default function InicioPage() {
     if (params.get("drive") === "ok") { setDriveOk(true); setDriveTokenError(false); }
   }, []);
 
-  const { weather, cityName } = useWeather();
 
   // Counters esperam 200ms após loading=false — dá tempo do React Strict Mode
   // terminar o double-invoke dos effects antes de começar a animação de 0→target.
@@ -241,43 +211,6 @@ export default function InicioPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* ═══ Header minimalista ═══ */}
-      <div className="flex items-end justify-between gap-4 border-b border-[var(--bdr)] pb-5">
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">{greeting()}</p>
-          <h1 className="mt-1 font-[family-name:var(--font-dm-serif)] text-[26px] font-bold leading-tight text-[var(--txt)]">
-            {userName ? `Olá, ${userName}` : "Painel administrativo"}
-          </h1>
-          <p className="mt-1 text-[12px] text-[var(--txt3)]">Visão geral da plataforma Aurohub.</p>
-        </div>
-
-        {/* Weather widget — só para ADM (sem quote) */}
-        <div
-          className="flex shrink-0 items-center gap-3 rounded-2xl border border-[var(--bdr)] px-4 py-2.5"
-          style={{
-            background: "linear-gradient(135deg, rgba(255,122,26,0.08), rgba(59,130,246,0.05))",
-            backdropFilter: "blur(10px)",
-          }}
-        >
-          <div
-            className="flex h-11 w-11 items-center justify-center rounded-xl"
-            style={{
-              background: "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(30,58,110,0.14))",
-              border: "1px solid var(--bdr2)",
-            }}
-          >
-            <WeatherIcon code={weather?.code ?? null} />
-          </div>
-          <div>
-            <div className="font-[family-name:var(--font-dm-serif)] text-[22px] font-bold leading-none text-[var(--txt)] tabular-nums">
-              {weather ? `${weather.temp}°` : "—"}
-            </div>
-            <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--txt3)]">
-              {cityName}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ═══ TOP STATS ═══ */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
