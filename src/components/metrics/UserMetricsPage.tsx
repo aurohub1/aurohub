@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
@@ -12,6 +12,9 @@ import HistoryTable from "./HistoryTable";
 import FiltersBar from "./FiltersBar";
 import ActivityFeed from "./ActivityFeed";
 import type { Formato, Tipo, PeriodoDias, PublicationRow } from "./types";
+import { FORMATO_LABEL, PERIODO_LABEL } from "./types";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Loja { id: string; name: string | null }
 
@@ -26,6 +29,8 @@ export default function UserMetricsPage() {
   const [formato, setFormato] = useState<Formato | "all">("all");
   const [tipo, setTipo] = useState<Tipo | "all">("all");
   const [lojaFilter, setLojaFilter] = useState<string>("all");
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   // Cliente e gerente veem dados do licensee; outros roles veem dados próprios
   const isLicenseeScope = useMemo(() => {
@@ -123,6 +128,100 @@ export default function UserMetricsPage() {
     return set.size;
   }, [filtered]);
 
+  /* ── Export ────────────────────────────────────── */
+
+  useEffect(() => {
+    if (!exportOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [exportOpen]);
+
+  function exportCsv() {
+    const today = new Date().toISOString().split("T")[0];
+    const header = "Data,Template,Formato,Tipo,Destino\n";
+    const csvRows = filtered.map((r) =>
+      [
+        new Date(r.created_at).toLocaleString("pt-BR"),
+        `"${(r.template_nome ?? "—").replace(/"/g, "'")}"`,
+        FORMATO_LABEL[r.formato] ?? r.formato,
+        r.tipo,
+        r.destino ?? "—",
+      ].join(",")
+    ).join("\n");
+
+    const blob = new Blob(["﻿" + header + csvRows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `metricas-${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportPdf() {
+    const today = new Date().toISOString().split("T")[0];
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+    // Header
+    doc.setFontSize(18);
+    doc.setTextColor(30, 30, 40);
+    doc.text("Relatório de Métricas", 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(110, 110, 120);
+    doc.text(`Período: ${PERIODO_LABEL[periodo]}`, 14, 29);
+    doc.text(`Gerado em: ${today}`, 14, 35);
+
+    // KPI summary
+    doc.setFontSize(11);
+    doc.setTextColor(30, 30, 40);
+    doc.text("Resumo do período", 14, 46);
+
+    autoTable(doc, {
+      startY: 50,
+      head: [["Métrica", "Valor"]],
+      body: [
+        ["Total publicações", String(kpis.totalPublicacoes)],
+        ["Total downloads",   String(kpis.totalDownloads)],
+        ["Consultores ativos", String(kpis.consultoresAtivos)],
+        ["Templates usados",   String(kpis.templatesUsados)],
+      ],
+      styles: { fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor: [12, 12, 20], textColor: [255, 255, 255], fontStyle: "bold" },
+      columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
+      tableWidth: 90,
+    });
+
+    const afterKpis = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+    // Detail table
+    doc.setFontSize(11);
+    doc.setTextColor(30, 30, 40);
+    doc.text("Detalhe por publicação", 14, afterKpis);
+
+    autoTable(doc, {
+      startY: afterKpis + 4,
+      head: [["Data", "Template", "Formato", "Tipo", "Destino"]],
+      body: filtered.map((r) => [
+        new Date(r.created_at).toLocaleDateString("pt-BR"),
+        (r.template_nome ?? "—").slice(0, 30),
+        FORMATO_LABEL[r.formato] ?? r.formato,
+        r.tipo,
+        r.destino ?? "—",
+      ]),
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [12, 12, 20], textColor: [255, 255, 255], fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [246, 246, 250] },
+    });
+
+    doc.save(`metricas-${today}.pdf`);
+  }
+
   // Feature off → tela de upgrade
   if (!loading && profile && !features.has("metricas")) {
     return (
@@ -162,6 +261,51 @@ export default function UserMetricsPage() {
             {isLicenseeScope ? "Publicações e downloads das suas lojas" : "Publicações e downloads do seu perfil"}
           </p>
         </div>
+        {!loading && filtered.length > 0 && (
+          <div ref={exportRef} style={{ position: "relative" }}>
+            <button
+              onClick={() => setExportOpen((o) => !o)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                height: 36, padding: "0 14px", borderRadius: 8,
+                border: "1px solid var(--bdr)", background: "transparent",
+                fontSize: 12, fontWeight: 600, color: "var(--txt2)",
+                cursor: "pointer",
+              }}
+            >
+              <svg viewBox="0 0 20 20" fill="none" style={{ width: 14, height: 14 }}>
+                <path d="M10 3v10M6 9l4 4 4-4M4 17h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Exportar
+              <svg viewBox="0 0 20 20" fill="none" style={{ width: 12, height: 12 }}>
+                <path d="M5 7l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {exportOpen && (
+              <div style={{
+                position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50,
+                background: "var(--card-bg)", border: "1px solid var(--bdr)",
+                borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                minWidth: 120,
+              }}>
+                <button onClick={() => { exportCsv(); setExportOpen(false); }}
+                  style={{ display: "flex", width: "100%", alignItems: "center", gap: 8, padding: "10px 16px", fontSize: 12, color: "var(--txt2)", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--hover-bg)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                >
+                  CSV
+                </button>
+                <button onClick={() => { exportPdf(); setExportOpen(false); }}
+                  style={{ display: "flex", width: "100%", alignItems: "center", gap: 8, padding: "10px 16px", fontSize: 12, color: "var(--txt2)", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--hover-bg)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                >
+                  PDF
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {loading ? (

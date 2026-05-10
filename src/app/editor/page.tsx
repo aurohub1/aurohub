@@ -21,6 +21,17 @@ function LoadingScreen({ text }: { text: string }) {
   return <div style={{ width: "100vw", height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0d0d14", color: "#ffffff30", fontSize: 13 }}>{text}</div>;
 }
 
+const FMTS: Record<string, [number, number]> = { stories: [1080, 1920], reels: [1080, 1920], feed: [1080, 1350], tv: [1920, 1080] };
+
+function safeZone(fmt: string): { x: number; y: number; w: number; h: number } {
+  switch (fmt) {
+    case "stories": case "reels": { const h = Math.round(1920 * 0.85); return { x: 0,   y: Math.round((1920 - h) / 2), w: 1080, h }; }
+    case "feed":                  { const h = Math.round(1350 * 0.90); return { x: 0,   y: Math.round((1350 - h) / 2), w: 1080, h }; }
+    case "tv":                    { const h = Math.round(1080 * 0.90); return { x: 100, y: Math.round((1080 - h) / 2), w: 960,  h }; }
+    default: { const [cW, cH] = FMTS[fmt] ?? [1080, 1920]; return { x: 0, y: 0, w: cW, h: cH }; }
+  }
+}
+
 function EditorInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -49,8 +60,7 @@ function EditorInner() {
   const [isAdm, setIsAdm] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | "idle">("idle");
   const persistSchemaRef = useRef<(() => Promise<void>) | null>(null);
-  const FMTS: Record<string, [number,number]> = { stories: [1080,1920], reels: [1080,1920], feed: [1080,1350], tv: [1920,1080] };
-  const [cW, cH] = FMTS[format] || [1080, 1920];
+  const [cW, cH] = FMTS[format] ?? [1080, 1920];
 
   // Carrega role do usuário
   useEffect(() => {
@@ -147,6 +157,50 @@ function EditorInner() {
 
   persistSchemaRef.current = persistSchema;
 
+  const handleFormatChange = useCallback((newFmt: string) => {
+    const oldZone = safeZone(format);
+    const newZone = safeZone(newFmt);
+    const scaleX = newZone.w / oldZone.w;
+    const scaleY = newZone.h / oldZone.h;
+    const fontScale = Math.min(scaleX, scaleY);
+
+    const [oldW, oldH] = FMTS[format] ?? [1080, 1920];
+
+    const remapped = schema.elements.map(el => {
+      const e = el as any;
+
+      const dentroZona =
+        e.x >= -50 &&
+        e.y >= -50 &&
+        e.x <= oldW + 50 &&
+        e.y <= oldH + 50 &&
+        e.x >= oldZone.x - 50 &&
+        e.y >= oldZone.y - 50 &&
+        e.x <= oldZone.x + oldZone.w + 50 &&
+        e.y <= oldZone.y + oldZone.h + 50;
+
+      const relX = (e.x - oldZone.x) / oldZone.w;
+      const relY = (e.y - oldZone.y) / oldZone.h;
+
+      return {
+        ...el,
+        x: dentroZona
+          ? Math.round(newZone.x + relX * newZone.w)
+          : -9999,
+        y: dentroZona
+          ? Math.round(newZone.y + relY * newZone.h)
+          : -9999,
+        width:  Math.round(e.width  * fontScale),
+        height: Math.round(e.height * fontScale),
+        ...(e.fontSize     != null ? { fontSize:     Math.round(e.fontSize     * fontScale) } : {}),
+        ...(e.cornerRadius != null ? { cornerRadius: Math.round(e.cornerRadius * fontScale) } : {}),
+      };
+    });
+
+    setSchema({ ...schema, elements: remapped as typeof schema.elements });
+    setFormat(newFmt);
+  }, [format, schema]);
+
   useEffect(() => {
     if (!templateId) return;
     const interval = setInterval(async () => {
@@ -167,7 +221,7 @@ function EditorInner() {
         width={cW}
         height={cH}
         format={format}
-        onFormatChange={setFormat}
+        onFormatChange={handleFormatChange}
         formType={formType}
         onFormTypeChange={setFormType}
         qtdDestinos={qtdDestinos}

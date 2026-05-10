@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAdmGuard } from "@/contexts/AdmContext";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -91,6 +93,8 @@ export default function LogsPage() {
     dateTo: "",
   });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   /* ── Load logs ─────────────────────────────────── */
 
@@ -181,32 +185,80 @@ export default function LogsPage() {
     return { total: todayLogs.length, posts, downloads };
   }, [logs]);
 
-  /* ── Export CSV ─────────────────────────────────── */
+  /* ── Export ─────────────────────────────────────── */
+
+  useEffect(() => {
+    if (!exportOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [exportOpen]);
 
   function exportCsv() {
-    const header = "Data,Usuário,Ação,Descrição,Loja,Form,Destino,Tipo\n";
-    const rows = filtered
+    const today = new Date().toISOString().split("T")[0];
+    const header = "Data,Usuário,Loja,Ação,Destino,Tipo,Descrição\n";
+    const csvRows = filtered
       .map((l) =>
         [
           formatTime(l.created_at),
           l.user_name ?? "—",
-          ACTION_LABELS[l.event_type] ?? l.event_type,
-          (l.description ?? "").replace(/,/g, ";"),
           getMeta(l, "loja"),
-          getMeta(l, "form"),
+          ACTION_LABELS[l.event_type] ?? l.event_type,
           getMeta(l, "destino"),
           getMeta(l, "tipo"),
+          `"${(l.description ?? "").replace(/"/g, "'")}"`,
         ].join(",")
       )
       .join("\n");
 
-    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["﻿" + header + csvRows], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aurohub-logs-${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `logs-atividade-${today}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function exportPdf() {
+    const today = new Date().toISOString().split("T")[0];
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+    doc.setFontSize(16);
+    doc.setTextColor(30, 30, 40);
+    doc.text("Logs de Atividade — Aurohub ADM", 14, 18);
+
+    doc.setFontSize(9);
+    doc.setTextColor(110, 110, 120);
+    const periodo = filters.dateFrom || filters.dateTo
+      ? `${filters.dateFrom || "início"} → ${filters.dateTo || "hoje"}`
+      : "Todos os períodos";
+    doc.text(`Período: ${periodo}`, 14, 26);
+    doc.text(`Gerado em: ${today}   ·   Total: ${filtered.length} registro${filtered.length !== 1 ? "s" : ""}`, 14, 31);
+
+    autoTable(doc, {
+      startY: 37,
+      head: [["Data", "Usuário", "Loja", "Ação", "Destino", "Tipo", "Descrição"]],
+      body: filtered.map((l) => [
+        formatTime(l.created_at),
+        l.user_name ?? "—",
+        getMeta(l, "loja"),
+        ACTION_LABELS[l.event_type] ?? l.event_type,
+        getMeta(l, "destino"),
+        getMeta(l, "tipo"),
+        (l.description ?? "").slice(0, 80),
+      ]),
+      styles: { fontSize: 7.5, cellPadding: 2 },
+      headStyles: { fillColor: [12, 12, 20], textColor: [255, 255, 255], fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [246, 246, 250] },
+      columnStyles: { 6: { cellWidth: 60 } },
+    });
+
+    doc.save(`logs-atividade-${today}.pdf`);
   }
 
   /* ── Clear filters ─────────────────────────────── */
@@ -310,17 +362,32 @@ export default function LogsPage() {
           </button>
         )}
 
-        {/* Export */}
-        <button
-          onClick={exportCsv}
-          disabled={filtered.length === 0}
-          className="ml-auto flex h-9 items-center gap-1.5 rounded-lg border border-[var(--bdr2)] px-3 text-[12px] font-semibold text-[var(--txt2)] transition-colors hover:border-[var(--green)] hover:text-[var(--green)] disabled:opacity-40"
-        >
-          <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
-            <path d="M10 3v10M6 9l4 4 4-4M4 17h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          CSV
-        </button>
+        {/* Export dropdown */}
+        <div ref={exportRef} className="relative ml-auto">
+          <button
+            onClick={() => setExportOpen((o) => !o)}
+            disabled={filtered.length === 0}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-[var(--bdr2)] px-3 text-[12px] font-semibold text-[var(--txt2)] transition-colors hover:border-[var(--green)] hover:text-[var(--green)] disabled:opacity-40"
+          >
+            <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+              <path d="M10 3v10M6 9l4 4 4-4M4 17h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Exportar
+            <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3">
+              <path d="M5 7l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {exportOpen && (
+            <div className="absolute right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-lg border border-[var(--bdr)] shadow-lg" style={{ background: "var(--card-bg)", minWidth: 120 }}>
+              <button onClick={() => { exportCsv(); setExportOpen(false); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[12px] text-[var(--txt2)] hover:bg-[var(--hover-bg)]">
+                CSV
+              </button>
+              <button onClick={() => { exportPdf(); setExportOpen(false); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[12px] text-[var(--txt2)] hover:bg-[var(--hover-bg)]">
+                PDF
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Countdown */}
         <div className="flex items-center gap-1.5 text-[11px] text-[var(--txt3)]">

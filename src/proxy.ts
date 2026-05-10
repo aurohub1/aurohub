@@ -125,7 +125,7 @@ function isAllowed(role: string, pathname: string): boolean {
   return false;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Rotas públicas — passa direto sem nenhuma chamada de rede
