@@ -1010,15 +1010,12 @@ export default function CanvasStage(p: Props) {
         updates.width  = Math.max(5, el.width  * sx);
         updates.height = Math.max(5, el.height * sy);
       } else if (el.type === "image") {
-        const newW = Math.max(5, el.width * sx);
-        const newH = Math.max(5, el.height * sy);
-        updates.width  = newW;
-        updates.height = newH;
-        const isDiagonal = Math.abs(sx - sy) < 0.02;
+        updates.width  = Math.max(5, el.width  * sx);
+        updates.height = Math.max(5, el.height * sy);
+        const isDiagonal = Math.abs(sx - sy) < 0.15;
         if (!isDiagonal) {
           updates.imageFit = "cover";
         }
-        console.log("IMAGE RESIZE", { sx, sy, isDiagonal, imageFit: updates.imageFit, newW, newH });
       } else {
         updates.width  = Math.max(5, node.width()  * sx);
         updates.height = Math.max(5, node.height() * sy);
