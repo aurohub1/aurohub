@@ -66,31 +66,49 @@ export function planDefaultFeatures(plan: ProfilePlan | null): Set<Feature> {
   if (plan?.can_metrics) set.add("resumo");
   if (plan?.can_schedule) set.add("agendamento");
   if (plan?.can_ia_legenda) set.add("ia_legenda");
+  if (plan?.can_roteiro) set.add("roteiro");
   return set;
 }
 
 /**
  * Features efetivas para o usuário.
- * Regra: plano define o default, overrides do ADM têm prioridade.
+ * Prioridade: plano → overrides do licensee → overrides do usuário individual.
  */
 export async function getFeatures(
   sb: SupabaseClient,
   profile: FullProfile | null
 ): Promise<Set<Feature>> {
   const set = planDefaultFeatures(profile?.plan ?? null);
-  if (!profile?.licensee_id) return set;
+  if (!profile) return set;
 
-  const { data } = await sb
-    .from("licensee_feature_overrides")
+  // Nível 1: overrides do licensee (afeta todos os usuários da marca)
+  if (profile.licensee_id) {
+    const { data } = await sb
+      .from("licensee_feature_overrides")
+      .select("feature_key, enabled")
+      .eq("licensee_id", profile.licensee_id);
+
+    for (const row of (data ?? []) as { feature_key: string; enabled: boolean }[]) {
+      if (!(ALL_FEATURES as readonly string[]).includes(row.feature_key)) continue;
+      const f = row.feature_key as Feature;
+      if (row.enabled) set.add(f);
+      else set.delete(f);
+    }
+  }
+
+  // Nível 2: overrides individuais do usuário (maior prioridade)
+  const { data: userRows } = await sb
+    .from("user_feature_overrides")
     .select("feature_key, enabled")
-    .eq("licensee_id", profile.licensee_id);
+    .eq("user_id", profile.id);
 
-  for (const row of (data ?? []) as { feature_key: string; enabled: boolean }[]) {
+  for (const row of (userRows ?? []) as { feature_key: string; enabled: boolean }[]) {
     if (!(ALL_FEATURES as readonly string[]).includes(row.feature_key)) continue;
     const f = row.feature_key as Feature;
     if (row.enabled) set.add(f);
     else set.delete(f);
   }
+
   return set;
 }
 

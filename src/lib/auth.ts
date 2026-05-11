@@ -27,6 +27,7 @@ export interface ProfilePlan {
   can_schedule: boolean;
   can_print: boolean;
   can_ia_legenda: boolean;
+  can_roteiro: boolean;
   is_enterprise: boolean;
 }
 
@@ -89,7 +90,7 @@ export async function getProfile(client: SupabaseClient): Promise<FullProfile | 
       if (slug) {
         const { data: plan } = await client
           .from("plans")
-          .select("slug,name,max_posts_day,can_metrics,can_schedule,can_print,can_ia_legenda,is_enterprise")
+          .select("slug,name,max_posts_day,can_metrics,can_schedule,can_print,can_ia_legenda,can_roteiro,is_enterprise")
           .eq("slug", slug)
           .single();
         if (plan) result.plan = plan as ProfilePlan;

@@ -33,7 +33,7 @@ interface Licensee {
   chat_profanity_filter?: boolean;
 }
 interface Segment { id: string; name: string; icon: string | null; }
-interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; is_enterprise?: boolean | null; }
+interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; can_roteiro?: boolean | null; is_enterprise?: boolean | null; }
 interface Store { id: string; licensee_id: string; name: string; ig_user_id: string | null; }
 interface Profile { id: string; licensee_id: string | null; store_id: string | null; name: string | null; status: string; }
 
@@ -177,7 +177,7 @@ export default function ClientesPage() {
       const [licR, segR, planR, storeR, profR] = await Promise.all([
         supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_texto_efeito, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, chat_profanity_filter").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
-        supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda, is_enterprise"),
+        supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda, can_roteiro, is_enterprise"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
         supabase.from("profiles").select("id, licensee_id, store_id, name, status"),
       ]);
@@ -1611,6 +1611,7 @@ function FeaturesPanel({
     can_schedule: !!plan?.can_schedule,
     can_print: false,
     can_ia_legenda: !!plan?.can_ia_legenda,
+    can_roteiro: !!plan?.can_roteiro,
     is_enterprise: false,
   });
 
