@@ -280,9 +280,19 @@ export default function ChatPage() {
     setMenuRoomId(null);
     const room = rooms.find(r => r.id === roomId);
     if (!window.confirm(`Zerar todas as mensagens da sala "${room?.name ?? ""}"?`)) return;
-    await supabase.from("chat_messages").delete().eq("room_id", roomId);
-    if (activeRoomId === roomId) setMessages([]);
-    setRooms(prev => prev.map(r => r.id === roomId ? { ...r, last_msg: null, unread: false } : r));
+
+    const res = await fetch("/api/adm/chat/clear-messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ room_id: roomId }),
+    });
+
+    if (res.ok) {
+      if (activeRoomId === roomId) setMessages([]);
+      setRooms(prev => prev.map(r =>
+        r.id === roomId ? { ...r, last_msg: null, unread: false } : r
+      ));
+    }
   }, [rooms, activeRoomId]);
 
   /* ── Deletar sala ── */
