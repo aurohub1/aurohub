@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { decrypt, isEncrypted } from "@/lib/crypto";
 
 export type InstagramStatus = "valid" | "invalid" | "network-error" | "no-token";
 
@@ -22,7 +23,7 @@ export async function checkInstagramToken(
       return { status: "no-token", message: "Sem token cadastrado" };
     }
 
-    const token = cred.access_token;
+    const token = isEncrypted(cred.access_token) ? decrypt(cred.access_token) : cred.access_token;
     const url = `https://graph.instagram.com/me?fields=id&access_token=${token}`;
 
     const response = await fetch(url, {

@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { notifyPush } from "@/lib/pushNotify";
 import crypto from "crypto";
+import { decrypt, isEncrypted } from "@/lib/crypto";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -60,7 +61,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Instagram não configurado para este cliente" }, { status: 404 });
     }
 
-    const ig = { ig_user_id: cred.ig_user_id, access_token: cred.access_token };
+    const rawToken = cred.access_token as string;
+    const ig = { ig_user_id: cred.ig_user_id, access_token: isEncrypted(rawToken) ? decrypt(rawToken) : rawToken };
 
     // 1. Criar media container
     const createUrl = `https://graph.instagram.com/v23.0/${ig.ig_user_id}/media`;

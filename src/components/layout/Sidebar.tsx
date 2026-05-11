@@ -65,6 +65,7 @@ const I = {
   resumo: (<svg viewBox="0 0 20 20" fill="none"><path d="M3 16v-6M8 16V8M13 16v-4M18 16V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
   chat:  (<svg viewBox="0 0 20 20" fill="none"><path d="M4 4h12a1 1 0 011 1v7a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>),
   clock: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5" /><path d="M10 6v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+  contract: (<svg viewBox="0 0 20 20" fill="none"><path d="M5 2h7l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M12 2v4h4M7 9h6M7 12h6M7 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
 };
 
 /* ── ADM Sections (default) ───────────────────── */
@@ -187,6 +188,11 @@ const ADM_SECTIONS: NavSection[] = [
   {
     title: "Gestão",
     items: [
+      {
+        label: "Contratos",
+        href: "/adm/contratos",
+        icon: I.contract,
+      },
       {
         label: "Clientes",
         href: "/clientes",
@@ -361,6 +367,7 @@ export const CLIENTE_SECTIONS: NavSection[] = [
   {
     title: "Sistema",
     items: [
+      { label: "Contrato", href: "/cliente/contrato", icon: I.contract },
       { label: "Configurações", href: "/cliente/configuracoes", icon: I.settings },
       { label: "Suporte", href: "/cliente/suporte", icon: I.support },
     ],

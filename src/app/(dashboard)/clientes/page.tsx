@@ -132,6 +132,7 @@ export default function ClientesPage() {
   }
   const [extracting, setExtracting] = useState(false);
   const [modalError, setModalError] = useState("");
+  const [contractToast, setContractToast] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   /** Overrides carregadas. `undefined` = segue o padrão do plano. */
   const [featureOverrides, setFeatureOverrides] = useState<Partial<Record<Feature, boolean>>>({});
@@ -312,10 +313,55 @@ export default function ClientesPage() {
       } else {
         // sem persistedId — overrides não salvas
       }
+      // Captura payload antes do loadData resetar o estado
+      const contractPayload = persistedId && form.plan ? {
+        licensee_id: persistedId,
+        contact_name: form.name.trim(),
+        user_email: form.email.trim(),
+        company_name: form.name.trim(),
+        plan_name: planMap[form.plan]?.name ?? form.plan,
+        monthly_value: planMap[form.plan]?.price_monthly ?? 0,
+        monthly_total: (planMap[form.plan]?.price_monthly ?? 0) * (parseInt(form.min_months) || 12),
+        setup_fee: parseFloat(form.price_setup) || 0,
+        stores_count: formStores.filter((s) => s.name.trim()).length || 1,
+        users_count: 5,
+        payment_method: "Pix",
+        payment_day: 10,
+        contract_duration: parseInt(form.min_months) || 12,
+        start_date: new Date().toISOString().split("T")[0],
+      } : null;
+
       setModalOpen(false); await loadData();
+
+      if (contractPayload) void autoGenerateContract(contractPayload);
     } catch (err) {
       setModalError(err instanceof Error ? err.message : "Erro ao salvar.");
     } finally { setSaving(false); }
+  }
+
+  async function autoGenerateContract(payload: Record<string, unknown>) {
+    try {
+      const { data: existing } = await supabase
+        .from("contracts")
+        .select("id")
+        .eq("licensee_id", payload.licensee_id as string)
+        .in("status", ["pending", "signed"])
+        .limit(1)
+        .maybeSingle();
+      if (existing) return;
+
+      const res = await fetch("/api/contracts/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) return;
+
+      setContractToast("Contrato gerado e aguardando assinatura do cliente.");
+      setTimeout(() => setContractToast(null), 6000);
+    } catch {
+      // não bloqueia o fluxo
+    }
   }
 
   async function resetPassword() {
@@ -517,6 +563,12 @@ export default function ClientesPage() {
 
   return (
     <>
+      {contractToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-green-500/30 bg-[var(--bg1)] px-5 py-3 text-[13px] text-green-600 shadow-xl">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-500 text-white text-[10px]">✓</span>
+          {contractToast}
+        </div>
+      )}
       {logoCropSrc && <ImageCropModal src={logoCropSrc} shape="square" onClose={() => setLogoCropSrc(null)} onConfirm={handleLogoCropped} />}
       {/* ── KPIs ─────────────────────────────────── */}
       <div className="flex flex-wrap gap-6">

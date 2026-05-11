@@ -11,6 +11,7 @@ import { getInactiveStores, type InactiveStore } from "@/lib/inactivity-check";
 import {
   Store, BarChart3, FileText, Sparkles, CalendarClock, ArrowRight,
   Sun, CloudSun, Cloud, CloudRain, CloudFog, CloudLightning, CloudSnow,
+  AlertTriangle,
 } from "lucide-react";
 
 interface DataComemorativa { id: string; nome: string; data_mes: number; data_dia: number; tipo: string; }
@@ -139,6 +140,7 @@ export default function ClienteInicioPage() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [, setQuote] = useState<string>("");
   const [inactiveStores, setInactiveStores] = useState<InactiveStore[]>([]);
+  const [hasPendingContract, setHasPendingContract] = useState(false);
 
   const [stores, setStores] = useState<StoreRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -168,6 +170,10 @@ export default function ClienteInicioPage() {
       const p = await getProfile(supabase);
       setProfile(p);
       if (!p?.licensee_id) { setLoading(false); return; }
+
+      // Verificar contrato pendente (fire-and-forget, não bloqueia loading)
+      supabase.from("contracts").select("id").eq("licensee_id", p.licensee_id).eq("status", "pending").limit(1).maybeSingle()
+        .then(({ data }) => setHasPendingContract(!!data));
 
       const segmentId = p.licensee?.segment_id ?? null;
       const slug = p.licensee?.plan_slug || p.licensee?.plan || p.plan?.slug;
@@ -347,6 +353,15 @@ export default function ClienteInicioPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-5 overflow-x-hidden inicio-cliente-fade">
+      {hasPendingContract && (
+        <Link
+          href="/cliente/contrato"
+          className="flex items-center gap-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-[13px] font-medium text-yellow-700 transition-colors hover:bg-yellow-500/15 dark:text-yellow-400"
+        >
+          <AlertTriangle size={16} className="shrink-0" />
+          Contrato pendente de assinatura — clique aqui para assinar
+        </Link>
+      )}
       <style>{`
         @keyframes inicioClienteFadeUp {
           from { opacity: 0; transform: translateY(8px); }
