@@ -5,9 +5,9 @@ import { supabase } from "@/lib/supabase";
 import { Palette, Lock, Sun, Moon, Check, AlertCircle, HelpCircle, ShieldCheck } from "lucide-react";
 import { useTour } from "@/hooks/useTour";
 
-export default function GerenteConfiguracoesPage() {
+export default function ConsultorConfiguracoesPage() {
   const { startTour } = useTour({
-    pageKey: "gerente-configuracoes",
+    pageKey: "consultor-configuracoes",
     steps: [
       { element: "h1", popover: { title: "Configurações", description: "Gerencie as preferências da sua conta." } },
       { element: "form", popover: { title: "Segurança", description: "Altere sua senha de acesso quando necessário." } },

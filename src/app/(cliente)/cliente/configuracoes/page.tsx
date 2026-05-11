@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Palette, Lock, Sun, Moon, Check, AlertCircle, HelpCircle } from "lucide-react";
+import { Palette, Lock, Sun, Moon, Check, AlertCircle, HelpCircle, ShieldCheck } from "lucide-react";
 import { useTour } from "@/hooks/useTour";
 
 /* ── Página ──────────────────────────────────────── */
@@ -26,15 +26,58 @@ export default function ClienteConfiguracoesPage() {
   const [pwBusy, setPwBusy] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
+  const [mfaLoading, setMfaLoading] = useState(true);
+  const [mfaFactor, setMfaFactor] = useState<{ id: string } | null>(null);
+  const [enrolling, setEnrolling] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [enrollFactorId, setEnrollFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaBusy, setMfaBusy] = useState(false);
+  const [mfaMsg, setMfaMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [confirmDisable, setConfirmDisable] = useState(false);
+
   useEffect(() => {
     const t = (localStorage.getItem("ah_theme") as "dark" | "light" | null) || "light";
     setTheme(t);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.mfa.listFactors().then(({ data }) => {
+      const totp = data?.totp?.find(f => f.status === "verified") ?? null;
+      setMfaFactor(totp ? { id: totp.id } : null);
+      setMfaLoading(false);
+    });
   }, []);
 
   function applyTheme(next: "dark" | "light") {
     setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("ah_theme", next);
+  }
+
+  async function startEnroll() {
+    setMfaBusy(true); setMfaMsg(null);
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
+    if (error || !data) { setMfaMsg({ type: "err", text: error?.message ?? "Erro ao iniciar." }); setMfaBusy(false); return; }
+    setQrCode(data.totp.qr_code); setEnrollFactorId(data.id); setEnrolling(true); setMfaBusy(false);
+  }
+
+  async function confirmEnroll() {
+    if (!enrollFactorId) return;
+    setMfaBusy(true); setMfaMsg(null);
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: enrollFactorId, code: mfaCode });
+    if (error) { setMfaMsg({ type: "err", text: "Código inválido. Tente novamente." }); setMfaBusy(false); return; }
+    setMfaFactor({ id: enrollFactorId }); setEnrolling(false); setQrCode(null); setMfaCode("");
+    setMfaMsg({ type: "ok", text: "2FA ativado com sucesso." }); setMfaBusy(false);
+  }
+
+  async function disableMfa() {
+    if (!mfaFactor) return;
+    setMfaBusy(true); setMfaMsg(null);
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactor.id });
+    if (error) { setMfaMsg({ type: "err", text: error.message }); setMfaBusy(false); return; }
+    setMfaFactor(null); setConfirmDisable(false);
+    setMfaMsg({ type: "ok", text: "2FA desativado." }); setMfaBusy(false);
   }
 
   async function changePassword(e: React.FormEvent) {
@@ -102,6 +145,47 @@ export default function ClienteConfiguracoesPage() {
             )}
           </div>
         </form>
+      </Card>
+
+      {/* ── 2FA ──────────────────────────────────── */}
+      <Card icon={<ShieldCheck size={16} />} title="Autenticação em Dois Fatores" subtitle="Proteção adicional com código de autenticador">
+        {mfaLoading ? (
+          <p className="text-[12px] text-[var(--txt3)]">Verificando...</p>
+        ) : mfaFactor ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-[12px] text-green-600"><Check size={14} /> 2FA ativo — sua conta está protegida.</div>
+            {!confirmDisable ? (
+              <button onClick={() => setConfirmDisable(true)} className="flex h-9 w-fit items-center gap-2 rounded-md border border-red-500/40 px-4 text-[12px] font-semibold text-red-500 hover:bg-red-500/10">Desativar 2FA</button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[12px] text-[var(--txt2)]">Confirma desativar?</span>
+                <button onClick={disableMfa} disabled={mfaBusy} className="rounded-md bg-red-500 px-3 py-1.5 text-[11px] font-semibold text-white hover:opacity-90 disabled:opacity-50">{mfaBusy ? "Desativando…" : "Sim, desativar"}</button>
+                <button onClick={() => setConfirmDisable(false)} className="text-[11px] text-[var(--txt3)] hover:underline">Cancelar</button>
+              </div>
+            )}
+            {mfaMsg && <span className={`flex items-center gap-1 text-[11px] ${mfaMsg.type === "ok" ? "text-green-500" : "text-red-500"}`}>{mfaMsg.type === "ok" ? <Check size={12} /> : <AlertCircle size={12} />}{mfaMsg.text}</span>}
+          </div>
+        ) : enrolling && qrCode ? (
+          <div className="flex flex-col gap-4">
+            <p className="text-[12px] text-[var(--txt2)]">Escaneie com Google Authenticator ou similar:</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrCode} alt="QR Code 2FA" className="h-40 w-40 rounded-md border border-[var(--bdr)]" />
+            <Field label="Código de verificação">
+              <input type="text" inputMode="numeric" maxLength={6} value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g, ""))} placeholder="000000" className="w-36 rounded-md border border-[var(--bdr)] bg-[var(--surface)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]" />
+            </Field>
+            <div className="flex items-center gap-2">
+              <button onClick={confirmEnroll} disabled={mfaBusy || mfaCode.length < 6} className="flex h-9 items-center gap-2 rounded-md bg-[var(--orange)] px-4 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-50"><ShieldCheck size={14} />{mfaBusy ? "Verificando…" : "Confirmar"}</button>
+              <button onClick={() => { setEnrolling(false); setQrCode(null); setMfaCode(""); }} className="text-[11px] text-[var(--txt3)] hover:underline">Cancelar</button>
+            </div>
+            {mfaMsg && <span className={`flex items-center gap-1 text-[11px] ${mfaMsg.type === "ok" ? "text-green-500" : "text-red-500"}`}>{mfaMsg.type === "ok" ? <Check size={12} /> : <AlertCircle size={12} />}{mfaMsg.text}</span>}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-[12px] text-[var(--txt2)]">Adicione uma camada extra de segurança usando um aplicativo autenticador.</p>
+            <button onClick={startEnroll} disabled={mfaBusy} className="flex h-9 w-fit items-center gap-2 rounded-md bg-[var(--orange)] px-4 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-50"><ShieldCheck size={14} />{mfaBusy ? "Aguarde…" : "Ativar autenticação em 2 fatores"}</button>
+            {mfaMsg && <span className={`flex items-center gap-1 text-[11px] ${mfaMsg.type === "ok" ? "text-green-500" : "text-red-500"}`}>{mfaMsg.type === "ok" ? <Check size={12} /> : <AlertCircle size={12} />}{mfaMsg.text}</span>}
+          </div>
+        )}
       </Card>
 
       {/* ── Aparência ─────────────────────────────── */}

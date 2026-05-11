@@ -66,6 +66,7 @@ const I = {
   chat:  (<svg viewBox="0 0 20 20" fill="none"><path d="M4 4h12a1 1 0 011 1v7a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>),
   clock: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5" /><path d="M10 6v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
   contract: (<svg viewBox="0 0 20 20" fill="none"><path d="M5 2h7l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M12 2v4h4M7 9h6M7 12h6M7 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
+  roteiro: (<svg viewBox="0 0 20 20" fill="none"><path d="M17.5 3.5L11 7 9 3l-5 2.5 3 5L3.5 17l6.5-3.5 2 4 5-2.5-3-5 3.5-6.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /></svg>),
 };
 
 /* ── ADM Sections (default) ───────────────────── */
@@ -404,6 +405,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
       { label: "Card WhatsApp", href: "/gerente/publicar/cards", icon: I.whatsapp, feature: "card_whatsapp" },
       { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
+      { label: "Roteiro", href: "/gerente/roteiro", icon: I.roteiro, feature: "roteiro" },
       { label: "Chat", href: "/gerente/chat", icon: I.chat },
       { label: "Configurações", href: "/gerente/configuracoes", icon: I.settings },
       { label: "Suporte", href: "/gerente/suporte", icon: I.support },
@@ -422,7 +424,9 @@ export const VENDEDOR_SECTIONS: NavSection[] = [
       { label: "Métricas", href: "/consultor/metricas", icon: I.metrics, feature: "metricas" },
       { label: "Calendário", href: "/consultor/calendario", icon: I.calendar },
       { label: "Card WhatsApp", href: "/consultor/publicar/cards", icon: I.whatsapp, feature: "card_whatsapp" },
+      { label: "Roteiro", href: "/consultor/roteiro", icon: I.roteiro, feature: "roteiro" },
       { label: "Chat", href: "/consultor/chat", icon: I.chat },
+      { label: "Configurações", href: "/consultor/configuracoes", icon: I.settings },
       { label: "Suporte", href: "/consultor/suporte", icon: I.support },
     ],
   },

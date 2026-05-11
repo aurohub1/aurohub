@@ -110,6 +110,12 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaBusy, setMfaBusy] = useState(false);
+  const [mfaError, setMfaError] = useState("");
+
   const [splash, setSplash] = useState<{
     name: string; home: string;
     logoUrl?: string; effect?: string; logoOrientation?: string;
@@ -177,6 +183,15 @@ export default function LoginPage() {
               ? "Email ou senha incorretos."
               : authError.message
           );
+          return;
+        }
+
+        // Verificar 2FA
+        const { data: mfaFactors } = await supabase.auth.mfa.listFactors();
+        const totpFactor = mfaFactors?.totp?.find(f => f.status === "verified") ?? null;
+        if (totpFactor) {
+          setMfaFactorId(totpFactor.id);
+          setMfaStep(true);
           return;
         }
 
@@ -293,6 +308,23 @@ export default function LoginPage() {
     [email, password, router]
   );
 
+  async function handleMfaSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setMfaBusy(true);
+    setMfaError("");
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: mfaFactorId!, code: mfaCode });
+      if (error) { setMfaError("Código inválido. Tente novamente."); return; }
+      const profile = await getProfile(supabase);
+      const role = profile?.role ?? null;
+      router.push(homeForRole(role));
+    } catch {
+      setMfaError("Erro ao verificar. Tente novamente.");
+    } finally {
+      setMfaBusy(false);
+    }
+  }
+
   const dk = theme === "dark";
   const containerBg = dk
     ? "radial-gradient(ellipse 80% 60% at 20% 50%, rgba(10,36,99,0.5) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 20%, rgba(212,168,67,0.07) 0%, transparent 50%), #06090F"
@@ -373,7 +405,34 @@ export default function LoginPage() {
         </div>
       </div>
       <div style={{width:400,marginRight:'250px',minHeight:'100dvh',display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem 2.5rem',background:panelBg,backdropFilter:'blur(48px)',WebkitBackdropFilter:'blur(48px)',borderLeft:panelBorder,position:'relative',zIndex:1,flexShrink:0}}>
-        <form onSubmit={handleSubmit} style={{width:'100%',maxWidth:400}}>
+        {mfaStep ? (
+          <form onSubmit={handleMfaSubmit} style={{width:'100%',maxWidth:400}}>
+            <div style={{textAlign:'center',marginBottom:'2rem'}}>
+              <div style={{fontWeight:800,fontSize:'1.75rem',color:cardText,letterSpacing:'-0.02em'}}>Verificação</div>
+              <div style={{fontSize:'0.72rem',fontWeight:600,color:labelColor,marginTop:6}}>Digite o código do autenticador</div>
+            </div>
+            <div style={{height:1,background:'linear-gradient(90deg,transparent,#D4A843,transparent)',marginBottom:'2rem'}} />
+            <div style={{marginBottom:'1.75rem'}}>
+              <label style={{display:'block',fontSize:'0.7rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:labelColor,marginBottom:'0.4rem'}}>Código</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                autoFocus
+                value={mfaCode}
+                onChange={e => setMfaCode(e.target.value.replace(/\D/g,""))}
+                placeholder="000000"
+                style={{width:'100%',height:52,padding:'0 1rem',background:inputBg,border:inputBorder,borderRadius:12,color:inputColor,fontSize:'1.5rem',letterSpacing:'0.5em',textAlign:'center',outline:'none',boxSizing:'border-box'}}
+              />
+            </div>
+            <button type="submit" disabled={mfaBusy||mfaCode.length<6} style={{width:'100%',height:44,borderRadius:14,border:'none',background:'#1D1D1F',color:'#fff',fontWeight:800,fontSize:'0.95rem',cursor:'pointer',letterSpacing:'0.02em',opacity:mfaBusy||mfaCode.length<6?0.5:1}}>
+              {mfaBusy?'Verificando...':'Confirmar →'}
+            </button>
+            {mfaError&&<div style={{marginTop:'1rem',padding:'0.75rem',borderRadius:10,background:'rgba(239,68,68,0.1)',color:'#EF4444',fontSize:'0.8rem',textAlign:'center'}}>{mfaError}</div>}
+            <button type="button" onClick={()=>{setMfaStep(false);setMfaCode("");setMfaError("");}} style={{marginTop:'1rem',width:'100%',background:'none',border:'none',color:labelColor,fontSize:'0.8rem',cursor:'pointer',textAlign:'center'}}>← Voltar ao login</button>
+          </form>
+        ) : null}
+        <form onSubmit={handleSubmit} style={{width:'100%',maxWidth:400,display:mfaStep?'none':'block'}}>
           <div style={{textAlign:'center',marginBottom:'2rem'}}>
             <div style={{fontWeight:800,fontSize:'1.75rem',color:cardText,letterSpacing:'-0.02em'}}>Aurohub</div>
             <div style={{fontSize:'0.5rem',fontWeight:700,letterSpacing:'0.15em',color:'#D4A843',textTransform:'uppercase',marginTop:2}}>Powered by Aurovista</div>

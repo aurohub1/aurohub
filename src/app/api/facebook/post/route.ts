@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { decrypt, isEncrypted } from "@/lib/crypto";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -40,7 +41,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Facebook não configurado para esta loja" }, { status: 404 });
     }
 
-    const { fb_page_id, fb_page_access_token } = cred as { fb_page_id: string; fb_page_access_token: string };
+    const fb_page_id = cred.fb_page_id as string;
+    const rawFbToken = cred.fb_page_access_token as string;
+    const fb_page_access_token = isEncrypted(rawFbToken) ? decrypt(rawFbToken) : rawFbToken;
     const isStory = media_type === "STORIES";
 
     let fbRes: Response;

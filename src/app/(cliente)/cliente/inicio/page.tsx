@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 interface DataComemorativa { id: string; nome: string; data_mes: number; data_dia: number; tipo: string; }
+interface PlatformUpdate { id: string; title: string; description: string; deployed_at: string; }
 
 /* ── Tipos ───────────────────────────────────────── */
 
@@ -141,6 +142,7 @@ export default function ClienteInicioPage() {
   const [, setQuote] = useState<string>("");
   const [inactiveStores, setInactiveStores] = useState<InactiveStore[]>([]);
   const [hasPendingContract, setHasPendingContract] = useState(false);
+  const [platformUpdates, setPlatformUpdates] = useState<PlatformUpdate[]>([]);
 
   const [stores, setStores] = useState<StoreRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -174,6 +176,12 @@ export default function ClienteInicioPage() {
       // Verificar contrato pendente (fire-and-forget, não bloqueia loading)
       supabase.from("contracts").select("id").eq("licensee_id", p.licensee_id).eq("status", "pending").limit(1).maybeSingle()
         .then(({ data }) => setHasPendingContract(!!data));
+
+      // Novidades da plataforma não lidas (fire-and-forget)
+      supabase.from("platform_updates").select("id, title, description, deployed_at")
+        .not("read_by", "cs", `{"${p.id}"}`)
+        .order("deployed_at", { ascending: false }).limit(5)
+        .then(({ data }) => { if (data?.length) setPlatformUpdates(data as PlatformUpdate[]); });
 
       const segmentId = p.licensee?.segment_id ?? null;
       const slug = p.licensee?.plan_slug || p.licensee?.plan || p.plan?.slug;
@@ -324,6 +332,16 @@ export default function ClienteInicioPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  async function markUpdateRead(updateId: string) {
+    if (!profile?.id) return;
+    const { data: cur } = await supabase.from("platform_updates").select("read_by").eq("id", updateId).single();
+    const existing = (cur?.read_by ?? []) as string[];
+    if (!existing.includes(profile.id)) {
+      await supabase.from("platform_updates").update({ read_by: [...existing, profile.id] }).eq("id", updateId);
+    }
+    setPlatformUpdates(prev => prev.filter(u => u.id !== updateId));
+  }
+
   /* ── Derived ───────────────────────────────────── */
 
   const status = profile?.licensee?.status ?? "—";
@@ -440,6 +458,31 @@ export default function ClienteInicioPage() {
       </Link>
 
       <InactivityAlert stores={inactiveStores} />
+
+      {/* ═══ Novidades da plataforma ════════════════════ */}
+      {platformUpdates.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--orange)]">✨ Novidades</span>
+          </div>
+          {platformUpdates.map(u => (
+            <div key={u.id} className="card-glass flex items-start gap-3 p-3">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--orange)]/10 text-sm">✨</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] font-semibold text-[var(--txt)] leading-snug">{u.title}</div>
+                <div className="text-[11px] text-[var(--txt3)] mt-0.5 leading-relaxed">{u.description}</div>
+                <div className="text-[10px] text-[var(--txt3)] mt-1">{new Date(u.deployed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</div>
+              </div>
+              <button
+                onClick={() => markUpdateRead(u.id)}
+                className="shrink-0 self-start rounded-md px-2 py-1 text-[10px] font-semibold text-[var(--txt3)] hover:bg-[var(--bg2)] transition-colors"
+              >
+                Lido
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ═══ Layout principal 3 colunas ══════════════════════════ */}
       <div className="grid" style={{ gridTemplateColumns: "1fr 1.4fr 1.2fr", gap: "10px" }}>

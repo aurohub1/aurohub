@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isVaultAuthenticated } from '@/lib/vault-auth'
+import { decrypt, isEncrypted } from '@/lib/crypto'
 
 export async function GET() {
   try {
@@ -17,7 +18,7 @@ export async function GET() {
 
     const { data: credentials, error } = await supabase
       .from('instagram_credentials')
-      .select('id, licensee_id, store_id, ig_user_id, access_token, expires_at, last_used_at, auto_renewed, last_renewal, created_at')
+      .select('id, licensee_id, store_id, ig_user_id, access_token, fb_page_access_token, expires_at, last_used_at, auto_renewed, last_renewal, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -31,7 +32,9 @@ export async function GET() {
     const tokensWithStoreNames = credentials?.map(cred => ({
       ...cred,
       store_name: 'Loja desconhecida',
-      access_token: cred.access_token ? cred.access_token.substring(0, 15) + '...' : null,
+      access_token: isEncrypted(cred.access_token) ? decrypt(cred.access_token) : cred.access_token,
+      fb_page_access_token: cred.fb_page_access_token && isEncrypted(cred.fb_page_access_token)
+        ? decrypt(cred.fb_page_access_token) : cred.fb_page_access_token,
       status: cred.expires_at && new Date(cred.expires_at) < new Date() ? 'expirado' : 'ativo'
     })) || []
 

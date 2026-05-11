@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { encrypt } from "@/lib/crypto";
 
 export const runtime = "nodejs";
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     const { error } = await sb
       .from("instagram_credentials")
-      .update({ fb_page_id, fb_page_access_token })
+      .update({ fb_page_id, fb_page_access_token: encrypt(fb_page_access_token) })
       .eq("store_id", store_id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
