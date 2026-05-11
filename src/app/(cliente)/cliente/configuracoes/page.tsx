@@ -2,11 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Palette, Lock, Sun, Moon, Check, AlertCircle } from "lucide-react";
+import { Palette, Lock, Sun, Moon, Check, AlertCircle, HelpCircle } from "lucide-react";
+import { useTour } from "@/hooks/useTour";
 
 /* ── Página ──────────────────────────────────────── */
 
 export default function ClienteConfiguracoesPage() {
+  const { startTour } = useTour({
+    pageKey: "cliente-configuracoes",
+    steps: [
+      { element: "h1", popover: { title: "Configurações", description: "Gerencie as preferências da sua conta." } },
+      { element: "form", popover: { title: "Segurança", description: "Altere sua senha de acesso quando necessário." } },
+      { popover: { title: "Aparência", description: "Escolha entre tema claro e escuro conforme sua preferência." } },
+    ],
+    autoStart: true,
+    delay: 1000,
+  });
+
   const [theme, setTheme] = useState<"dark" | "light">("light");
 
   const [pw1, setPw1] = useState("");
@@ -45,6 +57,7 @@ export default function ClienteConfiguracoesPage() {
   }
 
   return (
+    <>
     <div className="flex max-w-3xl flex-col gap-6 page-fade">
       <header className="flex flex-col gap-1">
         <h1 className="text-[20px] font-bold text-[var(--txt)]">Configurações</h1>
@@ -109,6 +122,16 @@ export default function ClienteConfiguracoesPage() {
         </div>
       </Card>
     </div>
+    <button
+      onClick={startTour}
+      title="Ver tour guiado"
+      style={{ position: "fixed", bottom: "24px", right: "24px", width: "48px", height: "48px", borderRadius: "50%", background: "var(--orange)", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", zIndex: 9999, transition: "all 0.2s" }}
+      onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)"; }}
+    >
+      <HelpCircle size={24} strokeWidth={2.5} />
+    </button>
+    </>
   );
 }
 

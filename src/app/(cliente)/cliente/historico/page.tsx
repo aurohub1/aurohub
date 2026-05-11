@@ -6,6 +6,8 @@ import { getProfile } from "@/lib/auth";
 import PostHistoryGrid, {
   HistoryLog, PAGE_SIZE, MEDIA_FILTERS,
 } from "@/components/history/PostHistoryGrid";
+import { HelpCircle } from "lucide-react";
+import { useTour } from "@/hooks/useTour";
 
 type MediaTypeFilter = "todos" | "IMAGE" | "REELS" | "STORIES";
 
@@ -94,11 +96,23 @@ export default function ClienteHistoricoPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  const { startTour } = useTour({
+    pageKey: "cliente-historico",
+    steps: [
+      { element: "h1", popover: { title: "Histórico de Postagens", description: "Veja todas as publicações feitas, ordenadas da mais recente para a mais antiga." } },
+      { element: ".card-glass", popover: { title: "Filtros", description: "Filtre por período, loja ou tipo de mídia para encontrar publicações específicas." } },
+      { popover: { title: "Pronto!", description: "Clique em qualquer publicação para ver detalhes. O botão ? está sempre disponível para rever o tour." } },
+    ],
+    autoStart: true,
+    delay: 1000,
+  });
+
   const hasFilters = !!(storeFilter || mediaFilter !== "todos" || dateFrom || dateTo);
 
   /* ── Render ──────────────────────────────────────────────── */
 
   return (
+    <>
     <div style={{ padding: "24px 32px", maxWidth: 1400, margin: "0 auto" }}>
 
       {/* Header */}
@@ -203,5 +217,15 @@ export default function ClienteHistoricoPage() {
         publishHref="/cliente/publicar"
       />
     </div>
+    <button
+      onClick={startTour}
+      title="Ver tour guiado"
+      style={{ position: "fixed", bottom: "24px", right: "24px", width: "48px", height: "48px", borderRadius: "50%", background: "var(--orange)", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", zIndex: 9999, transition: "all 0.2s" }}
+      onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)"; }}
+    >
+      <HelpCircle size={24} strokeWidth={2.5} />
+    </button>
+    </>
   );
 }

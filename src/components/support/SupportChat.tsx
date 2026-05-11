@@ -89,22 +89,30 @@ export default function SupportChat({ onClose, isOpen, minimized, onMinimize, on
   }, []);
 
   // Realtime: nova mensagem no ticket atual
+  // Delay de 300ms para garantir que a subscription está ativa
+  // antes de qualquer resposta do bot chegar.
   useEffect(() => {
     if (!ticketId) return;
-    const ch = supabase
-      .channel(`support-msgs-${ticketId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "ticket_messages", filter: `ticket_id=eq.${ticketId}` },
-        (payload: SupabaseRealtimePayload) => {
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === payload.new.id)) return prev;
-            return [...prev, payload.new as Message];
-          });
-        },
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    const timer = setTimeout(() => {
+      ch = supabase
+        .channel(`support-msgs-${ticketId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "ticket_messages", filter: `ticket_id=eq.${ticketId}` },
+          (payload: SupabaseRealtimePayload) => {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === payload.new.id)) return prev;
+              return [...prev, payload.new as Message];
+            });
+          },
+        )
+        .subscribe();
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      if (ch) supabase.removeChannel(ch);
+    };
   }, [ticketId]);
 
   const send = useCallback(async () => {
@@ -152,6 +160,7 @@ export default function SupportChat({ onClose, isOpen, minimized, onMinimize, on
           .update({ updated_at: new Date().toISOString(), unread_adm: true })
           .eq("id", tid);
       } else {
+        console.log("LUMI SEND", { ticketId: tid, message: text });
         const res = await fetch("/api/support/bot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -161,11 +170,22 @@ export default function SupportChat({ onClose, isOpen, minimized, onMinimize, on
             userName: profile.name,
             userRole: profile.role,
             userPlan: profile.plan?.name ?? null,
+            userStore: profile.store?.name ?? null,
           }),
         });
-        if (!res.ok) {
+        console.log("LUMI RESPONSE", { status: res.status, ok: res.ok });
+        if (res.ok) {
+          setTimeout(async () => {
+            const { data } = await supabase
+              .from("ticket_messages")
+              .select("*")
+              .eq("ticket_id", tid)
+              .order("created_at", { ascending: true });
+            if (data) setMessages(data as Message[]);
+          }, 1500);
+        } else {
           const detail = await res.text().catch(() => "");
-          console.error("[SupportChat] bot API falhou:", res.status, detail);
+          console.error("LUMI ERROR", detail);
         }
       }
     } finally {
@@ -192,7 +212,7 @@ export default function SupportChat({ onClose, isOpen, minimized, onMinimize, on
   }, [ticketId, profile, status, messages]);
 
   const statusMeta = {
-    bot:      { label: "Bot",                 cls: "bg-blue-100 text-blue-700" },
+    bot:      { label: "Assistente Aurohub",   cls: "bg-blue-100 text-blue-700" },
     human:    { label: "Aguardando equipe",    cls: "bg-amber-100 text-amber-700" },
     resolved: { label: "Resolvido",            cls: "bg-green-100 text-green-700" },
   }[status];
@@ -200,7 +220,7 @@ export default function SupportChat({ onClose, isOpen, minimized, onMinimize, on
   return (
     <div
       role="dialog"
-      aria-label="Suporte Aurohub"
+      aria-label="Lumi — Suporte Aurohub"
       style={{ display: isOpen ? "flex" : "none", width: 360, height: minimized ? 48 : 500 }}
       className="fixed bottom-4 right-4 z-[9999] flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
     >
@@ -213,7 +233,7 @@ export default function SupportChat({ onClose, isOpen, minimized, onMinimize, on
           <Headphones size={14} className="text-blue-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-slate-800 truncate">Suporte Aurohub</div>
+          <div className="text-sm font-semibold text-slate-800 truncate">Lumi</div>
           {!minimized && (
             <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusMeta.cls}`}>
               {statusMeta.label}

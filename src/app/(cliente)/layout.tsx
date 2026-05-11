@@ -87,7 +87,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       let count = 0;
       for (const room of rooms as { id: string }[]) {
         const { count: c } = await supabase.from("chat_messages").select("id", { count: "exact", head: true })
-          .eq("room_id", room.id).neq("sender_id", userId).gt("created_at", receiptMap.get(room.id) ?? "1970-01-01");
+          .eq("room_id", room.id).neq("sender_id", userId).gt("created_at", receiptMap.get(room.id) ?? "1970-01-01T00:00:00Z");
         if ((c ?? 0) > 0) count++;
       }
       if (alive) setChatUnreadCount(count);

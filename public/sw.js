@@ -1,6 +1,6 @@
 /* Aurohub — Service Worker (app shell cache) */
 // Atualizar esta string a cada deploy significativo para bustar o cache anterior.
-const CACHE_VERSION = "aurohub-v3-20260509";
+const CACHE_VERSION = "aurohub-v4-20260511";
 const APP_SHELL = [
   "/",
   "/offline.html",

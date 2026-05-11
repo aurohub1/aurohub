@@ -9,6 +9,7 @@ import type { FullProfile, ProfilePlan } from "@/lib/auth";
 export const ALL_FEATURES = [
   "publicar",
   "metricas",
+  "resumo",
   "ia_legenda",
   "agendamento",
   "templates",
@@ -27,6 +28,7 @@ export type Feature = (typeof ALL_FEATURES)[number];
 export const FEATURE_LABELS: Record<Feature, string> = {
   publicar:         "Publicar",
   metricas:         "Métricas Instagram",
+  resumo:           "Resumo de performance",
   ia_legenda:       "IA para legendas",
   agendamento:      "Agendamento de posts",
   templates:        "Biblioteca de templates",
@@ -59,6 +61,7 @@ const BASE_FEATURES: Feature[] = [
 export function planDefaultFeatures(plan: ProfilePlan | null): Set<Feature> {
   const set = new Set<Feature>(BASE_FEATURES);
   if (plan?.can_metrics) set.add("metricas");
+  if (plan?.can_metrics) set.add("resumo");
   if (plan?.can_schedule) set.add("agendamento");
   if (plan?.can_ia_legenda) set.add("ia_legenda");
   return set;

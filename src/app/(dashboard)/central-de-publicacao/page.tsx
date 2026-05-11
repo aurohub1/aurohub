@@ -118,6 +118,9 @@ export default function CentralPublicacaoPage() {
   const [status, setStatus] = useState<PublishStatus>("idle");
   const [statusMsg, setStatusMsg] = useState<string>("");
 
+  const [postToIG, setPostToIG] = useState(true);
+  const [postToFB, setPostToFB] = useState(false);
+
   /* ── Load ──────────────────────────────────────── */
 
   const loadData = useCallback(async () => {
@@ -167,6 +170,7 @@ export default function CentralPublicacaoPage() {
     !!selectedLicenseeId &&
     !!mediaDataUrl &&
     storesToPublish.length > 0 &&
+    (postToIG || postToFB) &&
     status !== "uploading" &&
     status !== "publishing";
 
@@ -308,16 +312,38 @@ export default function CentralPublicacaoPage() {
         if (mediaIsVideo) body.video_url = upData.secure_url;
         else body.image_url = upData.secure_url;
 
-        const pubRes = await fetch("/api/instagram/post", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const pubData = await pubRes.json();
-        if (!pubRes.ok || !pubData.success) {
-          errors.push(`${store.name}: ${pubData.error || pubData.detail || "falhou"}`);
-        } else {
-          successCount++;
+        if (postToIG) {
+          const pubRes = await fetch("/api/instagram/post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const pubData = await pubRes.json();
+          if (!pubRes.ok || !pubData.success) {
+            errors.push(`${store.name} (IG): ${pubData.error || pubData.detail || "falhou"}`);
+          } else {
+            successCount++;
+          }
+        }
+
+        if (postToFB) {
+          const fbRes = await fetch("/api/facebook/post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              licensee_id: selectedLicenseeId,
+              store_id: storeId,
+              image_url: !mediaIsVideo ? upData.secure_url : undefined,
+              caption,
+              media_type: mediaType,
+            }),
+          });
+          const fbData = await fbRes.json();
+          if (!fbRes.ok || fbData.error) {
+            errors.push(`${store.name} (FB): ${fbData.error || "falhou"}`);
+          } else {
+            successCount++;
+          }
         }
       }
 
@@ -498,6 +524,29 @@ export default function CentralPublicacaoPage() {
                       ))}
                     </div>
                   )}
+
+                  {/* Destinos de publicação */}
+                  <div className="flex flex-col gap-1.5">
+                    <ColLabel>Publicar em</ColLabel>
+                    <label className="flex cursor-pointer select-none items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={postToIG}
+                        onChange={e => setPostToIG(e.target.checked)}
+                        className="accent-[var(--orange)]"
+                      />
+                      <span className="text-[12px] text-[var(--txt)]">Instagram</span>
+                    </label>
+                    <label className="flex cursor-pointer select-none items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={postToFB}
+                        onChange={e => setPostToFB(e.target.checked)}
+                        className="accent-[var(--orange)]"
+                      />
+                      <span className="text-[12px] text-[var(--txt)]">Facebook</span>
+                    </label>
+                  </div>
                 </>
               )}
             </div>

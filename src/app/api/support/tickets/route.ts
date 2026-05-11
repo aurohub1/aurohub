@@ -7,6 +7,7 @@ interface Body {
   userId: string;
   licenseeId?: string | null;
   firstMessage: string;
+  subject?: string | null;
   userName?: string | null;
   userRole?: string | null;
   licenseeNome?: string | null;
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
       .insert({
         user_id: body.userId,
         licensee_id: body.licenseeId ?? null,
+        subject: body.subject || "Suporte via chat",
         status: "bot",
         unread_adm: false,
       })
@@ -53,8 +55,8 @@ export async function POST(req: NextRequest) {
     }
 
     const greeting = `Olá ${body.userName ?? "por aí"}! Como posso ajudar? 👋`;
-    await sb.from("support_messages").insert({
-      ticket_id: ticket.id, sender: "bot", content: greeting,
+    await sb.from("ticket_messages").insert({
+      ticket_id: ticket.id, sender: "bot", message: greeting,
     });
 
     // Notify fire-and-forget — não bloqueia a resposta

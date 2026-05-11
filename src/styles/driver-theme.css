@@ -1,17 +1,10 @@
-/*
- * Driver.js v1.4.0 — tema Aurovista
- *
- * O overlay é um <svg class="driver-overlay"> com fill/opacity inline (JS).
- * "background" não funciona em SVG — é preciso sobrescrever via path.
- */
+/* Aurohub — Driver.js custom theme (Lumi/Aurovista) */
 
-/* Overlay — SVG path fill com !important para vencer inline style */
 svg.driver-overlay path {
   fill: rgb(10, 20, 50) !important;
-  opacity: 0.65 !important;
+  opacity: 0.65;
 }
 
-/* Popover */
 .driver-popover {
   background: #ffffff !important;
   border: 1px solid rgba(26, 58, 110, 0.15) !important;
@@ -19,110 +12,57 @@ svg.driver-overlay path {
   padding: 20px !important;
   min-width: 280px !important;
   max-width: 340px !important;
-  box-shadow: 0 8px 32px rgba(26, 58, 110, 0.12) !important;
-  color: #2d2d2d !important;
 }
 
-/* Título */
 .driver-popover-title {
   font-size: 15px !important;
   font-weight: 600 !important;
   color: #1A3A6E !important;
   margin-bottom: 8px !important;
-  font-family: inherit !important;
 }
 
-/* Descrição */
 .driver-popover-description {
   font-size: 13px !important;
-  color: #444444 !important;
+  color: #333333 !important;
   line-height: 1.6 !important;
   margin-bottom: 16px !important;
-  font-family: inherit !important;
 }
 
-/* Footer */
-.driver-popover-footer {
-  margin-top: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-}
-
-/* Progresso (ex: "1 / 3") */
 .driver-popover-progress-text {
   font-size: 11px !important;
-  font-weight: 500 !important;
   color: #FF7A1A !important;
-}
-
-/* Botão próximo */
-.driver-popover-next-btn {
-  background: #FF7A1A !important;
-  color: #ffffff !important;
-  border: none !important;
-  border-radius: 6px !important;
-  padding: 7px 16px !important;
-  font-size: 12px !important;
   font-weight: 500 !important;
-  cursor: pointer !important;
-  font-family: inherit !important;
-  text-shadow: none !important;
-  -webkit-font-smoothing: antialiased !important;
-  letter-spacing: normal !important;
-  filter: none !important;
-}
-.driver-popover-next-btn:hover {
-  background: #e66a0a !important;
 }
 
-/* Botão anterior */
 .driver-popover-prev-btn {
   background: transparent !important;
-  color: #1A3A6E !important;
   border: 1px solid #1A3A6E !important;
+  color: #1A3A6E !important;
   border-radius: 6px !important;
   padding: 7px 14px !important;
   font-size: 12px !important;
   font-weight: 500 !important;
-  cursor: pointer !important;
-  font-family: inherit !important;
-}
-.driver-popover-prev-btn:hover {
-  background: rgba(26, 58, 110, 0.06) !important;
 }
 
-/* Botão fechar (×) */
-.driver-popover-close-btn {
-  background: transparent !important;
+.driver-popover-next-btn {
+  background: #FF7A1A !important;
   border: none !important;
-  color: #888888 !important;
-  cursor: pointer !important;
-  font-size: 18px !important;
-  line-height: 1 !important;
-  padding: 0 !important;
-  position: absolute !important;
-  width: 32px !important;
-  height: 32px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  color: #ffffff !important;
   border-radius: 6px !important;
-  top: 12px !important;
-  right: 12px !important;
-}
-.driver-popover-close-btn:hover {
-  color: #1A3A6E !important;
+  padding: 7px 16px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
 }
 
-/* Seta — oculta (popover sem ponteiro) */
-.driver-popover-arrow {
-  display: none !important;
+.driver-popover-close-btn {
+  color: #888888 !important;
+  font-size: 18px !important;
 }
 
-/* Highlight do elemento focado */
-.driver-active-element {
-  outline: 3px solid #FF7A1A !important;
-  outline-offset: 4px !important;
-  border-radius: 8px !important;
+.driver-popover-prev-btn:hover {
+  background: #f0f4f8 !important;
+}
+
+.driver-popover-next-btn:hover {
+  background: #e06510 !important;
 }

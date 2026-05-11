@@ -3,7 +3,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
-import { ChevronLeft, ChevronRight, Download, BarChart2, Image, Video, Square, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, BarChart2, Image, Video, Square, TrendingUp, TrendingDown, HelpCircle } from "lucide-react";
+import { useTour } from "@/hooks/useTour";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface Post {
@@ -257,6 +258,17 @@ export default function ClienteResumoPage() {
   function handlePrint() {
     window.print();
   }
+
+  const { startTour } = useTour({
+    pageKey: "cliente-resumo",
+    steps: [
+      { popover: { title: "Resumo de Publicações", description: "Veja um panorama completo de todas as publicações do período selecionado." } },
+      { popover: { title: "Filtros de período", description: "Navegue entre meses e filtre por loja, formato ou status para análises específicas." } },
+      { popover: { title: "Gráficos e comparativos", description: "Compare o desempenho mês a mês e veja a distribuição por formato de publicação." } },
+    ],
+    autoStart: true,
+    delay: 1000,
+  });
 
   const monthName = selectedMonth.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const prevMonthName = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1).toLocaleDateString("pt-BR", { month: "short" });
@@ -631,6 +643,15 @@ export default function ClienteResumoPage() {
           </div>
         )}
       </div>
+      <button
+        onClick={startTour}
+        title="Ver tour guiado"
+        style={{ position: "fixed", bottom: "24px", right: "24px", width: "48px", height: "48px", borderRadius: "50%", background: "var(--orange)", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", zIndex: 9999, transition: "all 0.2s" }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)"; }}
+      >
+        <HelpCircle size={24} strokeWidth={2.5} />
+      </button>
     </>
   );
 }
