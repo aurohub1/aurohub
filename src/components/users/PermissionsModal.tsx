@@ -118,11 +118,8 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
       { key: "roteiro_destinos", enabled: roteiroDestinosEnabled },
     ];
     await Promise.all(featureToggles.map(({ key, enabled }) =>
-      enabled
-        ? supabase.from("user_feature_overrides")
-            .upsert({ user_id: userId, feature_key: key, enabled: true }, { onConflict: "user_id,feature_key" })
-        : supabase.from("user_feature_overrides")
-            .delete().eq("user_id", userId).eq("feature_key", key)
+      supabase.from("user_feature_overrides")
+        .upsert({ user_id: userId, feature_key: key, enabled }, { onConflict: "user_id,feature_key" })
     ));
 
     setSaving(false);
