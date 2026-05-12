@@ -98,6 +98,11 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
+        label: "Roteiro",
+        href: "/adm/roteiro",
+        icon: I.roteiro,
+      },
+      {
         label: "Estúdio de Templates",
         href: "/editor-de-templates",
         admPerm: "can_use_editor",
@@ -165,11 +170,6 @@ const ADM_SECTIONS: NavSection[] = [
             <path d="M10 6v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         ),
-      },
-      {
-        label: "Roteiro",
-        href: "/adm/roteiro",
-        icon: I.roteiro,
       },
       {
         label: "Métricas",

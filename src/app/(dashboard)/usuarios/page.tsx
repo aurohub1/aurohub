@@ -59,9 +59,14 @@ export default function UsuariosPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [selectedSegmento, setSelectedSegmento] = useState("");
   const [selectedLicensee, setSelectedLicensee] = useState("");
+  const [selectedCliente, setSelectedCliente] = useState("");
   const [selectedStore, setSelectedStore] = useState("");
   const [userStoresMap, setUserStoresMap] = useState<Record<string, string[]>>({});
+  const [dragUserId, setDragUserId] = useState<string | null>(null);
+  const [dragOverStoreId, setDragOverStoreId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   // Edit modal
   const [editOpen, setEditOpen] = useState(false);
@@ -143,9 +148,9 @@ export default function UsuariosPage() {
 
   const activeLicensees = useMemo(() => licensees.filter((l) => !l.status || l.status === "active"), [licensees]);
 
-  const storesForCol2 = useMemo(() => {
+  const storesForCol4 = useMemo(() => {
     if (!selectedLicensee) return [];
-    return stores.filter((s) => s.licensee_id === selectedLicensee);
+    return stores.filter(s => s.licensee_id === selectedLicensee);
   }, [stores, selectedLicensee]);
 
   const storesPerLicensee = useMemo(() => {
@@ -168,17 +173,37 @@ export default function UsuariosPage() {
     return counts;
   }, [profiles, userStoresMap]);
 
+  const gerentePerStore = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const p of profiles) {
+      if (p.role !== "gerente" && p.role !== "gestor") continue;
+      const storeIds = userStoresMap[p.id]?.length ? userStoresMap[p.id] : (p.store_id ? [p.store_id] : []);
+      for (const sid of storeIds) { if (!m[sid]) m[sid] = p.name ?? ""; }
+    }
+    return m;
+  }, [profiles, userStoresMap]);
+
+  const licenseesForCol2 = useMemo(() => {
+    if (!selectedSegmento) return activeLicensees;
+    return activeLicensees.filter(l => l.segment_id === selectedSegmento);
+  }, [activeLicensees, selectedSegmento]);
+
+  const clientesForCol3 = useMemo(() => {
+    if (!selectedLicensee) return [];
+    return profiles.filter(p => p.role === "cliente" && p.licensee_id === selectedLicensee);
+  }, [profiles, selectedLicensee]);
+
   const filtered = useMemo(() => {
     return profiles.filter((p) => {
+      const userStoreIds = userStoresMap[p.id]?.length ? userStoresMap[p.id] : (p.store_id ? [p.store_id] : []);
+      if (selectedStore) return userStoreIds.includes(selectedStore);
+      if (selectedLicensee) return p.licensee_id === selectedLicensee;
       const ms = !search || (p.name ?? "").toLowerCase().includes(search.toLowerCase());
       const mr = !roleFilter || p.role === roleFilter;
       const mst = !statusFilter || (statusFilter === "active" ? p.status === "active" : p.status !== "active");
-      const ml = !selectedLicensee || p.licensee_id === selectedLicensee;
-      const userStoreIds = userStoresMap[p.id]?.length ? userStoresMap[p.id] : (p.store_id ? [p.store_id] : []);
-      const mstore = !selectedStore || userStoreIds.includes(selectedStore);
-      return ms && mr && mst && ml && mstore;
+      return ms && mr && mst;
     });
-  }, [profiles, search, roleFilter, statusFilter, selectedLicensee, selectedStore, userStoresMap]);
+  }, [profiles, selectedStore, selectedLicensee, search, roleFilter, statusFilter, userStoresMap]);
 
   const kpis = useMemo(() => ({
     total: profiles.length,
@@ -400,6 +425,17 @@ export default function UsuariosPage() {
 
   /* ── Delete ────────────────────────────────────── */
 
+  async function handleDrop(storeId: string) {
+    if (!dragUserId) return;
+    setDragOverStoreId(null);
+    const storeName = storeMap[storeId]?.name ?? "loja";
+    await supabase.from("profiles").update({ store_id: storeId }).eq("id", dragUserId);
+    setDragUserId(null);
+    await loadData();
+    setToast(`Usuário movido para ${storeName}`);
+    setTimeout(() => setToast(null), 3000);
+  }
+
   async function toggleStatus(id: string, current: string) {
     await supabase.from("profiles").update({ status: current === "active" ? "inactive" : "active" }).eq("id", id);
     await loadData();
@@ -446,50 +482,118 @@ export default function UsuariosPage() {
         </div>
       </div>
 
-      {/* ── 3-Column Layout ──────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "220px 220px 1fr", gap: "12px", height: "calc(100vh - 220px)", minHeight: 0 }}>
+      {/* ── 5-Column Layout ──────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "150px 160px 180px 175px 1fr", gap: "12px", height: "calc(100vh - 220px)", minHeight: 0 }}>
 
-        {/* ── Col 1: Clientes ─── */}
+        {/* ── Col 1: Segmento ─── */}
         <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", minHeight: 0 }}>
           <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Clientes · {activeLicensees.length}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Segmento · {segments.length}</span>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {activeLicensees.map((l) => {
-              const sel = selectedLicensee === l.id;
-              const initials = l.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
-              const storeCount = storesPerLicensee[l.id] ?? 0;
+            <button
+              onClick={() => { setSelectedSegmento(""); setSelectedLicensee(""); setSelectedCliente(""); setSelectedStore(""); }}
+              className={`flex w-full items-center gap-2 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--hover-bg)] ${!selectedSegmento ? "bg-[var(--bg3)]" : ""}`}
+            >
+              <span className="min-w-0 flex-1 text-[12px] text-[var(--txt)]">Todos</span>
+              {!selectedSegmento && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--orange)]" />}
+            </button>
+            {segments.map((seg) => {
+              const sel = selectedSegmento === seg.id;
               return (
                 <button
-                  key={l.id}
-                  onClick={() => { setSelectedLicensee(sel ? "" : l.id); setSelectedStore(""); }}
-                  className={`flex w-full items-center gap-2.5 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-[var(--hover-bg)] ${sel ? "bg-[var(--bg3)]" : ""}`}
+                  key={seg.id}
+                  onClick={() => { setSelectedSegmento(sel ? "" : seg.id); setSelectedLicensee(""); setSelectedCliente(""); setSelectedStore(""); }}
+                  className={`flex w-full items-center gap-2 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-[var(--hover-bg)] ${sel ? "bg-[var(--bg3)]" : ""}`}
                 >
-                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: licColor(l.name) }}>
-                    {initials || "?"}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[12px] font-medium text-[var(--txt)]">{l.name}</div>
-                    <div className="text-[10px] text-[var(--txt3)]">{storeCount} loja{storeCount !== 1 ? "s" : ""}</div>
-                  </div>
+                  {seg.icon && <span className="shrink-0 text-[13px]">{seg.icon}</span>}
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-[var(--txt)]">{seg.name}</span>
                   {sel && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--orange)]" />}
                 </button>
               );
             })}
-            {activeLicensees.length === 0 && <div className="py-8 text-center text-[11px] text-[var(--txt3)]">Nenhum cliente</div>}
+            {segments.length === 0 && <div className="py-8 text-center text-[11px] text-[var(--txt3)]">Nenhum</div>}
           </div>
         </div>
 
-        {/* ── Col 2: Lojas ─── */}
+        {/* ── Col 2: Franquia (licensees) ─── */}
         <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", minHeight: 0 }}>
           <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2.5">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
-              Lojas{selectedLicensee ? ` · ${storesForCol2.length}` : ""}
+              Franquia · {licenseesForCol2.length}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {licenseesForCol2.map((l) => {
+              const sel = selectedLicensee === l.id;
+              const initials = l.name.split(" ").filter((w: string) => w.length > 0).map((w: string) => w[0]).join("").substring(0, 3).toUpperCase() || "?";
+              return (
+                <button
+                  key={l.id}
+                  onClick={() => { setSelectedLicensee(sel ? "" : l.id); setSelectedCliente(""); setSelectedStore(""); }}
+                  className={`flex w-full items-center gap-2.5 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-[var(--hover-bg)] ${sel ? "bg-[var(--bg3)]" : ""}`}
+                >
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: "#1A3A6E", color: "#ffffff" }}>
+                    {initials}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-[var(--txt)]">{l.name}</span>
+                  {sel && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--orange)]" />}
+                </button>
+              );
+            })}
+            {licenseesForCol2.length === 0 && <div className="py-8 text-center text-[11px] text-[var(--txt3)]">Nenhuma franquia</div>}
+          </div>
+        </div>
+
+        {/* ── Col 3: Dono / Cliente ─── */}
+        <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", minHeight: 0 }}>
+          <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+              Dono / Cliente{selectedLicensee ? ` · ${clientesForCol3.length}` : ""}
             </span>
           </div>
           <div className="flex-1 overflow-y-auto">
             {!selectedLicensee ? (
-              <div className="py-8 text-center text-[11px] text-[var(--txt3)]">Selecione um cliente</div>
+              <div className="py-8 text-center text-[11px] text-[var(--txt3)]">Selecione uma franquia</div>
+            ) : clientesForCol3.length === 0 ? (
+              <div className="py-8 text-center text-[11px] text-[var(--txt3)]">Nenhum cliente</div>
+            ) : (
+              clientesForCol3.map((p) => {
+                const sel = selectedCliente === p.id;
+                const initials = (p.name ?? "?").split(" ").filter((w: string) => w.length > 0).map((w: string) => w[0]).join("").substring(0, 3).toUpperCase() || "?";
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => { setSelectedCliente(sel ? "" : p.id); setSelectedStore(""); }}
+                    className={`flex w-full items-center gap-2.5 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-[var(--hover-bg)] ${sel ? "bg-[var(--bg3)]" : ""}`}
+                  >
+                    {p.avatar_url ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={p.avatar_url} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: "#1A3A6E", color: "#ffffff" }}>
+                        {initials}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-[var(--txt)]">{p.name ?? "—"}</span>
+                    {sel && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--orange)]" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* ── Col 4: Loja / Gerente ─── */}
+        <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", minHeight: 0 }}>
+          <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+              Loja / Gerente{selectedLicensee ? ` · ${storesForCol4.length}` : ""}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {!selectedLicensee ? (
+              <div className="py-8 text-center text-[11px] text-[var(--txt3)]">Selecione uma franquia</div>
             ) : (
               <>
                 <button
@@ -499,38 +603,47 @@ export default function UsuariosPage() {
                   <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--bg3)] text-[11px]">🏪</span>
                   <div className="min-w-0 flex-1">
                     <div className="text-[12px] font-medium text-[var(--txt)]">Todas as lojas</div>
-                    <div className="text-[10px] text-[var(--txt3)]">{storesForCol2.length} lojas</div>
+                    <div className="text-[10px] text-[var(--txt3)]">{storesForCol4.length} lojas</div>
                   </div>
                   {!selectedStore && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--orange)]" />}
                 </button>
-                {storesForCol2.map((s) => {
+                {storesForCol4.map((s) => {
                   const sel = selectedStore === s.id;
                   const uCount = usersPerStore[s.id] ?? 0;
+                  const isDragOver = dragOverStoreId === s.id;
                   return (
                     <button
                       key={s.id}
                       onClick={() => setSelectedStore(sel ? "" : s.id)}
-                      className={`flex w-full items-center gap-2.5 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-[var(--hover-bg)] ${sel ? "bg-[var(--bg3)]" : ""}`}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverStoreId(s.id); }}
+                      onDragLeave={() => setDragOverStoreId(null)}
+                      onDrop={(e) => { e.preventDefault(); handleDrop(s.id); }}
+                      className={`flex w-full items-center gap-2.5 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-[var(--hover-bg)] ${sel ? "bg-[var(--bg3)]" : ""} ${isDragOver ? "ring-2 ring-inset ring-[var(--orange)]" : ""}`}
                     >
                       <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--bg3)]">
                         <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-[var(--txt3)]" fill="none"><path d="M2 6l6-4 6 4v8H2V6z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/><path d="M6 14V9h4v5" stroke="currentColor" strokeWidth="1.2"/></svg>
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[12px] font-medium text-[var(--txt)]">{s.name}</div>
-                        <div className="text-[10px] text-[var(--txt3)]">{uCount} usuário{uCount !== 1 ? "s" : ""}</div>
+                        <div className="text-[10px] text-[var(--txt3)]">
+                          {gerentePerStore[s.id] ? `${gerentePerStore[s.id]} (Gerente)` : `${uCount} usuário${uCount !== 1 ? "s" : ""}`}
+                        </div>
                       </div>
                       {sel && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--orange)]" />}
                     </button>
                   );
                 })}
-                {storesForCol2.length === 0 && <div className="py-6 text-center text-[11px] text-[var(--txt3)]">Nenhuma loja</div>}
+                {storesForCol4.length === 0 && <div className="py-6 text-center text-[11px] text-[var(--txt3)]">Nenhuma loja</div>}
               </>
             )}
           </div>
         </div>
 
-        {/* ── Col 3: Usuários ─── */}
+        {/* ── Col 5: Consultor / Usuário ─── */}
         <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", minHeight: 0 }}>
+          <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Consultor / Usuário · {filtered.length}</span>
+          </div>
           {/* Barra de filtros col3 */}
           <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--bdr)] px-3 py-2.5">
             <div className="relative min-w-[140px] flex-1">
@@ -574,7 +687,13 @@ export default function UsuariosPage() {
                     const userStoreIds = userStoresMap[p.id]?.length ? userStoresMap[p.id] : (p.store_id ? [p.store_id] : []);
                     const userStoreNames = userStoreIds.map(sid => storeMap[sid]?.name).filter(Boolean) as string[];
                     return (
-                      <tr key={p.id} className="border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)]">
+                      <tr
+                        key={p.id}
+                        draggable={true}
+                        onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; setDragUserId(p.id); }}
+                        onDragEnd={() => { setDragUserId(null); setDragOverStoreId(null); }}
+                        className={`border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)] cursor-grab active:cursor-grabbing ${dragUserId === p.id ? "opacity-40" : ""}`}
+                      >
                         <td className="whitespace-nowrap py-2.5 pl-4 pr-3">
                           <div className="flex items-center gap-2">
                             {p.avatar_url ? (
@@ -939,6 +1058,14 @@ export default function UsuariosPage() {
             </div>
           </div>
         </Ov>
+      )}
+
+      {/* ── Toast ─────────────────────────────────── */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[300] flex items-center gap-2 rounded-xl border border-[var(--bdr)] px-4 py-3 text-[13px] font-medium text-[var(--txt)] shadow-xl" style={{ background: "var(--card-bg)" }}>
+          <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-[var(--green)]" fill="none"><path d="M3 8l3.5 3.5L13 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          {toast}
+        </div>
       )}
     </>
   );

@@ -68,7 +68,9 @@ ${agencia ? `\nAgência: ${agencia as string}${consultor ? " · " + (consultor a
 ITINERÁRIO OFICIAL DO CIRCUITO:
 ${circuitItinerary as string}
 
-Formato OBRIGATÓRIO — para CADA DIA do itinerário acima:
+Formato OBRIGATÓRIO — responda com esta estrutura exata de 3 blocos:
+
+## ROTEIRO
 Dia 1: [Cidade/Região — Título temático]
 - [Destaque do dia com nome real do local e horário sugerido]
 - [Sugestão gastronômica: restaurante local + prato típico da região]
@@ -79,8 +81,21 @@ Dia 2: [Título]
 
 (Continue para TODOS os ${days as string} dias do circuito)
 
-Dicas Essenciais do Circuito:
-- [4 dicas práticas e específicas para este circuito Europamundo]
+## GUIA DO DESTINO
+### Como Chegar ao Destino Inicial
+- [aeroporto, voos do Brasil, conexões, tempo de voo]
+### Transportes no Circuito
+- [ônibus Europamundo, trens, balsas — duração entre cidades]
+### Países e Regiões Visitadas
+- [moeda, idioma, destaque cultural, dica prática por país]
+### Informações Práticas
+- Moeda(s): [...]
+- Idioma(s): [...]
+- Fuso(s) horário(s): [diferença de Brasília]
+- Tomadas: [...]
+
+## DICAS ESSENCIAIS
+- [6 dicas práticas e específicas para este circuito Europamundo]
 
 Use NOMES REAIS de restaurantes e atrações. Português brasileiro. Seja específico e útil.`; // eslint-disable-line
   }
@@ -95,7 +110,9 @@ ${pkgLines.length > 0 ? `\nDados do pacote:\n${pkgLines.join("\n")}` : ""}
 ${agencia ? `\nAgência: ${agencia as string}${consultor ? " · " + (consultor as string) : ""}` : ""}
 ${cruzCtx}${ecoCtx}${ageRules}
 
-Formato OBRIGATÓRIO:
+Formato OBRIGATÓRIO — responda com esta estrutura exata de 3 blocos:
+
+## ROTEIRO
 Dia 1: [Título temático do dia]
 - [Atividade manhã com nome real do local e dica prática]
 - [Atividade tarde com nome real]
@@ -106,8 +123,19 @@ Dia 2: [Título]
 
 (Continue para TODOS os ${days as string} dias)
 
-Dicas Essenciais:
-- [4 dicas práticas e específicas sobre ${destination}]
+## GUIA DO DESTINO
+### Como Chegar
+- [aeroportos, voos do Brasil, conexões, transfer]
+### Transporte Local
+- [metrô, ônibus, táxi, apps, aluguel de carro]
+### Bairros e Atrações
+- [bairros principais e o que há em cada um]
+### Informações Essenciais
+- Moeda: [...] | Idioma: [...] | Fuso: [diferença de Brasília]
+- Tomadas: [...] | Melhor época: [...]
+
+## DICAS ESSENCIAIS
+- [4-6 dicas práticas e específicas sobre ${destination}]
 
 Use NOMES REAIS de locais, restaurantes e atrações. Português brasileiro. Seja específico e útil.`; // eslint-disable-line
 }

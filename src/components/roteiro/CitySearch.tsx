@@ -11,13 +11,9 @@ export interface DestinationItem {
 
 interface Suggestion {
   city: string;
-  state: string;
   country: string;
-  lat: number;
-  lon: number;
+  formatted: string;
 }
-
-const GKEY = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY ?? "";
 
 interface CitySearchProps {
   placeholder?: string;
@@ -34,19 +30,11 @@ export function CitySearch({ placeholder = "ex: Lisboa, Portugal", onSelect, inp
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const search = useCallback(async (q: string) => {
-    if (!GKEY || q.length < 2) { setSuggestions([]); setOpen(false); return; }
+    if (q.length < 3) { setSuggestions([]); setOpen(false); return; }
     setLoading(true);
     try {
-      const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(q)}&type=city&lang=pt&limit=6&apiKey=${GKEY}`;
-      const res = await fetch(url);
-      const json = await res.json() as { features?: Array<{ properties: Record<string, unknown> }> };
-      const items: Suggestion[] = (json.features ?? []).map(f => ({
-        city: ((f.properties.city ?? f.properties.name) as string) || "",
-        state: (f.properties.state as string) || "",
-        country: (f.properties.country as string) || "",
-        lat: (f.properties.lat as number) || 0,
-        lon: (f.properties.lon as number) || 0,
-      }));
+      const res = await fetch(`/api/roteiro/cidades?q=${encodeURIComponent(q)}`);
+      const items: Suggestion[] = await res.json();
       setSuggestions(items);
       setOpen(items.length > 0);
     } catch {
@@ -64,7 +52,7 @@ export function CitySearch({ placeholder = "ex: Lisboa, Portugal", onSelect, inp
 
   function commit(name: string, s?: Suggestion) {
     if (!name.trim()) return;
-    onSelect({ name: name.trim(), lat: s?.lat, lon: s?.lon, country: s?.country });
+    onSelect({ name: name.trim(), country: s?.country });
     setQuery("");
     setSuggestions([]);
     setOpen(false);
@@ -109,7 +97,7 @@ export function CitySearch({ placeholder = "ex: Lisboa, Portugal", onSelect, inp
           {suggestions.map((s, i) => (
             <button
               key={i}
-              onMouseDown={e => { e.preventDefault(); commit([s.city, s.country].filter(Boolean).join(", "), s); }}
+              onMouseDown={e => { e.preventDefault(); commit(s.formatted || [s.city, s.country].filter(Boolean).join(", "), s); }}
               style={{
                 width: "100%", padding: "9px 14px", textAlign: "left", background: "none",
                 border: "none", cursor: "pointer", display: "flex", flexDirection: "column", gap: 2,
@@ -119,7 +107,7 @@ export function CitySearch({ placeholder = "ex: Lisboa, Portugal", onSelect, inp
               onMouseLeave={e => (e.currentTarget.style.background = "none")}
             >
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--txt)" }}>{s.city}</span>
-              <span style={{ fontSize: 11, color: "var(--txt3)" }}>{[s.state, s.country].filter(Boolean).join(", ")}</span>
+              <span style={{ fontSize: 11, color: "var(--txt3)" }}>{s.country}</span>
             </button>
           ))}
         </div>

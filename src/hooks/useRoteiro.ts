@@ -26,7 +26,7 @@ export const STYLES = [
 
 export const BUDGETS = ["Econômico", "Moderado", "Luxo", "Ultra Luxo"] as const;
 
-export type Mode = "livre" | "europamundo";
+export type Mode = "livre" | "europamundo" | "destinos";
 
 export interface CircuitLight {
   id: string;
@@ -158,6 +158,42 @@ export function buildWhatsAppText(
   }
 
   return t.trim();
+}
+
+export function splitBlocks(text: string): { roteiro: string; guia: string; dicas: string } {
+  const RE_ROTEIRO = /^## ROTEIRO[ \t]*$/im;
+  const RE_GUIA    = /^## GUIA DO DESTINO[ \t]*$/im;
+  const RE_DICAS   = /^## DICAS ESSENCIAIS[ \t]*$/im;
+
+  const rm = RE_ROTEIRO.exec(text);
+  const gm = RE_GUIA.exec(text);
+  const dm = RE_DICAS.exec(text);
+
+  if (!rm && !gm && !dm) {
+    const di = text.search(/^Dicas Essenciais[^:\n]*:/im);
+    if (di !== -1) {
+      return {
+        roteiro: text.slice(0, di).trim(),
+        guia: "",
+        dicas: text.slice(di).replace(/^Dicas Essenciais[^:\n]*:\s*/im, "").trim(),
+      };
+    }
+    return { roteiro: text, guia: "", dicas: "" };
+  }
+
+  type Section = { name: "roteiro" | "guia" | "dicas"; start: number; contentStart: number };
+  const sections: Section[] = [];
+  if (rm) { const le = text.indexOf("\n", rm.index); sections.push({ name: "roteiro", start: rm.index, contentStart: le + 1 }); }
+  if (gm) { const le = text.indexOf("\n", gm.index); sections.push({ name: "guia", start: gm.index, contentStart: le + 1 }); }
+  if (dm) { const le = text.indexOf("\n", dm.index); sections.push({ name: "dicas", start: dm.index, contentStart: le + 1 }); }
+  sections.sort((a, b) => a.start - b.start);
+
+  const result: { roteiro: string; guia: string; dicas: string } = { roteiro: "", guia: "", dicas: "" };
+  sections.forEach((sec, i) => {
+    const end = i + 1 < sections.length ? sections[i + 1].start : text.length;
+    result[sec.name] = text.slice(sec.contentStart, end).trim();
+  });
+  return result;
 }
 
 // ── HOOK ──────────────────────────────────────────────────────────────────────

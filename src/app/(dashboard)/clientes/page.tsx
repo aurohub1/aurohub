@@ -1605,6 +1605,13 @@ function Field({ label, value, onChange, placeholder, type }: { label: string; v
 
 /* ── Painel de Features ──────────────────────────── */
 
+const FEATURE_GROUPS: { label: string; features: Feature[] }[] = [
+  { label: "Publicação",  features: ["publicar", "agendamento", "feed", "reels", "tv"] },
+  { label: "Ferramentas", features: ["metricas", "resumo", "ia_legenda", "calendario", "roteiro", "lembretes"] },
+  { label: "Add-ons",     features: ["card_whatsapp", "musica", "lamina", "europamundo", "chat"] },
+  { label: "Gestão",      features: ["unidades", "usuarios", "vendedores", "templates"] },
+];
+
 function FeaturesPanel({
   planSlug,
   plans,
@@ -1644,80 +1651,88 @@ function FeaturesPanel({
         O botão <span className="font-bold">Default</span> remove a override e volta ao plano.
       </div>
 
-      <div className="flex flex-col gap-2">
-        {ALL_FEATURES.map((f) => {
-          const def = defaults.has(f);
-          const override = overrides[f];
-          const effective = override === undefined ? def : override;
-          return (
-            <div
-              key={f}
-              className="flex items-center justify-between gap-3 rounded-lg border border-[var(--bdr)] px-3 py-2.5"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-[13px] font-semibold text-[var(--txt)]">
-                    {FEATURE_LABELS[f]}
-                  </span>
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase"
-                    style={
-                      effective
-                        ? { background: "var(--green3)", color: "var(--green)" }
-                        : { background: "var(--red3)", color: "var(--red)" }
-                    }
-                  >
-                    {effective ? "ON" : "OFF"}
-                  </span>
-                  {override !== undefined && (
-                    <span className="rounded-full bg-[var(--blue3)] px-2 py-0.5 text-[9px] font-bold uppercase text-[var(--blue)]">
-                      Override
-                    </span>
-                  )}
+      {FEATURE_GROUPS.map((group, gi) => (
+        <div key={group.label}>
+          {gi > 0 && <div className="my-1 border-t border-[var(--bdr)]" />}
+          <div className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-widest text-[var(--txt3)]">
+            {group.label}
+          </div>
+          <div className="flex flex-col gap-2">
+            {group.features.map((f) => {
+              const def = defaults.has(f);
+              const override = overrides[f];
+              const effective = override === undefined ? def : override;
+              return (
+                <div
+                  key={f}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-[var(--bdr)] px-3 py-2.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-[13px] font-semibold text-[var(--txt)]">
+                        {FEATURE_LABELS[f]}
+                      </span>
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase"
+                        style={
+                          effective
+                            ? { background: "var(--green3)", color: "var(--green)" }
+                            : { background: "var(--red3)", color: "var(--red)" }
+                        }
+                      >
+                        {effective ? "ON" : "OFF"}
+                      </span>
+                      {override !== undefined && (
+                        <span className="rounded-full bg-[var(--blue3)] px-2 py-0.5 text-[9px] font-bold uppercase text-[var(--blue)]">
+                          Override
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-[var(--txt3)]">
+                      Padrão do plano: {def ? "Ativo" : "Inativo"} · Código: <code>{f}</code>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setFeature(f, true)}
+                      className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        override === true
+                          ? "border-[var(--green)] bg-[var(--green3)] text-[var(--green)]"
+                          : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt2)]"
+                      }`}
+                    >
+                      Ativar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFeature(f, false)}
+                      className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        override === false
+                          ? "border-[var(--red)] bg-[var(--red3)] text-[var(--red)]"
+                          : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt2)]"
+                      }`}
+                    >
+                      Bloquear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFeature(f, undefined)}
+                      className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        override === undefined
+                          ? "border-[var(--txt2)] text-[var(--txt)]"
+                          : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt2)]"
+                      }`}
+                    >
+                      Default
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-0.5 text-[10px] text-[var(--txt3)]">
-                  Padrão do plano: {def ? "Ativo" : "Inativo"} · Código: <code>{f}</code>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setFeature(f, true)}
-                  className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                    override === true
-                      ? "border-[var(--green)] bg-[var(--green3)] text-[var(--green)]"
-                      : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt2)]"
-                  }`}
-                >
-                  Ativar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFeature(f, false)}
-                  className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                    override === false
-                      ? "border-[var(--red)] bg-[var(--red3)] text-[var(--red)]"
-                      : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt2)]"
-                  }`}
-                >
-                  Bloquear
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFeature(f, undefined)}
-                  className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                    override === undefined
-                      ? "border-[var(--txt2)] text-[var(--txt)]"
-                      : "border-[var(--bdr)] text-[var(--txt3)] hover:text-[var(--txt2)]"
-                  }`}
-                >
-                  Default
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
 import {
-  useRoteiro, STYLES, BUDGETS, buildWhatsAppText, parseItinerary,
+  useRoteiro, STYLES, BUDGETS, buildWhatsAppText, parseItinerary, splitBlocks,
   type FormData, type PackageData,
 } from "@/hooks/useRoteiro";
 import { CitySearch } from "@/components/roteiro/CitySearch";
@@ -161,7 +161,7 @@ function StepModo({ r, hasEuropamundo }: { r: ReturnType<typeof useRoteiro>; has
     }, 400);
   }
 
-  const canNext = r.mode === "livre" || (r.mode === "europamundo" && r.selectedCircuit !== null);
+  const canNext = r.mode === "livre" || r.mode === "destinos" || (r.mode === "europamundo" && r.selectedCircuit !== null);
 
   function handleNext() {
     if (r.mode === "europamundo" && r.selectedCircuit) {
@@ -172,8 +172,8 @@ function StepModo({ r, hasEuropamundo }: { r: ReturnType<typeof useRoteiro>; has
   }
 
   return (
-    <div style={{ maxWidth: 720 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+    <div style={{ maxWidth: 960 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
         {/* Roteiro Livre */}
         <button
           onClick={() => r.setMode("livre")}
@@ -252,6 +252,34 @@ function StepModo({ r, hasEuropamundo }: { r: ReturnType<typeof useRoteiro>; has
             </div>
           </div>
         )}
+
+        {/* Roteiro por Destinos */}
+        <button
+          onClick={() => r.setMode("destinos")}
+          style={{
+            ...card, cursor: "pointer", textAlign: "left", border: "2px solid",
+            borderColor: r.mode === "destinos" ? "#8B5CF6" : "var(--bdr)",
+            background: r.mode === "destinos" ? "rgba(139,92,246,0.07)" : "var(--bg1)",
+            transition: "all 0.15s",
+          }}
+        >
+          <div style={{ marginBottom: 10 }}>
+            <svg viewBox="0 0 20 20" fill="none" style={{ width: 32, height: 32 }}>
+              <path d="M5 2a3 3 0 00-3 3c0 2.5 3 7 3 7s3-4.5 3-7a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+              <circle cx="5" cy="5" r="1.2" fill="currentColor"/>
+              <path d="M15 2a3 3 0 00-3 3c0 2.5 3 7 3 7s3-4.5 3-7a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+              <circle cx="15" cy="5" r="1.2" fill="currentColor"/>
+              <path d="M5 8.5c2 2.5 8 2.5 10 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="2 1.5"/>
+            </svg>
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--txt)", marginBottom: 6 }}>Roteiro por Destinos</div>
+          <div style={{ fontSize: 12, color: "var(--txt3)", lineHeight: 1.6 }}>
+            Escolha as cidades do roteiro ponto a ponto, com dicas locais, deslocamento e pontos turísticos.
+          </div>
+          {r.mode === "destinos" && (
+            <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "#8B5CF6" }}>✓ Selecionado</div>
+          )}
+        </button>
       </div>
 
       {/* Busca de circuito */}
@@ -340,7 +368,9 @@ function StepForm({ r, fileRef, onDrop }: {
   fileRef: React.RefObject<HTMLInputElement | null>;
   onDrop: (e: React.DragEvent) => void;
 }) {
-  const canNext = r.form.destinations.length > 0 && !!r.form.destinations[0]?.name.trim() && !!r.form.days && !!r.form.travelers;
+  const canNext = r.mode === "destinos"
+    ? r.form.destinations.length >= 2 && !!r.form.days && !!r.form.travelers
+    : r.form.destinations.length > 0 && !!r.form.destinations[0]?.name.trim() && !!r.form.days && !!r.form.travelers;
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 20 }}>
@@ -417,57 +447,107 @@ function StepForm({ r, fileRef, onDrop }: {
 
       {/* Form fields */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={card}>
-          <label style={label12}>
-            Destino{r.form.destinations.length > 1 ? "s" : ""}
-            {r.isAuto("destination") && <span style={{ marginLeft: 6, color: "var(--orange)", fontSize: 9 }}>●AUTO</span>}
-          </label>
-
-          {/* Breadcrumb */}
-          {r.form.destinations.length > 1 && (
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4, marginBottom: 8 }}>
+        {r.mode === "destinos" ? (
+          /* ── Multi-stop builder (Roteiro por Destinos) ── */
+          <div style={card}>
+            <label style={label12}>Pontos do roteiro</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {r.form.destinations.map((d, i) => (
-                <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontSize: 12, color: "var(--txt2)", fontWeight: 600 }}>{d.name}</span>
-                  {i < r.form.destinations.length - 1 && <span style={{ color: "var(--orange)", fontSize: 12 }}>→</span>}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Destination list */}
-          {r.form.destinations.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 8 }}>
-              {r.form.destinations.map((d, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ fontSize: 11, color: "var(--txt3)", minWidth: 16, flexShrink: 0 }}>{i + 1}.</span>
-                  <div style={{ flex: 1, height: 32, padding: "0 10px", display: "flex", alignItems: "center", background: "var(--bg2)", border: `1px solid ${r.isAuto("destination") && i === 0 ? "var(--orange)" : "var(--bdr)"}`, borderRadius: 8, fontSize: 13, color: "var(--txt)" }}>
-                    {d.name}
+                <div key={i}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {/* Pin label */}
+                    <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff", background: i === 0 ? "#8B5CF6" : i === r.form.destinations.length - 1 ? "#ef4444" : "#6366F1" }}>
+                      {String.fromCharCode(65 + i)}
+                    </div>
+                    <div style={{ flex: 1, height: 32, padding: "0 10px", display: "flex", alignItems: "center", background: "var(--bg2)", border: "1px solid var(--bdr)", borderRadius: 8, fontSize: 13, color: "var(--txt)" }}>
+                      {d.name}
+                    </div>
+                    {r.form.destinations.length > 1 && (
+                      <button onClick={() => r.setF("destinations", r.form.destinations.filter((_, j) => j !== i))}
+                        style={{ padding: "2px 6px", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 16, lineHeight: 1, flexShrink: 0 }} title="Remover">×</button>
+                    )}
                   </div>
-                  {i > 0 && (
-                    <button onClick={() => { const a = [...r.form.destinations]; [a[i-1], a[i]] = [a[i], a[i-1]]; r.setF("destinations", a); }}
-                      style={{ padding: "2px 5px", background: "none", border: "none", cursor: "pointer", color: "var(--txt3)", fontSize: 13, lineHeight: 1 }} title="Mover para cima">↑</button>
-                  )}
+                  {/* Vertical connector */}
                   {i < r.form.destinations.length - 1 && (
-                    <button onClick={() => { const a = [...r.form.destinations]; [a[i], a[i+1]] = [a[i+1], a[i]]; r.setF("destinations", a); }}
-                      style={{ padding: "2px 5px", background: "none", border: "none", cursor: "pointer", color: "var(--txt3)", fontSize: 13, lineHeight: 1 }} title="Mover para baixo">↓</button>
+                    <div style={{ marginLeft: 10, width: 2, height: 8, background: "var(--bdr)" }} />
                   )}
-                  <button onClick={() => r.setF("destinations", r.form.destinations.filter((_, j) => j !== i))}
-                    style={{ padding: "2px 5px", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 15, lineHeight: 1 }} title="Remover">×</button>
                 </div>
               ))}
-            </div>
-          )}
 
-          {/* City search input */}
-          {r.form.destinations.length < 10 && (
-            <CitySearch
-              placeholder={r.form.destinations.length === 0 ? "ex: Lisboa, Portugal" : "+ Adicionar destino"}
-              onSelect={d => r.setF("destinations", [...r.form.destinations, d])}
-              inputStyle={r.isAuto("destination") && r.form.destinations.length === 0 ? inpAuto : inp}
-            />
-          )}
-        </div>
+              {/* Add next stop */}
+              {r.form.destinations.length < 10 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: r.form.destinations.length > 0 ? 2 : 0 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", border: "2px dashed var(--bdr)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--txt3)", fontSize: 16, lineHeight: 1 }}>+</div>
+                  <div style={{ flex: 1 }}>
+                    <CitySearch
+                      placeholder={r.form.destinations.length === 0 ? "Cidade de partida (A)..." : `+ Ponto ${String.fromCharCode(65 + r.form.destinations.length)}...`}
+                      onSelect={d => r.setF("destinations", [...r.form.destinations, d])}
+                      inputStyle={inp}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            {r.form.destinations.length < 2 && (
+              <div style={{ fontSize: 11, color: "var(--txt3)", marginTop: 8, paddingLeft: 30 }}>
+                Adicione pelo menos 2 cidades para continuar.
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ── Destino único / livre ── */
+          <div style={card}>
+            <label style={label12}>
+              Destino{r.form.destinations.length > 1 ? "s" : ""}
+              {r.isAuto("destination") && <span style={{ marginLeft: 6, color: "var(--orange)", fontSize: 9 }}>●AUTO</span>}
+            </label>
+
+            {/* Breadcrumb */}
+            {r.form.destinations.length > 1 && (
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                {r.form.destinations.map((d, i) => (
+                  <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 12, color: "var(--txt2)", fontWeight: 600 }}>{d.name}</span>
+                    {i < r.form.destinations.length - 1 && <span style={{ color: "var(--orange)", fontSize: 12 }}>→</span>}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Destination list */}
+            {r.form.destinations.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 8 }}>
+                {r.form.destinations.map((d, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: 11, color: "var(--txt3)", minWidth: 16, flexShrink: 0 }}>{i + 1}.</span>
+                    <div style={{ flex: 1, height: 32, padding: "0 10px", display: "flex", alignItems: "center", background: "var(--bg2)", border: `1px solid ${r.isAuto("destination") && i === 0 ? "var(--orange)" : "var(--bdr)"}`, borderRadius: 8, fontSize: 13, color: "var(--txt)" }}>
+                      {d.name}
+                    </div>
+                    {i > 0 && (
+                      <button onClick={() => { const a = [...r.form.destinations]; [a[i-1], a[i]] = [a[i], a[i-1]]; r.setF("destinations", a); }}
+                        style={{ padding: "2px 5px", background: "none", border: "none", cursor: "pointer", color: "var(--txt3)", fontSize: 13, lineHeight: 1 }} title="Mover para cima">↑</button>
+                    )}
+                    {i < r.form.destinations.length - 1 && (
+                      <button onClick={() => { const a = [...r.form.destinations]; [a[i], a[i+1]] = [a[i+1], a[i]]; r.setF("destinations", a); }}
+                        style={{ padding: "2px 5px", background: "none", border: "none", cursor: "pointer", color: "var(--txt3)", fontSize: 13, lineHeight: 1 }} title="Mover para baixo">↓</button>
+                    )}
+                    <button onClick={() => r.setF("destinations", r.form.destinations.filter((_, j) => j !== i))}
+                      style={{ padding: "2px 5px", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 15, lineHeight: 1 }} title="Remover">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* City search input */}
+            {r.form.destinations.length < 10 && (
+              <CitySearch
+                placeholder={r.form.destinations.length === 0 ? "ex: Lisboa, Portugal" : "+ Adicionar destino"}
+                onSelect={d => r.setF("destinations", [...r.form.destinations, d])}
+                inputStyle={r.isAuto("destination") && r.form.destinations.length === 0 ? inpAuto : inp}
+              />
+            )}
+          </div>
+        )}
 
         <div style={card}>
           <div style={row2}>
@@ -691,9 +771,11 @@ function StepGenerating({ r }: { r: ReturnType<typeof useRoteiro> }) {
 function StepResult({ r, storeInfo }: { r: ReturnType<typeof useRoteiro>; storeInfo: StoreInfo | null }) {
   const [editMode, setEditMode] = useState(false);
   const [editedText, setEditedText] = useState(r.streamText);
+  const [resultTab, setResultTab] = useState<"roteiro" | "guia" | "dicas">("roteiro");
 
+  const blocks = splitBlocks(editedText);
   // Re-parse after edits so all outputs stay in sync with edited content
-  const editedParsed = parseItinerary(editedText) ?? r.parsed ?? [];
+  const editedParsed = parseItinerary(blocks.roteiro) ?? r.parsed ?? [];
   const destStr = r.form.destinations.map(d => d.name).join(" → ");
   const waText = buildWhatsAppText(r.form, r.pkg, editedParsed.length ? editedParsed : null, r.pkg.agencia);
 
@@ -833,48 +915,96 @@ function StepResult({ r, storeInfo }: { r: ReturnType<typeof useRoteiro>; storeI
           />
         </div>
       ) : (
-        /* View mode — sidebar + day content */
-        <div style={{ display: "grid", gridTemplateColumns: days.length > 0 ? "180px 1fr" : "1fr", gap: 16 }}>
-          {days.length > 0 && (
-            <div className="no-print" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {days.map((d, i) => (
-                <button key={i} onClick={() => r.setActiveDay(i)} style={{
-                  padding: "8px 12px", borderRadius: 10, border: "1.5px solid",
-                  borderColor: r.activeDay === i ? "var(--orange)" : "var(--bdr)",
-                  background: r.activeDay === i ? "rgba(255,122,26,0.1)" : "var(--bg2)",
-                  color: r.activeDay === i ? "var(--orange)" : "var(--txt2)",
-                  fontSize: 11, fontWeight: r.activeDay === i ? 700 : 500,
-                  textAlign: "left", cursor: "pointer", transition: "all 0.15s", lineHeight: 1.4,
-                }}>
-                  {d.title.length > 36 ? d.title.slice(0, 33) + "…" : d.title}
-                </button>
-              ))}
+        /* View mode — tabs */
+        <>
+          <div className="no-print" style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--bdr)", marginBottom: 16 }}>
+            {(["roteiro", "guia", "dicas"] as const).map((tab, i) => {
+              const labels = ["Roteiro", "Guia do Destino", "Dicas Essenciais"];
+              return (
+                <button key={tab} onClick={() => setResultTab(tab)} style={{
+                  padding: "9px 18px", fontSize: 13, fontWeight: 600, background: "none",
+                  border: "none", cursor: "pointer", transition: "all 0.15s",
+                  borderBottom: resultTab === tab ? "2px solid var(--orange)" : "2px solid transparent",
+                  color: resultTab === tab ? "var(--orange)" : "var(--txt2)", marginBottom: -1,
+                }}>{labels[i]}</button>
+              );
+            })}
+          </div>
+
+          {resultTab === "roteiro" && (
+            <div style={{ display: "grid", gridTemplateColumns: days.length > 0 ? "180px 1fr" : "1fr", gap: 16 }}>
+              {days.length > 0 && (
+                <div className="no-print" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {days.map((d, i) => (
+                    <button key={i} onClick={() => r.setActiveDay(i)} style={{
+                      padding: "8px 12px", borderRadius: 10, border: "1.5px solid",
+                      borderColor: r.activeDay === i ? "var(--orange)" : "var(--bdr)",
+                      background: r.activeDay === i ? "rgba(255,122,26,0.1)" : "var(--bg2)",
+                      color: r.activeDay === i ? "var(--orange)" : "var(--txt2)",
+                      fontSize: 11, fontWeight: r.activeDay === i ? 700 : 500,
+                      textAlign: "left", cursor: "pointer", transition: "all 0.15s", lineHeight: 1.4,
+                    }}>
+                      {d.title.length > 36 ? d.title.slice(0, 33) + "…" : d.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div style={card}>
+                {days.length > 0 && activeDay ? (
+                  <>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--orange)", margin: "0 0 14px", paddingBottom: 10, borderBottom: "1px solid var(--bdr)" }}>
+                      {activeDay.title}
+                    </h3>
+                    <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+                      {activeDay.items.map((item, j) => (
+                        <li key={j} style={{ display: "flex", gap: 8, fontSize: 13.5, color: "var(--txt2)", lineHeight: 1.7 }}>
+                          <span style={{ color: "var(--orange)", flexShrink: 0, fontWeight: 700, marginTop: 1 }}>•</span>
+                          <span dangerouslySetInnerHTML={{ __html: inlineMarkdown(item) }} />
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <div
+                    style={{ fontSize: 13.5, color: "var(--txt2)" }}
+                    dangerouslySetInnerHTML={{ __html: parseMarkdown(blocks.roteiro || editedText) }}
+                  />
+                )}
+              </div>
             </div>
           )}
-          <div style={card}>
-            {days.length > 0 && activeDay ? (
-              <>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--orange)", margin: "0 0 14px", paddingBottom: 10, borderBottom: "1px solid var(--bdr)" }}>
-                  {activeDay.title}
-                </h3>
-                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-                  {activeDay.items.map((item, j) => (
-                    <li key={j} style={{ display: "flex", gap: 8, fontSize: 13.5, color: "var(--txt2)", lineHeight: 1.7 }}>
-                      <span style={{ color: "var(--orange)", flexShrink: 0, fontWeight: 700, marginTop: 1 }}>•</span>
-                      <span dangerouslySetInnerHTML={{ __html: inlineMarkdown(item) }} />
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <div
-                style={{ fontSize: 13.5, color: "var(--txt2)" }}
-                dangerouslySetInnerHTML={{ __html: parseMarkdown(editedText) }}
-              />
-            )}
-          </div>
-        </div>
+
+          {resultTab === "guia" && (
+            <div style={card}>
+              {blocks.guia ? (
+                <div style={{ fontSize: 13.5, color: "var(--txt2)" }} dangerouslySetInnerHTML={{ __html: parseMarkdown(blocks.guia) }} />
+              ) : (
+                <div style={{ color: "var(--txt3)", fontSize: 13 }}>Guia não disponível para este roteiro.</div>
+              )}
+            </div>
+          )}
+
+          {resultTab === "dicas" && (
+            <div style={card}>
+              {blocks.dicas ? (
+                <div style={{ fontSize: 13.5, color: "var(--txt2)" }} dangerouslySetInnerHTML={{ __html: parseMarkdown(blocks.dicas) }} />
+              ) : (
+                <div style={{ color: "var(--txt3)", fontSize: 13 }}>Dicas não disponíveis.</div>
+              )}
+            </div>
+          )}
+        </>
       )}
+
+      {/* Novo roteiro — rodapé (espelha o botão do topo para não rolar) */}
+      <div className="no-print" style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--bdr)" }}>
+        <button
+          onClick={r.reset}
+          style={{ height: 40, padding: "0 20px", borderRadius: 10, border: "1.5px solid var(--bdr)", background: "var(--bg2)", color: "var(--txt2)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+        >
+          + Novo roteiro
+        </button>
+      </div>
 
       {/* Print-only content — display:none na tela, display:block !important no print via CSS */}
       <div id="roteiro-print" style={{ display: "none" }}>
@@ -952,6 +1082,23 @@ export default function RoteiroPage() {
     })();
   }, [router]);
 
+  useEffect(() => {
+    const block = (e: Event) => e.preventDefault();
+    const blockKeys = (e: KeyboardEvent) => {
+      if (
+        (e.ctrlKey && ["c","u","s","p","a"].includes(e.key.toLowerCase())) ||
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && ["i","j","c"].includes(e.key.toLowerCase()))
+      ) e.preventDefault();
+    };
+    document.addEventListener("contextmenu", block);
+    document.addEventListener("keydown", blockKeys);
+    return () => {
+      document.removeEventListener("contextmenu", block);
+      document.removeEventListener("keydown", blockKeys);
+    };
+  }, []);
+
   const r = useRoteiro();
   const fileRef = useRef<HTMLInputElement>(null);
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -963,7 +1110,7 @@ export default function RoteiroPage() {
   if (allowed === null) return <div className="text-[13px] text-[var(--txt3)]" style={{ padding: 32 }}>Carregando...</div>;
 
   return (
-    <div style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", minHeight: "100vh", userSelect: "none", WebkitUserSelect: "none" }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
