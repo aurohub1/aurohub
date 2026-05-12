@@ -36,7 +36,9 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
   const [selectedStoreIds, setSelectedStoreIds] = useState<Set<string>>(new Set());
   const [canPublish, setCanPublish]         = useState(true);
   const [canDownload, setCanDownload]       = useState(true);
-  const [roteiroEnabled, setRoteiroEnabled] = useState(false);
+  const [roteiroEnabled, setRoteiroEnabled]               = useState(false);
+  const [europamundoEnabled, setEuropamundoEnabled]       = useState(false);
+  const [roteiroDestinosEnabled, setRoteiroDestinosEnabled] = useState(false);
   const [loading, setLoading]               = useState(true);
   const [saving, setSaving]                 = useState(false);
   const [errorMsg, setErrorMsg]             = useState("");
@@ -55,10 +57,12 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
         setCanPublish(data.can_publish ?? true);
         setCanDownload(data.can_download ?? true);
       }
-      const roteiroRow = (featureRows ?? []).find(
-        (r: { feature_key: string; enabled: boolean }) => r.feature_key === "roteiro"
+      const featureMap = Object.fromEntries(
+        (featureRows ?? []).map((r: { feature_key: string; enabled: boolean }) => [r.feature_key, r.enabled])
       );
-      setRoteiroEnabled(roteiroRow?.enabled ?? false);
+      setRoteiroEnabled(featureMap["roteiro"] ?? false);
+      setEuropamundoEnabled(featureMap["europamundo"] ?? false);
+      setRoteiroDestinosEnabled(featureMap["roteiro_destinos"] ?? false);
       setLoading(false);
     })();
   }, [userId]);
@@ -107,18 +111,19 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
       : await supabase.from("user_permissions").insert(payload);
     if (error) { setSaving(false); setErrorMsg(error.message); return; }
 
-    // Salva override individual de roteiro
-    if (roteiroEnabled) {
-      await supabase
-        .from("user_feature_overrides")
-        .upsert({ user_id: userId, feature_key: "roteiro", enabled: true }, { onConflict: "user_id,feature_key" });
-    } else {
-      await supabase
-        .from("user_feature_overrides")
-        .delete()
-        .eq("user_id", userId)
-        .eq("feature_key", "roteiro");
-    }
+    // Salva overrides individuais de features de roteiro
+    const featureToggles: { key: string; enabled: boolean }[] = [
+      { key: "roteiro",          enabled: roteiroEnabled },
+      { key: "europamundo",      enabled: europamundoEnabled },
+      { key: "roteiro_destinos", enabled: roteiroDestinosEnabled },
+    ];
+    await Promise.all(featureToggles.map(({ key, enabled }) =>
+      enabled
+        ? supabase.from("user_feature_overrides")
+            .upsert({ user_id: userId, feature_key: key, enabled: true }, { onConflict: "user_id,feature_key" })
+        : supabase.from("user_feature_overrides")
+            .delete().eq("user_id", userId).eq("feature_key", key)
+    ));
 
     setSaving(false);
     onSaved();
@@ -263,6 +268,18 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
                   desc="Geração de roteiro de viagem com IA"
                   checked={roteiroEnabled}
                   onChange={setRoteiroEnabled}
+                />
+                <PermToggle
+                  label="Circuitos Europamundo"
+                  desc="Acesso aos 254 circuitos Europamundo"
+                  checked={europamundoEnabled}
+                  onChange={setEuropamundoEnabled}
+                />
+                <PermToggle
+                  label="Roteiro por Destinos"
+                  desc="Construtor de roteiro ponto a ponto"
+                  checked={roteiroDestinosEnabled}
+                  onChange={setRoteiroDestinosEnabled}
                 />
               </div>
             </div>

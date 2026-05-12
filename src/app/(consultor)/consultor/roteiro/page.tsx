@@ -149,7 +149,7 @@ function StepBar({ step }: { step: string }) {
 
 /* ── Step 0: Modo ─────────────────────────────────── */
 
-function StepModo({ r, hasEuropamundo }: { r: ReturnType<typeof useRoteiro>; hasEuropamundo: boolean }) {
+function StepModo({ r, hasEuropamundo, hasRoteiroDestinos }: { r: ReturnType<typeof useRoteiro>; hasEuropamundo: boolean; hasRoteiroDestinos: boolean }) {
   const [query, setQuery] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -173,8 +173,8 @@ function StepModo({ r, hasEuropamundo }: { r: ReturnType<typeof useRoteiro>; has
   }
 
   return (
-    <div style={{ maxWidth: 960 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
+    <div style={{ maxWidth: [hasEuropamundo, hasRoteiroDestinos].filter(Boolean).length === 2 ? 960 : [hasEuropamundo, hasRoteiroDestinos].filter(Boolean).length === 1 ? 840 : 560 }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${1 + [hasEuropamundo, hasRoteiroDestinos].filter(Boolean).length}, 1fr)`, gap: 16, marginBottom: 24 }}>
         {/* Roteiro Livre */}
         <button
           onClick={() => r.setMode("livre")}
@@ -200,8 +200,8 @@ function StepModo({ r, hasEuropamundo }: { r: ReturnType<typeof useRoteiro>; has
           )}
         </button>
 
-        {/* Circuito Europamundo */}
-        {hasEuropamundo ? (
+        {/* Circuito Europamundo — só renderiza se feature ativa */}
+        {hasEuropamundo && (
           <button
             onClick={() => r.setMode("europamundo")}
             style={{
@@ -226,61 +226,37 @@ function StepModo({ r, hasEuropamundo }: { r: ReturnType<typeof useRoteiro>; has
               <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "#3B82F6" }}>✓ Selecionado</div>
             )}
           </button>
-        ) : (
-          <div style={{
-            ...card, textAlign: "left", border: "2px solid var(--bdr)",
-            background: "var(--bg1)", opacity: 0.6, cursor: "default", position: "relative",
-          }}>
-            <div style={{ position: "absolute", top: 10, right: 10 }}>
-              <svg viewBox="0 0 20 20" fill="none" style={{ width: 14, height: 14 }}>
-                <rect x="4" y="9" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M7 9V6a3 3 0 016 0v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <svg viewBox="0 0 20 20" fill="none" style={{ width: 32, height: 32 }}>
-                <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M10 3c-2 2.5-3 4.5-3 7s1 4.5 3 7M10 3c2 2.5 3 4.5 3 7s-1 4.5-3 7M3 10h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M4.5 6.5c1.5.7 3.4 1.1 5.5 1.1s4-.4 5.5-1.1M4.5 13.5c1.5-.7 3.4-1.1 5.5-1.1s4 .4 5.5 1.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--txt)", marginBottom: 6 }}>Circuito Europamundo</div>
-            <div style={{ fontSize: 12, color: "var(--txt3)", lineHeight: 1.6 }}>
-              Selecione um dos 254 circuitos Europamundo. O roteiro será gerado com base no itinerário oficial.
-            </div>
-            <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "var(--txt3)" }}>
-              Disponível mediante contratação
-            </div>
-          </div>
         )}
 
-        {/* Roteiro por Destinos */}
-        <button
-          onClick={() => r.setMode("destinos")}
-          style={{
-            ...card, cursor: "pointer", textAlign: "left", border: "2px solid",
-            borderColor: r.mode === "destinos" ? "#8B5CF6" : "var(--bdr)",
-            background: r.mode === "destinos" ? "rgba(139,92,246,0.07)" : "var(--bg1)",
-            transition: "all 0.15s",
-          }}
-        >
-          <div style={{ marginBottom: 10 }}>
-            <svg viewBox="0 0 20 20" fill="none" style={{ width: 32, height: 32 }}>
-              <path d="M5 2a3 3 0 00-3 3c0 2.5 3 7 3 7s3-4.5 3-7a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-              <circle cx="5" cy="5" r="1.2" fill="currentColor"/>
-              <path d="M15 2a3 3 0 00-3 3c0 2.5 3 7 3 7s3-4.5 3-7a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-              <circle cx="15" cy="5" r="1.2" fill="currentColor"/>
-              <path d="M5 8.5c2 2.5 8 2.5 10 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="2 1.5"/>
-            </svg>
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--txt)", marginBottom: 6 }}>Roteiro por Destinos</div>
-          <div style={{ fontSize: 12, color: "var(--txt3)", lineHeight: 1.6 }}>
-            Escolha as cidades do roteiro ponto a ponto, com dicas locais, deslocamento e pontos turísticos.
-          </div>
-          {r.mode === "destinos" && (
-            <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "#8B5CF6" }}>✓ Selecionado</div>
-          )}
-        </button>
+        {/* Roteiro por Destinos — só renderiza se feature ativa */}
+        {hasRoteiroDestinos && (
+          <button
+            onClick={() => r.setMode("destinos")}
+            style={{
+              ...card, cursor: "pointer", textAlign: "left", border: "2px solid",
+              borderColor: r.mode === "destinos" ? "#8B5CF6" : "var(--bdr)",
+              background: r.mode === "destinos" ? "rgba(139,92,246,0.07)" : "var(--bg1)",
+              transition: "all 0.15s",
+            }}
+          >
+            <div style={{ marginBottom: 10 }}>
+              <svg viewBox="0 0 20 20" fill="none" style={{ width: 32, height: 32 }}>
+                <path d="M5 2a3 3 0 00-3 3c0 2.5 3 7 3 7s3-4.5 3-7a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                <circle cx="5" cy="5" r="1.2" fill="currentColor"/>
+                <path d="M15 2a3 3 0 00-3 3c0 2.5 3 7 3 7s3-4.5 3-7a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                <circle cx="15" cy="5" r="1.2" fill="currentColor"/>
+                <path d="M5 8.5c2 2.5 8 2.5 10 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="2 1.5"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--txt)", marginBottom: 6 }}>Roteiro por Destinos</div>
+            <div style={{ fontSize: 12, color: "var(--txt3)", lineHeight: 1.6 }}>
+              Escolha as cidades do roteiro ponto a ponto, com dicas locais, deslocamento e pontos turísticos.
+            </div>
+            {r.mode === "destinos" && (
+              <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "#8B5CF6" }}>✓ Selecionado</div>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Busca de circuito */}
@@ -1056,6 +1032,7 @@ export default function RoteiroPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
   const [hasEuropamundo, setHasEuropamundo] = useState(false);
+  const [hasRoteiroDestinos, setHasRoteiroDestinos] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -1068,8 +1045,10 @@ export default function RoteiroPage() {
           return;
         }
         setHasEuropamundo(feats.has("europamundo"));
+        setHasRoteiroDestinos(feats.has("roteiro_destinos"));
       } else {
         setHasEuropamundo(true);
+        setHasRoteiroDestinos(true);
       }
       setAllowed(true);
       if (p.store_id) {
@@ -1113,7 +1092,7 @@ export default function RoteiroPage() {
 
       <StepBar step={r.step} />
 
-      {r.step === "modo" && <StepModo r={r} hasEuropamundo={hasEuropamundo} />}
+      {r.step === "modo" && <StepModo r={r} hasEuropamundo={hasEuropamundo} hasRoteiroDestinos={hasRoteiroDestinos} />}
       {r.step === "form" && <StepForm r={r} fileRef={fileRef} onDrop={handleDrop} />}
       {r.step === "pkg" && <StepPackage r={r} />}
       {r.step === "generating" && <StepGenerating r={r} />}
