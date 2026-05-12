@@ -39,7 +39,7 @@ interface PlanFull {
   max_users: number;
 }
 
-type ClienteRole = "unidade" | "vendedor";
+type ClienteRole = "unidade" | "vendedor" | "gerente";
 
 interface UserForm {
   name: string;
@@ -57,6 +57,7 @@ const ROLE_META: Record<string, { label: string; color: string; bg: string }> = 
   cliente:  { label: "Cliente",  color: "#3B82F6", bg: "rgba(59,130,246,0.15)" },
   unidade:  { label: "Unidade",  color: "#22C55E", bg: "rgba(34,197,94,0.15)" },
   vendedor: { label: "Consultor", color: "#A78BFA", bg: "rgba(167,139,250,0.15)" },
+  gerente:  { label: "Gerente",  color: "#F97316", bg: "rgba(249,115,22,0.15)" },
 };
 
 function roleMeta(r: string) {
@@ -152,16 +153,6 @@ export default function ClienteUsuariosPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  // Defesa: se por qualquer razão `editing` for setado com role fora do escopo
-  // (cliente/adm/gerente/etc), fecha imediatamente. Antes o código coagia para "vendedor"
-  // silenciosamente e corrompia o DB no save.
-  useEffect(() => {
-    if (editing && editing.role !== "unidade" && editing.role !== "vendedor") {
-      alert("Este usuário não pode ser editado pela Central do Cliente. Contate o ADM.");
-      setEditing(null);
-    }
-  }, [editing]);
 
   const storeMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -473,7 +464,7 @@ export default function ClienteUsuariosPage() {
       </button>
 
       {/* ═══ MODAL EDITAR ═══ */}
-      {editing && (editing.role === "unidade" || editing.role === "vendedor") && (
+      {editing && editing.role !== "adm" && editing.role !== "cliente" && (
         <UserFormModal
           title="Editar usuário"
           stores={stores}
@@ -482,7 +473,7 @@ export default function ClienteUsuariosPage() {
             name: editing.name ?? "",
             email: editing.email ?? "",
             password: "",
-            role: editing.role as ClienteRole,
+            role: (["unidade", "vendedor", "gerente"].includes(editing.role) ? editing.role : "vendedor") as ClienteRole,
             store_id: editing.store_id ?? "",
             status: editing.status,
           }}
@@ -683,6 +674,12 @@ function UserFormModal({
               label="Consultor"
               color="#A78BFA"
               onClick={() => setForm({ ...form, role: "vendedor" })}
+            />
+            <RolePill
+              active={form.role === "gerente"}
+              label="Gerente"
+              color="#F97316"
+              onClick={() => setForm({ ...form, role: "gerente" })}
             />
           </div>
         </Field>

@@ -36,6 +36,7 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
   const [selectedStoreIds, setSelectedStoreIds] = useState<Set<string>>(new Set());
   const [canPublish, setCanPublish]         = useState(true);
   const [canDownload, setCanDownload]       = useState(true);
+  const [agendamentoEnabled, setAgendamentoEnabled]       = useState(false);
   const [roteiroEnabled, setRoteiroEnabled]               = useState(false);
   const [europamundoEnabled, setEuropamundoEnabled]       = useState(false);
   const [roteiroDestinosEnabled, setRoteiroDestinosEnabled] = useState(false);
@@ -60,6 +61,7 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
       const featureMap = Object.fromEntries(
         (featureRows ?? []).map((r: { feature_key: string; enabled: boolean }) => [r.feature_key, r.enabled])
       );
+      setAgendamentoEnabled(featureMap["agendamento"] ?? false);
       setRoteiroEnabled(featureMap["roteiro"] ?? false);
       setEuropamundoEnabled(featureMap["europamundo"] ?? false);
       setRoteiroDestinosEnabled(featureMap["roteiro_destinos"] ?? false);
@@ -111,8 +113,8 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
       : await supabase.from("user_permissions").insert(payload);
     if (error) { setSaving(false); setErrorMsg(error.message); return; }
 
-    // Salva overrides individuais de features de roteiro
     const featureToggles: { key: string; enabled: boolean }[] = [
+      { key: "agendamento",      enabled: agendamentoEnabled },
       { key: "roteiro",          enabled: roteiroEnabled },
       { key: "europamundo",      enabled: europamundoEnabled },
       { key: "roteiro_destinos", enabled: roteiroDestinosEnabled },
@@ -260,6 +262,12 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
             <div>
               <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Módulos</div>
               <div className="flex flex-col gap-2">
+                <PermToggle
+                  label="Agendamento"
+                  desc="Calendário de agendamento de postagens"
+                  checked={agendamentoEnabled}
+                  onChange={setAgendamentoEnabled}
+                />
                 <PermToggle
                   label="AuroRoteiro"
                   desc="Geração de roteiro de viagem com IA"

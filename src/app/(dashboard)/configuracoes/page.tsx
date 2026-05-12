@@ -242,7 +242,8 @@ export default function ConfiguracoesPage() {
     if (!confirm("Resetar tour para TODOS os usuários?")) return;
     setTourAction("reset");
     try {
-      await supabase.from("profiles").update({ tour_pages: [] }).neq("id", "00000000-0000-0000-0000-000000000000");
+      const { error } = await supabase.from("profiles").update({ tour_pages: [] }).neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) { alert("Erro ao resetar tour: " + error.message); return; }
       await loadTourStats();
     } finally {
       setTourAction(null);
@@ -253,12 +254,8 @@ export default function ConfiguracoesPage() {
     if (!confirm("Desativar tour para TODOS os usuários?")) return;
     setTourAction("disable");
     try {
-      const res = await fetch("/api/admin/tour-disable", { method: "POST" });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        alert("Erro ao desativar tour: " + (body.error ?? res.status));
-        return;
-      }
+      const { error } = await supabase.from("profiles").update({ tour_pages: ["desativado"] }).neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) { alert("Erro ao desativar tour: " + error.message); return; }
       await loadTourStats();
     } finally {
       setTourAction(null);
@@ -269,7 +266,8 @@ export default function ConfiguracoesPage() {
     if (!confirm("Reativar tour para TODOS os usuários?")) return;
     setTourAction("reativar");
     try {
-      await supabase.from("profiles").update({ tour_pages: [] }).neq("id", "00000000-0000-0000-0000-000000000000");
+      const { error } = await supabase.from("profiles").update({ tour_pages: [] }).neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) { alert("Erro ao reativar tour: " + error.message); return; }
       await loadTourStats();
     } finally {
       setTourAction(null);
