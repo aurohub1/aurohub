@@ -204,8 +204,8 @@ export function TemplateCard({
             <span
               className="text-[9px] font-semibold uppercase"
               style={{
-                background: activeStatus === "active" ? "#dcfce7" : "#fee2e2",
-                color: activeStatus === "active" ? "#16a34a" : "#dc2626",
+                background: activeStatus === "active" ? "#22c55e" : "#ef4444",
+                color: "#fff",
                 padding: "2px 6px",
                 borderRadius: "4px",
               }}
@@ -308,7 +308,7 @@ export function TemplateCard({
             onClick={() => onSetActive(t.key)}
             onMouseEnter={() => setTooltip(activeStatus === "active" ? "Desativar" : "Ativar")}
             onMouseLeave={() => setTooltip(null)}
-            className={`flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors ${activeStatus === "active" ? "hover:bg-[rgba(239,68,68,0.10)] hover:text-[#ef4444]" : "hover:bg-[rgba(22,163,74,0.10)] hover:text-[#16a34a]"}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${activeStatus === "active" ? "text-[#16a34a] hover:bg-[rgba(239,68,68,0.10)] hover:text-[#ef4444]" : "text-[#ef4444] hover:bg-[rgba(22,163,74,0.10)] hover:text-[#16a34a]"}`}
           >
             <CheckCircle size={15} />
           </button>
@@ -373,6 +373,7 @@ function getTypeColor(formType: string): string {
     cruzeiro: "#0891b2",
     anoiteceu: "#4f46e5",
     card_whatsapp: "#16a34a",
+    lamina: "#d97706",
   };
   return colors[formType] || "#64748b";
 }
@@ -385,6 +386,7 @@ function formatTypeLabel(formType: string): string {
     cruzeiro: "Cruzeiro",
     anoiteceu: "Anoiteceu",
     card_whatsapp: "WhatsApp",
+    lamina: "Lâmina",
   };
   return labels[formType] || formType;
 }

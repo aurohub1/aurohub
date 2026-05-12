@@ -9,6 +9,16 @@ import {
   useRoteiro, STYLES, BUDGETS, buildWhatsAppText, parseItinerary,
   type FormData, type PackageData,
 } from "@/hooks/useRoteiro";
+import { CitySearch } from "@/components/roteiro/CitySearch";
+
+interface StoreInfo {
+  nome_comercial?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+  site?: string | null;
+  logo_url?: string | null;
+  name?: string | null;
+}
 
 /* ── Helpers ─────────────────────────────────────── */
 
@@ -138,7 +148,7 @@ function StepBar({ step }: { step: string }) {
 
 /* ── Step 0: Modo ─────────────────────────────────── */
 
-function StepModo({ r }: { r: ReturnType<typeof useRoteiro> }) {
+function StepModo({ r, hasEuropamundo }: { r: ReturnType<typeof useRoteiro>; hasEuropamundo: boolean }) {
   const [query, setQuery] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -155,7 +165,7 @@ function StepModo({ r }: { r: ReturnType<typeof useRoteiro> }) {
 
   function handleNext() {
     if (r.mode === "europamundo" && r.selectedCircuit) {
-      r.setF("destination", r.selectedCircuit.cities || r.selectedCircuit.name);
+      r.setF("destinations", [{ name: r.selectedCircuit.cities || r.selectedCircuit.name }]);
       r.setF("days", String(r.selectedCircuit.days));
     }
     r.setStep("form");
@@ -190,30 +200,58 @@ function StepModo({ r }: { r: ReturnType<typeof useRoteiro> }) {
         </button>
 
         {/* Circuito Europamundo */}
-        <button
-          onClick={() => r.setMode("europamundo")}
-          style={{
-            ...card, cursor: "pointer", textAlign: "left", border: "2px solid",
-            borderColor: r.mode === "europamundo" ? "#3B82F6" : "var(--bdr)",
-            background: r.mode === "europamundo" ? "rgba(59,130,246,0.07)" : "var(--bg1)",
-            transition: "all 0.15s",
-          }}
-        >
-          <div style={{ marginBottom: 10 }}>
-            <svg viewBox="0 0 20 20" fill="none" style={{ width: 32, height: 32 }}>
-              <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M10 3c-2 2.5-3 4.5-3 7s1 4.5 3 7M10 3c2 2.5 3 4.5 3 7s-1 4.5-3 7M3 10h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M4.5 6.5c1.5.7 3.4 1.1 5.5 1.1s4-.4 5.5-1.1M4.5 13.5c1.5-.7 3.4-1.1 5.5-1.1s4 .4 5.5 1.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
+        {hasEuropamundo ? (
+          <button
+            onClick={() => r.setMode("europamundo")}
+            style={{
+              ...card, cursor: "pointer", textAlign: "left", border: "2px solid",
+              borderColor: r.mode === "europamundo" ? "#3B82F6" : "var(--bdr)",
+              background: r.mode === "europamundo" ? "rgba(59,130,246,0.07)" : "var(--bg1)",
+              transition: "all 0.15s",
+            }}
+          >
+            <div style={{ marginBottom: 10 }}>
+              <svg viewBox="0 0 20 20" fill="none" style={{ width: 32, height: 32 }}>
+                <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M10 3c-2 2.5-3 4.5-3 7s1 4.5 3 7M10 3c2 2.5 3 4.5 3 7s-1 4.5-3 7M3 10h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M4.5 6.5c1.5.7 3.4 1.1 5.5 1.1s4-.4 5.5-1.1M4.5 13.5c1.5-.7 3.4-1.1 5.5-1.1s4 .4 5.5 1.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--txt)", marginBottom: 6 }}>Circuito Europamundo</div>
+            <div style={{ fontSize: 12, color: "var(--txt3)", lineHeight: 1.6 }}>
+              Selecione um dos 254 circuitos Europamundo. O roteiro será gerado com base no itinerário oficial.
+            </div>
+            {r.mode === "europamundo" && (
+              <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "#3B82F6" }}>✓ Selecionado</div>
+            )}
+          </button>
+        ) : (
+          <div style={{
+            ...card, textAlign: "left", border: "2px solid var(--bdr)",
+            background: "var(--bg1)", opacity: 0.6, cursor: "default", position: "relative",
+          }}>
+            <div style={{ position: "absolute", top: 10, right: 10 }}>
+              <svg viewBox="0 0 20 20" fill="none" style={{ width: 14, height: 14 }}>
+                <rect x="4" y="9" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M7 9V6a3 3 0 016 0v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <svg viewBox="0 0 20 20" fill="none" style={{ width: 32, height: 32 }}>
+                <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M10 3c-2 2.5-3 4.5-3 7s1 4.5 3 7M10 3c2 2.5 3 4.5 3 7s-1 4.5-3 7M3 10h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M4.5 6.5c1.5.7 3.4 1.1 5.5 1.1s4-.4 5.5-1.1M4.5 13.5c1.5-.7 3.4-1.1 5.5-1.1s4 .4 5.5 1.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--txt)", marginBottom: 6 }}>Circuito Europamundo</div>
+            <div style={{ fontSize: 12, color: "var(--txt3)", lineHeight: 1.6 }}>
+              Selecione um dos 254 circuitos Europamundo. O roteiro será gerado com base no itinerário oficial.
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "var(--txt3)" }}>
+              Disponível mediante contratação
+            </div>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--txt)", marginBottom: 6 }}>Circuito Europamundo</div>
-          <div style={{ fontSize: 12, color: "var(--txt3)", lineHeight: 1.6 }}>
-            Selecione um dos 254 circuitos Europamundo. O roteiro será gerado com base no itinerário oficial.
-          </div>
-          {r.mode === "europamundo" && (
-            <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: "#3B82F6" }}>✓ Selecionado</div>
-          )}
-        </button>
+        )}
       </div>
 
       {/* Busca de circuito */}
@@ -302,7 +340,7 @@ function StepForm({ r, fileRef, onDrop }: {
   fileRef: React.RefObject<HTMLInputElement | null>;
   onDrop: (e: React.DragEvent) => void;
 }) {
-  const canNext = !!r.form.destination && !!r.form.days && !!r.form.travelers;
+  const canNext = r.form.destinations.length > 0 && !!r.form.destinations[0]?.name.trim() && !!r.form.days && !!r.form.travelers;
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 20 }}>
@@ -330,7 +368,7 @@ function StepForm({ r, fileRef, onDrop }: {
                 </div>
                 <div style={{ fontSize: 12, color: "var(--txt2)" }}>Analisando documento...</div>
               </div>
-            ) : r.fileName ? (
+            ) : r.fileNames.length > 0 ? (
               <div>
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
                   <svg viewBox="0 0 20 20" fill="none" style={{ width: 24, height: 24 }}>
@@ -338,7 +376,9 @@ function StepForm({ r, fileRef, onDrop }: {
                     <path d="M7 10l2 2.5L13 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <div style={{ fontSize: 12, color: "var(--txt2)", marginBottom: 4 }}>{r.fileName}</div>
+                <div style={{ fontSize: 12, color: "var(--txt2)", marginBottom: 4 }}>
+                  {r.fileNames.length === 1 ? r.fileNames[0] : `${r.fileNames.length} arquivos`}
+                </div>
                 <div style={{ fontSize: 11, color: "var(--orange)", fontWeight: 700 }}>{r.autoCount} campo{r.autoCount !== 1 ? "s" : ""} preenchido{r.autoCount !== 1 ? "s" : ""} automaticamente</div>
               </div>
             ) : (
@@ -353,10 +393,10 @@ function StepForm({ r, fileRef, onDrop }: {
               </div>
             )}
           </div>
-          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" style={{ display: "none" }}
-            onChange={e => { const f = e.target.files?.[0]; if (f) r.extractFromFile(f); e.target.value = ""; }} />
+          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple style={{ display: "none" }}
+            onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) r.extractFromFiles(files); e.target.value = ""; }} />
           {r.extractErr && <p style={{ fontSize: 11, color: "#ef4444", marginTop: 8 }}>{r.extractErr}</p>}
-          {r.fileName && (
+          {r.fileNames.length > 0 && (
             <button onClick={() => { r.reset(); }} style={{ marginTop: 10, fontSize: 11, color: "var(--txt3)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
               Limpar e recomeçar
             </button>
@@ -378,8 +418,55 @@ function StepForm({ r, fileRef, onDrop }: {
       {/* Form fields */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={card}>
-          <LabeledInput label="Destino" value={r.form.destination} onChange={v => r.setF("destination", v)}
-            placeholder="ex: Lisboa, Portugal" isAuto={r.isAuto("destination")} />
+          <label style={label12}>
+            Destino{r.form.destinations.length > 1 ? "s" : ""}
+            {r.isAuto("destination") && <span style={{ marginLeft: 6, color: "var(--orange)", fontSize: 9 }}>●AUTO</span>}
+          </label>
+
+          {/* Breadcrumb */}
+          {r.form.destinations.length > 1 && (
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4, marginBottom: 8 }}>
+              {r.form.destinations.map((d, i) => (
+                <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 12, color: "var(--txt2)", fontWeight: 600 }}>{d.name}</span>
+                  {i < r.form.destinations.length - 1 && <span style={{ color: "var(--orange)", fontSize: 12 }}>→</span>}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Destination list */}
+          {r.form.destinations.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 8 }}>
+              {r.form.destinations.map((d, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ fontSize: 11, color: "var(--txt3)", minWidth: 16, flexShrink: 0 }}>{i + 1}.</span>
+                  <div style={{ flex: 1, height: 32, padding: "0 10px", display: "flex", alignItems: "center", background: "var(--bg2)", border: `1px solid ${r.isAuto("destination") && i === 0 ? "var(--orange)" : "var(--bdr)"}`, borderRadius: 8, fontSize: 13, color: "var(--txt)" }}>
+                    {d.name}
+                  </div>
+                  {i > 0 && (
+                    <button onClick={() => { const a = [...r.form.destinations]; [a[i-1], a[i]] = [a[i], a[i-1]]; r.setF("destinations", a); }}
+                      style={{ padding: "2px 5px", background: "none", border: "none", cursor: "pointer", color: "var(--txt3)", fontSize: 13, lineHeight: 1 }} title="Mover para cima">↑</button>
+                  )}
+                  {i < r.form.destinations.length - 1 && (
+                    <button onClick={() => { const a = [...r.form.destinations]; [a[i], a[i+1]] = [a[i+1], a[i]]; r.setF("destinations", a); }}
+                      style={{ padding: "2px 5px", background: "none", border: "none", cursor: "pointer", color: "var(--txt3)", fontSize: 13, lineHeight: 1 }} title="Mover para baixo">↓</button>
+                  )}
+                  <button onClick={() => r.setF("destinations", r.form.destinations.filter((_, j) => j !== i))}
+                    style={{ padding: "2px 5px", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 15, lineHeight: 1 }} title="Remover">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* City search input */}
+          {r.form.destinations.length < 10 && (
+            <CitySearch
+              placeholder={r.form.destinations.length === 0 ? "ex: Lisboa, Portugal" : "+ Adicionar destino"}
+              onSelect={d => r.setF("destinations", [...r.form.destinations, d])}
+              inputStyle={r.isAuto("destination") && r.form.destinations.length === 0 ? inpAuto : inp}
+            />
+          )}
         </div>
 
         <div style={card}>
@@ -582,7 +669,7 @@ function StepGenerating({ r }: { r: ReturnType<typeof useRoteiro> }) {
         </svg>
       </div>
       <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--txt)", marginBottom: 8 }}>Gerando seu roteiro...</h2>
-      <p style={{ fontSize: 13, color: "var(--txt3)", marginBottom: 24 }}>A IA está criando um roteiro personalizado para {r.form.destination}.</p>
+      <p style={{ fontSize: 13, color: "var(--txt3)", marginBottom: 24 }}>A IA está criando um roteiro personalizado para {r.form.destinations.map(d => d.name).join(" → ")}.</p>
       <div style={{ height: 6, background: "var(--bg2)", borderRadius: 3, overflow: "hidden", marginBottom: 8 }}>
         <div style={{ height: "100%", width: `${r.progress}%`, background: "var(--orange)", borderRadius: 3, transition: "width 0.4s ease" }} />
       </div>
@@ -601,12 +688,13 @@ function StepGenerating({ r }: { r: ReturnType<typeof useRoteiro> }) {
 
 /* ── Step 4: Result ───────────────────────────────── */
 
-function StepResult({ r }: { r: ReturnType<typeof useRoteiro> }) {
+function StepResult({ r, storeInfo }: { r: ReturnType<typeof useRoteiro>; storeInfo: StoreInfo | null }) {
   const [editMode, setEditMode] = useState(false);
   const [editedText, setEditedText] = useState(r.streamText);
 
   // Re-parse after edits so all outputs stay in sync with edited content
   const editedParsed = parseItinerary(editedText) ?? r.parsed ?? [];
+  const destStr = r.form.destinations.map(d => d.name).join(" → ");
   const waText = buildWhatsAppText(r.form, r.pkg, editedParsed.length ? editedParsed : null, r.pkg.agencia);
 
   const days = editMode ? [] : editedParsed;
@@ -681,7 +769,7 @@ function StepResult({ r }: { r: ReturnType<typeof useRoteiro> }) {
           Copiar para WhatsApp
         </button>
         <button
-          onClick={() => r.downloadTxt(waText, r.form.destination)}
+          onClick={() => r.downloadTxt(waText, r.form.destinations[0]?.name ?? "roteiro")}
           style={{ height: 36, padding: "0 16px", borderRadius: 10, border: "1.5px solid var(--bdr)", background: "var(--bg2)", color: "var(--txt2)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
         >
           <svg viewBox="0 0 20 20" fill="none" style={{ width: 13, height: 13 }}><path d="M10 3v10M6 9l4 4 4-4M3 17h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -700,7 +788,7 @@ function StepResult({ r }: { r: ReturnType<typeof useRoteiro> }) {
       <div style={{ ...card, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
           <div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--txt)", margin: 0 }}>{r.form.destination}</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--txt)", margin: 0 }}>{destStr}</h2>
             <div style={{ fontSize: 12, color: "var(--txt3)", marginTop: 4 }}>
               {r.form.days} dias · {r.form.travelers} viajante(s) · {r.form.budget}
               {styleLabels && ` · ${styleLabels}`}
@@ -790,14 +878,24 @@ function StepResult({ r }: { r: ReturnType<typeof useRoteiro> }) {
 
       {/* Print-only content — display:none na tela, display:block !important no print via CSS */}
       <div id="roteiro-print" style={{ display: "none" }}>
-        {(r.pkg.agencia || r.pkg.consultor) && (
-          <div style={{ marginBottom: 20, paddingBottom: 14, borderBottom: "2px solid #e5e7eb" }}>
-            {r.pkg.agencia && <div style={{ fontSize: 20, fontWeight: 800 }}>{r.pkg.agencia}</div>}
-            {r.pkg.consultor && <div style={{ fontSize: 13, color: "#555" }}>Consultor: {r.pkg.consultor}{r.pkg.telefone ? ` · ${r.pkg.telefone}` : ""}</div>}
+        {/* Store/agency header */}
+        {(storeInfo?.logo_url || storeInfo?.nome_comercial || storeInfo?.name || r.pkg.agencia || r.pkg.consultor) && (
+          <div style={{ marginBottom: 20, paddingBottom: 14, borderBottom: "2px solid #e5e7eb", display: "flex", alignItems: "flex-start", gap: 16 }}>
+            {storeInfo?.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={storeInfo.logo_url} alt="Logo" style={{ height: 56, objectFit: "contain", flexShrink: 0 }} />
+            )}
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800 }}>{storeInfo?.nome_comercial || storeInfo?.name || r.pkg.agencia}</div>
+              {storeInfo?.telefone && <div style={{ fontSize: 12, color: "#555" }}>📞 {storeInfo.telefone}</div>}
+              {storeInfo?.email && <div style={{ fontSize: 12, color: "#555" }}>✉ {storeInfo.email}</div>}
+              {storeInfo?.site && <div style={{ fontSize: 12, color: "#555" }}>{storeInfo.site}</div>}
+              {r.pkg.consultor && <div style={{ fontSize: 12, color: "#555" }}>Consultor: {r.pkg.consultor}{r.pkg.telefone && !storeInfo?.telefone ? ` · ${r.pkg.telefone}` : ""}</div>}
+            </div>
           </div>
         )}
         <div style={{ marginBottom: 20 }}>
-          <h1>{r.form.destination} — Roteiro de Viagem</h1>
+          <h1>{destStr} — Roteiro de Viagem</h1>
           <div style={{ fontSize: 13, color: "#555" }}>{r.form.days} dias · {r.form.travelers} viajante(s) · {r.form.budget}{styleLabels ? ` · ${styleLabels}` : ""}</div>
           {r.pkg.hotel && <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>🏨 {r.pkg.hotel}{r.pkg.hotelCat ? ` (${r.pkg.hotelCat}★)` : ""}{r.pkg.checkin ? ` · ${r.pkg.checkin} → ${r.pkg.checkout}` : ""}</div>}
           {r.pkg.vooIdaOrigem && <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>✈ Ida: {r.pkg.vooIdaOrigem}→{r.pkg.vooIdaDestino} {r.pkg.vooIdaData} {r.pkg.vooIdaHorario}{r.pkg.vooVoltaData ? ` · Volta: ${r.pkg.vooVoltaData} ${r.pkg.vooVoltaHorario}` : ""}</div>}
@@ -825,6 +923,8 @@ function StepResult({ r }: { r: ReturnType<typeof useRoteiro> }) {
 export default function RoteiroPage() {
   const router = useRouter();
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
+  const [hasEuropamundo, setHasEuropamundo] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -836,8 +936,19 @@ export default function RoteiroPage() {
           router.push(homeForRole(p.role));
           return;
         }
+        setHasEuropamundo(feats.has("europamundo"));
+      } else {
+        setHasEuropamundo(true);
       }
       setAllowed(true);
+      if (p.store_id) {
+        const { data } = await supabase
+          .from("stores")
+          .select("name, nome_comercial, telefone, email, site, logo_url")
+          .eq("id", p.store_id)
+          .single();
+        if (data) setStoreInfo(data as StoreInfo);
+      }
     })();
   }, [router]);
 
@@ -845,8 +956,8 @@ export default function RoteiroPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) r.extractFromFile(file);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) r.extractFromFiles(files);
   }, [r]);
 
   if (allowed === null) return <div className="text-[13px] text-[var(--txt3)]" style={{ padding: 32 }}>Carregando...</div>;
@@ -869,11 +980,11 @@ export default function RoteiroPage() {
 
       <StepBar step={r.step} />
 
-      {r.step === "modo" && <StepModo r={r} />}
+      {r.step === "modo" && <StepModo r={r} hasEuropamundo={hasEuropamundo} />}
       {r.step === "form" && <StepForm r={r} fileRef={fileRef} onDrop={handleDrop} />}
       {r.step === "pkg" && <StepPackage r={r} />}
       {r.step === "generating" && <StepGenerating r={r} />}
-      {r.step === "result" && <StepResult r={r} />}
+      {r.step === "result" && <StepResult r={r} storeInfo={storeInfo} />}
     </div>
   );
 }

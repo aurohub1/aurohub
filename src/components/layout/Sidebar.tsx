@@ -67,6 +67,7 @@ const I = {
   clock: (<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5" /><path d="M10 6v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
   contract: (<svg viewBox="0 0 20 20" fill="none"><path d="M5 2h7l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M12 2v4h4M7 9h6M7 12h6M7 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
   roteiro: (<svg viewBox="0 0 20 20" fill="none"><path d="M17.5 3.5L11 7 9 3l-5 2.5 3 5L3.5 17l6.5-3.5 2 4 5-2.5-3-5 3.5-6.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /></svg>),
+  lamina:  (<svg viewBox="0 0 20 20" fill="none"><rect x="2" y="3" width="16" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M6 3v14M10 3v14M14 3v14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><path d="M2 7h16M2 13h16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>),
 };
 
 /* ── ADM Sections (default) ───────────────────── */

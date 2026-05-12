@@ -2,10 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Palette, Lock, Sun, Moon, Check, AlertCircle, HelpCircle, ShieldCheck } from "lucide-react";
+import { Palette, Lock, Sun, Moon, Check, AlertCircle, HelpCircle, ShieldCheck, FileText } from "lucide-react";
 import { useTour } from "@/hooks/useTour";
 
 /* ── Página ──────────────────────────────────────── */
+
+interface IdentidadeFields {
+  nome_comercial: string;
+  telefone: string;
+  email: string;
+  site: string;
+  logo_url: string;
+}
 
 export default function ClienteConfiguracoesPage() {
   const { startTour } = useTour({
@@ -20,6 +28,12 @@ export default function ClienteConfiguracoesPage() {
   });
 
   const [theme, setTheme] = useState<"dark" | "light">("light");
+
+  // Identidade para documentos
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [identidade, setIdentidade] = useState<IdentidadeFields>({ nome_comercial: "", telefone: "", email: "", site: "", logo_url: "" });
+  const [idBusy, setIdBusy] = useState(false);
+  const [idMsg, setIdMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
@@ -42,12 +56,55 @@ export default function ClienteConfiguracoesPage() {
   }, []);
 
   useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles").select("licensee_id").eq("id", user.id).single();
+      const licId = (profile as { licensee_id?: string } | null)?.licensee_id;
+      if (!licId) return;
+      const { data: store } = await supabase
+        .from("stores")
+        .select("id, nome_comercial, telefone, email, site, logo_url")
+        .eq("licensee_id", licId)
+        .order("name")
+        .limit(1)
+        .single();
+      if (store) {
+        setStoreId((store as { id: string }).id);
+        setIdentidade({
+          nome_comercial: (store as Record<string, string | null>).nome_comercial ?? "",
+          telefone: (store as Record<string, string | null>).telefone ?? "",
+          email: (store as Record<string, string | null>).email ?? "",
+          site: (store as Record<string, string | null>).site ?? "",
+          logo_url: (store as Record<string, string | null>).logo_url ?? "",
+        });
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     supabase.auth.mfa.listFactors().then(({ data }) => {
       const totp = data?.totp?.find(f => f.status === "verified") ?? null;
       setMfaFactor(totp ? { id: totp.id } : null);
       setMfaLoading(false);
     });
   }, []);
+
+  async function saveIdentidade(e: React.FormEvent) {
+    e.preventDefault();
+    if (!storeId) { setIdMsg({ type: "err", text: "Nenhuma loja encontrada." }); return; }
+    setIdBusy(true); setIdMsg(null);
+    const { error } = await supabase.from("stores").update({
+      nome_comercial: identidade.nome_comercial || null,
+      telefone: identidade.telefone || null,
+      email: identidade.email || null,
+      site: identidade.site || null,
+      logo_url: identidade.logo_url || null,
+    }).eq("id", storeId);
+    setIdBusy(false);
+    setIdMsg(error ? { type: "err", text: error.message } : { type: "ok", text: "Identidade salva com sucesso." });
+  }
 
   function applyTheme(next: "dark" | "light") {
     setTheme(next);
@@ -141,6 +198,56 @@ export default function ClienteConfiguracoesPage() {
               <span className={`flex items-center gap-1 text-[11px] ${pwMsg.type === "ok" ? "text-green-500" : "text-red-500"}`}>
                 {pwMsg.type === "ok" ? <Check size={12} /> : <AlertCircle size={12} />}
                 {pwMsg.text}
+              </span>
+            )}
+          </div>
+        </form>
+      </Card>
+
+      {/* ── Identidade para documentos ───────────── */}
+      <Card icon={<FileText size={16} />} title="Identidade para documentos" subtitle="Aparece no cabeçalho de roteiros e PDFs gerados">
+        <form onSubmit={saveIdentidade} className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nome comercial">
+              <input value={identidade.nome_comercial} onChange={e => setIdentidade(v => ({ ...v, nome_comercial: e.target.value }))}
+                placeholder="Agência Viagens XYZ"
+                className="w-full rounded-md border border-[var(--bdr)] bg-[var(--surface)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]" />
+            </Field>
+            <Field label="Telefone / WhatsApp">
+              <input value={identidade.telefone} onChange={e => setIdentidade(v => ({ ...v, telefone: e.target.value }))}
+                placeholder="(11) 9 9999-9999"
+                className="w-full rounded-md border border-[var(--bdr)] bg-[var(--surface)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]" />
+            </Field>
+            <Field label="E-mail">
+              <input type="email" value={identidade.email} onChange={e => setIdentidade(v => ({ ...v, email: e.target.value }))}
+                placeholder="contato@agencia.com.br"
+                className="w-full rounded-md border border-[var(--bdr)] bg-[var(--surface)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]" />
+            </Field>
+            <Field label="Site">
+              <input value={identidade.site} onChange={e => setIdentidade(v => ({ ...v, site: e.target.value }))}
+                placeholder="www.agencia.com.br"
+                className="w-full rounded-md border border-[var(--bdr)] bg-[var(--surface)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]" />
+            </Field>
+          </div>
+          <Field label="URL do logotipo">
+            <input value={identidade.logo_url} onChange={e => setIdentidade(v => ({ ...v, logo_url: e.target.value }))}
+              placeholder="https://..."
+              className="w-full rounded-md border border-[var(--bdr)] bg-[var(--surface)] px-3 py-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--orange)]" />
+          </Field>
+          {identidade.logo_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={identidade.logo_url} alt="Preview logo" className="h-12 w-auto rounded border border-[var(--bdr)] object-contain" />
+          )}
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={idBusy || !storeId}
+              className="flex h-9 items-center gap-2 rounded-md bg-[var(--orange)] px-4 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-50">
+              <FileText size={14} />
+              {idBusy ? "Salvando…" : "Salvar identidade"}
+            </button>
+            {idMsg && (
+              <span className={`flex items-center gap-1 text-[11px] ${idMsg.type === "ok" ? "text-green-500" : "text-red-500"}`}>
+                {idMsg.type === "ok" ? <Check size={12} /> : <AlertCircle size={12} />}
+                {idMsg.text}
               </span>
             )}
           </div>

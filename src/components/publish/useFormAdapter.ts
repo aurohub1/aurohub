@@ -166,8 +166,8 @@ export function useFormAdapter({ tab, values, badges, setField, setBadge }: Adap
       case "formapagamento":
         setFieldRef.current("formapagamento", formaPgtoSpecToLegacy(s));
         return;
-      case "img_fundo":
-        setFieldRef.current("img_fundo", s);
+      case "imgfundo":
+        setFieldRef.current("imgfundo", s);
         return;
       case "logo_cia":
         setFieldRef.current("logo_cia", s);

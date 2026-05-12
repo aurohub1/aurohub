@@ -414,7 +414,7 @@ export default function ImportarTemplatePage() {
           {analyzing && (
             <div className="flex flex-col items-center justify-center py-16">
               <Loader2 size={32} className="animate-spin text-[var(--orange)]" />
-              <p className="mt-4 text-sm text-[var(--txt2)]">Claude Vision analisando imagem…</p>
+              <p className="mt-4 text-sm text-[var(--txt2)]">Analisando imagem…</p>
               <p className="text-xs text-[var(--txt3)]">Detectando campos verdes e inferindo binds.</p>
             </div>
           )}

@@ -11,6 +11,7 @@ interface LegendaRequest {
   datas?: string;
   noites?: string;
   tipo?: string;
+  briefing?: string;
 }
 
 const SYSTEM_PROMPT = `Você é um copywriter de agência de viagens. Gere legendas para Instagram em português brasileiro.
@@ -32,6 +33,7 @@ function buildPrompt(data: LegendaRequest): string {
   if (data.datas) parts.push(`Datas: ${data.datas}`);
   if (data.noites) parts.push(`Noites: ${data.noites}`);
   if (data.tipo) parts.push(`Tipo: ${data.tipo}`);
+  if (data.briefing) parts.push(`Ideia/briefing: ${data.briefing}`);
   return `Gere uma legenda para Instagram com base nestes dados:\n${parts.join("\n")}`;
 }
 

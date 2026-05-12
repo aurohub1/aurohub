@@ -2494,6 +2494,7 @@ export function CardWhatsAppForm({
   const [legenda, setLegenda] = useState(String(fields.lam_legenda ?? ""));
   const [legLoading, setLegLoading] = useState(false);
   const [legCopied, setLegCopied] = useState(false);
+  const [legBriefing, setLegBriefing] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -2566,7 +2567,7 @@ export function CardWhatsAppForm({
       const rows = (data ?? []) as { url: string }[];
       if (!rows.length) { alert("Biblioteca de fundos vazia."); return; }
       const pick = rows[Math.floor(Math.random() * rows.length)];
-      if (pick?.url) set("img_fundo", pick.url);
+      if (pick?.url) set("imgfundo", pick.url);
     } catch (err) {
       console.error("[Lâmina] shuffle bg:", err);
       alert("Erro ao sortear fundo.");
@@ -2580,14 +2581,14 @@ export function CardWhatsAppForm({
     if (!f) return;
     const reader = new FileReader();
     reader.onload = () => {
-      if (reader.result) set("img_fundo", String(reader.result));
+      if (reader.result) set("imgfundo", String(reader.result));
     };
     reader.readAsDataURL(f);
     e.target.value = "";
   }
 
   function handleClearBg() {
-    set("img_fundo", "");
+    set("imgfundo", "");
   }
 
   function handleIATitulo() {
@@ -2945,10 +2946,419 @@ export function CardWhatsAppForm({
             >
               ↑ Upload
             </button>
-            {fields.img_fundo ? (
+            {fields.imgfundo ? (
               <button
                 type="button"
                 onClick={handleClearBg}
+                className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+                style={{ borderColor: "var(--bdr)", color: "var(--txt3)" }}
+              >
+                ✕ Limpar
+              </button>
+            ) : null}
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUploadBg} />
+          </div>
+        </Field>
+      </Section>
+    </>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   LaminaForm — Lâmina 4 Destinos integrada ao fluxo Publicar.
+   Idêntica ao CardWhatsAppForm mas:
+     • handleShuffleBg filtra pela pasta Cloudinary correta
+     • handleUploadBg faz upload real ao Cloudinary
+     • Sem seção "Legenda WhatsApp"
+   ───────────────────────────────────────────────────────────── */
+
+export function LaminaForm({
+  fields, set, today,
+  loadDestinos, loadHoteis, binds,
+  formato, nomeLoja, onImgFundo,
+}: {
+  fields: Fields;
+  set: Setter;
+  today: string;
+  loadDestinos?: () => Promise<string[]>;
+  loadHoteis?: () => Promise<string[]>;
+  binds?: Set<string>;
+  formato?: string;
+  nomeLoja?: string;
+  onImgFundo?: (nome: string) => Promise<void>;
+}) {
+  void formato; void nomeLoja; void onImgFundo; void binds;
+
+  const [cab, setCab] = useState({
+    titulo1: String(fields.lam_titulo1 ?? ""),
+    titulo2: String(fields.lam_titulo2 ?? ""),
+  });
+  const [dests, setDests] = useState<LamDest[]>(() => [
+    emptyLamDest(), emptyLamDest(), emptyLamDest(), emptyLamDest(),
+  ]);
+  const [curDest, setCurDest] = useState(0);
+  const [destinoOpts, setDestinoOpts] = useState<string[]>([]);
+  const [hotelOpts, setHotelOpts] = useState<string[]>([]);
+  const [palette, setPalette] = useState(0);
+  const [bgLoading, setBgLoading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (loadDestinos) loadDestinos().then(setDestinoOpts).catch(() => {});
+    if (loadHoteis) loadHoteis().then(setHotelOpts).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    set("lam_titulo1", cab.titulo1);
+    set("lam_titulo2", cab.titulo2);
+    set("lam_palette", String(palette));
+    dests.forEach((d, i) => {
+      const n = i + 1;
+      set(`lam_d${n}_destino`, d.destino ? d.destino.toUpperCase() : "");
+      set(`lam_d${n}_saida`, d.saida);
+      set(`lam_d${n}_voo`, d.voo);
+      set(`lam_d${n}_saida_voo`, `Saída: ${d.saida || "—"}  ${d.voo || ""}`);
+      set(`lam_d${n}_periodo`, formatPeriodo(d.ida, d.volta));
+      set(`lam_d${n}_hotel`, d.hotel);
+      set(`lam_d${n}_incluso`, d.incluso);
+      set(
+        `lam_d${n}_pgto`,
+        d.pgto === "Cartão"
+          ? "No Cartão de Crédito S/ Juros"
+          : d.pgto === "Boleto"
+            ? (d.entrada ? `Entrada de R$ ${d.entrada} +` : "Boleto")
+            : "",
+      );
+      set(`lam_d${n}_parcelas`, d.parc ? (/x$/i.test(d.parc) ? d.parc : `${d.parc}x`) : "");
+      set(`lam_d${n}_parc`, d.parc ? (/x$/i.test(d.parc) ? d.parc : `${d.parc}x`) : "");
+      set(`lam_d${n}_valor`, d.valor);
+      const nums = (d.valor || "").replace(/\D/g, "");
+      if (nums) {
+        const cents = parseInt(nums, 10);
+        set(`lam_d${n}_valorint`, Math.floor(cents / 100).toLocaleString("pt-BR"));
+        set(`lam_d${n}_valdec`, "," + String(cents % 100).padStart(2, "0"));
+      } else {
+        set(`lam_d${n}_valorint`, "");
+        set(`lam_d${n}_valdec`, "");
+      }
+      set(`lam_d${n}_total`, d.total ? `ou R$ ${d.total} à vista por pessoa` : "");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cab, dests, palette]);
+
+  const updateDest = (idx: number, patch: Partial<LamDest>) =>
+    setDests((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
+
+  const d = dests[curDest];
+  const nts = d.ida && d.volta ? calcularNoites(d.ida, d.volta) : 0;
+
+  async function handleShuffleBg() {
+    setBgLoading(true);
+    try {
+      const { data, error } = await _sb_for_lamina
+        .from("imgfundo")
+        .select("url")
+        .not("url", "is", null)
+        .like("url", "%cea5490a26896dd7b98f9ab8e6127b05c4%")
+        .limit(1000);
+      if (error) { console.error("[LaminaForm] imgfundo:", error); return; }
+      const rows = (data ?? []) as { url: string }[];
+      if (!rows.length) return;
+      const pick = rows[Math.floor(Math.random() * rows.length)];
+      if (pick?.url) set("imgfundo", pick.url);
+    } finally {
+      setBgLoading(false);
+    }
+  }
+
+  async function handleUploadBg(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    e.target.value = "";
+    setBgLoading(true);
+    try {
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((res, rej) => {
+        reader.onload = () => res(reader.result as string);
+        reader.onerror = rej;
+        reader.readAsDataURL(f);
+      });
+      const res = await fetch("/api/cloudinary/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl, folder: "cea5490a26896dd7b98f9ab8e6127b05c4" }),
+      });
+      const body = await res.json();
+      if (res.ok && body.secure_url) set("imgfundo", body.secure_url);
+    } finally {
+      setBgLoading(false);
+    }
+  }
+
+  function handleIATitulo() {
+    const firstDst = dests.map((x) => x.destino).filter(Boolean)[0] || "seu destino";
+    const tmpl = LAM_TITULO_TEMPLATES[Math.floor(Math.random() * LAM_TITULO_TEMPLATES.length)];
+    let l1 = tmpl.l1.replace("{destino}", firstDst);
+    let l2 = tmpl.l2.replace("{destino}", firstDst);
+    if (l1.length > 25) l1 = l1.slice(0, 24) + "…";
+    if (l2.length > 30) l2 = l2.slice(0, 29) + "…";
+    setCab({ titulo1: l1, titulo2: l2 });
+  }
+
+  return (
+    <>
+      <Section title="Título da Arte" icon="✦">
+        <Field label="Linha 1">
+          <div className="flex gap-1.5">
+            <input
+              value={cab.titulo1}
+              onChange={(e) => setCab((p) => ({ ...p, titulo1: e.target.value }))}
+              placeholder="Férias dos Sonhos Já!"
+              className={`${INPUT_CLASS} flex-1`}
+              maxLength={25}
+            />
+            <button
+              type="button"
+              onClick={handleIATitulo}
+              title="Sugerir com IA (offline)"
+              className="shrink-0 rounded-lg border px-2.5 text-[10px] font-bold"
+              style={{ borderColor: "var(--orange)", color: "var(--orange)", background: "rgba(255,122,26,0.08)" }}
+            >
+              ✦ IA
+            </button>
+          </div>
+        </Field>
+        <Field label="Linha 2">
+          <input
+            value={cab.titulo2}
+            onChange={(e) => setCab((p) => ({ ...p, titulo2: e.target.value }))}
+            placeholder="Voe com a Azul Viagens"
+            className={INPUT_CLASS}
+            maxLength={30}
+          />
+        </Field>
+      </Section>
+
+      <div className="grid grid-cols-4 gap-1.5">
+        {[0, 1, 2, 3].map((i) => {
+          const active = curDest === i;
+          const label = dests[i].destino
+            ? dests[i].destino.toUpperCase().slice(0, 8)
+            : `Dest ${i + 1}`;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setCurDest(i)}
+              className="rounded-lg border px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all"
+              style={
+                active
+                  ? { background: "var(--brand-primary)", color: "#FFFFFF", borderColor: "var(--brand-primary)" }
+                  : { background: "var(--bg1)", color: "var(--txt3)", borderColor: "var(--bdr)" }
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      <Section title="Destino & Voo" icon="📍">
+        <Field label="Destino">
+          <SearchableSelect
+            value={d.destino}
+            onChange={(v) => updateDest(curDest, { destino: capitalizarDestino(v) })}
+            options={destinoOpts}
+            placeholder="Buscar destino..."
+            allowCustom
+          />
+        </Field>
+        <div className="flex flex-col gap-2">
+          <Field label="Saída">
+            <input
+              value={d.saida}
+              onChange={(e) => updateDest(curDest, { saida: e.target.value })}
+              placeholder="GRU"
+              className={INPUT_CLASS}
+            />
+          </Field>
+          <Field label="Tipo Voo">
+            <SearchableSelect
+              value={d.voo || ""}
+              onChange={(v) => updateDest(curDest, { voo: v })}
+              options={["Voo Direto", "Voo Conexão"]}
+              placeholder="Selecione"
+              readOnly
+            />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Datas" icon="📅">
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Ida">
+            <input
+              type="date"
+              min={today}
+              value={d.ida}
+              onChange={(e) => updateDest(curDest, { ida: e.target.value })}
+              className={INPUT_CLASS}
+            />
+          </Field>
+          <Field label="Volta">
+            <input
+              type="date"
+              min={d.ida || today}
+              value={d.volta}
+              onChange={(e) => updateDest(curDest, { volta: e.target.value })}
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </div>
+        {nts > 0 && (
+          <p className="text-[10px] text-[var(--txt3)]">
+            ✈ {nts} noite{nts === 1 ? "" : "s"} · {formatPeriodo(d.ida, d.volta)}
+          </p>
+        )}
+      </Section>
+
+      <Section title="Hotel & Incluso" icon="🏨">
+        <Field label="Hotel">
+          <SearchableSelect
+            value={d.hotel}
+            onChange={(v) => updateDest(curDest, { hotel: v })}
+            options={hotelOpts}
+            placeholder="Buscar hotel..."
+            allowCustom
+          />
+        </Field>
+        <Field label="Incluso">
+          <SearchableSelect
+            value={d.incluso || ""}
+            onChange={(v) => updateDest(curDest, { incluso: v })}
+            options={["Aéreo + Hotel", "Aéreo + Hotel + Transfer", "Só Aéreo", "Só Hotel"]}
+            placeholder="Selecione"
+            readOnly
+          />
+        </Field>
+      </Section>
+
+      <Section title="Pagamento" icon="💰">
+        <Field label="Forma de Pagamento">
+          <SearchableSelect
+            value={d.pgto || ""}
+            onChange={(v) => updateDest(curDest, { pgto: v, ...(v === "Cartão" ? { entrada: "" } : {}) })}
+            options={["Cartão", "Boleto", "Débito"]}
+            placeholder="Selecione"
+            readOnly
+          />
+        </Field>
+        {d.pgto === "Boleto" && (
+          <Field label="Valor da Entrada (R$)">
+            <input
+              value={d.entrada}
+              onChange={(e) => updateDest(curDest, { entrada: e.target.value })}
+              onBlur={(e) => {
+                const f = applyPriceMask(e.target.value);
+                updateDest(curDest, { entrada: f.formatted || e.target.value });
+              }}
+              placeholder="1.500,00"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Parcelas">
+            <SearchableSelect
+              value={d.parc}
+              onChange={(v) => updateDest(curDest, { parc: v })}
+              options={PARCELAS_OPTS}
+              placeholder="12x"
+              readOnly
+            />
+          </Field>
+          <Field label="Valor Parcela">
+            <input
+              value={d.valor}
+              onChange={(e) => updateDest(curDest, { valor: e.target.value })}
+              onBlur={(e) => {
+                const f = applyPriceMask(e.target.value);
+                updateDest(curDest, { valor: f.formatted || e.target.value });
+              }}
+              placeholder="890,00"
+              className={INPUT_CLASS}
+            />
+          </Field>
+        </div>
+        <Field label="À Vista (por pessoa)">
+          <input
+            value={d.total}
+            onChange={(e) => updateDest(curDest, { total: e.target.value })}
+            onBlur={(e) => {
+              const f = applyPriceMask(e.target.value);
+              updateDest(curDest, { total: f.formatted || e.target.value });
+            }}
+            placeholder="8.900,00"
+            className={INPUT_CLASS}
+          />
+        </Field>
+      </Section>
+
+      <Section title="Personalização Visual" icon="✦">
+        <Field label="Cor tema">
+          <div className="grid grid-cols-4 gap-1.5">
+            {LAM_PALETTES.map((p, i) => {
+              const active = palette === i;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setPalette(i)}
+                  title={p.name}
+                  className="flex flex-col items-center gap-1 rounded-lg border px-1 py-1.5 transition-all"
+                  style={
+                    active
+                      ? { borderColor: "var(--brand-primary)", background: "var(--bg1)" }
+                      : { borderColor: "var(--bdr)", background: "transparent" }
+                  }
+                >
+                  <span
+                    className="block rounded-md"
+                    style={{ width: 24, height: 24, background: p.accent, boxShadow: active ? "0 0 0 2px var(--txt) inset" : "none" }}
+                  />
+                  <span className="text-[9px] font-semibold text-[var(--txt2)] leading-none">
+                    {p.emoji} {p.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+        <Field label="Fundo">
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={handleShuffleBg}
+              disabled={bgLoading}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium disabled:opacity-50"
+              style={{ borderColor: "var(--bdr)", color: "var(--txt2)" }}
+            >
+              {bgLoading ? "…" : "⟳ Aleatório"}
+            </button>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={bgLoading}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium disabled:opacity-50"
+              style={{ borderColor: "var(--bdr)", color: "var(--txt2)" }}
+            >
+              ↑ Upload
+            </button>
+            {fields.imgfundo ? (
+              <button
+                type="button"
+                onClick={() => set("imgfundo", "")}
                 className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
                 style={{ borderColor: "var(--bdr)", color: "var(--txt3)" }}
               >

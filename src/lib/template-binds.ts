@@ -209,7 +209,7 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
 
   card_whatsapp: {
     Imagens: [
-      { id: 'img_fundo', label: 'Imagem de Fundo', type: 'image' },
+      { id: 'imgfundo', label: 'Imagem de Fundo', type: 'image' },
     ],
     Cabeçalho: [
       { id: 'lam_titulo1', label: 'Título 1', type: 'text' },

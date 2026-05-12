@@ -22,6 +22,8 @@ export const ALL_FEATURES = [
   "musica",
   "chat",
   "roteiro",
+  "lamina",
+  "europamundo",
 ] as const;
 
 export type Feature = (typeof ALL_FEATURES)[number];
@@ -42,6 +44,8 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   musica:           "Música (add-on)",
   chat:             "Chat",
   roteiro:          "AuroRoteiro (add-on)",
+  lamina:           "Lâmina 4 Destinos (add-on)",
+  europamundo:      "Circuitos Europamundo",
 };
 
 /** Features sempre on por padrão (independentes do plano). */

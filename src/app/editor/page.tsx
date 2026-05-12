@@ -262,7 +262,7 @@ function EditorInner() {
             const ftData = {
               config_key: `tmpl_${newKey}`,
               name: newName,
-              form_type: formType.replace("lamina", "card_whatsapp"),
+              form_type: formType,
               format: targetFormat,
               is_base: !loadedLicenseeId,
               active: true,
@@ -382,7 +382,7 @@ function EditorInner() {
                       const ftData = {
                         config_key: key,
                         name: p.nome || key,
-                        form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
+                        form_type: (p.formType || "pacote").replace("quatro_destinos","card_whatsapp"),
                         format: p.format || "stories",
                         is_base: !p.licenseeId,
                         active: true,
@@ -432,7 +432,7 @@ function EditorInner() {
                       const ftData = {
                         config_key: editingStarterId,
                         name: p.nome || editingStarterId,
-                        form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
+                        form_type: (p.formType || "pacote").replace("quatro_destinos","card_whatsapp"),
                         format: p.format || "stories",
                         is_base: !p.licenseeId,
                         active: true,
@@ -487,7 +487,7 @@ function EditorInner() {
                   const ftData = {
                     config_key: `tmpl_${key}`,
                     name: p.nome || key,
-                    form_type: (p.formType || "pacote").replace("lamina","card_whatsapp").replace("quatro_destinos","card_whatsapp"),
+                    form_type: (p.formType || "pacote").replace("quatro_destinos","card_whatsapp"),
                     format: p.format || "stories",
                     is_base: !p.licenseeId,
                     active: true,

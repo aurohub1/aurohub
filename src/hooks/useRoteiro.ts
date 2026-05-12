@@ -45,8 +45,15 @@ export interface CircuitFull extends CircuitLight {
   temporada?: string | null;
 }
 
+export interface DestinationItem {
+  name: string;
+  lat?: number;
+  lon?: number;
+  country?: string;
+}
+
 export interface FormData {
-  destination: string;
+  destinations: DestinationItem[];
   days: string;
   travelers: string;
   budget: string;
@@ -112,8 +119,10 @@ export function buildWhatsAppText(
     .map(s => STYLES.find(x => x.id === s)?.label)
     .filter(Boolean).join(", ");
 
+  const destStr = form.destinations.map(d => d.name).join(" → ");
+
   let t = storeName ? `🏢 *${storeName}*\n` : "";
-  t += `✈ *ROTEIRO DE VIAGEM*\n📍 *${form.destination}* — ${form.days} dias\n`;
+  t += `✈ *ROTEIRO DE VIAGEM*\n📍 *${destStr}* — ${form.days} dias\n`;
   t += `👥 ${form.travelers} viajante(s) | 💰 ${form.budget}\n`;
   if (sl) t += `🎯 ${sl}\n`;
   t += "\n";
@@ -154,7 +163,7 @@ export function buildWhatsAppText(
 // ── HOOK ──────────────────────────────────────────────────────────────────────
 
 const defaultForm: FormData = {
-  destination: "", days: "7", travelers: "2",
+  destinations: [], days: "7", travelers: "2",
   budget: "Moderado", styles: ["cultural"], notes: "",
 };
 
@@ -181,7 +190,7 @@ export function useRoteiro() {
   const [extracting, setExtracting] = useState(false);
   const [extractErr, setExtractErr] = useState("");
   const [autoFields, setAutoFields] = useState<Record<string, boolean>>({});
-  const [fileName, setFileName] = useState("");
+  const [fileNames, setFileNames] = useState<string[]>([]);
 
   // usage limit
   const [limitError, setLimitError] = useState("");
@@ -248,82 +257,88 @@ export function useRoteiro() {
     }
   };
 
-  // ── extract from file ────────────────────────────────────────────────────
-  const extractFromFile = useCallback(async (file: File) => {
+  // ── extract from files (single or multiple) ──────────────────────────────
+  const extractFromFiles = useCallback(async (files: File[]) => {
     const ALLOWED = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
-    if (!ALLOWED.includes(file.type)) {
-      setExtractErr("Formato não suportado. Use PDF, JPG ou PNG.");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setExtractErr("Arquivo muito grande. Máximo 10MB.");
+    const valid = files.filter(f => ALLOWED.includes(f.type) && f.size <= 10 * 1024 * 1024);
+
+    if (!valid.length) {
+      setExtractErr("Formato não suportado. Use PDF, JPG ou PNG (máx 10MB cada).");
       return;
     }
 
     setExtracting(true);
     setExtractErr("");
-    setFileName(file.name);
+    setFileNames(valid.map(f => f.name));
     setAutoFields({});
 
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
+    const OTHER_FORM_KEYS: (keyof Omit<FormData, "destinations">)[] = ["days", "travelers", "budget", "styles", "notes"];
+    const PKG_KEYS: (keyof PackageData)[] = [
+      "agencia", "consultor", "telefone",
+      "vooIdaOrigem", "vooIdaDestino", "vooIdaData", "vooIdaHorario", "vooIdaCia", "vooIdaNum",
+      "vooVoltaOrigem", "vooVoltaDestino", "vooVoltaData", "vooVoltaHorario", "vooVoltaCia", "vooVoltaNum",
+      "hotel", "hotelCat", "checkin", "checkout", "quarto",
+      "precoTotal", "precoPessoa", "parcelas",
+      "incTransfer", "incCafe", "incSeguro", "incPasseios",
+      "obs", "ageContext",
+    ];
 
-      const res = await fetch("/api/roteiro/extract", { method: "POST", body: fd });
-      const json = await res.json();
+    const newAuto: Record<string, boolean> = {};
+    const formPatch: Partial<FormData> = {};
+    const pkgPatch: Partial<PackageData> = {};
 
-      if (!res.ok) throw new Error(json.error || "Erro na extração");
+    for (const file of valid) {
+      try {
+        const fd = new window.FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/roteiro/extract", { method: "POST", body: fd });
+        const json = await res.json();
+        if (!res.ok) continue;
 
-      const ext = json.data;
-      console.log("[extract] resposta da API:", ext);
+        const ext = json.data;
+        console.log("[extract] arquivo:", file.name, ext);
 
-      const FORM_KEYS: (keyof FormData)[] = ["destination", "days", "travelers", "budget", "styles", "notes"];
-      const PKG_KEYS: (keyof PackageData)[] = [
-        "agencia", "consultor", "telefone",
-        "vooIdaOrigem", "vooIdaDestino", "vooIdaData", "vooIdaHorario", "vooIdaCia", "vooIdaNum",
-        "vooVoltaOrigem", "vooVoltaDestino", "vooVoltaData", "vooVoltaHorario", "vooVoltaCia", "vooVoltaNum",
-        "hotel", "hotelCat", "checkin", "checkout", "quarto",
-        "precoTotal", "precoPessoa", "parcelas",
-        "incTransfer", "incCafe", "incSeguro", "incPasseios",
-        "obs", "ageContext",
-      ];
-
-      // Computa patches sincronamente antes de qualquer setState,
-      // pois os updaters de setForm/setPkg só rodam na próxima renderização.
-      const newAuto: Record<string, boolean> = {};
-      const formPatch: Partial<FormData> = {};
-      FORM_KEYS.forEach(k => {
-        const v = ext[k];
-        if (v != null && (Array.isArray(v) ? v.length > 0 : v !== "") && v !== false) {
-          (formPatch as Record<string, unknown>)[k] = v;
-          newAuto[k] = true;
+        // destination string → destinations array (first file wins)
+        if (ext.destination && !formPatch.destinations) {
+          formPatch.destinations = [{ name: ext.destination as string }];
+          newAuto["destination"] = true;
         }
-      });
 
-      const pkgPatch: Partial<PackageData> = {};
-      PKG_KEYS.forEach(k => {
-        const v = ext[k];
-        if (v != null && v !== "" && v !== false) {
-          (pkgPatch as Record<string, unknown>)[k] = v;
-          newAuto[k] = true;
-        }
-      });
+        OTHER_FORM_KEYS.forEach(k => {
+          const v = ext[k];
+          if (v != null && (Array.isArray(v) ? v.length > 0 : v !== "") && v !== false) {
+            if (!(k in formPatch)) {
+              (formPatch as Record<string, unknown>)[k] = v;
+              newAuto[k] = true;
+            }
+          }
+        });
 
-      console.log("[extract] campos preenchidos:", Object.keys(newAuto));
-
-      setForm(f => ({ ...f, ...formPatch }));
-      setPkg(p => ({ ...p, ...pkgPatch }));
-      setAutoFields(newAuto);
-
-      if (!Object.keys(newAuto).length)
-        setExtractErr("Nenhum dado encontrado. Preencha manualmente.");
-
-    } catch {
-      setExtractErr("Erro ao processar o arquivo. Tente novamente.");
-    } finally {
-      setExtracting(false);
+        PKG_KEYS.forEach(k => {
+          const v = ext[k];
+          if (v != null && v !== "" && v !== false) {
+            if (!(k in pkgPatch)) {
+              (pkgPatch as Record<string, unknown>)[k] = v;
+              newAuto[k] = true;
+            }
+          }
+        });
+      } catch { /* skip file on error */ }
     }
+
+    console.log("[extract] campos preenchidos:", Object.keys(newAuto));
+
+    setForm(f => ({ ...f, ...formPatch }));
+    setPkg(p => ({ ...p, ...pkgPatch }));
+    setAutoFields(newAuto);
+
+    if (!Object.keys(newAuto).length)
+      setExtractErr("Nenhum dado encontrado. Preencha manualmente.");
+
+    setExtracting(false);
   }, []);
+
+  const extractFromFile = useCallback((file: File) => extractFromFiles([file]), [extractFromFiles]);
 
   // ── generate ─────────────────────────────────────────────────────────────
   const generate = async () => {
@@ -345,6 +360,7 @@ export function useRoteiro() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          destination: form.destinations.map(d => d.name).join(" → "),
           ...pkg,
           mode,
           circuitItinerary: selectedCircuit?.itinerary ?? null,
@@ -412,7 +428,7 @@ export function useRoteiro() {
     setParsed(null);
     setProgress(0);
     setAutoFields({});
-    setFileName("");
+    setFileNames([]);
     setExtractErr("");
     setLimitError("");
     setUsageWarning("");
@@ -427,7 +443,7 @@ export function useRoteiro() {
     activeDay, setActiveDay,
     form, pkg,
     parsed, streamText, progress,
-    extracting, extractErr, autoFields, fileName,
+    extracting, extractErr, autoFields, fileNames,
     limitError, setLimitError, usageWarning,
     // modo / circuito
     mode, setMode,
@@ -438,7 +454,7 @@ export function useRoteiro() {
     setF, setP, toggleStyle, isAuto,
     autoCount: Object.keys(autoFields).length,
     // actions
-    extractFromFile, generate, reset, downloadTxt,
+    extractFromFile, extractFromFiles, generate, reset, downloadTxt,
     searchCircuits, selectCircuit,
   };
 }

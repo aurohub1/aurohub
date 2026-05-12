@@ -24,7 +24,7 @@ interface UserPerms {
   can_publish: boolean;
   can_download: boolean;
 }
-interface Licensee { id: string; name: string; segment_id: string | null; }
+interface Licensee { id: string; name: string; segment_id: string | null; status?: string | null; }
 interface Store { id: string; name: string; licensee_id: string; }
 interface Segment { id: string; name: string; icon: string | null; }
 interface Plan { slug: string; name: string; max_posts_day: number; max_stories_day: number | null; max_feed_reels_day: number | null; can_schedule: boolean; can_metrics: boolean; is_enterprise: boolean; }
@@ -59,6 +59,9 @@ export default function UsuariosPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [selectedLicensee, setSelectedLicensee] = useState("");
+  const [selectedStore, setSelectedStore] = useState("");
+  const [userStoresMap, setUserStoresMap] = useState<Record<string, string[]>>({});
 
   // Edit modal
   const [editOpen, setEditOpen] = useState(false);
@@ -95,13 +98,14 @@ export default function UsuariosPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [pR, lR, sR, segR, plR, permR] = await Promise.all([
+      const [pR, lR, sR, segR, plR, permR, usR] = await Promise.all([
         supabase.from("profiles").select("id, name, role, sub_role, adm_level, status, licensee_id, store_id, created_at, avatar_url, stories_limit, feed_limit, reels_limit, tv_limit").order("created_at", { ascending: false }),
-        supabase.from("licensees").select("id, name, segment_id").order("name"),
+        supabase.from("licensees").select("id, name, segment_id, status").order("name"),
         supabase.from("stores").select("id, name, licensee_id").order("name"),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, max_posts_day, max_stories_day, max_feed_reels_day, can_schedule, can_metrics, is_enterprise"),
         supabase.from("user_permissions").select("user_id, allowed_forms, store_ids, can_publish, can_download"),
+        supabase.from("user_stores").select("user_id, store_id"),
       ]);
       setProfiles((pR.data as Profile[]) ?? []);
       setLicensees((lR.data as Licensee[]) ?? []);
@@ -111,6 +115,12 @@ export default function UsuariosPage() {
       const pm: Record<string, UserPerms> = {};
       ((permR.data ?? []) as UserPerms[]).forEach(p => { pm[p.user_id] = p; });
       setAllPermsMap(pm);
+      const usm: Record<string, string[]> = {};
+      ((usR.data ?? []) as { user_id: string; store_id: string }[]).forEach(r => {
+        if (!usm[r.user_id]) usm[r.user_id] = [];
+        usm[r.user_id].push(r.store_id);
+      });
+      setUserStoresMap(usm);
     } catch { /* silent */ } finally { setLoading(false); }
   }, []);
 
@@ -131,14 +141,44 @@ export default function UsuariosPage() {
     return licensees.filter((l) => l.segment_id === form.segment_id);
   }, [licensees, form.segment_id]);
 
+  const activeLicensees = useMemo(() => licensees.filter((l) => !l.status || l.status === "active"), [licensees]);
+
+  const storesForCol2 = useMemo(() => {
+    if (!selectedLicensee) return [];
+    return stores.filter((s) => s.licensee_id === selectedLicensee);
+  }, [stores, selectedLicensee]);
+
+  const storesPerLicensee = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const s of stores) map[s.licensee_id] = (map[s.licensee_id] ?? 0) + 1;
+    return map;
+  }, [stores]);
+
+  const usersPerStore = useMemo(() => {
+    const sets: Record<string, Set<string>> = {};
+    for (const p of profiles) {
+      const ids = userStoresMap[p.id]?.length ? userStoresMap[p.id] : (p.store_id ? [p.store_id] : []);
+      for (const sid of ids) {
+        if (!sets[sid]) sets[sid] = new Set();
+        sets[sid].add(p.id);
+      }
+    }
+    const counts: Record<string, number> = {};
+    for (const [sid, s] of Object.entries(sets)) counts[sid] = s.size;
+    return counts;
+  }, [profiles, userStoresMap]);
+
   const filtered = useMemo(() => {
     return profiles.filter((p) => {
       const ms = !search || (p.name ?? "").toLowerCase().includes(search.toLowerCase());
       const mr = !roleFilter || p.role === roleFilter;
       const mst = !statusFilter || (statusFilter === "active" ? p.status === "active" : p.status !== "active");
-      return ms && mr && mst;
+      const ml = !selectedLicensee || p.licensee_id === selectedLicensee;
+      const userStoreIds = userStoresMap[p.id]?.length ? userStoresMap[p.id] : (p.store_id ? [p.store_id] : []);
+      const mstore = !selectedStore || userStoreIds.includes(selectedStore);
+      return ms && mr && mst && ml && mstore;
     });
-  }, [profiles, search, roleFilter, statusFilter]);
+  }, [profiles, search, roleFilter, statusFilter, selectedLicensee, selectedStore, userStoresMap]);
 
   const kpis = useMemo(() => ({
     total: profiles.length,
@@ -406,70 +446,176 @@ export default function UsuariosPage() {
         </div>
       </div>
 
-      {/* ── Filters ──────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[200px] flex-1">
-          <svg viewBox="0 0 20 20" fill="none" className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--txt3)]"><circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" /><path d="M14 14l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-          <input type="text" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-full rounded-lg border border-[var(--bdr)] bg-transparent pl-9 pr-3 text-[13px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
-        </div>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="h-9 rounded-lg border border-[var(--bdr)] bg-transparent px-3 text-[12px] text-[var(--txt)] outline-none">
-          <option value="">Todas roles</option>
-          {Object.entries(ROLE_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        <div className="flex gap-0.5 rounded-lg border border-[var(--bdr)] p-0.5">
-          {[{ k: "", l: "Todos" }, { k: "active", l: "Ativos" }, { k: "inactive", l: "Inativos" }].map((t) => (
-            <button key={t.k} onClick={() => setStatusFilter(t.k)} className={`rounded-md px-3 py-1.5 text-[12px] font-medium ${statusFilter === t.k ? "bg-[var(--bg3)] text-[var(--txt)]" : "text-[var(--txt3)]"}`}>{t.l}</button>
-          ))}
-        </div>
-      </div>
+      {/* ── 3-Column Layout ──────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "220px 220px 1fr", gap: "12px", height: "calc(100vh - 220px)", minHeight: 0 }}>
 
-      {/* ── Table ────────────────────────────────── */}
-      <div className="rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", overflow: "clip" }}>
-        {loading ? <div className="py-16 text-center text-[13px] text-[var(--txt3)]">Carregando...</div>
-        : filtered.length === 0 ? <div className="py-16 text-center text-[13px] text-[var(--txt3)]">Nenhum usuário encontrado</div>
-        : (
-          <div style={{ overflowX: "auto", width: "100%" }}>
-            <table className="w-full border-collapse text-[13px]" style={{ minWidth: 640 }}>
-              <thead>
-                <tr className="border-b border-[var(--bdr)]">
-                  {["Usuário", "Role", "Marca", "Loja", "Status", "Criado", "Ações"].map((h) => (
-                    <th key={h} className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-medium text-[var(--txt3)] first:pl-5 last:pr-5 last:text-right">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p) => {
-                  const rc = ROLE_MAP[p.role] ?? { label: p.role, color: "var(--txt2)" };
-                  const lic = p.licensee_id ? licMap[p.licensee_id] : (p.store_id ? licMap[storeMap[p.store_id]?.licensee_id ?? ""] : null);
-                  const store = p.store_id ? storeMap[p.store_id] : null;
-                  const isActive = p.status === "active";
-                  const perms = allPermsMap[p.id];
+        {/* ── Col 1: Clientes ─── */}
+        <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", minHeight: 0 }}>
+          <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">Clientes · {activeLicensees.length}</span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {activeLicensees.map((l) => {
+              const sel = selectedLicensee === l.id;
+              const initials = l.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+              const storeCount = storesPerLicensee[l.id] ?? 0;
+              return (
+                <button
+                  key={l.id}
+                  onClick={() => { setSelectedLicensee(sel ? "" : l.id); setSelectedStore(""); }}
+                  className={`flex w-full items-center gap-2.5 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-[var(--hover-bg)] ${sel ? "bg-[var(--bg3)]" : ""}`}
+                >
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: licColor(l.name) }}>
+                    {initials || "?"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12px] font-medium text-[var(--txt)]">{l.name}</div>
+                    <div className="text-[10px] text-[var(--txt3)]">{storeCount} loja{storeCount !== 1 ? "s" : ""}</div>
+                  </div>
+                  {sel && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--orange)]" />}
+                </button>
+              );
+            })}
+            {activeLicensees.length === 0 && <div className="py-8 text-center text-[11px] text-[var(--txt3)]">Nenhum cliente</div>}
+          </div>
+        </div>
 
+        {/* ── Col 2: Lojas ─── */}
+        <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", minHeight: 0 }}>
+          <div className="shrink-0 border-b border-[var(--bdr)] px-3 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--txt3)]">
+              Lojas{selectedLicensee ? ` · ${storesForCol2.length}` : ""}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {!selectedLicensee ? (
+              <div className="py-8 text-center text-[11px] text-[var(--txt3)]">Selecione um cliente</div>
+            ) : (
+              <>
+                <button
+                  onClick={() => setSelectedStore("")}
+                  className={`flex w-full items-center gap-2.5 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--hover-bg)] ${!selectedStore ? "bg-[var(--bg3)]" : ""}`}
+                >
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--bg3)] text-[11px]">🏪</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12px] font-medium text-[var(--txt)]">Todas as lojas</div>
+                    <div className="text-[10px] text-[var(--txt3)]">{storesForCol2.length} lojas</div>
+                  </div>
+                  {!selectedStore && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--orange)]" />}
+                </button>
+                {storesForCol2.map((s) => {
+                  const sel = selectedStore === s.id;
+                  const uCount = usersPerStore[s.id] ?? 0;
                   return (
-                    <tr key={p.id} className="border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)]">
-                      <td className="whitespace-nowrap pl-5 pr-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          {p.avatar_url ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img src={p.avatar_url} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
-                          ) : (
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--bg3)] text-[11px] font-semibold text-[var(--txt2)]">{(p.name ?? "?").charAt(0).toUpperCase()}</div>
-                          )}
-                          <span className="font-medium text-[var(--txt)]">{p.name ?? "—"}</span>
-                          {perms && (
-                            <RestritoBadge perms={perms} />
-                          )}
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3"><span className="text-[12px] font-medium" style={{ color: rc.color }}>{rc.label}</span></td>
-                      <td className="whitespace-nowrap px-4 py-3 text-[12px] text-[var(--txt3)]">{lic?.name ?? "—"}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-[12px] text-[var(--txt3)]">{store?.name ?? "—"}</td>
-                      <td className="whitespace-nowrap px-4 py-3"><span className={`inline-flex items-center gap-1.5 text-[12px] ${isActive ? "text-[var(--green)]" : "text-[var(--red)]"}`}><span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-[var(--green)]" : "bg-[var(--red)]"}`} />{isActive ? "Ativo" : "Inativo"}</span></td>
-                      <td className="whitespace-nowrap px-4 py-3 text-[12px] text-[var(--txt3)]">{new Date(p.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</td>
-                      <td className="whitespace-nowrap pr-5 pl-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => openEdit(p)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]">Editar</button>
-                          <button
+                    <button
+                      key={s.id}
+                      onClick={() => setSelectedStore(sel ? "" : s.id)}
+                      className={`flex w-full items-center gap-2.5 border-b border-[var(--bdr)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-[var(--hover-bg)] ${sel ? "bg-[var(--bg3)]" : ""}`}
+                    >
+                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--bg3)]">
+                        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-[var(--txt3)]" fill="none"><path d="M2 6l6-4 6 4v8H2V6z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/><path d="M6 14V9h4v5" stroke="currentColor" strokeWidth="1.2"/></svg>
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[12px] font-medium text-[var(--txt)]">{s.name}</div>
+                        <div className="text-[10px] text-[var(--txt3)]">{uCount} usuário{uCount !== 1 ? "s" : ""}</div>
+                      </div>
+                      {sel && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--orange)]" />}
+                    </button>
+                  );
+                })}
+                {storesForCol2.length === 0 && <div className="py-6 text-center text-[11px] text-[var(--txt3)]">Nenhuma loja</div>}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ── Col 3: Usuários ─── */}
+        <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)", minHeight: 0 }}>
+          {/* Barra de filtros col3 */}
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--bdr)] px-3 py-2.5">
+            <div className="relative min-w-[140px] flex-1">
+              <svg viewBox="0 0 20 20" fill="none" className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--txt3)]"><circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" /><path d="M14 14l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              <input type="text" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-7 w-full rounded-lg border border-[var(--bdr)] bg-transparent pl-7 pr-2 text-[12px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none focus:border-[var(--txt3)]" />
+            </div>
+            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="h-7 rounded-lg border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] outline-none">
+              <option value="">Todas roles</option>
+              {Object.entries(ROLE_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-7 rounded-lg border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] outline-none">
+              <option value="">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="inactive">Inativos</option>
+            </select>
+            <button onClick={openNew} className="flex shrink-0 items-center gap-1 rounded-lg bg-[var(--txt)] px-3 py-1 text-[11px] font-semibold text-[var(--bg)]">
+              <svg viewBox="0 0 16 16" className="h-3 w-3"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+              Novo
+            </button>
+          </div>
+          {/* Tabela */}
+          <div className="flex-1 overflow-auto" style={{ minHeight: 0 }}>
+            {loading ? (
+              <div className="py-16 text-center text-[13px] text-[var(--txt3)]">Carregando...</div>
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center text-[13px] text-[var(--txt3)]">Nenhum usuário encontrado</div>
+            ) : (
+              <table className="w-full border-collapse text-[13px]" style={{ minWidth: 480 }}>
+                <thead className="sticky top-0" style={{ background: "var(--card-bg)" }}>
+                  <tr className="border-b border-[var(--bdr)]">
+                    {["Usuário", "Role", "Lojas", "Status", "Ações"].map((h) => (
+                      <th key={h} className="whitespace-nowrap px-3 py-2.5 text-left text-[11px] font-medium text-[var(--txt3)] first:pl-4 last:pr-4 last:text-right">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((p) => {
+                    const rc = ROLE_MAP[p.role] ?? { label: p.role, color: "var(--txt2)" };
+                    const isActive = p.status === "active";
+                    const perms = allPermsMap[p.id];
+                    const userStoreIds = userStoresMap[p.id]?.length ? userStoresMap[p.id] : (p.store_id ? [p.store_id] : []);
+                    const userStoreNames = userStoreIds.map(sid => storeMap[sid]?.name).filter(Boolean) as string[];
+                    return (
+                      <tr key={p.id} className="border-b border-[var(--bdr)] last:border-b-0 hover:bg-[var(--hover-bg)]">
+                        <td className="whitespace-nowrap py-2.5 pl-4 pr-3">
+                          <div className="flex items-center gap-2">
+                            {p.avatar_url ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={p.avatar_url} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
+                            ) : (
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--bg3)] text-[10px] font-semibold text-[var(--txt2)]">{(p.name ?? "?").charAt(0).toUpperCase()}</div>
+                            )}
+                            <span className="text-[12px] font-medium text-[var(--txt)]">{p.name ?? "—"}</span>
+                            {perms && <RestritoBadge perms={perms} />}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5">
+                          <span className="text-[11px] font-medium" style={{ color: rc.color }}>{rc.label}</span>
+                        </td>
+                        <td className="max-w-[180px] px-3 py-2.5">
+                          <div className="flex flex-wrap gap-1">
+                            {userStoreNames.length === 0 ? (
+                              <span className="text-[11px] text-[var(--txt3)]">—</span>
+                            ) : (
+                              <>
+                                {userStoreNames.slice(0, 3).map((n, i) => (
+                                  <span key={i} className="rounded-full border border-[var(--bdr)] px-1.5 py-0.5 text-[9px] text-[var(--txt3)]">{n}</span>
+                                ))}
+                                {userStoreNames.length > 3 && (
+                                  <span className="rounded-full border border-[var(--bdr)] px-1.5 py-0.5 text-[9px] text-[var(--txt3)]">+{userStoreNames.length - 3}</span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5">
+                          <span className={`inline-flex items-center gap-1 text-[11px] ${isActive ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-[var(--green)]" : "bg-[var(--red)]"}`} />
+                            {isActive ? "Ativo" : "Inativo"}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap py-2.5 pl-3 pr-4">
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => openEdit(p)} className="text-[11px] text-[var(--txt3)] hover:text-[var(--txt)]">Editar</button>
+                            <button
                               onClick={() => {
                                 if (p.role === "adm") {
                                   setAdmPermUser({ userId: p.id, userName: p.name ?? "ADM", admLevel: p.adm_level ?? "operacional" });
@@ -478,21 +624,23 @@ export default function UsuariosPage() {
                                   setPermUser({ userId: p.id, licenseeId: licId, userName: p.name ?? "Usuário" });
                                 }
                               }}
-                              className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]"
+                              className="text-[11px] text-[var(--txt3)] hover:text-[var(--txt)]"
                             >
                               Permissões
                             </button>
-                          <button onClick={() => toggleStatus(p.id, p.status)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--txt)]">{isActive ? "Desativar" : "Ativar"}</button>
-                          <button onClick={() => setDeleteId(p.id)} className="text-[12px] text-[var(--txt3)] hover:text-[var(--red)]">Excluir</button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            <button onClick={() => toggleStatus(p.id, p.status)} className="text-[11px] text-[var(--txt3)] hover:text-[var(--txt)]">{isActive ? "Desativar" : "Ativar"}</button>
+                            <button onClick={() => setDeleteId(p.id)} className="text-[11px] text-[var(--txt3)] hover:text-[var(--red)]">Excluir</button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
-        )}
+        </div>
+
       </div>
 
       {/* ── Delete confirm ────────────────────────── */}
@@ -646,7 +794,7 @@ export default function UsuariosPage() {
                   <div className="h-px bg-[var(--bdr)]" />
                   <div className="text-[11px] font-medium text-[var(--txt3)]">Permissões individuais</div>
                   <div className="flex flex-col gap-2">
-                    <Toggle label="IA de legenda" desc="Geração automática com Claude" checked={form.ai} onChange={(v) => setForm({ ...form, ai: v })} />
+                    <Toggle label="IA de legenda" desc="Geração automática de legenda" checked={form.ai} onChange={(v) => setForm({ ...form, ai: v })} />
                     <Toggle label="Métricas Instagram" desc="Acesso ao painel de métricas" checked={form.metrics} onChange={(v) => setForm({ ...form, metrics: v })} />
                     <Toggle label="Transmissão" desc="Módulo de artes para lista" checked={form.transmissao} onChange={(v) => setForm({ ...form, transmissao: v })} />
                     <Toggle label="Usuário avulso" desc="Vinculado à marca sem herdar formulários da loja" checked={form.avulso} onChange={(v) => setForm({ ...form, avulso: v })} />
@@ -797,6 +945,13 @@ export default function UsuariosPage() {
 }
 
 /* ── Sub-components ──────────────────────────────── */
+
+function licColor(name: string): string {
+  const palette = ["#FF7A1A", "#D4A843", "#3B82F6", "#10B981", "#8B5CF6", "#EC4899", "#F59E0B", "#06B6D4"];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return palette[h % palette.length];
+}
 
 function Ov({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return <div className="fixed inset-0 z-[200] flex items-center justify-center" style={{ background: "var(--overlay-bg)", backdropFilter: "blur(8px)" }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>{children}</div>;

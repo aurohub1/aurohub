@@ -11,7 +11,9 @@ import {
   AnoiteceuForm,
   PassagemForm,
   CruzeiroForm,
+  LaminaForm,
 } from "@/components/publish/FormSections";
+import { getFeatures } from "@/lib/features";
 import {
   Plane,
   Target,
@@ -24,6 +26,7 @@ import {
   Play,
   Square,
   Tv,
+  LayoutGrid,
 } from "lucide-react";
 import { useStoreTargets } from "./useStoreTargets";
 import { usePublishLogic } from "./usePublishLogic";
@@ -40,7 +43,8 @@ type FormType =
   | "passagem"
   | "cruzeiro"
   | "anoiteceu"
-  | "card_whatsapp";
+  | "card_whatsapp"
+  | "lamina";
 type Format = "stories" | "feed" | "reels" | "tv";
 
 const TIPOS = [
@@ -85,6 +89,14 @@ const TIPOS = [
     nome: "Card WhatsApp",
     desc: "Arte para grupos e listas",
     color: "#16a34a",
+  },
+  {
+    id: "lamina" as FormType,
+    Icon: LayoutGrid,
+    nome: "Lâmina 4 Dest.",
+    desc: "Arte com 4 destinos",
+    color: "#d97706",
+    feature: "lamina",
   },
 ];
 
@@ -206,6 +218,7 @@ export default function PublicarPageBase({
     cruzeiro: { ...DEFAULTS },
     anoiteceu: { ...DEFAULTS },
     card_whatsapp: { ...DEFAULTS },
+    lamina: { ...DEFAULTS },
   });
   const [badgeCache, setBadgeCache] = useState<
     Record<FormType, Record<string, boolean>>
@@ -216,7 +229,9 @@ export default function PublicarPageBase({
     cruzeiro: {},
     anoiteceu: {},
     card_whatsapp: {},
+    lamina: {},
   });
+  const [features, setFeatures] = useState<Set<string>>(new Set());
   const destinoDataRef = useRef<{ nome: string; url: string }[] | null>(null);
   const hotelDataRef = useRef<{ nome: string; url: string }[] | null>(null);
   // Cache: destino slug → URL já sorteada. Evita re-sorteio em re-renders.
@@ -273,6 +288,7 @@ export default function PublicarPageBase({
   useEffect(() => {
     getProfile(supabase).then(async (p) => {
       setProfile(p);
+      getFeatures(supabase, p).then(feats => setFeatures(new Set(feats))).catch(() => {});
       if (p?.licensee_id) {
         loadTemplates(p.licensee_id, p.store_id ?? null);
         supabase.from("system_config").select("value").eq("key", `preview_bg_${p.licensee_id}`).single().then(({ data }) => {
@@ -576,9 +592,12 @@ export default function PublicarPageBase({
 
   // Derived from user_permissions — fall back to full lists when no restriction
   const visibleTipos = useMemo(() => {
-    if (!userPerms?.allowed_forms?.length) return TIPOS;
-    return TIPOS.filter(t => userPerms.allowed_forms.includes(t.id));
-  }, [userPerms]);
+    let tipos = TIPOS.filter(t => !(t as any).feature || features.has((t as any).feature));
+    if (userPerms?.allowed_forms?.length) {
+      tipos = tipos.filter(t => userPerms.allowed_forms.includes(t.id));
+    }
+    return tipos;
+  }, [userPerms, features]);
 
   const effectivePublishTargets = useMemo(() => {
     if (!userPerms?.store_ids?.length) return publishTargets;
@@ -1384,6 +1403,17 @@ export default function PublicarPageBase({
                 fields={fields}
                 set={set}
                 binds={templateBinds}
+              />
+            ) : tab === "lamina" ? (
+              <LaminaForm
+                fields={fields}
+                set={set}
+                today={new Date().toISOString().slice(0, 10)}
+                binds={templateBinds}
+                formato={format}
+                nomeLoja={nomeLoja}
+                loadDestinos={loadDestinos}
+                loadHoteis={loadHoteis}
               />
             ) : (
               <div

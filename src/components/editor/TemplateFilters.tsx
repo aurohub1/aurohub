@@ -18,6 +18,7 @@ export function TemplateFilters({
     { k: "pacote", l: "Pacote" },
     { k: "campanha", l: "Campanha" },
     { k: "card_whatsapp", l: "Card WhatsApp" },
+    { k: "lamina", l: "Lâmina" },
     { k: "anoiteceu", l: "Anoiteceu" },
   ];
 
