@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, LayoutTemplate, Magnet, Group, Ungroup, Ruler, LayoutGrid, MessageSquare, MessageSquareOff, Keyboard } from "lucide-react";
+import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, Magnet, Group, Ungroup, Ruler, LayoutGrid, MessageSquare, MessageSquareOff, Keyboard } from "lucide-react";
 
 interface Props {
   onUndo: () => void; onRedo: () => void;
@@ -25,7 +25,9 @@ interface Props {
   autoSaveStatus?: "saved" | "saving" | "idle";
   onGroup?: () => void; onUngroup?: () => void;
   onShortcuts?: () => void;
+  logoUrl?: string;
 }
+
 
 export default function Toolbar(p: Props) {
   const toggleTheme = () => {
@@ -41,9 +43,6 @@ export default function Toolbar(p: Props) {
       <a href="/editor-de-templates" style={{ display: "flex", alignItems: "center", gap: 4, textDecoration: "none", color: "var(--ed-txt2)", fontSize: 11, marginRight: 4 }}>
         <ArrowLeft size={14} /> Voltar
       </a>
-      <Sep />
-      <LayoutTemplate size={15} color="#FF7A1A" style={{ marginRight: 3 }} />
-      <span style={{ color: "var(--ed-txt)", fontSize: 12, fontWeight: 700, marginRight: 4 }}>Aurohub</span>
       <Sep />
       {p.onFormTypeChange && (
         <select value={p.formType || "pacote"} onChange={e => p.onFormTypeChange!(e.target.value)} style={selS}>
@@ -85,6 +84,10 @@ export default function Toolbar(p: Props) {
       {p.onToggleComments && <Btn icon={p.showComments ? <MessageSquareOff size={14} /> : <MessageSquare size={14} />} tip={p.showComments ? "Ocultar comentários" : "Mostrar comentários"} o={p.onToggleComments} active={p.showComments} />}
       {p.onAdaptFormat && <Btn icon={<LayoutGrid size={14} />} tip="Adaptar formato — duplica para outro formato" o={p.onAdaptFormat} label="Adaptar" />}
       {p.onVariants && p.variantsEnabled && <Btn icon={<Layers size={14} />} tip="Gerar variantes" o={p.onVariants} gold label="Variantes" />}
+      <a href="/inicio" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", zIndex: 10 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-aurohub.webp" height={28} width={28} style={{ borderRadius: "50%", objectFit: "cover", display: "block" }} alt="Aurohub" />
+      </a>
       <div style={{ position: "absolute", right: 240, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 4 }}>
         <Sep />
         <Btn icon={isLight ? <Moon size={14} /> : <Sun size={14} />} tip="Alternar tema" o={toggleTheme} />

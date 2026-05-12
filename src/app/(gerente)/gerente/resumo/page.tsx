@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import { ChevronLeft, ChevronRight, Download, BarChart2, Image, Video, Square, TrendingUp, TrendingDown, HelpCircle } from "lucide-react";
 import { useTour } from "@/hooks/useTour";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import dynamic from "next/dynamic";
+const ResumoBarChart = dynamic(() => import("@/components/metrics/ResumoBarChart"), { ssr: false });
 
 interface Post {
   id: string;
@@ -380,20 +381,7 @@ export default function GerenteResumoPage() {
               <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--txt)" }}>
                 Posts por Semana
               </h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={weeklyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--bdr)" />
-                  <XAxis dataKey="name" stroke="var(--txt2)" />
-                  <YAxis stroke="var(--txt2)" />
-                  <Tooltip contentStyle={{ background: "var(--card-bg)", border: "1px solid var(--bdr)" }} />
-                  <Legend />
-                  <Bar dataKey="stories" name="Stories" fill={CHART_COLORS.stories} />
-                  <Bar dataKey="feed" name="Feed" fill={CHART_COLORS.feed} />
-                  <Bar dataKey="reels" name="Reels" fill={CHART_COLORS.reels} />
-                  <Bar dataKey="tv" name="TV" fill={CHART_COLORS.tv} />
-                  <Bar dataKey="download" name="Download" fill={CHART_COLORS.download} />
-                </BarChart>
-              </ResponsiveContainer>
+              <ResumoBarChart data={weeklyData} colors={CHART_COLORS} />
             </div>
 
             {/* Grid de posts */}

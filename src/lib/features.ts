@@ -24,6 +24,9 @@ export const ALL_FEATURES = [
   "roteiro",
   "lamina",
   "europamundo",
+  "reels",
+  "feed",
+  "tv",
 ] as const;
 
 export type Feature = (typeof ALL_FEATURES)[number];
@@ -46,6 +49,9 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   roteiro:          "AuroRoteiro (add-on)",
   lamina:           "Lâmina 4 Destinos (add-on)",
   europamundo:      "Circuitos Europamundo",
+  reels:            "Formato Reels",
+  feed:             "Formato Feed",
+  tv:               "Formato TV",
 };
 
 /** Features sempre on por padrão (independentes do plano). */
@@ -57,6 +63,9 @@ const BASE_FEATURES: Feature[] = [
   "vendedores",
   "calendario",
   "lembretes",
+  "reels",
+  "feed",
+  "tv",
 ];
 
 /**

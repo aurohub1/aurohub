@@ -1,8 +1,8 @@
 @echo off
-:loop
-taskkill /F /IM node.exe 2>nul
-timeout /t 2 /nobreak >nul
+echo Iniciando Aurohub dev server...
 cd /d C:\dev\aurohub
+:loop
 npm run dev
-timeout /t 3 /nobreak >nul
+echo Servidor caiu, reiniciando em 3 segundos...
+timeout /t 3
 goto loop

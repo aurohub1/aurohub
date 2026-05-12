@@ -39,9 +39,10 @@ interface CanvasEditorProps {
   onNew?: () => void;
   isAdm?: boolean;
   autoSaveStatus?: "saved" | "saving" | "idle";
+  logoUrl?: string;
 }
 
-export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onAdaptFormat, onNew, isAdm, autoSaveStatus }: CanvasEditorProps) {
+export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onAdaptFormat, onNew, isAdm, autoSaveStatus, logoUrl }: CanvasEditorProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const resetPanRef = useRef<() => void>(() => {});
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -579,6 +580,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         autoSaveStatus={autoSaveStatus}
         onGroup={selectedIds.length >= 2 ? groupSelected : undefined}
         onUngroup={selected?.type === "group" ? ungroupSelected : undefined}
+        logoUrl={logoUrl}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>

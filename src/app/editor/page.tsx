@@ -59,6 +59,7 @@ function EditorInner() {
   const [loadedAccessSelections, setLoadedAccessSelections] = useState<Map<string, Set<string>>>(new Map());
   const [isAdm, setIsAdm] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | "idle">("idle");
+  const [editorLogoUrl, setEditorLogoUrl] = useState<string | undefined>(undefined);
   const persistSchemaRef = useRef<(() => Promise<void>) | null>(null);
   const [cW, cH] = FMTS[format] ?? [1080, 1920];
 
@@ -76,6 +77,13 @@ function EditorInner() {
   useEffect(() => {
     if (!templateId) setShowQuickStart(true);
   }, [templateId]);
+
+  // Logo do editor
+  useEffect(() => {
+    getSystemConfig("editor_logo_url").then(val => {
+      if (val) setEditorLogoUrl(val);
+    });
+  }, []);
 
   // Flag variantes
   useEffect(() => {
@@ -218,6 +226,7 @@ function EditorInner() {
     <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
       <CanvasEditor
         isAdm={isAdm}
+        logoUrl={editorLogoUrl}
         width={cW}
         height={cH}
         format={format}

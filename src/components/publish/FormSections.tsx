@@ -2624,6 +2624,7 @@ export function CardWhatsAppForm({
         parcelas: destFilled.map((d) => d.parc).filter(Boolean)[0] ?? "",
         datas: destFilled.map((d) => formatPeriodo(d.ida, d.volta)).filter(Boolean).slice(0, 2).join(" / "),
         tipo: "Card WhatsApp — 4 destinos (promocional, tom informal para WhatsApp)",
+        briefing: legBriefing.trim() || undefined,
       };
       const res = await fetch("/api/ai/legenda", {
         method: "POST",
@@ -2857,7 +2858,16 @@ export function CardWhatsAppForm({
         </Field>
       </Section>
 
-      <Section title="Legenda WhatsApp (IA)" icon="✨">
+      <Section title="Legenda (IA)" icon="✨">
+        <Field label="Sua ideia (opcional)">
+          <input
+            value={legBriefing}
+            onChange={(e) => setLegBriefing(e.target.value)}
+            placeholder="Ex: promoção de férias para famílias, tom animado"
+            className={INPUT_CLASS}
+            maxLength={200}
+          />
+        </Field>
         <div className="flex gap-1.5">
           <button
             type="button"
@@ -2889,7 +2899,7 @@ export function CardWhatsAppForm({
           />
         )}
         {!legenda && (
-          <p className="text-[10px] text-[var(--txt3)]">Preencha pelo menos 1 destino e clique em &quot;Gerar legenda&quot; — Claude Haiku cria uma legenda promocional pra WhatsApp.</p>
+          <p className="text-[10px] text-[var(--txt3)]">Preencha pelo menos 1 destino e clique em &quot;Gerar legenda&quot; para criar uma legenda promocional para WhatsApp.</p>
         )}
       </Section>
 
@@ -3001,6 +3011,10 @@ export function LaminaForm({
   const [hotelOpts, setHotelOpts] = useState<string[]>([]);
   const [palette, setPalette] = useState(0);
   const [bgLoading, setBgLoading] = useState(false);
+  const [legenda, setLegenda] = useState(String(fields.lam_legenda ?? ""));
+  const [legLoading, setLegLoading] = useState(false);
+  const [legCopied, setLegCopied] = useState(false);
+  const [legBriefing, setLegBriefing] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -3104,6 +3118,62 @@ export function LaminaForm({
     if (l1.length > 25) l1 = l1.slice(0, 24) + "…";
     if (l2.length > 30) l2 = l2.slice(0, 29) + "…";
     setCab({ titulo1: l1, titulo2: l2 });
+  }
+
+  async function handleIALegenda() {
+    setLegLoading(true);
+    setLegCopied(false);
+    try {
+      const destFilled = dests.filter((x) => x.destino.trim());
+      const destNames = destFilled.map((d) => d.destino.toUpperCase()).join(", ") || "vários destinos";
+      const precos = destFilled.map((d) => d.valor).filter(Boolean);
+      const menorPreco = precos.length
+        ? precos.reduce((a, b) => {
+            const na = parseFloat(a.replace(/\./g, "").replace(",", ".")) || Infinity;
+            const nb = parseFloat(b.replace(/\./g, "").replace(",", ".")) || Infinity;
+            return na <= nb ? a : b;
+          })
+        : "";
+      const payload = {
+        destino: destNames,
+        hotel: destFilled.map((d) => d.hotel).filter(Boolean).slice(0, 2).join(" / "),
+        servicos: destFilled.map((d) => d.incluso).filter(Boolean)[0] ?? "",
+        preco: menorPreco ? `a partir de R$ ${menorPreco}` : "",
+        parcelas: destFilled.map((d) => d.parc).filter(Boolean)[0] ?? "",
+        datas: destFilled.map((d) => formatPeriodo(d.ida, d.volta)).filter(Boolean).slice(0, 2).join(" / "),
+        tipo: "Lâmina Instagram — 4 destinos (promocional)",
+        briefing: legBriefing.trim() || undefined,
+      };
+      const res = await fetch("/api/ai/legenda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      const txt = (json?.legenda ?? "").toString();
+      if (txt) {
+        setLegenda(txt);
+        set("lam_legenda", txt);
+      } else {
+        alert("Não consegui gerar a legenda. Tente novamente.");
+      }
+    } catch (err) {
+      console.error("[Lâmina] IA legenda:", err);
+      alert("Erro ao gerar legenda.");
+    } finally {
+      setLegLoading(false);
+    }
+  }
+
+  async function handleCopyLegenda() {
+    if (!legenda) return;
+    try {
+      await navigator.clipboard.writeText(legenda);
+      setLegCopied(true);
+      setTimeout(() => setLegCopied(false), 2000);
+    } catch {
+      /* ignorado */
+    }
   }
 
   return (
@@ -3303,6 +3373,51 @@ export function LaminaForm({
             className={INPUT_CLASS}
           />
         </Field>
+      </Section>
+
+      <Section title="Legenda (IA)" icon="✨">
+        <Field label="Sua ideia (opcional)">
+          <input
+            value={legBriefing}
+            onChange={(e) => setLegBriefing(e.target.value)}
+            placeholder="Ex: promoção de férias para famílias, tom animado"
+            className={INPUT_CLASS}
+            maxLength={200}
+          />
+        </Field>
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={handleIALegenda}
+            disabled={legLoading}
+            className="rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-all disabled:opacity-50"
+            style={{ borderColor: "var(--orange)", background: "rgba(255,122,26,0.08)", color: "var(--orange)" }}
+          >
+            {legLoading ? "Gerando…" : "✦ Gerar legenda"}
+          </button>
+          {legenda && (
+            <button
+              type="button"
+              onClick={handleCopyLegenda}
+              className="rounded-lg border px-3 py-1.5 text-[11px] font-medium"
+              style={{ borderColor: "var(--bdr)", color: legCopied ? "var(--green, #10B981)" : "var(--txt2)" }}
+            >
+              {legCopied ? "✓ Copiado" : "📋 Copiar"}
+            </button>
+          )}
+        </div>
+        {legenda && (
+          <textarea
+            value={legenda}
+            onChange={(e) => { setLegenda(e.target.value); set("lam_legenda", e.target.value); }}
+            rows={4}
+            className={`${INPUT_CLASS} !h-auto py-2 resize-y min-h-[80px] leading-snug`}
+            placeholder="Legenda gerada aparecerá aqui…"
+          />
+        )}
+        {!legenda && (
+          <p className="text-[10px] text-[var(--txt3)]">Preencha pelo menos 1 destino e clique em &quot;Gerar legenda&quot; para criar uma legenda promocional para Instagram.</p>
+        )}
       </Section>
 
       <Section title="Personalização Visual" icon="✦">

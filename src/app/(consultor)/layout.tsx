@@ -111,7 +111,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
         brandLabel="Painel do Consultor"
         chatUnreadCount={chatUnreadCount}
       />
-      <div className={`ml-[220px] flex flex-1 flex-col ${pathname === "/consultor/publicar" ? "h-dvh overflow-hidden" : "min-h-dvh overflow-x-hidden pb-10"}`}>
+      <div className={`ml-[220px] flex flex-1 flex-col ${pathname === "/consultor/publicar" ? "h-[calc(100dvh-40px)] overflow-hidden" : "min-h-dvh overflow-x-hidden pb-10"}`}>
         <MaintenanceBanner />
         <main className="flex flex-1 flex-col" style={{padding: pathname === "/consultor/publicar" ? "0" : "1.5rem", gap: pathname === "/consultor/publicar" ? "0" : "1.25rem", minHeight: 0, overflow: pathname === "/consultor/publicar" ? "hidden" : "auto"}}>{children}</main>
       </div>

@@ -13,7 +13,7 @@ import {
   CruzeiroForm,
   LaminaForm,
 } from "@/components/publish/FormSections";
-import { getFeatures } from "@/lib/features";
+import { getFeatures, type Feature } from "@/lib/features";
 import {
   Plane,
   Target,
@@ -621,7 +621,6 @@ export default function PublicarPageBase({
     }
   }, [userPerms, visibleTipos, tab]);
 
-
   const previewValues = useMemo(() => {
     const m: Record<string, string> = { ...(values ?? {}) };
     for (const [k, v] of Object.entries(badges ?? {}))
@@ -659,14 +658,27 @@ export default function PublicarPageBase({
     return b;
   }, [currentTemplate]);
 
+  // Formatos que o usuário tem acesso pela feature (ADM vê todos; stories sempre disponível)
+  const allowedFormats = useMemo((): Format[] => {
+    const all: Format[] = ["stories", "reels", "feed", "tv"];
+    if (profile?.role === "adm") return all;
+    return all.filter(f => f === "stories" || features.has(f as Feature));
+  }, [features, profile]);
+
+  // Formatos com templates disponíveis, intersectados com os permitidos pela feature
   const visibleFormats = useMemo(() => {
     const s = new Set(
       templates.filter((t) => t.formType === tab).map((t) => t.format)
     );
-    return (["stories", "feed", "reels", "tv"] as Format[]).filter((f) =>
-      s.has(f)
-    );
-  }, [templates, tab]);
+    return allowedFormats.filter((f) => s.has(f));
+  }, [templates, tab, allowedFormats]);
+
+  // Auto-switch format when feature is revoked
+  useEffect(() => {
+    if (!allowedFormats.includes(format)) {
+      setFormat(allowedFormats[0] ?? "stories");
+    }
+  }, [allowedFormats, format]);
 
   const schema = currentTemplate?.schema ?? {
     elements: [],
@@ -1272,9 +1284,8 @@ export default function PublicarPageBase({
                   padding: "4px",
                 }}
               >
-                {(["stories", "reels", "feed", "tv"] as Format[]).map((f) => {
+                {visibleFormats.map((f) => {
                   const active = format === f;
-                  const available = visibleFormats.includes(f);
                   const Icon =
                     f === "stories"
                       ? Smartphone
@@ -1286,8 +1297,7 @@ export default function PublicarPageBase({
                   return (
                     <button
                       key={f}
-                      onClick={() => available && setFormat(f)}
-                      disabled={!available}
+                      onClick={() => setFormat(f)}
                       style={{
                         flex: 1,
                         display: "flex",
@@ -1301,8 +1311,7 @@ export default function PublicarPageBase({
                         textTransform: "uppercase",
                         letterSpacing: ".06em",
                         border: "none",
-                        cursor: available ? "pointer" : "not-allowed",
-                        opacity: available ? 1 : 0.3,
+                        cursor: "pointer",
                         transition: "all .15s",
                         background: active
                           ? "var(--brand-primary)"

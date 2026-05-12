@@ -182,6 +182,7 @@ export default function ClientesPage() {
         supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
         supabase.from("profiles").select("id, licensee_id, store_id, name, status"),
       ]);
+      console.log("LICENSEES RAW", licR.data, licR.error);
       setLicensees((licR.data as Licensee[]) ?? []);
       setSegments((segR.data as Segment[]) ?? []);
       setPlans((planR.data as Plan[]) ?? []);

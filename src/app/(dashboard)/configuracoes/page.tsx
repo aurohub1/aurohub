@@ -70,6 +70,8 @@ export default function ConfiguracoesPage() {
   const [mpTesting, setMpTesting] = useState(false);
   const [mpTestResult, setMpTestResult] = useState<"ok" | "fail" | null>(null);
   const logoRef = useRef<HTMLInputElement>(null);
+  const editorLogoRef = useRef<HTMLInputElement>(null);
+  const [uploadingEditorLogo, setUploadingEditorLogo] = useState(false);
   const admSplashLogoRef = useRef<HTMLInputElement>(null);
   const admSplashSomRef = useRef<HTMLInputElement>(null);
   const [uploadingSom, setUploadingSom] = useState(false);
@@ -165,6 +167,20 @@ export default function ConfiguracoesPage() {
       console.error("[Logo upload]", err);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleEditorLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingEditorLogo(true);
+    try {
+      const url = await uploadToCloudinary(file, "aurohubv2/logos");
+      set("editor_logo_url", url);
+    } catch (err) {
+      console.error("[Editor logo upload]", err);
+    } finally {
+      setUploadingEditorLogo(false);
     }
   }
 
@@ -331,6 +347,26 @@ export default function ConfiguracoesPage() {
                           {uploading ? "Enviando..." : "Upload logo"}
                         </button>
                         <input type="text" value={config.logo_url ?? ""} onChange={(e) => set("logo_url", e.target.value)} placeholder="ou cole URL" className="h-7 w-full rounded border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Logo do editor */}
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-[var(--txt3)]">Logo do editor de templates</label>
+                    <div className="flex items-center gap-4">
+                      {config.editor_logo_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={config.editor_logo_url} alt="Logo editor" className="h-8 shrink-0 rounded object-contain border border-[var(--bdr)] bg-[var(--bg3)] px-2" />
+                      ) : (
+                        <div className="flex h-8 w-20 shrink-0 items-center justify-center rounded bg-[var(--bg3)] text-[10px] text-[var(--txt3)]">sem logo</div>
+                      )}
+                      <div className="flex flex-col gap-1.5">
+                        <input ref={editorLogoRef} type="file" accept="image/*" onChange={handleEditorLogoUpload} className="hidden" />
+                        <button type="button" onClick={() => editorLogoRef.current?.click()} disabled={uploadingEditorLogo} className="rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-[12px] font-medium text-[var(--txt2)] hover:text-[var(--txt)] disabled:opacity-50">
+                          {uploadingEditorLogo ? "Enviando..." : "Upload logo"}
+                        </button>
+                        <input type="text" value={config.editor_logo_url ?? ""} onChange={(e) => set("editor_logo_url", e.target.value)} placeholder="ou cole URL" className="h-7 w-full rounded border border-[var(--bdr)] bg-transparent px-2 text-[11px] text-[var(--txt)] placeholder-[var(--txt3)] outline-none" />
                       </div>
                     </div>
                   </div>

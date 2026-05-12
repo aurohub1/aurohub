@@ -3,8 +3,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAdmGuard } from "@/contexts/AdmContext";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -224,8 +222,12 @@ export default function LogsPage() {
     URL.revokeObjectURL(url);
   }
 
-  function exportPdf() {
+  async function exportPdf() {
     const today = new Date().toISOString().split("T")[0];
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
     doc.setFontSize(16);
