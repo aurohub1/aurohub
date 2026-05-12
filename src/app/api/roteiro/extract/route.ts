@@ -62,16 +62,16 @@ Responda APENAS com JSON válido, sem markdown, sem texto extra:
 Regras: days como string numérica, travelers como string, budget um de ["Econômico","Moderado","Luxo","Ultra Luxo"], styles array de ids, datas DD/MM/AAAA, horários HH:MM, preços formato BR. Não encontrado: "" ou false.`;
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-
   try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+    );
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     if (!file) return NextResponse.json({ error: "Arquivo não enviado" }, { status: 400 });
@@ -90,14 +90,11 @@ export async function POST(req: NextRequest) {
         ? { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } }
         : { type: "image" as const, source: { type: "base64" as const, media_type: file.type as "image/jpeg" | "image/png" | "image/webp", data: base64 } };
 
-    const response = await anthropic.messages.create(
-      {
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: [contentBlock, { type: "text", text: EXTRACT_PROMPT }] }],
-      },
-      { headers: { "anthropic-beta": "zdr-2025-01-01" } }
-    );
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: [contentBlock, { type: "text", text: EXTRACT_PROMPT }] }],
+    });
 
     const rawText = response.content.map(b => ("text" in b ? b.text : "")).join("");
     const clean = rawText.replace(/```json|```/g, "").trim();
@@ -111,6 +108,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: safe });
   } catch (err) {
     console.error("[roteiro/extract]", err);
-    return NextResponse.json({ error: "Erro ao processar arquivo." }, { status: 500 });
+    return NextResponse.json({
+      error: "Erro ao processar arquivo.",
+      detail: String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    }, { status: 500 });
   }
 }

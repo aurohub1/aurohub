@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createHash } from "crypto";
 import { fillTemplate } from "@/lib/contract-template";
+import { encrypt } from "@/lib/crypto";
 
 export const runtime = "nodejs";
 
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   const { data: updated, error: updateErr } = await sb
     .from("contracts")
-    .update({ status: "signed", signed_at: now, ip_address: ip, document_hash: hash })
+    .update({ status: "signed", signed_at: now, ip_address: encrypt(ip), document_hash: hash })
     .eq("id", body.contract_id)
     .select()
     .single();

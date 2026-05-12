@@ -36,17 +36,17 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
   const [selectedStoreIds, setSelectedStoreIds] = useState<Set<string>>(new Set());
   const [canPublish, setCanPublish]         = useState(true);
   const [canDownload, setCanDownload]       = useState(true);
+  const [roteiroEnabled, setRoteiroEnabled] = useState(false);
   const [loading, setLoading]               = useState(true);
   const [saving, setSaving]                 = useState(false);
   const [errorMsg, setErrorMsg]             = useState("");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("user_permissions")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
+      const [{ data }, { data: featureRows }] = await Promise.all([
+        supabase.from("user_permissions").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("user_feature_overrides").select("feature_key, enabled").eq("user_id", userId),
+      ]);
       if (data) {
         setAllowedForms(new Set(data.allowed_forms ?? []));
         const sids: string[] = data.store_ids ?? [];
@@ -55,6 +55,10 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
         setCanPublish(data.can_publish ?? true);
         setCanDownload(data.can_download ?? true);
       }
+      const roteiroRow = (featureRows ?? []).find(
+        (r: { feature_key: string; enabled: boolean }) => r.feature_key === "roteiro"
+      );
+      setRoteiroEnabled(roteiroRow?.enabled ?? false);
       setLoading(false);
     })();
   }, [userId]);
@@ -101,15 +105,32 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
     const { error } = existing
       ? await supabase.from("user_permissions").update(payload).eq("user_id", userId)
       : await supabase.from("user_permissions").insert(payload);
+    if (error) { setSaving(false); setErrorMsg(error.message); return; }
+
+    // Salva override individual de roteiro
+    if (roteiroEnabled) {
+      await supabase
+        .from("user_feature_overrides")
+        .upsert({ user_id: userId, feature_key: "roteiro", enabled: true }, { onConflict: "user_id,feature_key" });
+    } else {
+      await supabase
+        .from("user_feature_overrides")
+        .delete()
+        .eq("user_id", userId)
+        .eq("feature_key", "roteiro");
+    }
+
     setSaving(false);
-    if (error) { setErrorMsg(error.message); return; }
     onSaved();
     onClose();
   }
 
   async function handleRemoveRestrictions() {
     setSaving(true);
-    await supabase.from("user_permissions").delete().eq("user_id", userId);
+    await Promise.all([
+      supabase.from("user_permissions").delete().eq("user_id", userId),
+      supabase.from("user_feature_overrides").delete().eq("user_id", userId),
+    ]);
     setSaving(false);
     onSaved();
     onClose();
@@ -233,6 +254,19 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
               </div>
             </div>
 
+            {/* MÓDULOS / ADD-ONS */}
+            <div>
+              <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Módulos</div>
+              <div className="flex flex-col gap-2">
+                <PermToggle
+                  label="AuroRoteiro"
+                  desc="Geração de roteiro de viagem com IA"
+                  checked={roteiroEnabled}
+                  onChange={setRoteiroEnabled}
+                />
+              </div>
+            </div>
+
             {errorMsg && (
               <div className="rounded-lg border border-[var(--red)] bg-[var(--red3)] px-3 py-2 text-[11px] text-[var(--red)]">
                 {errorMsg}
@@ -273,19 +307,24 @@ export function PermissionsModal({ userId, licenseeId, userName, stores, onClose
 
 function PermToggle({
   label,
+  desc,
   checked,
   onChange,
 }: {
   label: string;
+  desc?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
   return (
     <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[var(--bdr)] px-4 py-3 hover:bg-[var(--hover-bg)]">
-      <span className="text-[13px] text-[var(--txt)]">{label}</span>
+      <div>
+        <div className="text-[13px] text-[var(--txt)]">{label}</div>
+        {desc && <div className="text-[11px] text-[var(--txt3)]">{desc}</div>}
+      </div>
       <div
         onClick={e => { e.preventDefault(); onChange(!checked); }}
-        className={`relative h-5 w-9 rounded-full transition-colors ${checked ? "bg-[var(--green)]" : "bg-[var(--bg3)]"}`}
+        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? "bg-[var(--green)]" : "bg-[var(--bg3)]"}`}
       >
         <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-4" : "translate-x-0.5"}`} />
       </div>

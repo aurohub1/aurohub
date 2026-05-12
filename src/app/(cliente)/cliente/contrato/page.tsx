@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile } from "@/lib/auth";
 import { fillTemplate } from "@/lib/contract-template";
+import { decrypt, isEncrypted } from "@/lib/crypto";
+
+const safeDec = (v: unknown) =>
+  typeof v === "string" && isEncrypted(v) ? decrypt(v) : (typeof v === "string" ? v : "");
 import { Check, Clock, FileText, ShieldCheck, AlertCircle } from "lucide-react";
 
 interface Contract {
@@ -49,7 +53,13 @@ export default function ClienteContratoPage() {
       if (data) {
         const c = data as Contract;
         setContract(c);
-        setFilled(fillTemplate(c as Record<string, unknown>));
+        const decrypted = {
+          ...c,
+          company_cnpj: c.company_cnpj ? safeDec(c.company_cnpj) : null,
+          company_address: c.company_address ? safeDec(c.company_address) : null,
+          ip_address: c.ip_address ? safeDec(c.ip_address) : null,
+        };
+        setFilled(fillTemplate(decrypted as Record<string, unknown>));
         if (c.status === "signed") {
           setSigned(true);
           setSignResult({ hash: c.document_hash ?? "", signed_at: c.signed_at ?? "" });

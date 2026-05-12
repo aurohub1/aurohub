@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { fillTemplate } from "@/lib/contract-template";
+import { encrypt } from "@/lib/crypto";
 
 export const runtime = "nodejs";
 
@@ -71,8 +72,8 @@ export async function POST(req: NextRequest) {
       contact_name: String(body.contact_name),
       user_email: String(body.user_email),
       company_name: String(body.company_name),
-      company_cnpj: body.company_cnpj ? String(body.company_cnpj) : null,
-      company_address: body.company_address ? String(body.company_address) : null,
+      company_cnpj: body.company_cnpj ? encrypt(String(body.company_cnpj)) : null,
+      company_address: body.company_address ? encrypt(String(body.company_address)) : null,
       plan_name: String(body.plan_name),
       monthly_value: Number(body.monthly_value),
       monthly_total: Number(body.monthly_total),

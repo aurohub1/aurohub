@@ -26,6 +26,25 @@ export const STYLES = [
 
 export const BUDGETS = ["Econômico", "Moderado", "Luxo", "Ultra Luxo"] as const;
 
+export type Mode = "livre" | "europamundo";
+
+export interface CircuitLight {
+  id: string;
+  name: string;
+  days: number;
+  region: string;
+  cities: string;
+  preco_usd?: number | null;
+}
+
+export interface CircuitFull extends CircuitLight {
+  itinerary: string;
+  inclui?: string | null;
+  saidas?: string | null;
+  operadora?: string | null;
+  temporada?: string | null;
+}
+
 export interface FormData {
   destination: string;
   days: string;
@@ -54,7 +73,7 @@ export interface RoteiroDay {
   items: string[];
 }
 
-export type Step = "form" | "pkg" | "generating" | "result";
+export type Step = "modo" | "form" | "pkg" | "generating" | "result";
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 
@@ -62,13 +81,20 @@ export function parseItinerary(text: string): RoteiroDay[] | null {
   const days: RoteiroDay[] = [];
   const lines = text.split("\n").filter(l => l.trim());
   let cur: RoteiroDay | null = null;
+  // Handles: "Dia 1", "**Dia 1", "## Dia 1", "### Dia 1 —", "**Dia 1:**" etc.
+  const dayLine = /^(?:#{1,3}\s*)?(?:\*{1,2})?dia\s*\d+/i;
 
   for (const line of lines) {
-    if (/^(\*?\*?dia\s*\d+)/i.test(line)) {
+    if (dayLine.test(line)) {
       if (cur) days.push(cur);
-      cur = { title: line.replace(/\*\*/g, "").trim(), items: [] };
+      const title = line
+        .replace(/^#{1,3}\s*/, "")
+        .replace(/\*{1,2}/g, "")
+        .trim();
+      cur = { title, items: [] };
     } else if (cur && line.trim().length > 4) {
-      const c = line.replace(/^[-•*]\s*/, "").replace(/\*\*/g, "").trim();
+      // Strip only leading list markers; keep ** so inlineMarkdown can render bold
+      const c = line.replace(/^[-•]\s*|^\*\s+/, "").trim();
       if (c) cur.items.push(c);
     }
   }
@@ -143,7 +169,7 @@ const defaultPkg: PackageData = {
 };
 
 export function useRoteiro() {
-  const [step, setStep] = useState<Step>("form");
+  const [step, setStep] = useState<Step>("modo");
   const [activeDay, setActiveDay] = useState(0);
   const [form, setForm] = useState<FormData>(defaultForm);
   const [pkg, setPkg] = useState<PackageData>(defaultPkg);
@@ -156,6 +182,17 @@ export function useRoteiro() {
   const [extractErr, setExtractErr] = useState("");
   const [autoFields, setAutoFields] = useState<Record<string, boolean>>({});
   const [fileName, setFileName] = useState("");
+
+  // usage limit
+  const [limitError, setLimitError] = useState("");
+  const [usageWarning, setUsageWarning] = useState("");
+
+  // modo / circuito
+  const [mode, setModeState] = useState<Mode>("livre");
+  const [selectedCircuit, setSelectedCircuit] = useState<CircuitFull | null>(null);
+  const [circuitResults, setCircuitResults] = useState<CircuitLight[]>([]);
+  const [circuitSearching, setCircuitSearching] = useState(false);
+  const [circuitSelecting, setCircuitSelecting] = useState(false);
 
   const progRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -170,6 +207,46 @@ export function useRoteiro() {
       styles: f.styles.includes(id) ? f.styles.filter(s => s !== id) : [...f.styles, id],
     }));
   const isAuto = (k: string) => !!autoFields[k];
+
+  // ── mode helper (clears circuit state when switching) ────────────────────
+  const setMode = (m: Mode) => {
+    setModeState(m);
+    if (m !== "europamundo") {
+      setSelectedCircuit(null);
+      setCircuitResults([]);
+    }
+  };
+
+  // ── circuit search ───────────────────────────────────────────────────────
+  const searchCircuits = async (q: string, region?: string) => {
+    setCircuitSearching(true);
+    try {
+      const params = new URLSearchParams({ q });
+      if (region) params.set("region", region);
+      const res = await fetch(`/api/roteiro/circuitos?${params}`);
+      const json = await res.json();
+      const data = json.circuits ?? (Array.isArray(json) ? json : []);
+      setCircuitResults(data);
+    } catch {
+      setCircuitResults([]);
+    } finally {
+      setCircuitSearching(false);
+    }
+  };
+
+  // ── circuit select (fetches full data with itinerary) ────────────────────
+  const selectCircuit = async (id: string) => {
+    setCircuitSelecting(true);
+    try {
+      const res = await fetch(`/api/roteiro/circuitos/${id}`);
+      if (res.ok) {
+        const data: CircuitFull = await res.json();
+        setSelectedCircuit(data);
+      }
+    } finally {
+      setCircuitSelecting(false);
+    }
+  };
 
   // ── extract from file ────────────────────────────────────────────────────
   const extractFromFile = useCallback(async (file: File) => {
@@ -198,7 +275,7 @@ export function useRoteiro() {
       if (!res.ok) throw new Error(json.error || "Erro na extração");
 
       const ext = json.data;
-      const newAuto: Record<string, boolean> = {};
+      console.log("[extract] resposta da API:", ext);
 
       const FORM_KEYS: (keyof FormData)[] = ["destination", "days", "travelers", "budget", "styles", "notes"];
       const PKG_KEYS: (keyof PackageData)[] = [
@@ -211,35 +288,37 @@ export function useRoteiro() {
         "obs", "ageContext",
       ];
 
-      setForm(f => {
-        const n = { ...f };
-        FORM_KEYS.forEach(k => {
-          const v = ext[k];
-          if (v != null && (Array.isArray(v) ? v.length > 0 : v !== "") && v !== false) {
-            (n as Record<string, unknown>)[k] = v;
-            newAuto[k] = true;
-          }
-        });
-        return n;
+      // Computa patches sincronamente antes de qualquer setState,
+      // pois os updaters de setForm/setPkg só rodam na próxima renderização.
+      const newAuto: Record<string, boolean> = {};
+      const formPatch: Partial<FormData> = {};
+      FORM_KEYS.forEach(k => {
+        const v = ext[k];
+        if (v != null && (Array.isArray(v) ? v.length > 0 : v !== "") && v !== false) {
+          (formPatch as Record<string, unknown>)[k] = v;
+          newAuto[k] = true;
+        }
       });
 
-      setPkg(p => {
-        const n = { ...p };
-        PKG_KEYS.forEach(k => {
-          const v = ext[k];
-          if (v != null && v !== "" && v !== false) {
-            (n as Record<string, unknown>)[k] = v;
-            newAuto[k] = true;
-          }
-        });
-        return n;
+      const pkgPatch: Partial<PackageData> = {};
+      PKG_KEYS.forEach(k => {
+        const v = ext[k];
+        if (v != null && v !== "" && v !== false) {
+          (pkgPatch as Record<string, unknown>)[k] = v;
+          newAuto[k] = true;
+        }
       });
 
+      console.log("[extract] campos preenchidos:", Object.keys(newAuto));
+
+      setForm(f => ({ ...f, ...formPatch }));
+      setPkg(p => ({ ...p, ...pkgPatch }));
       setAutoFields(newAuto);
+
       if (!Object.keys(newAuto).length)
         setExtractErr("Nenhum dado encontrado. Preencha manualmente.");
 
-    } catch (e) {
+    } catch {
       setExtractErr("Erro ao processar o arquivo. Tente novamente.");
     } finally {
       setExtracting(false);
@@ -252,6 +331,8 @@ export function useRoteiro() {
     setStreamText("");
     setParsed(null);
     setProgress(0);
+    setLimitError("");
+    setUsageWarning("");
 
     progRef.current = setInterval(
       () => setProgress(p => Math.min(p + Math.random() * 2.5, 90)),
@@ -262,8 +343,22 @@ export function useRoteiro() {
       const res = await fetch("/api/roteiro/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, ...pkg }),
+        body: JSON.stringify({
+          ...form,
+          ...pkg,
+          mode,
+          circuitItinerary: selectedCircuit?.itinerary ?? null,
+          circuitName: selectedCircuit?.name ?? null,
+        }),
       });
+
+      if (res.status === 429) {
+        clearInterval(progRef.current!);
+        const json = await res.json() as { error?: string };
+        setLimitError(json.error || "Limite de roteiros atingido.");
+        setStep("pkg");
+        return;
+      }
 
       const reader = res.body!.getReader();
       const dec = new TextDecoder();
@@ -277,7 +372,8 @@ export function useRoteiro() {
             const raw = line.slice(6).trim();
             if (raw === "[DONE]") break;
             try {
-              const d = JSON.parse(raw);
+              const d = JSON.parse(raw) as { text?: string; warning?: string; error?: string };
+              if (d.warning) setUsageWarning(d.warning);
               if (d.text) { full += d.text; setStreamText(full); }
             } catch { /* ignorar linhas malformadas */ }
           }
@@ -306,25 +402,20 @@ export function useRoteiro() {
     URL.revokeObjectURL(url);
   };
 
-  // ── google drive (desabilitado — implementado mas não ativo) ─────────────
-  // TODO: ativar quando integração Google Drive for liberada pelo ADM
-  // const sendToDrive = async (content: string, fileName: string) => {
-  //   await fetch("/api/drive/roteiro", {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({ content, fileName }),
-  //   });
-  // };
-
   // ── reset ─────────────────────────────────────────────────────────────────
   const reset = () => {
-    setStep("form");
+    setStep("modo");
+    setModeState("livre");
+    setSelectedCircuit(null);
+    setCircuitResults([]);
     setStreamText("");
     setParsed(null);
     setProgress(0);
     setAutoFields({});
     setFileName("");
     setExtractErr("");
+    setLimitError("");
+    setUsageWarning("");
     setForm(defaultForm);
     setPkg(defaultPkg);
     setActiveDay(0);
@@ -337,10 +428,17 @@ export function useRoteiro() {
     form, pkg,
     parsed, streamText, progress,
     extracting, extractErr, autoFields, fileName,
+    limitError, setLimitError, usageWarning,
+    // modo / circuito
+    mode, setMode,
+    selectedCircuit,
+    circuitResults, setCircuitResults,
+    circuitSearching, circuitSelecting,
     // helpers
     setF, setP, toggleStyle, isAuto,
     autoCount: Object.keys(autoFields).length,
     // actions
     extractFromFile, generate, reset, downloadTxt,
+    searchCircuits, selectCircuit,
   };
 }

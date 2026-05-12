@@ -166,6 +166,11 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
+        label: "Roteiro",
+        href: "/adm/roteiro",
+        icon: I.roteiro,
+      },
+      {
         label: "Métricas",
         href: "/adm/metricas",
         icon: (

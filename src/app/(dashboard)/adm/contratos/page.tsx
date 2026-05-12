@@ -7,6 +7,9 @@ import {
   FileText, Plus, X, Check, Clock, Ban, Eye, Send, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { fillTemplate } from "@/lib/contract-template";
+import { decrypt, isEncrypted } from "@/lib/crypto";
+
+const safeDec = (v: string) => v && isEncrypted(v) ? decrypt(v) : (v || "");
 
 /* ── Types ───────────────────────────────────────── */
 
@@ -160,7 +163,13 @@ export default function AdmContratosPage() {
   }
 
   function openPreview(c: Contract) {
-    setPreviewText(fillTemplate(c as unknown as Record<string, unknown>));
+    const dec = {
+      ...c,
+      company_cnpj: c.company_cnpj ? safeDec(c.company_cnpj) : null,
+      company_address: c.company_address ? safeDec(c.company_address) : null,
+      ip_address: c.ip_address ? safeDec(c.ip_address) : null,
+    };
+    setPreviewText(fillTemplate(dec as unknown as Record<string, unknown>));
     setPreviewId(c.id);
   }
 
@@ -246,8 +255,8 @@ export default function AdmContratosPage() {
                   <tr key={`${c.id}-exp`} className="border-b border-[var(--bdr)] bg-[var(--surface)]">
                     <td colSpan={7} className="px-6 py-4">
                       <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-[12px]">
-                        <Info label="CNPJ" value={c.company_cnpj ?? "—"} />
-                        <Info label="Endereço" value={c.company_address ?? "—"} />
+                        <Info label="CNPJ" value={c.company_cnpj ? safeDec(c.company_cnpj) : "—"} />
+                        <Info label="Endereço" value={c.company_address ? safeDec(c.company_address) : "—"} />
                         <Info label="E-mail" value={c.user_email} />
                         <Info label="Pagamento" value={`Dia ${c.payment_day} — ${c.payment_method ?? "—"}`} />
                         <Info label="Lojas" value={String(c.stores_count)} />
@@ -255,7 +264,7 @@ export default function AdmContratosPage() {
                         <Info label="Add-ons" value={c.addons_list ?? "—"} />
                         <Info label="Setup" value={fmtBRL(c.setup_fee)} />
                         {c.signed_at && <Info label="Assinado em" value={fmtDate(c.signed_at)} />}
-                        {c.ip_address && <Info label="IP" value={c.ip_address} />}
+                        {c.ip_address && <Info label="IP" value={safeDec(c.ip_address)} />}
                         {c.document_hash && (
                           <div className="col-span-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Hash SHA-256</span>
