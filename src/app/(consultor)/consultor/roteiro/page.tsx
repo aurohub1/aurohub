@@ -10,6 +10,7 @@ import {
   type FormData, type PackageData,
 } from "@/hooks/useRoteiro";
 import { CitySearch } from "@/components/roteiro/CitySearch";
+import { useAntiCopy } from "@/hooks/useAntiCopy";
 
 interface StoreInfo {
   nome_comercial?: string | null;
@@ -1082,22 +1083,7 @@ export default function RoteiroPage() {
     })();
   }, [router]);
 
-  useEffect(() => {
-    const block = (e: Event) => e.preventDefault();
-    const blockKeys = (e: KeyboardEvent) => {
-      if (
-        (e.ctrlKey && ["c","u","s","p","a"].includes(e.key.toLowerCase())) ||
-        e.key === "F12" ||
-        (e.ctrlKey && e.shiftKey && ["i","j","c"].includes(e.key.toLowerCase()))
-      ) e.preventDefault();
-    };
-    document.addEventListener("contextmenu", block);
-    document.addEventListener("keydown", blockKeys);
-    return () => {
-      document.removeEventListener("contextmenu", block);
-      document.removeEventListener("keydown", blockKeys);
-    };
-  }, []);
+  useAntiCopy();
 
   const r = useRoteiro();
   const fileRef = useRef<HTMLInputElement>(null);
