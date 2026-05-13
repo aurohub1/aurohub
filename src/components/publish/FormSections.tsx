@@ -2557,19 +2557,25 @@ export function CardWhatsAppForm({
   async function handleShuffleBg() {
     setBgLoading(true);
     try {
-      // Biblioteca de fundos do V2 = tabela `imgfundo` (confirmado via information_schema).
-      const { data, error } = await _sb_for_lamina
+      const FOLDER = "cea5490a26896dd7b98f9ab8e6127b05c4";
+      let { data, error } = await _sb_for_lamina
         .from("imgfundo")
         .select("url")
         .not("url", "is", null)
+        .like("url", `%${FOLDER}%`)
         .limit(1000);
-      if (error) { console.error("[Lâmina] imgfundo query:", error); alert("Erro ao buscar fundos."); return; }
-      const rows = (data ?? []) as { url: string }[];
+      if (error) { console.error("[CardWhatsApp] imgfundo query:", error); alert("Erro ao buscar fundos."); return; }
+      let rows = (data ?? []) as { url: string }[];
+      // Fallback: sem registros na pasta correta, usa toda a tabela
+      if (!rows.length) {
+        const fallback = await _sb_for_lamina.from("imgfundo").select("url").not("url", "is", null).limit(1000);
+        rows = (fallback.data ?? []) as { url: string }[];
+      }
       if (!rows.length) { alert("Biblioteca de fundos vazia."); return; }
       const pick = rows[Math.floor(Math.random() * rows.length)];
       if (pick?.url) set("imgfundo", pick.url);
     } catch (err) {
-      console.error("[Lâmina] shuffle bg:", err);
+      console.error("[CardWhatsApp] shuffle bg:", err);
       alert("Erro ao sortear fundo.");
     } finally {
       setBgLoading(false);

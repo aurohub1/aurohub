@@ -469,13 +469,20 @@ export default function CardsCanvas({ lojaLogoUrl, set = () => {} }: Props = {})
   async function handleShuffle() {
     setBgLoading(true);
     try {
-      const { data, error } = await supabase
+      const FOLDER = "cea5490a26896dd7b98f9ab8e6127b05c4";
+      let { data, error } = await supabase
         .from("imgfundo")
         .select("url")
         .not("url", "is", null)
+        .like("url", `%${FOLDER}%`)
         .limit(1000);
       if (error) { console.error("[Cards] imgfundo:", error); return; }
-      const rows = (data ?? []) as Array<{ url: string }>;
+      let rows = (data ?? []) as Array<{ url: string }>;
+      // Fallback: sem registros na pasta correta, usa toda a tabela
+      if (!rows.length) {
+        const fallback = await supabase.from("imgfundo").select("url").not("url", "is", null).limit(1000);
+        rows = (fallback.data ?? []) as Array<{ url: string }>;
+      }
       if (!rows.length) return;
       const pick = rows[Math.floor(Math.random() * rows.length)];
       const img = await loadImage(pick.url);
