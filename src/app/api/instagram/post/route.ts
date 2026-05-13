@@ -197,6 +197,14 @@ export async function POST(req: NextRequest) {
       });
     } catch { /* silent */ }
 
+    // Incrementa contador de uso (best-effort)
+    const usageMetric = mediaType === "STORIES" ? "stories" : "feed_reels";
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/usage/increment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ metric: usageMetric, licensee_id, store_id: store_id ?? null }),
+    }).catch(() => {});
+
     // Deletar imagem do Cloudinary após log (liberação de espaço)
     try {
       const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;

@@ -224,6 +224,13 @@ export async function POST(req: NextRequest) {
               () => {},
               (e: unknown) => console.error("[roteiro/generate] usage insert:", e)
             );
+
+            // Sincroniza com usage_counters
+            fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/usage/increment`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ metric: "roteiros", licensee_id: licenseeId }),
+            }).catch(() => {});
           }
 
           controller.close();

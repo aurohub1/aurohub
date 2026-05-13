@@ -9,6 +9,7 @@ import FeriadosCard from "@/components/FeriadosCard";
 import InstagramStatusBadge from "@/components/InstagramStatusBadge";
 import InactivityAlert from "@/components/InactivityAlert";
 import { PostCounters } from "@/components/PostCounters";
+import { UsageBars } from "@/components/UsageBars";
 import { getInactiveStores, type InactiveStore } from "@/lib/inactivity-check";
 import { useCountUp } from "@/hooks/useCountUp";
 import {
@@ -405,6 +406,8 @@ export default function GerenteInicioPage() {
       </div>
 
       <InactivityAlert stores={inactiveStores} />
+
+      {profile?.licensee_id && <UsageBars licenseeId={profile.licensee_id} />}
 
       {/* ═══ Stats Row ═══════════════════════ */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

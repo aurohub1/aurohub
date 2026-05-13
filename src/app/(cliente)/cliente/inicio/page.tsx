@@ -7,6 +7,7 @@ import { getProfile, type FullProfile } from "@/lib/auth";
 import { NewsCard } from "@/components/NewsCard";
 import FeriadosCard from "@/components/FeriadosCard";
 import InactivityAlert from "@/components/InactivityAlert";
+import { UsageBars } from "@/components/UsageBars";
 import { getInactiveStores, type InactiveStore } from "@/lib/inactivity-check";
 import {
   Store, BarChart3, FileText, Sparkles, CalendarClock, ArrowRight,
@@ -436,6 +437,9 @@ export default function ClienteInicioPage() {
           </div>
         </div>
       </div>
+
+      {/* ═══ Uso do plano ════════════════════════════ */}
+      {profile?.licensee_id && <UsageBars licenseeId={profile.licensee_id} />}
 
       {/* ═══ Central de Publicação — compact row ═══ */}
       <Link

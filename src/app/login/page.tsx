@@ -225,7 +225,7 @@ export default function LoginPage() {
           || "você";
         const role = profile?.role ?? null;
         const home = homeForRole(role);
-        const splashRoles = ["adm", "operador", "cliente", "unidade", "gerente", "vendedor"];
+        const splashRoles = ["adm", "operador", "cliente", "unidade", "gerente", "vendedor", "consultor", "gestor"];
         const canShowSplash = role !== null && splashRoles.includes(role);
 
         if (!canShowSplash) {
@@ -340,7 +340,80 @@ export default function LoginPage() {
       if (mfaUserId) await registerSession(mfaUserId);
       const profile = await getProfile(supabase);
       const role = profile?.role ?? null;
-      router.push(homeForRole(role));
+      const home = homeForRole(role);
+      const name = profile?.name || "você";
+      const splashRoles = ["adm", "operador", "cliente", "unidade", "gerente", "vendedor", "consultor", "gestor"];
+      if (!role || !splashRoles.includes(role)) { router.push(home); return; }
+
+      let splashConfig: Record<string, string | number | boolean | undefined> | null = null;
+
+      if (role === "adm") {
+        const { data: cfgRows } = await supabase.from("system_config").select("key,value").like("key", "adm_splash_%");
+        const cfg: Record<string, string> = {};
+        for (const r of (cfgRows ?? []) as { key: string; value: string }[]) cfg[r.key] = r.value;
+        const num = (k: string, def: number): number => { const v = Number(cfg[k]); return Number.isFinite(v) && v > 0 ? v : def; };
+        splashConfig = {
+          logoUrl: cfg.adm_splash_logo || undefined,
+          effect: cfg.adm_splash_effect || "aurovista_adm",
+          logoOrientation: "horizontal",
+          cor1: cfg.adm_splash_cor1 || "#D4A843",
+          cor2: cfg.adm_splash_cor2 || "#FF7A1A",
+          cor3: cfg.adm_splash_cor3 || "transparent",
+          cor4: cfg.adm_splash_cor4 || "transparent",
+          cor5: cfg.adm_splash_cor5 || "transparent",
+          corFundo: cfg.adm_splash_cor_fundo || "#060B16",
+          velocidade: num("adm_splash_velocidade", 5),
+          suavidade: num("adm_splash_suavidade", 7),
+          somUrl: cfg.adm_splash_som || undefined,
+          quantidade: num("adm_splash_quantidade", 5),
+          tamanho: num("adm_splash_tamanho", 5),
+          raioOrbital: num("adm_splash_raio_orbital", 5),
+          nebulosa: num("adm_splash_nebulosa", 6),
+          opacidade: num("adm_splash_opacidade", 8),
+          dispersao: num("adm_splash_dispersao", 4),
+          velocidadeTexto: num("adm_splash_velocidade_texto", 5),
+          textoEfeito: cfg.adm_splash_texto_efeito || "typewriter",
+          glowTexto: cfg.adm_splash_texto_glow !== "false",
+          glowIntensidade: num("adm_splash_texto_glow_intensidade", 5),
+          textoCor: cfg.adm_splash_texto_cor || "#FFFFFF",
+          glowCor: cfg.adm_splash_glow_cor || cfg.adm_splash_cor2 || "#FF7A1A",
+        };
+      } else if (profile?.licensee_id) {
+        const { data: lic } = await supabase
+          .from("licensees")
+          .select("logo_url,splash_effect,splash_logo_orientation,splash_velocidade,splash_suavidade,splash_som_url,cor_primaria,cor_secundaria,cor_acento,cor_fundo,cor4,cor5")
+          .eq("id", profile.licensee_id)
+          .single();
+        if (lic) {
+          const lic2 = lic as typeof lic & { splash_velocidade?: number; splash_suavidade?: number; splash_som_url?: string };
+          splashConfig = {
+            logoUrl: lic.logo_url || undefined,
+            effect: lic.splash_effect || "particles",
+            logoOrientation: lic.splash_logo_orientation || "horizontal",
+            cor1: lic.cor_primaria || "#D4A843",
+            cor2: lic.cor_secundaria || "#FF7A1A",
+            cor3: lic.cor_acento || "#1E3A6E",
+            cor4: lic.cor4 || undefined,
+            cor5: lic.cor5 || undefined,
+            corFundo: lic.cor_fundo || "#0E1520",
+            velocidade: lic2.splash_velocidade ?? 5,
+            suavidade: lic2.splash_suavidade ?? 7,
+            somUrl: lic2.splash_som_url || undefined,
+          };
+        }
+      }
+
+      if (!splashConfig) {
+        splashConfig = {
+          effect: "aurovista_adm",
+          logoOrientation: "horizontal",
+          cor1: "#D4A843", cor2: "#FF7A1A",
+          cor3: "transparent", cor4: "transparent", cor5: "transparent",
+          corFundo: "#060B16", velocidade: 5, suavidade: 7,
+        };
+      }
+
+      setSplash({ name, home, ...splashConfig });
     } catch {
       setMfaError("Erro ao verificar. Tente novamente.");
     } finally {

@@ -375,7 +375,7 @@ export default function BancoImagensAdmPage() {
       const upRes = await fetch("/api/cloudinary/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataUrl, folder: "aurohubv2/imgfundo" }),
+        body: JSON.stringify({ dataUrl, folder: "cea5490a26896dd7b98f9ab8e6127b05c4" }),
       });
       const upData = await upRes.json();
       if (!upRes.ok) throw new Error(upData.error || "Upload falhou");

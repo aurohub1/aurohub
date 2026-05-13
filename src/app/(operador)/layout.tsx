@@ -7,6 +7,7 @@ import { SessionGuard } from "@/components/auth/SessionGuard";
 import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
 import Sidebar, { OPERADOR_SECTIONS } from "@/components/layout/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
+import { SupportDrawerProvider } from "@/components/support/SupportDrawerProvider";
 
 export default function OperadorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -42,7 +43,7 @@ export default function OperadorLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <>
+    <SupportDrawerProvider>
       <SessionGuard />
       <Sidebar
         activePath={pathname}
@@ -61,6 +62,6 @@ export default function OperadorLayout({ children }: { children: React.ReactNode
         <span className="text-[var(--bdr2)]">&middot;</span>
         <span>Operador</span>
       </footer>
-    </>
+    </SupportDrawerProvider>
   );
 }

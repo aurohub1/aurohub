@@ -82,6 +82,16 @@ export async function POST(req: NextRequest) {
       } catch { /* silent */ }
     }
 
+    // Incrementa contador de uso (best-effort)
+    if (licensee_id) {
+      const usageMetric = (media_type ?? "REELS") === "STORIES" ? "stories" : "feed_reels";
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/usage/increment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ metric: usageMetric, licensee_id, store_id: store_id ?? null }),
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ success: true, ig_post_id: pubData.id });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "unknown" }, { status: 500 });
