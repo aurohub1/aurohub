@@ -335,14 +335,23 @@ export default function AdmSuportePage() {
                       <button
                         onClick={() => setAiOpen((v) => !v)}
                         title="IA Assistente"
-                        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                          aiOpen
-                            ? "bg-violet-100 text-violet-700"
-                            : "border border-slate-200 text-slate-500 hover:bg-slate-50"
-                        }`}
+                        className="flex items-center gap-1.5 text-xs font-medium transition-colors"
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "8px",
+                          color: "#6FA3F7",
+                          background: aiOpen ? "rgba(26,86,196,0.3)" : "rgba(26,86,196,0.15)",
+                          border: aiOpen ? "1px solid rgba(26,86,196,0.65)" : "1px solid rgba(26,86,196,0.4)",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!aiOpen) (e.currentTarget as HTMLButtonElement).style.background = "rgba(26,86,196,0.25)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!aiOpen) (e.currentTarget as HTMLButtonElement).style.background = "rgba(26,86,196,0.15)";
+                        }}
                       >
                         <Sparkles size={13} />
-                        {aiOpen ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+                        <span>IA</span>
                       </button>
                       {active.status !== "resolved" && (
                         <button

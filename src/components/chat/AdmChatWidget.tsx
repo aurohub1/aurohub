@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getProfile, type FullProfile } from "@/lib/auth";
 import {
-  X, ChevronDown, ChevronUp, ArrowLeft, Send, MessageCircle,
+  X, ChevronDown, ChevronUp, ArrowLeft, Send, MessageCircle, Sparkles,
 } from "lucide-react";
 
 interface Room {
@@ -72,6 +72,11 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
   const [input, setInput]             = useState("");
   const [sending, setSending]         = useState(false);
   const bottomRef                     = useRef<HTMLDivElement>(null);
+
+  // AI copilot
+  const [aiOpen, setAiOpen]           = useState(false);
+  const [aiLoading, setAiLoading]     = useState(false);
+  const [aiData, setAiData]           = useState<{ summary: string; suggested_reply: string } | null>(null);
 
   useEffect(() => {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
@@ -171,6 +176,9 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
     return () => { supabase.removeChannel(ch); };
   }, [profile, loadRooms]);
 
+  // Reset AI state on room change
+  useEffect(() => { setAiOpen(false); setAiData(null); }, [activeRoomId]);
+
   // Load messages + upsert read receipt when entering a room
   useEffect(() => {
     if (!activeRoomId || !profile) { setMessages([]); return; }
@@ -231,6 +239,26 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
     }
   }, [input, activeRoomId, profile, sending]);
 
+  async function fetchAi(msgs: ChatMsg[], licenseeId: string | null) {
+    setAiLoading(true);
+    setAiData(null);
+    try {
+      const apiMessages = msgs.map(m => ({
+        role: m.user_id === profile?.id ? "assistant" as const : "user" as const,
+        content: m.message,
+      }));
+      const res = await fetch("/api/kb/assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages, licensee_id: licenseeId }),
+      });
+      const data = await res.json() as { summary: string; suggested_reply: string };
+      setAiData(data);
+    } catch { /* silent */ } finally {
+      setAiLoading(false);
+    }
+  }
+
   const activeRoom = rooms.find(r => r.id === activeRoomId) ?? null;
   const unreadCount = rooms.filter(r => r.unread).length;
 
@@ -271,6 +299,30 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
             className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--txt2)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
           >
             <ArrowLeft size={14} />
+          </button>
+        )}
+        {activeRoomId && !minimized && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const next = !aiOpen;
+              setAiOpen(next);
+              if (next && !aiData && !aiLoading) {
+                void fetchAi(messages, activeRoom?.licensee_id ?? null);
+              }
+            }}
+            aria-label="IA Assistente"
+            className="flex shrink-0 items-center gap-1 text-[11px] font-semibold transition-colors"
+            style={{
+              padding: "6px 10px",
+              borderRadius: "8px",
+              color: "#6FA3F7",
+              background: aiOpen ? "rgba(26,86,196,0.3)" : "rgba(26,86,196,0.15)",
+              border: aiOpen ? "1px solid rgba(26,86,196,0.65)" : "1px solid rgba(26,86,196,0.4)",
+            }}
+          >
+            <Sparkles size={12} />
+            <span>IA</span>
           </button>
         )}
         <button
@@ -347,6 +399,49 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
           {/* ── VIEW 2: Conversa ── */}
           {activeRoomId && (
             <>
+              {/* AI Panel */}
+              {aiOpen && (
+                <div
+                  className="shrink-0 overflow-y-auto border-b border-[var(--bdr)] px-3 py-2.5"
+                  style={{ maxHeight: 200, background: "#060D1A" }}
+                >
+                  {aiLoading ? (
+                    <div className="flex items-center gap-2 py-1">
+                      <div className="h-3 w-3 animate-spin rounded-full border border-[#6FA3F7] border-t-transparent" />
+                      <span className="text-[11px] text-[#6FA3F7]">Analisando...</span>
+                    </div>
+                  ) : !aiData ? (
+                    <span className="text-[11px] text-[var(--txt3)]">Nenhum dado disponível.</span>
+                  ) : (
+                    <div className="flex flex-col gap-2.5">
+                      <div>
+                        <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#6FA3F7]">
+                          Resumo
+                        </p>
+                        <p className="text-[11px] leading-relaxed text-[var(--txt2)]">{aiData.summary}</p>
+                      </div>
+                      {aiData.suggested_reply && (
+                        <div>
+                          <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#6FA3F7]">
+                            Sugestão
+                          </p>
+                          <p className="text-[11px] leading-relaxed text-[var(--txt2)] line-clamp-3">
+                            {aiData.suggested_reply}
+                          </p>
+                          <button
+                            onClick={() => setInput(aiData.suggested_reply)}
+                            className="mt-1.5 rounded-lg px-2.5 py-1 text-[10px] font-semibold text-white"
+                            style={{ background: "rgba(26,86,196,0.5)", border: "1px solid rgba(26,86,196,0.6)" }}
+                          >
+                            Usar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex-1 overflow-y-auto px-3 py-3">
                 <div className="flex flex-col gap-3">
                   {messages.map(m => {
