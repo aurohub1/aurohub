@@ -405,6 +405,7 @@ export const GERENTE_SECTIONS: NavSection[] = [
     items: [
       { label: "Início", href: "/gerente/inicio", icon: I.home },
       { label: "Publicar",  href: "/gerente/publicar",  icon: I.publish, feature: "publicar" },
+      { label: "Roteiro", href: "/gerente/roteiro", icon: I.roteiro, feature: "roteiro" },
       { label: "Histórico", href: "/gerente/historico", icon: I.clock   },
       { label: "Calendário", href: "/gerente/calendario", icon: I.calendar, feature: "agendamento" },
       { label: "Métricas", href: "/gerente/metricas", icon: I.metrics, feature: "metricas" },
@@ -412,7 +413,6 @@ export const GERENTE_SECTIONS: NavSection[] = [
       { label: "Card WhatsApp", href: "/gerente/publicar/cards", icon: I.whatsapp, feature: "card_whatsapp" },
       { label: "Agendamentos", href: "/gerente/agendamentos", icon: I.calendar, feature: "agendamento" },
       { label: "Consultores", href: "/gerente/consultores", icon: I.vendors, feature: "vendedores" },
-      { label: "Roteiro", href: "/gerente/roteiro", icon: I.roteiro, feature: "roteiro" },
       { label: "Chat", href: "/gerente/chat", icon: I.chat },
       { label: "Configurações", href: "/gerente/configuracoes", icon: I.settings },
       { label: "Suporte", href: "/gerente/suporte", icon: I.support },

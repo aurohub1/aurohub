@@ -7,11 +7,19 @@ import { supabase } from "@/lib/supabase";
 
 interface Plan {
   id: string; slug: string; name: string;
-  price_monthly: number; price_setup: number; min_months: number;
+  price_monthly: number; price_yearly: number;
+  price_setup: number; min_months: number;
   max_users: number; max_posts_day: number;
   max_feed_reels_day?: number | null;
   max_stories_day?: number | null;
   is_internal?: boolean | null;
+}
+
+interface AddOn {
+  id: string; slug: string; name: string; description: string | null;
+  price_monthly: number; type: string; limit_per_month: number;
+  available_from_plan: string; included_in_plans: string[];
+  is_active: boolean; sort_order: number;
 }
 
 type Periodo = "mensal" | "anual";
@@ -19,80 +27,110 @@ type Periodo = "mensal" | "anual";
 /* ── Constants ───────────────────────────────────── */
 
 const SLUG_EMOJI: Record<string, string> = {
-  basic:      "🎯",
-  pro:        "⚡",
-  business:   "🏢",
-  enterprise: "👑",
+  basic: "🎯", pro: "⚡", business: "🏢", enterprise: "👑",
 };
 
-const ADDONS = [
-  { key: "individual", label: "Transmissão Individual", price: 29, desc: "1 consultor" },
-  { key: "time", label: "Transmissão Time", price: 199, desc: "Até 10 consultores" },
-  { key: "rede", label: "Transmissão Rede", price: 449, desc: "Até 30 consultores" },
-];
+// Maps DB plan slugs → values that may appear in add_ons.included_in_plans
+const PLAN_INCLUDED_AS: Record<string, string[]> = {
+  basic:      ["basic", "essencial"],
+  pro:        ["pro", "profissional"],
+  business:   ["business", "franquia"],
+  enterprise: ["enterprise"],
+};
+
+const EXCLUDE_SLUGS = new Set(["novo_template", "badge_design"]);
 
 function brl(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function isAddonIncluded(addon: AddOn, planSlug: string): boolean {
+  const aliases = PLAN_INCLUDED_AS[planSlug] ?? [planSlug];
+  return addon.included_in_plans.some((p) => aliases.includes(p));
+}
+
 /* ── Component ───────────────────────────────────── */
 
 export default function CalculadoraPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [plans, setPlans]           = useState<Plan[]>([]);
+  const [addOnItems, setAddOnItems] = useState<AddOn[]>([]);
+  const [loading, setLoading]       = useState(true);
 
-  const [selectedPlan, setSelectedPlan] = useState("pro");
-  const [lojas, setLojas] = useState(1);
-  const [usuarios, setUsuarios] = useState(2);
-  const [feedPosts, setFeedPosts] = useState(5);
-  const [storiesQty, setStoriesQty] = useState(5);
-  const [periodo, setPeriodo] = useState<Periodo>("mensal");
-  const [addons, setAddons] = useState<string[]>([]);
-  const [copied, setCopied] = useState(false);
+  const [selectedPlan, setSelectedPlan]     = useState("pro");
+  const [lojas, setLojas]                   = useState(1);
+  const [usuarios, setUsuarios]             = useState(2);
+  const [feedPosts, setFeedPosts]           = useState(5);
+  const [storiesQty, setStoriesQty]         = useState(5);
+  const [periodo, setPeriodo]               = useState<Periodo>("mensal");
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [copied, setCopied]                 = useState(false);
 
   /* ── Load ──────────────────────────────────────── */
 
-  const loadPlans = useCallback(async () => {
-    const { data } = await supabase.from("plans").select("*").order("sort_order");
-    setPlans((data as Plan[]) ?? []);
+  const loadData = useCallback(async () => {
+    const [pRes, aRes] = await Promise.all([
+      supabase.from("plans").select("*").order("sort_order"),
+      supabase.from("add_ons").select("*").eq("is_active", true).order("sort_order"),
+    ]);
+    setPlans((pRes.data as Plan[]) ?? []);
+    setAddOnItems(
+      ((aRes.data as AddOn[]) ?? []).filter((a) => !EXCLUDE_SLUGS.has(a.slug))
+    );
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadPlans(); }, [loadPlans]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  /* ── Calc ──────────────────────────────────────── */
+  /* ── Derived ───────────────────────────────────── */
 
   const planData = useMemo(() => plans.find((p) => p.slug === selectedPlan), [plans, selectedPlan]);
 
-  const calc = useMemo(() => {
-    const base        = planData?.price_monthly ?? 0;
-    const desconto    = periodo === "anual" ? 0.85 : 1;
-    const mensalidade = base * lojas * usuarios * desconto;
-    const implantacao = (planData?.price_setup ?? 0) * lojas;
-    const addonMensal = ADDONS.filter((a) => addons.includes(a.key)).reduce((s, a) => s + a.price, 0);
-    const totalMensal = mensalidade + addonMensal;
-    const meses       = periodo === "anual" ? 12 : (planData?.min_months ?? 1);
-    const totalPeriodo = totalMensal * meses + implantacao;
-    return { mensalidade, implantacao, addonMensal, totalMensal, totalPeriodo, meses, base };
-  }, [planData, lojas, usuarios, periodo, addons]);
+  const { regularAddOns, transmissaoAddOns } = useMemo(() => ({
+    regularAddOns:    addOnItems.filter((a) => !a.slug.startsWith("transmissao_")),
+    transmissaoAddOns: addOnItems.filter((a) =>  a.slug.startsWith("transmissao_")),
+  }), [addOnItems]);
 
-  /* ── Recomendação de plano ────────────────────── */
+  const annualDiscountPct = useMemo(() => {
+    if (!planData?.price_yearly || !planData.price_monthly) return 15;
+    return Math.max(0, Math.round((1 - planData.price_yearly / (planData.price_monthly * 12)) * 100));
+  }, [planData]);
+
+  /* ── Calc ──────────────────────────────────────── */
+
+  const calc = useMemo(() => {
+    if (!planData) return { base: 0, mensalidade: 0, implantacao: 0, addonMensal: 0, totalMensal: 0, totalPeriodo: 0, meses: 1 };
+
+    const base = periodo === "anual" && planData.price_yearly > 0
+      ? planData.price_yearly / 12
+      : planData.price_monthly;
+
+    const mensalidade = base * lojas * usuarios;
+    const implantacao = (planData.price_setup ?? 0) * lojas;
+    const addonMensal = addOnItems
+      .filter((a) => selectedAddons.includes(a.slug) && !isAddonIncluded(a, selectedPlan))
+      .reduce((s, a) => s + a.price_monthly, 0);
+    const totalMensal  = mensalidade + addonMensal;
+    const meses        = periodo === "anual" ? 12 : (planData.min_months ?? 1);
+    const totalPeriodo = totalMensal * meses + implantacao;
+    return { base, mensalidade, implantacao, addonMensal, totalMensal, totalPeriodo, meses };
+  }, [planData, lojas, usuarios, periodo, selectedAddons, addOnItems, selectedPlan]);
+
+  /* ── Recomendação ──────────────────────────────── */
 
   const recommendation = useMemo(() => {
     if (plans.length === 0 || !planData) return null;
 
-    const desconto    = periodo === "anual" ? 0.85 : 1;
-    const addonMensal = ADDONS.filter((a) => addons.includes(a.key)).reduce((s, a) => s + a.price, 0);
-
     const costs = plans
       .filter((p) => p.price_monthly > 0 && !p.is_internal)
       .map((p) => {
-        const total         = p.price_monthly * lojas * usuarios * desconto + addonMensal;
+        const base = periodo === "anual" && p.price_yearly > 0 ? p.price_yearly / 12 : p.price_monthly;
+        const planAddonMensal = addOnItems
+          .filter((a) => selectedAddons.includes(a.slug))
+          .reduce((s, a) => s + (isAddonIncluded(a, p.slug) ? 0 : a.price_monthly), 0);
+        const total         = base * lojas * usuarios + planAddonMensal;
         const coversUsers   = p.max_users === -1 || p.max_users >= usuarios;
-        const feedLimit     = p.max_feed_reels_day;
-        const storiesLimit  = p.max_stories_day;
-        const coversFeed    = feedLimit == null || feedLimit === -1 || feedLimit >= feedPosts;
-        const coversStories = storiesLimit == null || storiesLimit === -1 || storiesLimit >= storiesQty;
+        const coversFeed    = p.max_feed_reels_day == null || p.max_feed_reels_day === -1 || p.max_feed_reels_day >= feedPosts;
+        const coversStories = p.max_stories_day == null || p.max_stories_day === -1 || p.max_stories_day >= storiesQty;
         const coversAll     = coversUsers && coversFeed && coversStories;
         return { plan: p, total, coversUsers, coversFeed, coversStories, coversAll };
       });
@@ -100,7 +138,6 @@ export default function CalculadoraPage() {
     const currentCost = costs.find((c) => c.plan.slug === selectedPlan);
     if (!currentCost) return null;
 
-    // 1. Plano atual não cobre algum limite → upgrade forçado
     if (!currentCost.coversAll) {
       const reasons: string[] = [];
       if (!currentCost.coversUsers)   reasons.push(`${usuarios} usuários por loja`);
@@ -111,23 +148,15 @@ export default function CalculadoraPage() {
         .filter((c) => c.coversAll && c.plan.slug !== selectedPlan)
         .sort((a, b) => a.total - b.total)[0];
       if (fullCover) {
-        return {
-          type: "upgrade" as const,
-          plan: fullCover.plan,
-          diff: fullCover.total - currentCost.total,
-          reason: `Seu uso excede o ${planData.name}: ${reasons.join(", ")}.`,
-        };
+        return { type: "upgrade" as const, plan: fullCover.plan, diff: fullCover.total - currentCost.total,
+          reason: `Seu uso excede o ${planData.name}: ${reasons.join(", ")}.` };
       }
 
       const ranked = costs
         .filter((c) => c.plan.slug !== selectedPlan)
         .map((c) => {
-          const norm = (v: number | null | undefined) => v == null || v === -1 ? 9999 : v;
-          const score =
-            norm(c.plan.max_users) +
-            norm(c.plan.max_feed_reels_day) +
-            norm(c.plan.max_stories_day);
-          return { c, score };
+          const norm = (v: number | null | undefined) => (v == null || v === -1 ? 9999 : v);
+          return { c, score: norm(c.plan.max_users) + norm(c.plan.max_feed_reels_day) + norm(c.plan.max_stories_day) };
         })
         .sort((a, b) => b.score - a.score);
 
@@ -135,28 +164,19 @@ export default function CalculadoraPage() {
       if (best && (best.plan.max_users === -1 || best.plan.max_users > currentCost.plan.max_users ||
           (best.plan.max_stories_day ?? 9999) > (currentCost.plan.max_stories_day ?? 0) ||
           (best.plan.max_feed_reels_day ?? 9999) > (currentCost.plan.max_feed_reels_day ?? 0))) {
-        return {
-          type: "upgrade" as const,
-          plan: best.plan,
-          diff: best.total - currentCost.total,
-          reason: `Nenhum plano cobre 100% (${reasons.join(", ")}), mas o ${best.plan.name} é o mais próximo.`,
-        };
+        return { type: "upgrade" as const, plan: best.plan, diff: best.total - currentCost.total,
+          reason: `Nenhum plano cobre 100% (${reasons.join(", ")}), mas o ${best.plan.name} é o mais próximo.` };
       }
       return null;
     }
 
-    // 2. Entre os planos viáveis, o mais barato
-    const cheapest = costs
-      .filter((c) => c.coversAll)
-      .sort((a, b) => a.total - b.total)[0];
-
+    const cheapest = costs.filter((c) => c.coversAll).sort((a, b) => a.total - b.total)[0];
     if (cheapest && cheapest.plan.slug !== selectedPlan && cheapest.total < currentCost.total) {
       const saving      = currentCost.total - cheapest.total;
       const isDowngrade = cheapest.plan.max_users < (currentCost.plan.max_users === -1 ? Infinity : currentCost.plan.max_users);
       return {
         type: isDowngrade ? ("savings" as const) : ("better" as const),
-        plan: cheapest.plan,
-        diff: -saving,
+        plan: cheapest.plan, diff: -saving,
         reason: isDowngrade
           ? `Sua configuração atual (${lojas} loja${lojas > 1 ? "s" : ""}, ${usuarios} user/loja) cabe no ${cheapest.plan.name}.`
           : `O ${cheapest.plan.name} oferece mais recursos pelo mesmo custo ou menos.`,
@@ -164,24 +184,31 @@ export default function CalculadoraPage() {
     }
 
     return null;
-  }, [plans, planData, selectedPlan, lojas, usuarios, feedPosts, storiesQty, periodo, addons]);
+  }, [plans, planData, selectedPlan, lojas, usuarios, feedPosts, storiesQty, periodo, selectedAddons, addOnItems]);
 
   /* ── Proposta ──────────────────────────────────── */
 
   function copyProposta() {
-    const addonText = addons.length > 0
-      ? ADDONS.filter((a) => addons.includes(a.key)).map((a) => `  • ${a.label}: ${brl(a.price)}/mês`).join("\n")
-      : "";
     const planName  = planData?.name ?? selectedPlan;
     const planEmoji = SLUG_EMOJI[selectedPlan] ?? "📦";
+
+    const payingLines   = addOnItems
+      .filter((a) => selectedAddons.includes(a.slug) && !isAddonIncluded(a, selectedPlan))
+      .map((a) => `  • ${a.name}: ${brl(a.price_monthly)}/mês`);
+    const includedLines = addOnItems
+      .filter((a) => isAddonIncluded(a, selectedPlan))
+      .map((a) => `  • ${a.name}: incluso no plano`);
+
+    const addonBlock = [...payingLines, ...includedLines].join("\n");
+
     const text = [
       `*PROPOSTA AUROHUB*`,
       ``,
       `*Plano:* ${planName} ${planEmoji}`,
       `*Lojas:* ${lojas}`,
       `*Usuários/loja:* ${usuarios}`,
-      `*Período:* ${periodo === "anual" ? "Anual (15% desc)" : "Mensal"}`,
-      addons.length > 0 ? `\n*Add-ons:*\n${addonText}` : "",
+      `*Período:* ${periodo === "anual" ? `Anual (${annualDiscountPct}% desc)` : "Mensal"}`,
+      addonBlock ? `\n*Add-ons:*\n${addonBlock}` : "",
       ``,
       `─────────────────`,
       `*Implantação:* ${brl(calc.implantacao)}`,
@@ -191,6 +218,7 @@ export default function CalculadoraPage() {
       ``,
       `_Proposta gerada pelo Aurohub_`,
     ].filter(Boolean).join("\n");
+
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -209,15 +237,16 @@ export default function CalculadoraPage() {
     alert("Lead salvo no CRM!");
   }
 
-  function toggleAddon(key: string) {
-    const transmissaoKeys = ["individual", "time", "rede"];
-    if (transmissaoKeys.includes(key)) {
-      setAddons((prev) => {
-        const semTrans = prev.filter((k) => !transmissaoKeys.includes(k));
-        return prev.includes(key) ? semTrans : [...semTrans, key];
+  function toggleAddon(slug: string) {
+    if (slug.startsWith("transmissao_")) {
+      setSelectedAddons((prev) => {
+        const withoutTrans = prev.filter((k) => !k.startsWith("transmissao_"));
+        return prev.includes(slug) ? withoutTrans : [...withoutTrans, slug];
       });
     } else {
-      setAddons((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
+      setSelectedAddons((prev) =>
+        prev.includes(slug) ? prev.filter((k) => k !== slug) : [...prev, slug]
+      );
     }
   }
 
@@ -226,7 +255,6 @@ export default function CalculadoraPage() {
   if (loading) return <div className="flex flex-1 items-center justify-center text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   const planName  = planData?.name ?? selectedPlan;
-  const planEmoji = SLUG_EMOJI[selectedPlan] ?? "📦";
 
   return (
     <div className="flex flex-1 items-start justify-center page-fade">
@@ -276,16 +304,13 @@ export default function CalculadoraPage() {
               </div>
               <div className="truncate text-[10px] text-[var(--txt3)]">{recommendation.reason}</div>
             </div>
-            <span className="shrink-0 rounded-md bg-[var(--gold)] px-2 py-1 text-[10px] font-bold text-white">
-              Mudar
-            </span>
+            <span className="shrink-0 rounded-md bg-[var(--gold)] px-2 py-1 text-[10px] font-bold text-white">Mudar</span>
           </button>
         )}
 
         {/* Config */}
         <div className="flex flex-col gap-2.5 px-4 py-3">
 
-          {/* Lojas slider */}
           <div>
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-medium text-[var(--txt3)]">Lojas / Perfis</label>
@@ -294,7 +319,6 @@ export default function CalculadoraPage() {
             <input type="range" min={1} max={10} value={lojas} onChange={(e) => setLojas(Number(e.target.value))} className="w-full accent-[var(--orange)]" />
           </div>
 
-          {/* Usuários slider */}
           <div>
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-medium text-[var(--txt3)]">Usuários por loja</label>
@@ -303,7 +327,6 @@ export default function CalculadoraPage() {
             <input type="range" min={1} max={20} value={usuarios} onChange={(e) => setUsuarios(Number(e.target.value))} className="w-full accent-[var(--orange)]" />
           </div>
 
-          {/* Feed/Reels slider */}
           <div>
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-medium text-[var(--txt3)]">Posts Feed/Reels por dia</label>
@@ -312,7 +335,6 @@ export default function CalculadoraPage() {
             <input type="range" min={0} max={25} value={feedPosts} onChange={(e) => setFeedPosts(Number(e.target.value))} className="w-full accent-[var(--orange)]" />
           </div>
 
-          {/* Stories slider */}
           <div>
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-medium text-[var(--txt3)]">Stories por dia</label>
@@ -327,28 +349,101 @@ export default function CalculadoraPage() {
           <div className="flex gap-0.5 rounded-md border border-[var(--bdr)] p-0.5">
             <button onClick={() => setPeriodo("mensal")} className={`flex h-7 flex-1 items-center justify-center rounded-[5px] text-[11px] font-medium ${periodo === "mensal" ? "bg-[var(--bg3)] text-[var(--txt)]" : "text-[var(--txt3)]"}`}>Mensal</button>
             <button onClick={() => setPeriodo("anual")} className={`flex h-7 flex-1 items-center justify-center rounded-[5px] text-[11px] font-medium ${periodo === "anual" ? "bg-[var(--green3)] text-[var(--green)]" : "text-[var(--txt3)]"}`}>
-              Anual <span className="ml-1 text-[9px] opacity-75">(-15%)</span>
+              Anual <span className="ml-1 text-[9px] opacity-75">(-{annualDiscountPct}%)</span>
             </button>
           </div>
 
-          {/* Add-ons */}
-          <div className="flex flex-col gap-1">
-            {ADDONS.map((a) => {
-              const checked = addons.includes(a.key);
-              return (
-                <button key={a.key} onClick={() => toggleAddon(a.key)} className={`flex h-9 items-center justify-between rounded-md border px-3 text-left transition-colors ${checked ? "border-[var(--gold)] bg-[var(--gold3)]" : "border-[var(--bdr)] hover:bg-[var(--hover-bg)]"}`}>
-                  <div className="flex items-center gap-2">
-                    <div className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-[var(--gold)] bg-[var(--gold)]" : "border-[var(--txt3)]"}`}>
-                      {checked && <div className="h-1 w-1 rounded-full bg-white" />}
+          {/* Add-ons mensais */}
+          {regularAddOns.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Add-ons mensais</div>
+              {regularAddOns.map((a) => {
+                const included = isAddonIncluded(a, selectedPlan);
+                const checked  = included || selectedAddons.includes(a.slug);
+                return (
+                  <button
+                    key={a.slug}
+                    onClick={() => !included && toggleAddon(a.slug)}
+                    disabled={included}
+                    className={`flex h-9 items-center justify-between rounded-md border px-3 text-left transition-colors ${
+                      included
+                        ? "cursor-default border-[var(--green)] bg-[rgba(34,197,94,0.08)]"
+                        : checked
+                          ? "border-[var(--gold)] bg-[var(--gold3)]"
+                          : "border-[var(--bdr)] hover:bg-[var(--hover-bg)]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border-2 ${
+                        included ? "border-[var(--green)] bg-[var(--green)]"
+                        : checked ? "border-[var(--gold)] bg-[var(--gold)]"
+                        : "border-[var(--txt3)]"
+                      }`}>
+                        {checked && <div className="h-1 w-1 rounded-full bg-white" />}
+                      </div>
+                      <span className={`text-[11px] font-medium ${
+                        included ? "text-[var(--green)]" : checked ? "text-[var(--gold)]" : "text-[var(--txt)]"
+                      }`}>{a.name}</span>
                     </div>
-                    <span className={`text-[11px] font-medium ${checked ? "text-[var(--gold)]" : "text-[var(--txt)]"}`}>{a.label}</span>
-                    <span className="text-[10px] text-[var(--txt3)]">· {a.desc}</span>
-                  </div>
-                  <span className={`text-[11px] font-semibold ${checked ? "text-[var(--gold)]" : "text-[var(--txt2)]"}`}>+{brl(a.price)}</span>
-                </button>
-              );
-            })}
-          </div>
+                    {included ? (
+                      <span className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide" style={{ background: "rgba(34,197,94,0.15)", color: "var(--green)" }}>Incluso</span>
+                    ) : (
+                      <span className={`text-[11px] font-semibold ${checked ? "text-[var(--gold)]" : "text-[var(--txt2)]"}`}>
+                        {a.price_monthly > 0 ? `+${brl(a.price_monthly)}` : "Sob consulta"}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Transmissão de tela — radio */}
+          {transmissaoAddOns.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--txt3)]">Transmissão de tela</div>
+              {transmissaoAddOns.map((a) => {
+                const included = isAddonIncluded(a, selectedPlan);
+                const checked  = included || selectedAddons.includes(a.slug);
+                return (
+                  <button
+                    key={a.slug}
+                    onClick={() => !included && toggleAddon(a.slug)}
+                    disabled={included}
+                    className={`flex h-9 items-center justify-between rounded-md border px-3 text-left transition-colors ${
+                      included
+                        ? "cursor-default border-[var(--green)] bg-[rgba(34,197,94,0.08)]"
+                        : checked
+                          ? "border-[var(--gold)] bg-[var(--gold3)]"
+                          : "border-[var(--bdr)] hover:bg-[var(--hover-bg)]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {/* Radio indicator */}
+                      <div className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2 ${
+                        included ? "border-[var(--green)] bg-[var(--green)]"
+                        : checked ? "border-[var(--gold)] bg-[var(--gold)]"
+                        : "border-[var(--txt3)]"
+                      }`}>
+                        {checked && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </div>
+                      <span className={`text-[11px] font-medium ${
+                        included ? "text-[var(--green)]" : checked ? "text-[var(--gold)]" : "text-[var(--txt)]"
+                      }`}>{a.name.replace("Transmissão ", "")}</span>
+                      {a.description && <span className="text-[10px] text-[var(--txt3)]">· {a.description}</span>}
+                    </div>
+                    {included ? (
+                      <span className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide" style={{ background: "rgba(34,197,94,0.15)", color: "var(--green)" }}>Incluso</span>
+                    ) : (
+                      <span className={`text-[11px] font-semibold ${checked ? "text-[var(--gold)]" : "text-[var(--txt2)]"}`}>
+                        {a.price_monthly > 0 ? `+${brl(a.price_monthly)}` : "Sob consulta"}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Result */}
@@ -356,12 +451,18 @@ export default function CalculadoraPage() {
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-[11px]">
               <span className="text-[var(--txt3)]">Plano base</span>
-              <span className="font-medium text-[var(--txt)]">{planName}{periodo === "anual" ? " (anual -15%)" : ""}</span>
+              <span className="font-medium text-[var(--txt)]">{planName}{periodo === "anual" ? ` (anual -${annualDiscountPct}%)` : ""}</span>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="text-[var(--txt3)]">Implantação</span>
               <span className="font-medium text-[var(--txt)]">{brl(calc.implantacao)}</span>
             </div>
+            {calc.implantacao > 0 && (
+              <div className="flex justify-between text-[11px]">
+                <span className="text-[var(--txt3)] opacity-60">· em até 12×</span>
+                <span className="text-[var(--txt3)] tabular-nums">{brl(calc.implantacao / 12)}/mês</span>
+              </div>
+            )}
             {calc.addonMensal > 0 && (
               <div className="flex justify-between text-[11px]">
                 <span className="text-[var(--txt3)]">Add-ons</span>
@@ -371,7 +472,9 @@ export default function CalculadoraPage() {
             <div className="my-1 h-px bg-[var(--bdr)]" />
             <div className="flex items-baseline justify-between">
               <span className="text-[12px] font-semibold text-[var(--txt)]">Mensalidade</span>
-              <span className="font-[family-name:var(--font-dm-serif)] text-[20px] font-bold leading-none text-[var(--orange)]">{brl(calc.totalMensal)}<span className="text-[10px] font-normal text-[var(--txt3)]">/mês</span></span>
+              <span className="font-[family-name:var(--font-dm-serif)] text-[20px] font-bold leading-none text-[var(--orange)]">
+                {brl(calc.totalMensal)}<span className="text-[10px] font-normal text-[var(--txt3)]">/mês</span>
+              </span>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="text-[var(--txt3)]">Total em {calc.meses} meses</span>

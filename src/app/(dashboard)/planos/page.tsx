@@ -129,6 +129,13 @@ export default function PlanosPage() {
   const [changingClient, setChangingClient] = useState<string | null>(null);
   const [changePlan, setChangePlan] = useState("");
 
+  const [addOnEditOpen, setAddOnEditOpen] = useState(false);
+  const [addOnEditData, setAddOnEditData] = useState<Record<string, {
+    name: string; description: string; price_monthly: string; limit_per_month: string; is_active: boolean;
+  }>>({});
+  const [addOnSaving, setAddOnSaving] = useState(false);
+  const [addOnError, setAddOnError] = useState("");
+
   const loadData = useCallback(async () => {
     try {
       const [pRes, aRes, lRes, sRes] = await Promise.all([
@@ -137,9 +144,13 @@ export default function PlanosPage() {
         supabase.from("licensees").select("id, name, plan, status").order("name"),
         supabase.from("stores").select("licensee_id"),
       ]);
-      setPlans((pRes.data as Plan[]) ?? []);
+      const plansData = (pRes.data as Plan[]) ?? [];
+      setPlans(plansData);
       setAddOns((aRes.data as AddOn[]) ?? []);
-      setLicensees((lRes.data as Licensee[]) ?? []);
+      const internalSlugs = new Set(
+        plansData.filter(p => p.is_internal || p.slug === "interno").map(p => p.slug)
+      );
+      setLicensees(((lRes.data as Licensee[]) ?? []).filter(l => !internalSlugs.has(l.plan) && l.plan !== "interno"));
       const c: Record<string, number> = {};
       ((sRes.data ?? []) as { licensee_id: string }[]).forEach((s) => { c[s.licensee_id] = (c[s.licensee_id] || 0) + 1; });
       setStoreCounts(Object.entries(c).map(([licensee_id, count]) => ({ licensee_id, count })));
@@ -268,6 +279,32 @@ export default function PlanosPage() {
     setChangingClient(null); await loadData();
   }
 
+  function openAddOnEdit() {
+    const d: Record<string, { name: string; description: string; price_monthly: string; limit_per_month: string; is_active: boolean }> = {};
+    addOns.forEach((a) => {
+      d[a.id] = { name: a.name, description: a.description ?? "", price_monthly: String(a.price_monthly), limit_per_month: String(a.limit_per_month), is_active: a.is_active };
+    });
+    setAddOnEditData(d); setAddOnError(""); setAddOnEditOpen(true);
+  }
+
+  async function saveAddOns() {
+    setAddOnSaving(true); setAddOnError("");
+    try {
+      for (const addon of addOns) {
+        const f = addOnEditData[addon.id]; if (!f) continue;
+        const { error } = await supabase.from("add_ons").update({
+          name: f.name,
+          description: f.description || null,
+          price_monthly: addon.type !== "one_time" ? parseFloat(f.price_monthly) || 0 : addon.price_monthly,
+          limit_per_month: parseInt(f.limit_per_month) || addon.limit_per_month,
+          is_active: f.is_active,
+        }).eq("id", addon.id);
+        if (error) { setAddOnError(`${addon.name}: ${error.message}`); return; }
+      }
+      setAddOnEditOpen(false); await loadData();
+    } catch { setAddOnError("Erro ao salvar."); } finally { setAddOnSaving(false); }
+  }
+
   const ALL_SLUGS = ["basic", "pro", "business", "enterprise", "interno"] as const;
   const SLUGS = ALL_SLUGS.filter((slug) => PLAN_META[slug] && (slug !== "interno" || planMap[slug])) as readonly string[];
 
@@ -383,7 +420,7 @@ export default function PlanosPage() {
             <h3 className="text-[16px] font-bold text-[var(--txt)]">Add-ons disponíveis</h3>
             <p className="mt-0.5 text-[12px] text-[var(--txt3)]">Serviços extras que podem ser contratados</p>
           </div>
-          <button onClick={openEdit} className="rounded-lg border border-[var(--bdr2)] px-3 py-1.5 text-[11px] font-medium text-[var(--txt3)] transition-colors hover:border-[var(--txt)] hover:text-[var(--txt)]">
+          <button onClick={openAddOnEdit} className="rounded-lg border border-[var(--bdr2)] px-3 py-1.5 text-[11px] font-medium text-[var(--txt3)] transition-colors hover:border-[var(--txt)] hover:text-[var(--txt)]">
             Configurar preços
           </button>
         </div>
@@ -548,6 +585,106 @@ export default function PlanosPage() {
           </div>
         )}
       </div>
+
+      {/* ── Add-on edit modal ────────────────────── */}
+      {addOnEditOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center" style={{ background: "var(--overlay-bg)", backdropFilter: "blur(8px)" }} onClick={() => setAddOnEditOpen(false)}>
+          <div className="mx-4 flex w-full max-w-[640px] max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-[var(--bdr)] shadow-[0_24px_64px_rgba(0,0,0,0.5)]" style={{ background: "var(--card-bg)", backdropFilter: "blur(20px)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[var(--bdr)] px-6 py-5 shrink-0">
+              <div>
+                <h2 className="text-[16px] font-bold text-[var(--txt)]">Configurar add-ons</h2>
+                <p className="mt-0.5 text-[12px] text-[var(--txt3)]">Nomes, descrições, preços e disponibilidade</p>
+              </div>
+              <button onClick={() => setAddOnEditOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--txt)]">
+                <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5 flex flex-col gap-3">
+              {addOns.map((addon) => {
+                const f = addOnEditData[addon.id];
+                if (!f) return null;
+                const isOneTime = addon.type === "one_time";
+                const showLimit = addon.limit_per_month !== -1 || addon.slug === "roteiro";
+                return (
+                  <div key={addon.id} className="rounded-xl border border-[var(--bdr)] p-4">
+                    <div className="flex items-end gap-3 mb-3">
+                      <div className="flex-1">
+                        <label className="text-[10px] font-medium text-[var(--txt3)] block mb-0.5">Nome</label>
+                        <input
+                          type="text"
+                          value={f.name}
+                          onChange={(e) => setAddOnEditData((p) => ({ ...p, [addon.id]: { ...p[addon.id], name: e.target.value } }))}
+                          className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
+                        />
+                      </div>
+                      <div className="flex flex-col items-center gap-1 shrink-0">
+                        <label className="text-[10px] font-medium text-[var(--txt3)]">Ativo</label>
+                        <div
+                          onClick={() => setAddOnEditData((p) => ({ ...p, [addon.id]: { ...p[addon.id], is_active: !p[addon.id].is_active } }))}
+                          className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors ${f.is_active ? "bg-[var(--green)]" : "bg-[var(--bg3)]"}`}
+                        >
+                          <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${f.is_active ? "translate-x-4" : "translate-x-0.5"}`} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <label className="text-[10px] font-medium text-[var(--txt3)] block mb-0.5">Descrição</label>
+                      <input
+                        type="text"
+                        value={f.description}
+                        onChange={(e) => setAddOnEditData((p) => ({ ...p, [addon.id]: { ...p[addon.id], description: e.target.value } }))}
+                        className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--txt3)] placeholder-[var(--txt3)]"
+                        placeholder="Descrição opcional"
+                      />
+                    </div>
+                    <div className={`grid gap-2 ${showLimit ? "grid-cols-2" : "grid-cols-1"}`}>
+                      <div>
+                        <label className="text-[10px] font-medium text-[var(--txt3)] block mb-0.5">
+                          Preço mensal (R$){isOneTime && <span className="ml-1 opacity-60">— avulso</span>}
+                        </label>
+                        {isOneTime ? (
+                          <div className="h-8 rounded-lg border border-[var(--bdr)] bg-[var(--bg3)] px-2 flex items-center text-[12px] text-[var(--txt3)]">Sob consulta</div>
+                        ) : (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={f.price_monthly}
+                            onChange={(e) => setAddOnEditData((p) => ({ ...p, [addon.id]: { ...p[addon.id], price_monthly: e.target.value } }))}
+                            className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
+                          />
+                        )}
+                      </div>
+                      {showLimit && (
+                        <div>
+                          <label className="text-[10px] font-medium text-[var(--txt3)] block mb-0.5">Limite/mês <span className="opacity-60">(-1 = ∞)</span></label>
+                          <input
+                            type="number"
+                            value={f.limit_per_month}
+                            onChange={(e) => setAddOnEditData((p) => ({ ...p, [addon.id]: { ...p[addon.id], limit_per_month: e.target.value } }))}
+                            className="h-8 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-2 text-[12px] text-[var(--txt)] outline-none focus:border-[var(--txt3)]"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {addOns.length === 0 && (
+                <div className="py-10 text-center text-[13px] text-[var(--txt3)]">Nenhum add-on ativo encontrado</div>
+              )}
+              {addOnError && (
+                <div className="rounded-lg bg-[var(--red3)] px-3 py-2 text-center text-[12px] font-medium text-[var(--red)]">{addOnError}</div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-[var(--bdr)] px-6 py-4 shrink-0">
+              <button onClick={() => setAddOnEditOpen(false)} className="rounded-lg px-4 py-2 text-[13px] font-medium text-[var(--txt3)] hover:text-[var(--txt)]">Cancelar</button>
+              <button onClick={saveAddOns} disabled={addOnSaving} className="rounded-lg bg-[var(--txt)] px-5 py-2 text-[13px] font-semibold text-[var(--bg)] disabled:opacity-60">{addOnSaving ? "Salvando..." : "Salvar alterações"}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Edit modal ───────────────────────────── */}
       {editOpen && (
