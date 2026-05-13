@@ -35,7 +35,7 @@ interface Licensee {
 }
 interface Segment { id: string; name: string; icon: string | null; }
 interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; can_roteiro?: boolean | null; is_enterprise?: boolean | null; }
-interface Store { id: string; licensee_id: string; name: string; ig_user_id: string | null; }
+interface Store { id: string; licensee_id: string; name: string; ig_user_id: string | null; calendar_token?: string | null; }
 interface Profile { id: string; licensee_id: string | null; store_id: string | null; name: string | null; status: string; }
 
 type TabFilter = "" | "active" | "inactive";
@@ -73,6 +73,8 @@ export default function ClientesPage() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "", chat_profanity_filter: true, roteiro_limit: 50 });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
+  const [copiedTokenId, setCopiedTokenId] = useState<string | null>(null);
+  const [regeneratingStoreId, setRegeneratingStoreId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingSom, setUploadingSom] = useState(false);
   const somFileRef = useRef<HTMLInputElement>(null);
@@ -181,7 +183,7 @@ export default function ClientesPage() {
         supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_texto_efeito, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, chat_profanity_filter, roteiro_limit").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda, can_roteiro, is_enterprise"),
-        supabase.from("stores").select("id, licensee_id, name, ig_user_id"),
+        supabase.from("stores").select("id, licensee_id, name, ig_user_id, calendar_token"),
         supabase.from("profiles").select("id, licensee_id, store_id, name, status"),
         supabase.from("usage_counters").select("licensee_id, metric, count, limit_value").eq("period", today),
       ]);
@@ -442,6 +444,23 @@ export default function ClientesPage() {
   function addStoreRow() { setFormStores([...formStores, { name: "", ig_user_id: "" }]); }
   function removeStoreRow(i: number) { setFormStores(formStores.filter((_, idx) => idx !== i)); }
   function updateStoreRow(i: number, field: string, val: string) { setFormStores(formStores.map((s, idx) => idx === i ? { ...s, [field]: val } : s)); }
+
+  async function regenerateCalendarToken(storeId: string) {
+    setRegeneratingStoreId(storeId);
+    try {
+      const res = await fetch("/api/calendar/regenerate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ store_id: storeId }),
+      });
+      if (res.ok) {
+        const { calendar_token } = await res.json() as { calendar_token: string };
+        setStores(prev => prev.map(s => s.id === storeId ? { ...s, calendar_token } : s));
+      }
+    } finally {
+      setRegeneratingStoreId(null);
+    }
+  }
 
   /* ── Wizard de onboarding ──────────────────────── */
 
@@ -1283,6 +1302,41 @@ export default function ClientesPage() {
                     <svg viewBox="0 0 16 16" className="h-3 w-3"><path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
                     Adicionar loja
                   </button>
+
+                  {editingId && (storesByLic[editingId] ?? []).length > 0 && (
+                    <div className="mt-1 border-t border-[var(--bdr)] pt-3 flex flex-col gap-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Links iCal</p>
+                      {(storesByLic[editingId] ?? []).map(store => {
+                        const icsUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/api/calendar/${store.calendar_token ?? ""}.ics`;
+                        return (
+                          <div key={store.id} className="rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2.5">
+                            <p className="text-[11px] font-medium text-[var(--txt)] mb-1.5">{store.name}</p>
+                            <div className="flex items-center gap-2">
+                              <code className="min-w-0 flex-1 truncate text-[10px] text-[var(--txt3)]">{icsUrl}</code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(icsUrl);
+                                  setCopiedTokenId(store.id);
+                                  setTimeout(() => setCopiedTokenId(null), 2000);
+                                }}
+                                className="shrink-0 rounded border border-[var(--bdr)] px-2 py-1 text-[10px] font-medium text-[var(--txt2)] hover:border-[var(--txt3)]"
+                              >
+                                {copiedTokenId === store.id ? "Copiado!" : "Copiar"}
+                              </button>
+                              <button
+                                onClick={() => regenerateCalendarToken(store.id)}
+                                disabled={regeneratingStoreId === store.id}
+                                title="Revogar token e gerar novo"
+                                className="shrink-0 rounded border border-[var(--bdr)] px-2 py-1 text-[10px] font-medium text-[var(--red)] hover:border-[var(--red)] disabled:opacity-50"
+                              >
+                                {regeneratingStoreId === store.id ? "..." : "Revogar"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 

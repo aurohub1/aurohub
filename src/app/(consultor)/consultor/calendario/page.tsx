@@ -41,6 +41,7 @@ interface PublishedPost {
 interface Store {
   id: string;
   name: string;
+  calendar_token?: string | null;
 }
 
 type ViewMode = "mes" | "semana";
@@ -99,6 +100,7 @@ export default function ConsultorCalendarioPage() {
   const [posts, setPosts] = useState<PublishedPost[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState<string>("todas");
+  const [gcalConnected, setGcalConnected] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [formTexto, setFormTexto] = useState("");
@@ -134,6 +136,20 @@ export default function ConsultorCalendarioPage() {
     delay: 1000,
   });
 
+  /* ── Google Calendar ─────────────────────────── */
+
+  async function connectGoogleCalendar() {
+    const store = selectedStore === "todas" ? stores[0] : stores.find(s => s.id === selectedStore);
+    if (!store?.calendar_token || !profile) return;
+    const icsUrl = `${window.location.origin}/api/calendar/${store.calendar_token}.ics`;
+    window.open(`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(icsUrl)}`, "_blank");
+    await supabase.from("user_feature_overrides").upsert(
+      { user_id: profile.id, feature_key: "google_calendar_connected", enabled: true },
+      { onConflict: "user_id,feature_key" }
+    );
+    setGcalConnected(true);
+  }
+
   /* ── Load ─────────────────────────────────────── */
 
   const loadData = useCallback(async () => {
@@ -168,7 +184,7 @@ export default function ConsultorCalendarioPage() {
       try {
         const { data: storesData } = await supabase
           .from("stores")
-          .select("id, name")
+          .select("id, name, calendar_token")
           .eq("licensee_id", p.licensee_id)
           .order("name");
         setStores((storesData ?? []) as Store[]);
@@ -190,6 +206,14 @@ export default function ConsultorCalendarioPage() {
           .eq("licensee_id", p.licensee_id)
           .order("data_iso");
         setLembretes((lembretesData ?? []) as Lembrete[]);
+
+        const { data: gcalRow } = await supabase
+          .from("user_feature_overrides")
+          .select("enabled")
+          .eq("user_id", p.id)
+          .eq("feature_key", "google_calendar_connected")
+          .maybeSingle();
+        setGcalConnected(gcalRow?.enabled === true);
       } catch (err) {
         console.warn("[Calendario] erro ao carregar dados:", err);
       }
@@ -597,6 +621,24 @@ export default function ConsultorCalendarioPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── Google Calendar ─────────────────────── */}
+      <div className="mt-4 flex justify-center">
+        {gcalConnected ? (
+          <div className="flex items-center gap-2 rounded-lg border border-[var(--green)] px-4 py-2 text-[12px] font-medium text-[var(--green)]">
+            <Check size={13} />
+            Conectado ao Google Calendar
+          </div>
+        ) : stores.length > 0 && (
+          <button
+            onClick={connectGoogleCalendar}
+            className="flex items-center gap-2 rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-4 py-2 text-[12px] font-medium text-[var(--txt2)] transition-colors hover:border-[var(--txt3)] hover:text-[var(--txt)]"
+          >
+            <CalendarDays size={14} />
+            Conectar ao Google Calendar
+          </button>
+        )}
       </div>
 
       {/* Botão de ajuda fixo */}
