@@ -18,6 +18,7 @@ import AdmSupportFab from "@/components/support/AdmSupportFab";
 import AdmSupportDrawer from "@/components/support/AdmSupportDrawer";
 import AdmChatFab from "@/components/chat/AdmChatFab";
 import AdmChatWidget from "@/components/chat/AdmChatWidget";
+import OnlineUsers from "@/components/dashboard/OnlineUsers";
 
 export default function DashboardLayout({
   children,
@@ -126,6 +127,7 @@ export default function DashboardLayout({
           />
         </>
       )}
+      <OnlineUsers />
     </AdmContext.Provider>
   );
 }

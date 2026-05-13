@@ -97,11 +97,11 @@ const ADM_SECTIONS: NavSection[] = [
           </svg>
         ),
       },
-      {
-        label: "Roteiro",
-        href: "/adm/roteiro",
-        icon: I.roteiro,
-      },
+    ],
+  },
+  {
+    title: "Conteúdo",
+    items: [
       {
         label: "Estúdio de Templates",
         href: "/editor-de-templates",
@@ -137,21 +137,26 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "QR Code",
-        href: "/adm/qrcode",
+        label: "Editor Landing",
+        href: "/editor-landing",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
-            <rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
-            <rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
-            <rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
-            <rect x="13" y="13" width="2" height="2" fill="currentColor" />
-            <rect x="11" y="15" width="2" height="2" fill="currentColor" />
-            <rect x="15" y="11" width="2" height="2" fill="currentColor" />
-            <rect x="15" y="15" width="2" height="2" fill="currentColor" />
-            <rect x="11" y="11" width="2" height="2" fill="currentColor" />
+            <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M3 8h14" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M7 12h6M7 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         ),
       },
+      {
+        label: "Roteiro",
+        href: "/adm/roteiro",
+        icon: I.roteiro,
+      },
+    ],
+  },
+  {
+    title: "Publicação",
+    items: [
       {
         label: "Central de Publicação",
         href: "/central-de-publicacao",
@@ -177,16 +182,6 @@ const ADM_SECTIONS: NavSection[] = [
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <path d="M2 14l4-4 4 4 4-6 4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        ),
-      },
-      {
-        label: "Logs de Atividade",
-        href: "/logs",
-        admPerm: "can_view_logs",
-        icon: (
-          <svg viewBox="0 0 20 20" fill="none">
-            <path d="M4 4h12M4 8h12M4 12h8M4 16h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         ),
       },
@@ -222,11 +217,6 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "Chat",
-        href: "/chat",
-        icon: I.chat,
-      },
-      {
         label: "Planos",
         href: "/planos",
         admPerm: "can_manage_plans",
@@ -237,25 +227,9 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "Músicas",
-        href: "/musicas",
-        icon: (
-          <svg viewBox="0 0 20 20" fill="none">
-            <path d="M8 17a3 3 0 100-6 3 3 0 000 6zM8 11V3l8-1v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="16" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-        ),
-      },
-      {
-        label: "Datas Comemorativas",
-        href: "/adm/datas-comemorativas",
-        icon: (
-          <svg viewBox="0 0 20 20" fill="none">
-            <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M3 8h14M7 2v4M13 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="7" cy="12" r="1" fill="currentColor" />
-          </svg>
-        ),
+        label: "Chat",
+        href: "/chat",
+        icon: I.chat,
       },
     ],
   },
@@ -273,7 +247,7 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "Leads CRM",
+        label: "Leads / CRM",
         href: "/leads-crm",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
@@ -298,6 +272,43 @@ const ADM_SECTIONS: NavSection[] = [
     title: "Sistema",
     items: [
       {
+        label: "Músicas",
+        href: "/musicas",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M8 17a3 3 0 100-6 3 3 0 000 6zM8 11V3l8-1v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="16" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        ),
+      },
+      {
+        label: "Datas Comemorativas",
+        href: "/adm/datas-comemorativas",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M3 8h14M7 2v4M13 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="7" cy="12" r="1" fill="currentColor" />
+          </svg>
+        ),
+      },
+      {
+        label: "QR Code",
+        href: "/adm/qrcode",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="13" y="13" width="2" height="2" fill="currentColor" />
+            <rect x="11" y="15" width="2" height="2" fill="currentColor" />
+            <rect x="15" y="11" width="2" height="2" fill="currentColor" />
+            <rect x="15" y="15" width="2" height="2" fill="currentColor" />
+            <rect x="11" y="11" width="2" height="2" fill="currentColor" />
+          </svg>
+        ),
+      },
+      {
         label: "Configurações",
         href: "/configuracoes",
         admPerm: "can_manage_configs",
@@ -309,7 +320,16 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "Saúde",
+        label: "Manutenção",
+        href: "/adm/manutencao",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M14.7 5.3a4 4 0 00-5.4 5.4L3 17l1 1 6.3-6.3a4 4 0 005.4-5.4l-2.3 2.3-1.4-1.4 2.3-2.3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ),
+      },
+      {
+        label: "Saúde do Sistema",
         href: "/adm/saude",
         admPerm: "can_view_health",
         icon: (
@@ -320,32 +340,22 @@ const ADM_SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: "FAQ Suporte",
+        label: "Logs",
+        href: "/logs",
+        admPerm: "can_view_logs",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M4 4h12M4 8h12M4 12h8M4 16h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        ),
+      },
+      {
+        label: "FAQ",
         href: "/faq-suporte",
         icon: (
           <svg viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
             <path d="M8 8a2 2 0 012-2 2 2 0 012 2c0 1-1 1.5-2 2M10 14h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        ),
-      },
-      {
-        label: "Editor Landing",
-        href: "/editor-landing",
-        icon: (
-          <svg viewBox="0 0 20 20" fill="none">
-            <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M3 8h14" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M7 12h6M7 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        ),
-      },
-      {
-        label: "Manutenção",
-        href: "/adm/manutencao",
-        icon: (
-          <svg viewBox="0 0 20 20" fill="none">
-            <path d="M14.7 5.3a4 4 0 00-5.4 5.4L3 17l1 1 6.3-6.3a4 4 0 005.4-5.4l-2.3 2.3-1.4-1.4 2.3-2.3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         ),
       },

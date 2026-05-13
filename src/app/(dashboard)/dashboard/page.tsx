@@ -7,7 +7,6 @@ import PostsChart from "@/components/dashboard/PostsChart";
 import FormatUsage from "@/components/dashboard/FormatUsage";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import QuickActions from "@/components/dashboard/QuickActions";
-import OnlineUsers from "@/components/dashboard/OnlineUsers";
 
 interface DashboardKpis {
   clientesAtivos: number;
@@ -149,9 +148,9 @@ export default function DashboardPage() {
         {/* Right column */}
         <div className="w-full lg:w-[280px] flex-shrink-0 flex flex-col gap-3.5">
           <QuickActions />
-          <OnlineUsers />
         </div>
       </div>
+
     </>
   );
 }

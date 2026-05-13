@@ -784,7 +784,6 @@ export function PagamentoSection({
   const formas: { value: string; label: string }[] = [
     { value: "cartao",  label: "Cartão s/ Juros" },
     { value: "entrada", label: "Boleto c/ Entrada" },
-    { value: "debito",  label: "Débito" },
   ];
 
   const showForma = hasBind(binds, "formapagamento");
@@ -2271,7 +2270,7 @@ export function PassagemForm({
             <SearchableSelect
               value={(fields.formapagamento as string) || ""}
               onChange={(v) => { set("formapagamento", v); set("psg_formapagamento", v); }}
-              options={["Cartão","Boleto","Débito"]}
+              options={["Cartão","Boleto"]}
               placeholder="Selecione"
               readOnly
             />
@@ -2797,8 +2796,8 @@ export function CardWhatsAppForm({
             value={d.incluso || ""}
             onChange={(v) => updateDest(curDest, { incluso: v })}
             options={["Aéreo + Hotel","Aéreo + Hotel + Transfer","Só Aéreo","Só Hotel"]}
-            placeholder="Selecione"
-            readOnly
+            placeholder="Selecione ou digite..."
+            allowCustom
           />
         </Field>
       </Section>
@@ -2808,7 +2807,7 @@ export function CardWhatsAppForm({
           <SearchableSelect
             value={d.pgto || ""}
             onChange={(v) => updateDest(curDest, { pgto: v, ...(v === "Cartão" ? { entrada: "" } : {}) })}
-            options={["Cartão","Boleto","Débito"]}
+            options={["Cartão","Boleto"]}
             placeholder="Selecione"
             readOnly
           />
@@ -3314,8 +3313,8 @@ export function LaminaForm({
             value={d.incluso || ""}
             onChange={(v) => updateDest(curDest, { incluso: v })}
             options={["Aéreo + Hotel", "Aéreo + Hotel + Transfer", "Só Aéreo", "Só Hotel"]}
-            placeholder="Selecione"
-            readOnly
+            placeholder="Selecione ou digite..."
+            allowCustom
           />
         </Field>
       </Section>
@@ -3325,7 +3324,7 @@ export function LaminaForm({
           <SearchableSelect
             value={d.pgto || ""}
             onChange={(v) => updateDest(curDest, { pgto: v, ...(v === "Cartão" ? { entrada: "" } : {}) })}
-            options={["Cartão", "Boleto", "Débito"]}
+            options={["Cartão", "Boleto"]}
             placeholder="Selecione"
             readOnly
           />

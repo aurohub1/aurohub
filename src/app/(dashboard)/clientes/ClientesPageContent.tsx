@@ -32,6 +32,7 @@ interface Licensee {
   tema_fundo_escuro?: string; tema_fundo_claro?: string; tema_texto_escuro?: string; tema_texto_claro?: string;
   chat_profanity_filter?: boolean;
   roteiro_limit?: number | null;
+  tipo?: string | null;
 }
 interface Segment { id: string; name: string; icon: string | null; }
 interface Plan { slug: string; name: string; price_monthly: number; is_internal?: boolean | null; can_metrics?: boolean | null; can_schedule?: boolean | null; can_ia_legenda?: boolean | null; can_roteiro?: boolean | null; is_enterprise?: boolean | null; }
@@ -59,6 +60,9 @@ export default function ClientesPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [usageToday, setUsageToday] = useState<Record<string, number>>({}); // licensee_id → max percent
+  const [subStatus, setSubStatus] = useState<Record<string, string>>({}); // licensee_id → subscription status
+  const [briefingMap, setBriefingMap] = useState<Record<string, { status: string; summary: Record<string, unknown> | null }>>({}); // licensee_id → briefing
+  const [briefingModalId, setBriefingModalId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -70,7 +74,7 @@ export default function ClientesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTab>("dados");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "", chat_profanity_filter: true, roteiro_limit: 50 });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "", chat_profanity_filter: true, roteiro_limit: 50, tipo: "franqueado" });
   const [formStores, setFormStores] = useState<{ name: string; ig_user_id: string }[]>([{ name: "", ig_user_id: "" }]);
   const [saving, setSaving] = useState(false);
   const [copiedTokenId, setCopiedTokenId] = useState<string | null>(null);
@@ -179,13 +183,15 @@ export default function ClientesPage() {
   const loadData = useCallback(async () => {
     try {
       const today = `daily:${new Date().toISOString().slice(0, 10)}`;
-      const [licR, segR, planR, storeR, profR, usageR] = await Promise.all([
-        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_texto_efeito, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, chat_profanity_filter, roteiro_limit").order("created_at", { ascending: false }),
+      const [licR, segR, planR, storeR, profR, usageR, subR, briefR] = await Promise.all([
+        supabase.from("licensees").select("id, name, email, plan, status, segment_id, expires_at, created_at, logo_url, splash_effect, splash_logo_orientation, splash_velocidade, splash_suavidade, splash_som_url, splash_som_public_id, splash_texto_efeito, cor_primaria, cor_secundaria, cor_acento, cor_fundo, cor4, cor5, chat_profanity_filter, roteiro_limit, tipo").order("created_at", { ascending: false }),
         supabase.from("segments").select("id, name, icon"),
         supabase.from("plans").select("slug, name, price_monthly, is_internal, can_metrics, can_schedule, can_ia_legenda, can_roteiro, is_enterprise"),
         supabase.from("stores").select("id, licensee_id, name, ig_user_id, calendar_token"),
         supabase.from("profiles").select("id, licensee_id, store_id, name, status"),
         supabase.from("usage_counters").select("licensee_id, metric, count, limit_value").eq("period", today),
+        supabase.from("subscriptions").select("licensee_id, status").not("licensee_id", "is", null),
+        supabase.from("briefings").select("licensee_id, status, summary").not("licensee_id", "is", null),
       ]);
       console.log("LICENSEES RAW", licR.data, licR.error);
       setLicensees((licR.data as Licensee[]) ?? []);
@@ -203,6 +209,20 @@ export default function ClientesPage() {
         }
       }
       setUsageToday(usageMap);
+
+      // Mapeia licensee_id → status de assinatura MP (última por licensee)
+      const subMap: Record<string, string> = {};
+      for (const row of (subR.data ?? []) as { licensee_id: string; status: string }[]) {
+        if (row.licensee_id) subMap[row.licensee_id] = row.status;
+      }
+      setSubStatus(subMap);
+
+      // Mapeia licensee_id → briefing
+      const bMap: Record<string, { status: string; summary: Record<string, unknown> | null }> = {};
+      for (const row of (briefR.data ?? []) as { licensee_id: string; status: string; summary: Record<string, unknown> | null }[]) {
+        if (row.licensee_id) bMap[row.licensee_id] = { status: row.status, summary: row.summary };
+      }
+      setBriefingMap(bMap);
     } catch { /* silent */ } finally { setLoading(false); }
   }, []);
 
@@ -236,7 +256,7 @@ export default function ClientesPage() {
 
   function openNew() {
     setEditingId(null);
-    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "", chat_profanity_filter: true, roteiro_limit: 50 });
+    setForm({ name: "", email: "", phone: "", segment_id: "", plan: "basic", price_setup: "1500", min_months: "6", logo_url: "", expires_at: "", splash_effect: "", splash_logo_orientation: "horizontal", splash_velocidade: 5, splash_suavidade: 7, splash_som_url: "", splash_som_public_id: "", splash_lottie_url: "", splash_texto_efeito: "typewriter", cor_primaria: "#1E3A6E", cor_secundaria: "#3B82F6", cor_acento: "#1E3A6E", cor_fundo: "#0E1520", cor4: "", cor5: "", tema_fundo_escuro: "#0A1020", tema_fundo_claro: "#ffffff", tema_texto_escuro: "#0f172a", tema_texto_claro: "#EEF2FF", preview_bg_url: "", chat_profanity_filter: true, roteiro_limit: 50, tipo: "franqueado" });
     setFormStores([{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
     setModalTab("dados"); setModalError(""); setModalOpen(true);
@@ -244,7 +264,7 @@ export default function ClientesPage() {
 
   function openEdit(l: Licensee) {
     setEditingId(l.id);
-    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", splash_texto_efeito: l.splash_texto_efeito ?? "typewriter", cor_primaria: l.cor_primaria ?? "#1E3A6E", cor_secundaria: l.cor_secundaria ?? "#3B82F6", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF", preview_bg_url: "", chat_profanity_filter: l.chat_profanity_filter ?? true, roteiro_limit: l.roteiro_limit ?? 50 });
+    setForm({ name: l.name, email: l.email, phone: "", segment_id: l.segment_id ?? "", plan: l.plan || "basic", price_setup: "0", min_months: "6", logo_url: l.logo_url ?? "", expires_at: l.expires_at ? l.expires_at.split("T")[0] : "", splash_effect: l.splash_effect ?? "", splash_logo_orientation: l.splash_logo_orientation ?? "horizontal", splash_velocidade: l.splash_velocidade ?? 5, splash_suavidade: l.splash_suavidade ?? 7, splash_som_url: l.splash_som_url ?? "", splash_som_public_id: l.splash_som_public_id ?? "", splash_lottie_url: l.splash_lottie_url ?? "", splash_texto_efeito: l.splash_texto_efeito ?? "typewriter", cor_primaria: l.cor_primaria ?? "#1E3A6E", cor_secundaria: l.cor_secundaria ?? "#3B82F6", cor_acento: l.cor_acento ?? "#1E3A6E", cor_fundo: l.cor_fundo ?? "#0E1520", cor4: l.cor4 ?? "", cor5: l.cor5 ?? "", tema_fundo_escuro: l.tema_fundo_escuro ?? "#0A1020", tema_fundo_claro: l.tema_fundo_claro ?? "#ffffff", tema_texto_escuro: l.tema_texto_escuro ?? "#0f172a", tema_texto_claro: l.tema_texto_claro ?? "#EEF2FF", preview_bg_url: "", chat_profanity_filter: l.chat_profanity_filter ?? true, roteiro_limit: l.roteiro_limit ?? 50, tipo: l.tipo ?? "franqueado" });
     const existing = storesByLic[l.id] ?? [];
     setFormStores(existing.length > 0 ? existing.map((s) => ({ name: s.name, ig_user_id: s.ig_user_id ?? "" })) : [{ name: "", ig_user_id: "" }]);
     setFeatureOverrides({});
@@ -279,6 +299,7 @@ export default function ClientesPage() {
         cor5: form.cor5 || null,
         chat_profanity_filter: form.chat_profanity_filter ?? true,
         roteiro_limit: form.roteiro_limit ?? 50,
+        tipo: form.tipo || "franqueado",
       };
       if (formPlanIsInternal && form.expires_at) {
         payload.expires_at = form.expires_at;
@@ -663,7 +684,7 @@ export default function ClientesPage() {
             <table className="w-full border-collapse text-[13px]">
               <thead>
                 <tr className="border-b border-[var(--bdr)]">
-                  {["Cliente", "Segmento", "Plano", "Lojas", "Usuários", "Uso hoje", "Status", "Criado em", "Ações"].map((h) => (
+                  {["Cliente", "Segmento", "Plano", "Lojas", "Usuários", "Uso hoje", "Status", "Assinatura", "Briefing", "Criado em", "Ações"].map((h) => (
                     <th key={h} className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-medium text-[var(--txt3)] first:pl-5 last:pr-5 last:text-right">{h}</th>
                   ))}
                 </tr>
@@ -696,6 +717,17 @@ export default function ClientesPage() {
                                   🔒 Interno
                                 </span>
                               )}
+                              {l.tipo === "franquia" ? (
+                                <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                                  style={{ background: "rgba(30,58,110,0.25)", color: "#3B82F6" }}>
+                                  Franquia
+                                </span>
+                              ) : (
+                                <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                                  style={{ background: "rgba(147,197,253,0.1)", color: "#93c5fd" }}>
+                                  Franqueado
+                                </span>
+                              )}
                             </div>
                             <div className="truncate text-[11px] text-[var(--txt3)]">{l.email}</div>
                           </div>
@@ -719,6 +751,44 @@ export default function ClientesPage() {
                         })()}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3"><span className={`inline-flex items-center gap-1.5 text-[12px] ${isActive ? "text-[var(--green)]" : "text-[var(--red)]"}`}><span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-[var(--green)]" : "bg-[var(--red)]"}`} />{isActive ? "Ativo" : "Inativo"}</span></td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        {(() => {
+                          const st = subStatus[l.id];
+                          if (!st) return <span className="text-[11px] text-[var(--txt3)]">—</span>;
+                          const cfg = st === "active"
+                            ? { label: "Ativa", color: "#22C55E", bg: "rgba(34,197,94,0.1)" }
+                            : st === "pending"
+                            ? { label: "Pendente", color: "#F59E0B", bg: "rgba(245,158,11,0.1)" }
+                            : { label: "Suspensa", color: "#EF4444", bg: "rgba(239,68,68,0.1)" };
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                              style={{ color: cfg.color, background: cfg.bg }}>
+                              {cfg.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        {(() => {
+                          const br = briefingMap[l.id];
+                          if (!br) return <span className="text-[11px] text-[var(--txt3)]">—</span>;
+                          const icon = br.status === "completed"
+                            ? { emoji: "📋", color: "#22C55E", title: "Concluído" }
+                            : br.status === "summary_ready"
+                            ? { emoji: "📋", color: "#F59E0B", title: "Aguardando confirmação" }
+                            : { emoji: "📋", color: "#6b7280", title: "Em andamento" };
+                          return (
+                            <button
+                              onClick={() => setBriefingModalId(l.id)}
+                              title={icon.title}
+                              className="text-base leading-none transition-opacity hover:opacity-70"
+                              style={{ color: icon.color }}
+                            >
+                              {icon.emoji}
+                            </button>
+                          );
+                        })()}
+                      </td>
                       <td className="whitespace-nowrap px-4 py-3 text-[12px] text-[var(--txt3)]">{new Date(l.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</td>
                       <td className="whitespace-nowrap pr-5 pl-4 py-3">
                         <div className="flex justify-end gap-2">
@@ -794,6 +864,60 @@ export default function ClientesPage() {
           </div>
         </Overlay>
       )}
+
+      {/* ── Briefing modal ───────────────────────── */}
+      {briefingModalId && (() => {
+        const br = briefingMap[briefingModalId];
+        const clientName = licensees.find((l) => l.id === briefingModalId)?.name ?? "";
+        const summary = br?.summary as Record<string, unknown> | null | undefined;
+        const statusLabel = br?.status === "completed" ? "Concluído" : br?.status === "summary_ready" ? "Aguardando confirmação" : "Em andamento";
+        const statusColor = br?.status === "completed" ? "#22C55E" : br?.status === "summary_ready" ? "#F59E0B" : "#6b7280";
+        const rows: [string, unknown][] = summary ? (
+          [
+            ["Empresa", summary.empresa], ["Cidade", summary.cidade], ["Segmento", summary.segmento],
+            ["Estrutura", summary.estrutura], ["Cores", summary.cores], ["Logo", summary.logo_descricao],
+            ["Formatos", summary.formatos], ["Estilo Visual", summary.estilo_visual],
+            ["Produtos/Serviços", summary.produtos_servicos], ["Apresentação de Preço", summary.forma_apresentar_preco],
+            ["Redes Sociais", summary.redes_sociais], ["Observações", summary.observacoes],
+          ] as [string, unknown][]
+        ).filter(([, v]) => v && (Array.isArray(v) ? (v as unknown[]).length > 0 : String(v).trim())) : [];
+        return (
+          <Overlay onClose={() => setBriefingModalId(null)}>
+            <div className="mx-4 w-full max-w-[500px] max-h-[90vh] flex flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
+              <div className="flex items-center justify-between border-b border-[var(--bdr)] px-6 py-5 shrink-0">
+                <div>
+                  <h2 className="text-[16px] font-bold text-[var(--txt)]">📋 Briefing</h2>
+                  <p className="mt-0.5 text-[12px] text-[var(--txt3)]">{clientName}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ color: statusColor, background: `${statusColor}18` }}>{statusLabel}</span>
+                  <button onClick={() => setBriefingModalId(null)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] hover:bg-[var(--bg3)] hover:text-[var(--txt)]">
+                    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-y-auto px-6 py-4">
+                {rows.length === 0 ? (
+                  <div className="py-8 text-center text-[13px] text-[var(--txt3)]">
+                    {summary ? "Nenhuma informação coletada ainda." : "Briefing ainda não possui resumo."}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-0">
+                    {rows.map(([label, value]) => (
+                      <div key={label} className="flex gap-3 border-b border-[var(--bdr)] py-2.5 last:border-b-0">
+                        <span className="w-40 shrink-0 text-[12px] font-semibold text-[var(--txt2)]">{label}</span>
+                        <span className="text-[12px] text-[var(--txt3)] break-words">
+                          {Array.isArray(value) ? (value as string[]).join(", ") : String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Overlay>
+        );
+      })()}
 
       {/* ── Create/Edit modal ────────────────────── */}
       {modalOpen && (
@@ -1049,6 +1173,37 @@ export default function ClientesPage() {
                       <option value="">Nenhum</option>
                       {segments.map((s) => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
                     </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[11px] font-medium text-[var(--txt3)]">Tipo</label>
+                    <div className="flex gap-4">
+                      {(["franqueado", "franquia"] as const).map((val) => (
+                        <label key={val} className="flex cursor-pointer items-center gap-2">
+                          <input
+                            type="radio"
+                            name="tipo"
+                            value={val}
+                            checked={form.tipo === val}
+                            onChange={() => setForm({ ...form, tipo: val })}
+                            className="h-3.5 w-3.5 accent-[var(--orange)]"
+                          />
+                          <span className="text-[12px] text-[var(--txt)]">
+                            {val === "franqueado" ? "Franqueado" : "Franquia"}
+                          </span>
+                          {val === "franqueado" ? (
+                            <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                              style={{ background: "rgba(147,197,253,0.12)", color: "#93c5fd" }}>
+                              padrão
+                            </span>
+                          ) : (
+                            <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                              style={{ background: "rgba(30,58,110,0.25)", color: "#3B82F6" }}>
+                              master
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                   <div className="border-t border-[var(--bdr)] pt-4 mt-2">
                     <label className="mb-2.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--txt3)]">Chat Interno</label>

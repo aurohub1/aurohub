@@ -1,0 +1,1 @@
+ALTER TABLE licensees ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'franqueado';

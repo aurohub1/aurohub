@@ -1,5 +1,8 @@
 
-const NUMERIC_KEYS = new Set(["monthly_value", "monthly_total", "setup_fee"]);
+const NUMERIC_KEYS = new Set([
+  "monthly_value", "monthly_total", "setup_fee",
+  "design_arte_alteracao", "design_arte_nova", "design_pack_completo", "design_pack_tv",
+]);
 const DATE_KEYS = new Set(["start_date", "end_date", "signed_at"]);
 
 function fmt(value: unknown, key: string): string {
@@ -15,11 +18,18 @@ function fmt(value: unknown, key: string): string {
   return String(value);
 }
 
+const DESIGN_DEFAULTS: Record<string, unknown> = {
+  design_arte_alteracao: 97,
+  design_arte_nova: 297,
+  design_pack_completo: 597,
+  design_pack_tv: 797,
+};
+
 export function fillTemplate(data: Record<string, unknown>): string {
+  const merged = { ...DESIGN_DEFAULTS, ...data };
   let text = CONTRACT_TEMPLATE;
-  const keys = Object.keys(data);
-  for (const key of keys) {
-    text = text.replaceAll(`{{${key}}}`, fmt(data[key], key));
+  for (const key of Object.keys(merged)) {
+    text = text.replaceAll(`{{${key}}}`, fmt(merged[key], key));
   }
   return text;
 }
@@ -101,6 +111,29 @@ em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018
 
 4.4. Notificar a CONTRATANTE com antecedência mínima de 15 dias sobre
 alterações relevantes na plataforma.
+
+════════════════════════════════════════════════════════════════
+
+CLÁUSULA 4A — SERVIÇOS DE DESIGN
+
+Os serviços de criação e alteração de artes visuais
+não estão inclusos na mensalidade, exceto:
+
+a) Templates padrão disponíveis na plataforma;
+b) Campanhas institucionais da marca poderão ser
+   disponibilizadas sem custo adicional ao Contratante,
+   a critério exclusivo da Contratada.
+
+Serviços de design sob demanda:
+- Alteração de arte existente: sujeito a orçamento,
+  valor mínimo de {{design_arte_alteracao}};
+- Criação de arte nova (1 formato): {{design_arte_nova}};
+- Pack completo (Stories + Feed + Reels): {{design_pack_completo}};
+- Pack completo + TV: {{design_pack_tv}}.
+
+Os valores acima são válidos na data de assinatura
+deste contrato e podem ser reajustados mediante
+comunicação prévia de 30 dias.
 
 ════════════════════════════════════════════════════════════════
 
