@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { SessionGuard } from "@/components/auth/SessionGuard";
 import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
 import Sidebar, { UNIDADE_SECTIONS } from "@/components/layout/Sidebar";
@@ -70,6 +71,7 @@ export default function UnidadeLayout({ children }: { children: React.ReactNode 
 
   return (
     <SupportDrawerProvider>
+      <SessionGuard />
       <PublishQueueProvider>
       <Sidebar
         activePath={pathname}

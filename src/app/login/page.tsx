@@ -115,6 +115,7 @@ export default function LoginPage() {
   const [mfaCode, setMfaCode] = useState("");
   const [mfaBusy, setMfaBusy] = useState(false);
   const [mfaError, setMfaError] = useState("");
+  const [mfaUserId, setMfaUserId] = useState<string | null>(null);
 
   const [splash, setSplash] = useState<{
     name: string; home: string;
@@ -129,6 +130,13 @@ export default function LoginPage() {
   } | null>(null);
 
   useParticles(canvasRef);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reason") === "session_expired") {
+      setError("Sua sessão foi encerrada pois o acesso foi feito em outro dispositivo.");
+    }
+  }, []);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -165,6 +173,14 @@ export default function LoginPage() {
     document.documentElement.setAttribute("data-theme", next);
   };
 
+  async function registerSession(userId: string) {
+    const token = crypto.randomUUID();
+    await supabase
+      .from("active_sessions")
+      .upsert({ user_id: userId, session_token: token }, { onConflict: "user_id" });
+    localStorage.setItem("ah_session_token", token);
+  }
+
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
@@ -191,9 +207,12 @@ export default function LoginPage() {
         const totpFactor = mfaFactors?.totp?.find(f => f.status === "verified") ?? null;
         if (totpFactor) {
           setMfaFactorId(totpFactor.id);
+          setMfaUserId(data?.user?.id ?? null);
           setMfaStep(true);
           return;
         }
+
+        await registerSession(data!.user!.id);
 
         // Busca profile pra obter role + home correta (evita flash do /inicio)
         const profile = await getProfile(supabase);
@@ -263,14 +282,14 @@ export default function LoginPage() {
             .select("logo_url,splash_effect,splash_logo_orientation,splash_velocidade,splash_suavidade,splash_som_url,cor_primaria,cor_secundaria,cor_acento,cor_fundo,cor4,cor5")
             .eq("id", profile.licensee_id)
             .single();
-          if (lic && lic.splash_effect) {
+          if (lic) {
             const lic2 = lic as typeof lic & { splash_velocidade?: number; splash_suavidade?: number; splash_som_url?: string };
             splashConfig = {
               logoUrl: lic.logo_url || undefined,
-              effect: lic.splash_effect,
+              effect: lic.splash_effect || "particles",
               logoOrientation: lic.splash_logo_orientation || "horizontal",
-              cor1: lic.cor_primaria || "var(--orange)",
-              cor2: lic.cor_secundaria || "#D4A843",
+              cor1: lic.cor_primaria || "#D4A843",
+              cor2: lic.cor_secundaria || "#FF7A1A",
               cor3: lic.cor_acento || "#1E3A6E",
               cor4: lic.cor4 || undefined,
               cor5: lic.cor5 || undefined,
@@ -282,18 +301,21 @@ export default function LoginPage() {
           }
         }
 
+        // Fallback garantido para qualquer role sem config (ex: operador, licensee sem dados)
         if (!splashConfig) {
-          router.push(home);
-          return;
+          splashConfig = {
+            effect: "aurovista_adm",
+            logoOrientation: "horizontal",
+            cor1: "#D4A843",
+            cor2: "#FF7A1A",
+            cor3: "transparent",
+            cor4: "transparent",
+            cor5: "transparent",
+            corFundo: "#060B16",
+            velocidade: 5,
+            suavidade: 7,
+          };
         }
-
-        // Frequência: exibe no máximo 1x a cada 12h por dispositivo
-        const lastSeen = Number(localStorage.getItem("intro_last_seen") || 0);
-        if (Date.now() - lastSeen < 43200000) {
-          router.push(home);
-          return;
-        }
-        localStorage.setItem("intro_last_seen", String(Date.now()));
 
         setLoading(false);
         setSplash({ name, home, ...splashConfig });
@@ -315,6 +337,7 @@ export default function LoginPage() {
     try {
       const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: mfaFactorId!, code: mfaCode });
       if (error) { setMfaError("Código inválido. Tente novamente."); return; }
+      if (mfaUserId) await registerSession(mfaUserId);
       const profile = await getProfile(supabase);
       const role = profile?.role ?? null;
       router.push(homeForRole(role));

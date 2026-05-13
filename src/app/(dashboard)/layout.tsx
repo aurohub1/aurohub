@@ -2,6 +2,7 @@
 
 import "./theme-override.css";
 import { useEffect, useState } from "react";
+import { SessionGuard } from "@/components/auth/SessionGuard";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
@@ -81,6 +82,7 @@ export default function DashboardLayout({
 
   return (
     <AdmContext.Provider value={{ admLevel, perms: admPerms }}>
+      <SessionGuard />
       <Sidebar
         activePath={pathname}
         user={{ name: profile?.name || "Usuário", role: profile?.role || "adm", avatar_url: profile?.avatar_url || null }}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { SessionGuard } from "@/components/auth/SessionGuard";
 import { getProfile, homeForRole, type FullProfile } from "@/lib/auth";
 import { getFeatures } from "@/lib/features";
 import { getInactiveStores } from "@/lib/inactivity-check";
@@ -106,6 +107,7 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
 
   return (
     <SupportDrawerProvider>
+      <SessionGuard />
       <PublishQueueProvider>
       <Sidebar
         activePath={pathname}
