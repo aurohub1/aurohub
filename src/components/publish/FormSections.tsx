@@ -2556,20 +2556,14 @@ export function CardWhatsAppForm({
   async function handleShuffleBg() {
     setBgLoading(true);
     try {
-      const FOLDER = "cea5490a26896dd7b98f9ab8e6127b05c4";
-      let { data, error } = await _sb_for_lamina
+      const { data, error } = await _sb_for_lamina
         .from("imgfundo")
         .select("url")
+        .eq("tipo", "card")
         .not("url", "is", null)
-        .like("url", `%${FOLDER}%`)
         .limit(1000);
       if (error) { console.error("[CardWhatsApp] imgfundo query:", error); alert("Erro ao buscar fundos."); return; }
-      let rows = (data ?? []) as { url: string }[];
-      // Fallback: sem registros na pasta correta, usa toda a tabela
-      if (!rows.length) {
-        const fallback = await _sb_for_lamina.from("imgfundo").select("url").not("url", "is", null).limit(1000);
-        rows = (fallback.data ?? []) as { url: string }[];
-      }
+      const rows = (data ?? []) as { url: string }[];
       if (!rows.length) { alert("Biblioteca de fundos vazia."); return; }
       const pick = rows[Math.floor(Math.random() * rows.length)];
       if (pick?.url) set("imgfundo", pick.url);
@@ -3078,8 +3072,8 @@ export function LaminaForm({
       const { data, error } = await _sb_for_lamina
         .from("imgfundo")
         .select("url")
+        .eq("tipo", "card")
         .not("url", "is", null)
-        .like("url", "%cea5490a26896dd7b98f9ab8e6127b05c4%")
         .limit(1000);
       if (error) { console.error("[LaminaForm] imgfundo:", error); return; }
       const rows = (data ?? []) as { url: string }[];

@@ -359,6 +359,17 @@ const ADM_SECTIONS: NavSection[] = [
           </svg>
         ),
       },
+      {
+        label: "Base de Conhecimento",
+        href: "/suporte/kb",
+        admPerm: "can_manage_configs",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M4 3h8l4 4v10a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M12 3v4h4M7 9h6M7 12h6M7 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        ),
+      },
       { label: "Suporte", href: "/adm/suporte", icon: I.support },
     ],
   },
