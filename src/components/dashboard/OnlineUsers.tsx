@@ -66,8 +66,40 @@ export default function OnlineUsers() {
   const [pos, setPos] = useState<Pos | null>(null);
   const posRef = useRef<Pos | null>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
+  const userIdRef = useRef<string | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Registra presença do usuário logado e mantém last_seen atualizado
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    async function initPresence() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const uid = session.user.id;
+      userIdRef.current = uid;
+
+      await supabase
+        .from("usuarios_online")
+        .upsert({ user_id: uid, last_seen: new Date().toISOString() }, { onConflict: "user_id" });
+
+      interval = setInterval(async () => {
+        await supabase
+          .from("usuarios_online")
+          .upsert({ user_id: uid, last_seen: new Date().toISOString() }, { onConflict: "user_id" });
+      }, 30_000);
+    }
+
+    void initPresence();
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (userIdRef.current) {
+        void supabase.from("usuarios_online").delete().eq("user_id", userIdRef.current);
+      }
+    };
+  }, []);
 
   const fetchOnline = useCallback(async () => {
     try {

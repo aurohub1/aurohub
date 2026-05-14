@@ -165,13 +165,12 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
     onUnreadChange?.(rooms.filter(r => r.unread).length);
   }, [rooms, onUnreadChange]);
 
-  // Realtime: reload rooms on any message/room change
+  // Realtime: reload rooms list when rooms change (messages handled per-room below)
   useEffect(() => {
     if (!profile) return;
     const ch = supabase
       .channel("adm-chat-global-watch")
-      .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, () => loadRooms(profile.id))
-      .on("postgres_changes", { event: "*", schema: "public", table: "chat_rooms" },    () => loadRooms(profile.id))
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_rooms" }, () => loadRooms(profile.id))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [profile, loadRooms]);
@@ -301,7 +300,7 @@ export default function AdmChatWidget({ isOpen, minimized, onClose, onMinimize, 
             <ArrowLeft size={14} />
           </button>
         )}
-        {activeRoomId && !minimized && (
+        {!!activeRoomId && (
           <button
             onClick={(e) => {
               e.stopPropagation();

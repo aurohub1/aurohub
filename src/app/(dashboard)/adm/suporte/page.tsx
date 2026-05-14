@@ -372,12 +372,15 @@ export default function AdmSuportePage() {
                         const isBot   = m.sender === "bot";
                         return (
                           <div key={m.id} className={`flex gap-2 ${isHuman ? "flex-row-reverse" : "flex-row"}`}>
-                            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                              isHuman ? "bg-amber-100 text-amber-700"
-                              : isBot ? "bg-slate-100 text-slate-500"
-                              : "bg-blue-600 text-white"
-                            }`}>
-                              {isHuman ? <Headphones size={13} /> : isBot ? <Bot size={13} /> : <User size={13} />}
+                            <div
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                              style={
+                                isHuman ? { background: "#FEF3C7", color: "#92400E" }
+                                : isBot  ? { background: "linear-gradient(135deg, #C084FC, #F472B6)" }
+                                : { background: "#2563EB", color: "#fff" }
+                              }
+                            >
+                              {isHuman ? <Headphones size={13} /> : isBot ? <span className="text-[9px] font-bold text-white">LU</span> : <User size={13} />}
                             </div>
                             <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
                               isHuman ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-700"

@@ -251,7 +251,10 @@ export default function CentralPublicacaoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           destino: lic?.name || "agência de viagens",
-          tipo: "pacote",
+          tipo: pubType === "reels" ? "Instagram Reels (vídeo curto, vertical)" : pubType,
+          formato: pubType,
+          // Se já há legenda digitada, usa como referência de estilo
+          briefing: caption.trim() || undefined,
         }),
       });
       if (res.ok) {

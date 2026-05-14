@@ -232,6 +232,11 @@ export default function PublicarPageBase({
     lamina: {},
   });
   const [features, setFeatures] = useState<Set<string>>(new Set());
+  const [reelsFile, setReelsFile] = useState<File | null>(null);
+  const [reelsVideoUrl, setReelsVideoUrl] = useState<string | null>(null);
+  const [reelsUploadProgress, setReelsUploadProgress] = useState<number | null>(null);
+  const [reelsUploading, setReelsUploading] = useState(false);
+  const [reelsError, setReelsError] = useState<string | null>(null);
   const destinoDataRef = useRef<{ nome: string; url: string }[] | null>(null);
   const hotelDataRef = useRef<{ nome: string; url: string }[] | null>(null);
   // Cache: destino slug → URL já sorteada. Evita re-sorteio em re-renders.
@@ -582,6 +587,72 @@ export default function PublicarPageBase({
     }
   }
 
+  async function uploadReelsFileDirect(file: File) {
+    setReelsUploading(true);
+    setReelsUploadProgress(0);
+    setReelsError(null);
+    try {
+      const signRes = await fetch("/api/cloudinary/sign-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folder: `aurohubv2/reels/${profile?.licensee_id || "anon"}`,
+          resource_type: "video",
+        }),
+      });
+      const signData = await signRes.json();
+      if (!signRes.ok || !signData.signature) throw new Error(signData.error || "Falha ao assinar upload");
+
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("api_key", signData.api_key);
+      fd.append("timestamp", String(signData.timestamp));
+      fd.append("folder", signData.folder);
+      fd.append("signature", signData.signature);
+
+      const cloudUrl = await new Promise<string>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setReelsUploadProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+            const url = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${data.public_id}.mp4`;
+            resolve(url);
+          } else {
+            const err = (() => { try { return JSON.parse(xhr.responseText)?.error?.message; } catch { return null; } })();
+            reject(new Error(err || "Upload falhou"));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Erro de rede no upload"));
+        xhr.open("POST", `https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`);
+        xhr.send(fd);
+      });
+
+      setReelsVideoUrl(cloudUrl);
+      setReelsUploadProgress(100);
+    } catch (err) {
+      setReelsError(err instanceof Error ? err.message : "Erro no upload");
+      setReelsVideoUrl(null);
+    } finally {
+      setReelsUploading(false);
+    }
+  }
+
+  async function handleReelsFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setReelsFile(file);
+    setReelsVideoUrl(null);
+    setReelsUploadProgress(null);
+    setReelsError(null);
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      await uploadReelsFileDirect(file);
+    }
+    // ≤4MB: passed as-is (blob) to the queue on publish
+  }
+
   const { fields, set, servicos, setServicos } = useFormAdapter({
     tab,
     values,
@@ -679,6 +750,17 @@ export default function PublicarPageBase({
       setFormat(allowedFormats[0] ?? "stories");
     }
   }, [allowedFormats, format]);
+
+  // Reset reels upload state when leaving reels format
+  useEffect(() => {
+    if (format !== "reels") {
+      setReelsFile(null);
+      setReelsVideoUrl(null);
+      setReelsUploadProgress(null);
+      setReelsUploading(false);
+      setReelsError(null);
+    }
+  }, [format]);
 
   const schema = currentTemplate?.schema ?? {
     elements: [],
@@ -1350,6 +1432,68 @@ export default function PublicarPageBase({
             </div>
           )}
 
+          {/* Upload de vídeo — apenas Reels */}
+          {format === "reels" && (
+            <div style={{ padding: "14px 14px 0" }}>
+              <label
+                style={{ fontSize: "11px", fontWeight: 600, color: "var(--txt3)", display: "block", marginBottom: "6px", textTransform: "uppercase", letterSpacing: ".06em" }}
+              >
+                Vídeo do Reels
+              </label>
+              <label
+                style={{
+                  display: "flex", alignItems: "center", gap: "8px", cursor: "pointer",
+                  background: "var(--bg2)", border: "1px dashed var(--bdr)", borderRadius: "8px",
+                  padding: "10px 12px", fontSize: "12px", color: "var(--txt2)", transition: "border-color .15s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--brand-primary)")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--bdr)")}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {reelsFile ? reelsFile.name : "Selecionar vídeo (máx. 200 MB)"}
+                </span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  style={{ display: "none" }}
+                  onChange={handleReelsFileChange}
+                />
+              </label>
+              {reelsUploading && (
+                <div style={{ marginTop: "8px" }}>
+                  <div style={{ height: "4px", background: "var(--bdr)", borderRadius: "2px", overflow: "hidden" }}>
+                    <div
+                      style={{
+                        height: "100%", background: "var(--brand-primary)", borderRadius: "2px",
+                        width: `${reelsUploadProgress ?? 0}%`, transition: "width .2s",
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: "10px", color: "var(--txt3)", marginTop: "4px" }}>
+                    Enviando... {reelsUploadProgress ?? 0}%
+                  </div>
+                </div>
+              )}
+              {!reelsUploading && reelsVideoUrl && (
+                <div style={{ fontSize: "10px", color: "#10B981", marginTop: "6px", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Vídeo pronto para publicar
+                </div>
+              )}
+              {!reelsUploading && reelsFile && !reelsVideoUrl && !reelsError && (
+                <div style={{ fontSize: "10px", color: "var(--txt3)", marginTop: "6px" }}>
+                  Arquivo pequeno — será enviado ao publicar
+                </div>
+              )}
+              {reelsError && (
+                <div style={{ fontSize: "10px", color: "#EF4444", marginTop: "6px" }}>
+                  {reelsError}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Formulários */}
           <div data-tour="formulario" style={{ padding: "14px" }}>
             {!currentTemplate ? (
@@ -1461,6 +1605,8 @@ export default function PublicarPageBase({
                 currentTemplate,
                 values,
                 format,
+                reelsVideoUrl: format === "reels" ? reelsVideoUrl : null,
+                reelsFileBlob: format === "reels" && reelsFile && !reelsVideoUrl ? reelsFile : null,
               })
             }
             onPublishDrive={() =>

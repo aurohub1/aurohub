@@ -283,6 +283,8 @@ export function usePublishLogic(
     currentTemplate,
     values,
     format,
+    reelsVideoUrl,
+    reelsFileBlob,
   }: {
     profile: FullProfile | null;
     selectedTargetIds: string[];
@@ -290,6 +292,8 @@ export function usePublishLogic(
     currentTemplate: { id?: string; name?: string; schema?: any } | undefined;
     values: Record<string, string>;
     format: Format;
+    reelsVideoUrl?: string | null;
+    reelsFileBlob?: Blob | null;
   }) {
     if (!enabled) return;
     if (!profile?.licensee_id) {
@@ -314,16 +318,27 @@ export function usePublishLogic(
 
     try {
       setBusy(true);
-      const hasAnimation = (currentTemplate?.schema?.elements ?? []).some(
+
+      const hasExternalVideo = !!(reelsVideoUrl || reelsFileBlob);
+      const hasAnimation = !hasExternalVideo && (currentTemplate?.schema?.elements ?? []).some(
         (el: any) =>
           (el.animDelay && el.animDelay > 0) ||
           (el.animDuration && el.animDuration > 0)
       );
-      const isVideo = hasAnimation;
+      const isVideo = hasExternalVideo || hasAnimation;
       let mediaBlob: Blob | undefined;
       let mediaDataUrl: string | undefined;
 
-      if (isVideo) {
+      if (reelsVideoUrl) {
+        // Already uploaded directly from browser — queue will skip Cloudinary
+        setStatus("publishing");
+        setStatusMsg(`Publicando em ${targets.length} loja(s)...`);
+      } else if (reelsFileBlob) {
+        // Small file (≤4MB) — pass as blob, queue handles Cloudinary upload
+        mediaBlob = reelsFileBlob;
+        setStatus("publishing");
+        setStatusMsg(`Publicando em ${targets.length} loja(s)...`);
+      } else if (hasAnimation) {
         setStatus("generating");
         setStatusMsg("Gravando vídeo...");
         const els = (currentTemplate?.schema?.elements ?? []) as Array<{
@@ -338,16 +353,17 @@ export function usePublishLogic(
         const blob = await recordCanvasWithAudio(format, durationSec);
         if (!blob) throw new Error("Falha ao gravar vídeo");
         mediaBlob = blob;
+        setStatus("publishing");
+        setStatusMsg(`Publicando em ${targets.length} loja(s)...`);
       } else {
         setStatus("generating");
         setStatusMsg("Gerando imagem...");
         const dataUrl = await getPNGDataURL();
         if (!dataUrl) throw new Error("Falha ao gerar imagem");
         mediaDataUrl = dataUrl;
+        setStatus("publishing");
+        setStatusMsg(`Publicando em ${targets.length} loja(s)...`);
       }
-
-      setStatus("publishing");
-      setStatusMsg(`Publicando em ${targets.length} loja(s)...`);
 
       for (const target of targets) {
         publishQueue.enqueue({
@@ -358,6 +374,7 @@ export function usePublishLogic(
           isVideo,
           mediaBlob,
           mediaDataUrl,
+          preUploadedVideoUrl: reelsVideoUrl || undefined,
           caption: "",
           licenseeId: profile.licensee_id,
           userId: profile.id,

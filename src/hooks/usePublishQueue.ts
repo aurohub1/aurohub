@@ -30,6 +30,7 @@ export interface PublishJobInput {
   isVideo: boolean;
   mediaBlob?: Blob;
   mediaDataUrl?: string;
+  preUploadedVideoUrl?: string;
   caption: string;
   licenseeId: string;
   userId?: string | null;
@@ -82,47 +83,55 @@ export function PublishQueueProvider({ children }: { children: ReactNode }) {
       const mediaType: "IMAGE" | "STORIES" | "REELS" =
         job.format === "stories" ? "STORIES" : job.format === "reels" ? "REELS" : "IMAGE";
 
-      patchJob(job.id, { status: "uploading", statusMsg: "Enviando mídia..." });
+      let mediaUrl: string;
 
-      const folder = `aurohubv2/publicacoes/${job.licenseeId}`;
-      const signRes = await fetch("/api/cloudinary/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder }),
-      });
-      const signData = await signRes.json();
-      if (!signRes.ok || !signData.signature) {
-        throw new Error(signData.error || "Falha ao assinar upload");
-      }
-
-      const fd = new FormData();
-      if (job.isVideo) {
-        if (!job.mediaBlob) throw new Error("Vídeo não disponível");
-        fd.append("file", job.mediaBlob, "video.webm");
+      if (job.preUploadedVideoUrl) {
+        // File was already uploaded directly from the browser — skip Cloudinary upload
+        mediaUrl = job.preUploadedVideoUrl;
+        patchJob(job.id, { status: "publishing", statusMsg: `Publicando em ${job.storeName}...` });
       } else {
-        if (!job.mediaDataUrl) throw new Error("Imagem não disponível");
-        fd.append("file", job.mediaDataUrl);
+        patchJob(job.id, { status: "uploading", statusMsg: "Enviando mídia..." });
+
+        const folder = `aurohubv2/publicacoes/${job.licenseeId}`;
+        const signRes = await fetch("/api/cloudinary/sign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folder }),
+        });
+        const signData = await signRes.json();
+        if (!signRes.ok || !signData.signature) {
+          throw new Error(signData.error || "Falha ao assinar upload");
+        }
+
+        const fd = new FormData();
+        if (job.isVideo) {
+          if (!job.mediaBlob) throw new Error("Vídeo não disponível");
+          fd.append("file", job.mediaBlob, "video.webm");
+        } else {
+          if (!job.mediaDataUrl) throw new Error("Imagem não disponível");
+          fd.append("file", job.mediaDataUrl);
+        }
+        fd.append("api_key", signData.api_key);
+        fd.append("timestamp", String(signData.timestamp));
+        fd.append("folder", signData.folder);
+        fd.append("signature", signData.signature);
+
+        const resource = job.isVideo ? "video" : "image";
+        const upRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${signData.cloud_name}/${resource}/upload`,
+          { method: "POST", body: fd },
+        );
+        const upData = await upRes.json();
+        if (!upRes.ok || !upData.secure_url) {
+          throw new Error(upData.error?.message || "Upload falhou");
+        }
+
+        mediaUrl = job.isVideo
+          ? `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${upData.public_id}.mp4`
+          : (upData.secure_url as string);
+
+        patchJob(job.id, { status: "publishing", statusMsg: `Publicando em ${job.storeName}...` });
       }
-      fd.append("api_key", signData.api_key);
-      fd.append("timestamp", String(signData.timestamp));
-      fd.append("folder", signData.folder);
-      fd.append("signature", signData.signature);
-
-      const resource = job.isVideo ? "video" : "image";
-      const upRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${signData.cloud_name}/${resource}/upload`,
-        { method: "POST", body: fd },
-      );
-      const upData = await upRes.json();
-      if (!upRes.ok || !upData.secure_url) {
-        throw new Error(upData.error?.message || "Upload falhou");
-      }
-
-      const mediaUrl = job.isVideo
-        ? `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${upData.public_id}.mp4`
-        : (upData.secure_url as string);
-
-      patchJob(job.id, { status: "publishing", statusMsg: `Publicando em ${job.storeName}...` });
 
       const pubRes = await fetch("/api/instagram/post", {
         method: "POST",
