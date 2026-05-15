@@ -785,6 +785,9 @@ export default function PublicarPageBase({
   const [pw, ph] = FORMAT_DIMS[format];
 
   function goToForm(tipo: FormType) {
+    // Auto-seleciona o formato disponível para o tipo (mesmo comportamento do switchTab)
+    const fmts = templates.filter((x) => x.formType === tipo).map((x) => x.format);
+    if (fmts.length && !fmts.includes(format)) setFormat(fmts[0] as Format);
     setAnimOut(true);
     setTimeout(() => {
       setTab(tipo);
