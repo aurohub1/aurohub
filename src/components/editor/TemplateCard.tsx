@@ -467,11 +467,13 @@ export function TemplateCard({
       {/* Quick-edit modal */}
       {quickEditOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          className="fixed inset-0 flex items-center justify-center bg-black/50"
+          style={{ zIndex: 9999 }}
           onClick={() => !qeSaving && setQuickEditOpen(false)}
         >
           <div
-            className="w-72 rounded-xl border border-[var(--bdr)] bg-[var(--surface)] p-4 shadow-2xl"
+            className="w-72 rounded-xl border border-[var(--bdr)] p-4 shadow-2xl"
+            style={{ background: "var(--bg2, #ffffff)", opacity: 1, zIndex: 10000 }}
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="mb-3 text-sm font-semibold text-[var(--txt)]">Editar metadados</h3>
@@ -494,7 +496,7 @@ export function TemplateCard({
                 value={qeFormType}
                 onChange={(e) => setQeFormType(e.target.value)}
                 disabled={qeSaving}
-                className="mt-1 w-full rounded-lg border border-[var(--bdr)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--txt)] outline-none focus:border-[var(--orange)] disabled:opacity-50"
+                className="mt-1 w-full rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-sm text-[var(--txt)] outline-none focus:border-[var(--orange)] disabled:opacity-50" style={{ background: "var(--bg2, #ffffff)" }}
               >
                 <option value="pacote">Pacote</option>
                 <option value="campanha">Campanha</option>
@@ -512,7 +514,7 @@ export function TemplateCard({
                 value={qeFormat}
                 onChange={(e) => setQeFormat(e.target.value)}
                 disabled={qeSaving}
-                className="mt-1 w-full rounded-lg border border-[var(--bdr)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--txt)] outline-none focus:border-[var(--orange)] disabled:opacity-50"
+                className="mt-1 w-full rounded-lg border border-[var(--bdr)] px-3 py-1.5 text-sm text-[var(--txt)] outline-none focus:border-[var(--orange)] disabled:opacity-50" style={{ background: "var(--bg2, #ffffff)" }}
               >
                 <option value="stories">Stories 9:16</option>
                 <option value="reels">Reels 9:16</option>
