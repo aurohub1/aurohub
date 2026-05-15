@@ -578,6 +578,7 @@ const FORM_TYPES = [
   { value: "cruzeiro", label: "Cruzeiro" },
   { value: "anoiteceu", label: "Anoiteceu" },
   { value: "card_whatsapp", label: "Card WhatsApp" },
+  { value: "tv", label: "TV" },
 ];
 const FORMATS = [
   { value: "stories", label: "Stories 9:16" },
