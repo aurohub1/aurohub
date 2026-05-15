@@ -99,9 +99,9 @@ export default function ClienteHistoricoPage() {
   const { startTour } = useTour({
     pageKey: "cliente-historico",
     steps: [
-      { element: "h1", popover: { title: "Histórico de Postagens", description: "Veja todas as publicações feitas, ordenadas da mais recente para a mais antiga." } },
-      { element: ".card-glass", popover: { title: "Filtros", description: "Filtre por período, loja ou tipo de mídia para encontrar publicações específicas." } },
-      { popover: { title: "Pronto!", description: "Clique em qualquer publicação para ver detalhes. O botão ? está sempre disponível para rever o tour." } },
+      { element: "[data-tour='titulo-historico']", popover: { title: "Histórico de Postagens", description: "Veja todas as publicações feitas pelas suas lojas, ordenadas da mais recente para a mais antiga." } },
+      { element: "[data-tour='filtros-historico']", popover: { title: "Filtros", description: "Filtre por período, loja ou tipo de mídia para encontrar publicações específicas." } },
+      { popover: { title: "Pronto!", description: "Clique em qualquer publicação para ver os detalhes. O botão ? está sempre disponível para rever o tour." } },
     ],
     autoStart: true,
     delay: 1000,
@@ -129,7 +129,7 @@ export default function ClienteHistoricoPage() {
             {CLOCK_ICON}
           </div>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--txt)", margin: 0 }}>Histórico de Postagens</h1>
+            <h1 data-tour="titulo-historico" style={{ fontSize: 20, fontWeight: 700, color: "var(--txt)", margin: 0 }}>Histórico de Postagens</h1>
             <p style={{ fontSize: 12, color: "var(--txt3)", margin: 0 }}>
               {loading ? "Carregando..." : `${total} publicaç${total !== 1 ? "ões" : "ão"} encontrada${total !== 1 ? "s" : ""}`}
             </p>
@@ -138,7 +138,7 @@ export default function ClienteHistoricoPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="card-glass" style={{ borderRadius: 12, padding: "16px 20px", marginBottom: 24 }}>
+      <div data-tour="filtros-historico" className="card-glass" style={{ borderRadius: 12, padding: "16px 20px", marginBottom: 24 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

@@ -263,9 +263,9 @@ export default function ClienteResumoPage() {
   const { startTour } = useTour({
     pageKey: "cliente-resumo",
     steps: [
-      { popover: { title: "Resumo de Publicações", description: "Veja um panorama completo de todas as publicações do período selecionado." } },
-      { popover: { title: "Filtros de período", description: "Navegue entre meses e filtre por loja, formato ou status para análises específicas." } },
-      { popover: { title: "Gráficos e comparativos", description: "Compare o desempenho mês a mês e veja a distribuição por formato de publicação." } },
+      { element: "[data-tour='header-resumo']", popover: { title: "Resumo Mensal", description: "Veja um panorama completo das publicações das suas lojas. Use as setas para navegar entre meses ou exporte em PDF." } },
+      { element: "[data-tour='kpi-resumo']", popover: { title: "Indicadores do período", description: "Total de publicações, média semanal e comparativo com o mês anterior." } },
+      { element: "[data-tour='chart-resumo']", popover: { title: "Gráfico de publicações", description: "Evolução das publicações por semana. Acompanhe os dias com mais e menos atividade no período." } },
     ],
     autoStart: true,
     delay: 1000,
@@ -286,7 +286,7 @@ export default function ClienteResumoPage() {
       `}</style>
 
       {/* Header */}
-      <div className="flex items-end justify-between pb-4 no-print" style={{ borderBottom: "1px solid var(--bdr)" }}>
+      <div data-tour="header-resumo" className="flex items-end justify-between pb-4 no-print" style={{ borderBottom: "1px solid var(--bdr)" }}>
         <div>
           <h2 className="text-2xl font-bold" style={{ color: "var(--txt)" }}>Resumo Mensal</h2>
           <p className="mt-0.5 text-sm" style={{ color: "var(--txt2)" }}>
@@ -458,7 +458,7 @@ export default function ClienteResumoPage() {
             </div>
 
             {/* Métricas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
+            <div data-tour="kpi-resumo" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
               <div className="rounded-[20px] p-6" style={{ background: "var(--card-bg)", border: "1px solid var(--bdr)" }}>
                 <div className="text-xs font-medium mb-2" style={{ color: "var(--txt2)" }}>
                   Total de Posts
@@ -501,7 +501,7 @@ export default function ClienteResumoPage() {
             </div>
 
             {/* Gráfico de barras por semana */}
-            <div className="mt-6 rounded-[20px] p-6" style={{ background: "var(--card-bg)", border: "1px solid var(--bdr)" }}>
+            <div data-tour="chart-resumo" className="mt-6 rounded-[20px] p-6" style={{ background: "var(--card-bg)", border: "1px solid var(--bdr)" }}>
               <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--txt)" }}>
                 Posts por Semana
               </h3>

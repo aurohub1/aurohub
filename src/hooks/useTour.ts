@@ -5,6 +5,7 @@ import { driver, DriveStep, type Driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import "@/styles/driver-theme.css";
 import { supabase } from "@/lib/supabase";
+import { getSystemConfig } from "@/hooks/useSystemConfig";
 
 interface UseTourOptions {
   pageKey: string;
@@ -38,7 +39,13 @@ export function useTour({ pageKey, steps, autoStart = true, delay = 1000 }: UseT
       }
     }
 
-    loadUser();
+    async function init() {
+      const tourDisabled = await getSystemConfig("tour_disabled");
+      if (tourDisabled === "true") return;
+      loadUser();
+    }
+
+    init();
   }, []);
 
   // Verifica se o tour já foi feito ou está globalmente desativado

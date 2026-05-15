@@ -9,9 +9,9 @@ export default function ConsultorConfiguracoesPage() {
   const { startTour } = useTour({
     pageKey: "consultor-configuracoes",
     steps: [
-      { element: "h1", popover: { title: "Configurações", description: "Gerencie as preferências da sua conta." } },
-      { element: "form", popover: { title: "Segurança", description: "Altere sua senha de acesso quando necessário." } },
-      { popover: { title: "Aparência", description: "Escolha entre tema claro e escuro conforme sua preferência." } },
+      { element: "[data-tour='titulo-config']", popover: { title: "Configurações", description: "Gerencie as preferências da sua conta: senha, autenticação em 2 fatores e aparência." } },
+      { element: "[data-tour='form-senha']", popover: { title: "Segurança", description: "Altere sua senha de acesso. Recomendamos uma senha forte com letras, números e símbolos." } },
+      { popover: { title: "Aparência", description: "Escolha entre tema claro e escuro conforme sua preferência. A troca é aplicada imediatamente." } },
     ],
     autoStart: true,
     delay: 1000,
@@ -100,14 +100,14 @@ export default function ConsultorConfiguracoesPage() {
   return (
     <>
     <div className="flex max-w-3xl flex-col gap-6 page-fade">
-      <header className="flex flex-col gap-1">
+      <header data-tour="titulo-config" className="flex flex-col gap-1">
         <h1 className="text-[20px] font-bold text-[var(--txt)]">Configurações</h1>
         <p className="text-[12px] text-[var(--txt3)]">Segurança da conta e preferências visuais.</p>
       </header>
 
       {/* ── Segurança ─────────────────────────────── */}
       <Card icon={<Lock size={16} />} title="Segurança" subtitle="Defina uma nova senha de acesso">
-        <form onSubmit={changePassword} className="flex flex-col gap-3">
+        <form data-tour="form-senha" onSubmit={changePassword} className="flex flex-col gap-3">
           <Field label="Nova senha">
             <input
               type="password"

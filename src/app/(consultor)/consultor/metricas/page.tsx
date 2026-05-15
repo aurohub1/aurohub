@@ -12,7 +12,7 @@ export default function Page() {
         element: "[data-tour='kpi-cards']",
         popover: {
           title: "Indicadores principais",
-          description: "Acompanhe o total de publicações, downloads, consultores ativos e templates utilizados no período selecionado.",
+          description: "Acompanhe o total de publicações, downloads e templates utilizados no período selecionado.",
           side: "bottom",
         },
       },
