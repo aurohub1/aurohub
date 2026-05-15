@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin, Users, RefreshCw, CheckCircle } from "lucide-react";
+import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin, Users, RefreshCw, CheckCircle, SlidersHorizontal } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export interface CanvasTemplate {
   key: string;
@@ -31,6 +32,7 @@ interface TemplateCardProps {
   onUpdate?: (key: string) => void;
   onAccess?: (key: string) => void;
   onNameChange: (key: string, nome: string) => void;
+  onMetaChange?: (key: string, data: { nome: string; formType: string; format: string }) => void;
   onThumbUpload: (key: string, file: File) => void;
   onThumbCapture: (key: string) => void;
   thumbUploading?: boolean;
@@ -47,6 +49,7 @@ export function TemplateCard({
   onUpdate,
   onAccess,
   onNameChange,
+  onMetaChange,
   onThumbUpload,
   onThumbCapture,
   thumbUploading = false,
@@ -58,6 +61,98 @@ export function TemplateCard({
   const [tooltip, setTooltip] = useState<string | null>(null);
   const [savingName, setSavingName] = useState(false);
   const thumbInputRef = useRef<HTMLInputElement>(null);
+
+  // Local overrides — atualizados após quick-edit sem depender do estado do pai
+  const [localNome, setLocalNome] = useState<string | null>(null);
+  const [localFormType, setLocalFormType] = useState<string | null>(null);
+  const [localFormat, setLocalFormat] = useState<string | null>(null);
+
+  const displayNome = localNome ?? t.nome;
+  const displayFormType = localFormType ?? t.formType;
+  const displayFormat = localFormat ?? t.format;
+
+  // Quick-edit popover
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
+  const [qeNome, setQeNome] = useState(displayNome);
+  const [qeFormType, setQeFormType] = useState(displayFormType);
+  const [qeFormat, setQeFormat] = useState(displayFormat);
+  const [qeSaving, setQeSaving] = useState(false);
+  const [qeError, setQeError] = useState<string | null>(null);
+
+  function openQuickEdit() {
+    setQeNome(localNome ?? t.nome);
+    setQeFormType(localFormType ?? t.formType);
+    setQeFormat(localFormat ?? t.format);
+    setQeError(null);
+    setQuickEditOpen(true);
+  }
+
+  async function handleQuickEditSave() {
+    const nome = qeNome.trim();
+    if (!nome) { setQeError("Nome obrigatório"); return; }
+    setQeSaving(true);
+    setQeError(null);
+    try {
+      // 1. Busca schema atual
+      const { data: cfg } = await supabase
+        .from("system_config")
+        .select("value")
+        .eq("key", t.key)
+        .single();
+
+      if (cfg) {
+        const currentSchema = JSON.parse(cfg.value as string);
+        // 2. Salva histórico ANTES de qualquer alteração
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const { error: hErr } = await supabase.from("template_history").insert({
+            template_id: t.key.replace(/^tmpl_/, ""),
+            schema: currentSchema,
+            saved_by: user?.id ?? null,
+            note: "quick-edit (tipo/formato/nome)",
+          });
+          if (!hErr) {
+            const { data: oldRows } = await supabase
+              .from("template_history")
+              .select("id, saved_at")
+              .eq("template_id", t.key.replace(/^tmpl_/, ""))
+              .order("saved_at", { ascending: false })
+              .range(10, 999);
+            if (oldRows && oldRows.length > 0) {
+              await supabase.from("template_history").delete()
+                .in("id", (oldRows as { id: string }[]).map(r => r.id));
+            }
+          }
+        } catch {}
+
+        // 3. Atualiza system_config (apenas metadados, schema intacto)
+        const updated = { ...currentSchema, nome, format: qeFormat, formType: qeFormType };
+        await supabase.from("system_config").upsert({
+          key: t.key,
+          value: JSON.stringify(updated),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "key" });
+      }
+
+      // 4. Atualiza form_templates
+      await supabase.from("form_templates")
+        .update({ name: nome, form_type: qeFormType, format: qeFormat })
+        .eq("config_key", t.key);
+
+      // 5. Atualiza estado local do card
+      setLocalNome(nome);
+      setLocalFormType(qeFormType);
+      setLocalFormat(qeFormat);
+      setTempName(nome);
+      onMetaChange?.(t.key, { nome, formType: qeFormType, format: qeFormat });
+      setQuickEditOpen(false);
+    } catch (err) {
+      setQeError("Erro ao salvar. Tente novamente.");
+      console.error("[QuickEdit] save error:", err);
+    } finally {
+      setQeSaving(false);
+    }
+  }
 
   const handleNameBlur = async () => {
     if (savingName) return;
@@ -164,7 +259,7 @@ export function TemplateCard({
               className="flex-1 cursor-text text-sm font-medium text-[var(--txt)] line-clamp-2 hover:text-[var(--txt2)]"
               title="Clique para editar"
             >
-              {t.nome || "Sem nome"}
+              {displayNome || "Sem nome"}
             </h3>
             <button
               onClick={() => setEditingName(true)}
@@ -181,24 +276,24 @@ export function TemplateCard({
           <span
             className="text-[9px] font-semibold uppercase"
             style={{
-              background: getTypeColor(t.formType),
+              background: getTypeColor(displayFormType),
               color: "#fff",
               padding: "2px 6px",
               borderRadius: "4px",
             }}
           >
-            {formatTypeLabel(t.formType)}
+            {formatTypeLabel(displayFormType)}
           </span>
           <span
             className="text-[9px] font-medium"
             style={{
-              background: t.format === "reels" ? "#f3e8ff" : t.format === "tv" ? "#fef3c7" : "#e2e8f0",
-              color: t.format === "reels" ? "#7c3aed" : t.format === "tv" ? "#d97706" : "#475569",
+              background: displayFormat === "reels" ? "#f3e8ff" : displayFormat === "tv" ? "#fef3c7" : "#e2e8f0",
+              color: displayFormat === "reels" ? "#7c3aed" : displayFormat === "tv" ? "#d97706" : "#475569",
               padding: "2px 6px",
               borderRadius: "4px",
             }}
           >
-            {formatFormatLabel(t.format)}
+            {formatFormatLabel(displayFormat)}
           </span>
           {activeStatus && (
             <span
@@ -303,6 +398,14 @@ export function TemplateCard({
         >
           <Pencil size={16} />
         </button>
+        <button
+          onClick={openQuickEdit}
+          onMouseEnter={() => setTooltip("Tipo / Formato")}
+          onMouseLeave={() => setTooltip(null)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--txt3)] transition-colors hover:bg-[rgba(212,168,67,0.08)] hover:text-[var(--txt)]"
+        >
+          <SlidersHorizontal size={15} />
+        </button>
         {activeStatus !== null && onSetActive && (
           <button
             onClick={() => onSetActive(t.key)}
@@ -360,6 +463,87 @@ export function TemplateCard({
           <Trash2 size={16} />
         </button>
       </div>
+
+      {/* Quick-edit modal */}
+      {quickEditOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => !qeSaving && setQuickEditOpen(false)}
+        >
+          <div
+            className="w-72 rounded-xl border border-[var(--bdr)] bg-[var(--surface)] p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-3 text-sm font-semibold text-[var(--txt)]">Editar metadados</h3>
+
+            <label className="mb-3 block">
+              <span className="text-[11px] text-[var(--txt3)]">Nome</span>
+              <input
+                autoFocus
+                value={qeNome}
+                onChange={(e) => setQeNome(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleQuickEditSave()}
+                disabled={qeSaving}
+                className="mt-1 w-full rounded-lg border border-[var(--bdr)] bg-transparent px-3 py-1.5 text-sm text-[var(--txt)] outline-none focus:border-[var(--orange)] disabled:opacity-50"
+              />
+            </label>
+
+            <label className="mb-3 block">
+              <span className="text-[11px] text-[var(--txt3)]">Tipo</span>
+              <select
+                value={qeFormType}
+                onChange={(e) => setQeFormType(e.target.value)}
+                disabled={qeSaving}
+                className="mt-1 w-full rounded-lg border border-[var(--bdr)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--txt)] outline-none focus:border-[var(--orange)] disabled:opacity-50"
+              >
+                <option value="pacote">Pacote</option>
+                <option value="campanha">Campanha</option>
+                <option value="cruzeiro">Cruzeiro</option>
+                <option value="anoiteceu">Anoiteceu</option>
+                <option value="card_whatsapp">Card WhatsApp</option>
+                <option value="tv">TV</option>
+                <option value="lamina">Lâmina</option>
+              </select>
+            </label>
+
+            <label className="mb-4 block">
+              <span className="text-[11px] text-[var(--txt3)]">Formato</span>
+              <select
+                value={qeFormat}
+                onChange={(e) => setQeFormat(e.target.value)}
+                disabled={qeSaving}
+                className="mt-1 w-full rounded-lg border border-[var(--bdr)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--txt)] outline-none focus:border-[var(--orange)] disabled:opacity-50"
+              >
+                <option value="stories">Stories 9:16</option>
+                <option value="reels">Reels 9:16</option>
+                <option value="feed">Feed 4:5</option>
+                <option value="tv">TV 16:9</option>
+              </select>
+            </label>
+
+            {qeError && (
+              <p className="mb-2 text-[11px] text-red-400">{qeError}</p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setQuickEditOpen(false)}
+                disabled={qeSaving}
+                className="flex-1 rounded-lg border border-[var(--bdr)] py-1.5 text-sm text-[var(--txt3)] hover:text-[var(--txt)] disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleQuickEditSave}
+                disabled={qeSaving}
+                className="flex-1 rounded-lg bg-[var(--orange)] py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {qeSaving ? "Salvando…" : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -374,6 +558,7 @@ function getTypeColor(formType: string): string {
     anoiteceu: "#4f46e5",
     card_whatsapp: "#16a34a",
     lamina: "#d97706",
+    tv: "#0891b2",
   };
   return colors[formType] || "#64748b";
 }
@@ -387,6 +572,7 @@ function formatTypeLabel(formType: string): string {
     anoiteceu: "Anoiteceu",
     card_whatsapp: "WhatsApp",
     lamina: "Lâmina",
+    tv: "TV",
   };
   return labels[formType] || formType;
 }
