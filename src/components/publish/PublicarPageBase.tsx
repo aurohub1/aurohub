@@ -44,7 +44,8 @@ type FormType =
   | "cruzeiro"
   | "anoiteceu"
   | "card_whatsapp"
-  | "lamina";
+  | "lamina"
+  | "tv";
 type Format = "stories" | "feed" | "reels" | "tv";
 
 const TIPOS = [
@@ -97,6 +98,14 @@ const TIPOS = [
     desc: "Arte com 4 destinos",
     color: "#d97706",
     feature: "lamina",
+  },
+  {
+    id: "tv" as FormType,
+    Icon: Tv,
+    nome: "TV",
+    desc: "Arte para televisão 16:9",
+    color: "#0891b2",
+    feature: "tv",
   },
 ];
 
@@ -219,6 +228,7 @@ export default function PublicarPageBase({
     anoiteceu: { ...DEFAULTS },
     card_whatsapp: { ...DEFAULTS },
     lamina: { ...DEFAULTS },
+    tv: { ...DEFAULTS },
   });
   const [badgeCache, setBadgeCache] = useState<
     Record<FormType, Record<string, boolean>>
@@ -230,6 +240,7 @@ export default function PublicarPageBase({
     anoiteceu: {},
     card_whatsapp: {},
     lamina: {},
+    tv: {},
   });
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [reelsFile, setReelsFile] = useState<File | null>(null);
@@ -1567,6 +1578,22 @@ export default function PublicarPageBase({
                 nomeLoja={nomeLoja}
                 loadDestinos={loadDestinos}
                 loadHoteis={loadHoteis}
+              />
+            ) : tab === "tv" ? (
+              <PacoteForm
+                fields={fields}
+                set={set}
+                servicos={servicos}
+                setServicos={setServicos}
+                today={new Date().toISOString().slice(0, 10)}
+                feriadoOpts={feriados}
+                loadDestinos={loadDestinos}
+                loadHoteis={loadHoteis}
+                onImgFundo={onImgFundo}
+                onHotelBlur={onHotelBlur}
+                binds={templateBinds}
+                formato={format}
+                nomeLoja={nomeLoja}
               />
             ) : (
               <div
