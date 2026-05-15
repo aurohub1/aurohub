@@ -61,6 +61,7 @@ function EditorInner() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | "idle">("idle");
   const [editorLogoUrl, setEditorLogoUrl] = useState<string | undefined>(undefined);
   const persistSchemaRef = useRef<(() => Promise<void>) | null>(null);
+  const userIdRef = useRef<string | null>(null);
   const [cW, cH] = FMTS[format] ?? [1080, 1920];
 
   // Carrega role do usuário
@@ -69,6 +70,8 @@ function EditorInner() {
       try {
         const profile = await getProfile(supabase);
         if (profile?.role === "adm" || profile?.role === "operador") setIsAdm(true);
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        userIdRef.current = authUser?.id ?? null;
       } catch {}
     })();
   }, []);
@@ -156,6 +159,26 @@ function EditorInner() {
       lojaNome: loadedLojaNome,
       thumbnail: loadedThumbnail,
     };
+    try {
+      const { error: hErr } = await supabase.from("template_history").insert({
+        template_id: key,
+        schema: payload,
+        saved_by: userIdRef.current,
+        note: "auto-save",
+      });
+      if (!hErr) {
+        const { data: oldRows } = await supabase
+          .from("template_history")
+          .select("id, saved_at")
+          .eq("template_id", key)
+          .order("saved_at", { ascending: false })
+          .range(10, 999);
+        if (oldRows && oldRows.length > 0) {
+          await supabase.from("template_history").delete()
+            .in("id", oldRows.map((r: { id: string }) => r.id));
+        }
+      }
+    } catch {}
     await supabase.from("system_config").upsert({
       key,
       value: JSON.stringify(payload),
@@ -482,6 +505,26 @@ function EditorInner() {
                 lojaNome: meta.lojaNome || loadedLojaNome,
                 thumbnail: thumbnail || null,
               };
+              try {
+                const { error: hErr } = await supabase.from("template_history").insert({
+                  template_id: key,
+                  schema: payload,
+                  saved_by: userIdRef.current,
+                  note: "auto-save antes de edição",
+                });
+                if (!hErr) {
+                  const { data: oldRows } = await supabase
+                    .from("template_history")
+                    .select("id, saved_at")
+                    .eq("template_id", key)
+                    .order("saved_at", { ascending: false })
+                    .range(10, 999);
+                  if (oldRows && oldRows.length > 0) {
+                    await supabase.from("template_history").delete()
+                      .in("id", oldRows.map((r: { id: string }) => r.id));
+                  }
+                }
+              } catch {}
               await supabase.from("system_config").upsert({
                 key: `tmpl_${key}`,
                 value: JSON.stringify(payload),
@@ -539,31 +582,6 @@ function EditorInner() {
                 }
               } catch (err) {
                 console.error("[ACCESS] catch:", err);
-              }
-
-              try {
-                const { data: { user: authUser } } = await supabase.auth.getUser();
-                const { error: hErr } = await supabase.from("template_history").insert({
-                  template_id: key,
-                  schema: payload,
-                  thumbnail: thumbnail || null,
-                  created_by: authUser?.id ?? null,
-                });
-                if (hErr) throw hErr;
-                // Manter apenas as últimas 10 versões
-                const { data: oldRows } = await supabase
-                  .from("template_history")
-                  .select("id, created_at")
-                  .eq("template_id", key)
-                  .order("created_at", { ascending: false })
-                  .range(10, 999);
-                if (oldRows && oldRows.length > 0) {
-                  await supabase.from("template_history")
-                    .delete()
-                    .in("id", oldRows.map((r: { id: string }) => r.id));
-                }
-              } catch (hErr) {
-                console.warn("[History save] falhou:", hErr);
               }
 
               // Notifica usuários do licensee quando é template NOVO (não update)
