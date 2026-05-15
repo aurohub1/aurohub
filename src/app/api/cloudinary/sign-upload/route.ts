@@ -31,11 +31,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const folder: string = body?.folder || "aurohubv2/reels";
     const resource_type: string = body?.resource_type || "video";
+    const eager: string = body?.eager || "";
     const timestamp = Math.floor(Date.now() / 1000);
-    const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
+    // eager deve entrar na assinatura se fornecido (ordem alfabética dos params)
+    const paramsToSign = eager
+      ? `eager=${eager}&folder=${folder}&timestamp=${timestamp}`
+      : `folder=${folder}&timestamp=${timestamp}`;
     const signature = crypto.createHash("sha1").update(paramsToSign + secret).digest("hex");
 
-    return NextResponse.json({ signature, timestamp, api_key: key, cloud_name: cloud, folder, resource_type });
+    return NextResponse.json({ signature, timestamp, api_key: key, cloud_name: cloud, folder, resource_type, eager });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "unknown";
     return NextResponse.json({ error: msg }, { status: 500 });

@@ -605,6 +605,10 @@ export default function PublicarPageBase({
     setReelsUploading(true);
     setReelsUploadProgress(0);
     setReelsError(null);
+    // Eager transform: Cloudinary pré-transcodifica durante o upload.
+    // Instagram recebe uma URL de arquivo já pronto (não on-the-fly),
+    // evitando timeout de download para vídeos grandes.
+    const EAGER = "f_mp4,vc_h264:baseline,ac_aac,br_4000k";
     try {
       const signRes = await fetch("/api/cloudinary/sign-upload", {
         method: "POST",
@@ -612,6 +616,7 @@ export default function PublicarPageBase({
         body: JSON.stringify({
           folder: `aurohubv2/reels/${profile?.licensee_id || "anon"}`,
           resource_type: "video",
+          eager: EAGER,
         }),
       });
       const signData = await signRes.json();
@@ -623,6 +628,7 @@ export default function PublicarPageBase({
       fd.append("timestamp", String(signData.timestamp));
       fd.append("folder", signData.folder);
       fd.append("signature", signData.signature);
+      fd.append("eager", EAGER);
 
       const cloudUrl = await new Promise<string>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -632,8 +638,10 @@ export default function PublicarPageBase({
         xhr.onload = () => {
           if (xhr.status === 200) {
             const data = JSON.parse(xhr.responseText);
-            const url = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${data.public_id}.mp4`;
-            resolve(url);
+            // Prefer eager URL (pre-transcoded). Fallback to on-the-fly if eager not ready yet.
+            const eagerUrl = data.eager?.[0]?.secure_url as string | undefined;
+            const fallbackUrl = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${data.public_id}.mp4`;
+            resolve(eagerUrl || fallbackUrl);
           } else {
             const err = (() => { try { return JSON.parse(xhr.responseText)?.error?.message; } catch { return null; } })();
             reject(new Error(err || "Upload falhou"));
@@ -661,6 +669,11 @@ export default function PublicarPageBase({
     setReelsUploadProgress(null);
     setReelsError(null);
     if (!file) return;
+    // Instagram limita 100MB para Reels via URL
+    if (file.size > 100 * 1024 * 1024) {
+      setReelsError("Vídeo muito grande. O Instagram aceita no máximo 100 MB.");
+      return;
+    }
     if (file.size > 4 * 1024 * 1024) {
       await uploadReelsFileDirect(file);
     }

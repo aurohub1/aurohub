@@ -127,7 +127,7 @@ export function PublishQueueProvider({ children }: { children: ReactNode }) {
         }
 
         mediaUrl = job.isVideo
-          ? `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${upData.public_id}.mp4`
+          ? ((upData.eager?.[0]?.secure_url as string | undefined) || `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${upData.public_id}.mp4`)
           : (upData.secure_url as string);
 
         patchJob(job.id, { status: "publishing", statusMsg: `Publicando em ${job.storeName}...` });
@@ -260,7 +260,7 @@ async function pollAndPublishVideo(payload: {
   user_id?: string | null;
   onStatus: (msg: string) => void;
 }): Promise<void> {
-  const maxPolls = 36; // 36 × 5s = 180s
+  const maxPolls = 60; // 60 × 5s = 300s (5 min — vídeos grandes precisam de mais tempo)
   for (let i = 0; i < maxPolls; i++) {
     await new Promise((r) => setTimeout(r, 5000));
     const url = `/api/instagram/status?creation_id=${payload.creation_id}&access_token=${encodeURIComponent(payload.access_token)}`;
