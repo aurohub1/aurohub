@@ -5,6 +5,7 @@ import { driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
 import "@/styles/driver-theme.css";
 import { supabase } from "@/lib/supabase";
+import { getSystemConfig } from "@/hooks/useSystemConfig";
 
 export type WelcomeRole = "cliente" | "vendedor" | "gerente" | "unidade";
 
@@ -120,6 +121,9 @@ export default function WelcomeTour({ role }: { role: WelcomeRole }) {
         .single();
 
       if (!profile) return;
+
+      const tourDisabled = await getSystemConfig("tour_disabled");
+      if (tourDisabled === "true") return;
 
       const tourPages: string[] = (profile.tour_pages as string[]) ?? [];
       if (tourPages.includes("welcome") || tourPages.includes("desativado")) return;

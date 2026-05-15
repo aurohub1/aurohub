@@ -17,5 +17,8 @@ export async function POST() {
     .neq("id", "00000000-0000-0000-0000-000000000000");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await sb.from("system_config").upsert({ key: "tour_disabled", value: "true" }, { onConflict: "key" });
+
   return NextResponse.json({ success: true });
 }

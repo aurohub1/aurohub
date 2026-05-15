@@ -256,6 +256,7 @@ export default function ConfiguracoesPage() {
     try {
       const { error } = await supabase.from("profiles").update({ tour_pages: ["desativado"] }).neq("id", "00000000-0000-0000-0000-000000000000");
       if (error) { alert("Erro ao desativar tour: " + error.message); return; }
+      await supabase.from("system_config").upsert({ key: "tour_disabled", value: "true" }, { onConflict: "key" });
       await loadTourStats();
     } finally {
       setTourAction(null);
@@ -268,6 +269,7 @@ export default function ConfiguracoesPage() {
     try {
       const { error } = await supabase.from("profiles").update({ tour_pages: [] }).neq("id", "00000000-0000-0000-0000-000000000000");
       if (error) { alert("Erro ao reativar tour: " + error.message); return; }
+      await supabase.from("system_config").upsert({ key: "tour_disabled", value: "false" }, { onConflict: "key" });
       await loadTourStats();
     } finally {
       setTourAction(null);

@@ -40,8 +40,9 @@ export default function WelcomeNotifModal({ userId, userName }: { userId: string
         if (data && data.length > 0) {
           setNotifs(data as Notif[]);
           setOpen(true);
+          sessionStorage.setItem(key, "1");
         }
-        sessionStorage.setItem(key, "1");
+        // Se não há notificações, não setar a flag — verificar novamente na próxima visita
       });
   }, [userId]);
 
