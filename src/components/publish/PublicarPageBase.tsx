@@ -421,21 +421,20 @@ export default function PublicarPageBase({
       .order("format")
       .order("name");
     if (data) {
-      setTemplates(
-        data.map((r: any) => ({
-          id: r.id,
-          name: r.name,
-          formType: r.form_type || "pacote",
-          format: r.format || "stories",
-          schema: r.schema || {
-            elements: [],
-            background: "#0E1520",
-            duration: 5,
-          },
-          width: r.width || FORMAT_DIMS[r.format as Format]?.[0] || 1080,
-          height: r.height || FORMAT_DIMS[r.format as Format]?.[1] || 1920,
-        }))
-      );
+      const mapped = data.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        formType: r.form_type || "pacote",
+        format: r.format || "stories",
+        schema: r.schema || {
+          elements: [],
+          background: "#0E1520",
+          duration: 5,
+        },
+        width: r.width || FORMAT_DIMS[r.format as Format]?.[0] || 1080,
+        height: r.height || FORMAT_DIMS[r.format as Format]?.[1] || 1920,
+      }));
+      setTemplates(mapped);
     }
   }
 
@@ -714,10 +713,9 @@ export default function PublicarPageBase({
     return m;
   }, [values, badges]);
 
-  const availableTemplates = useMemo(
-    () => templates.filter((t) => t.formType === tab && t.format === format),
-    [templates, tab, format]
-  );
+  const availableTemplates = useMemo(() => {
+    return templates.filter((t) => t.formType === tab && t.format === format);
+  }, [templates, tab, format]);
 
   const needsTemplateSelection = useMemo(
     () => !selectedTemplateId && availableTemplates.length > 1,

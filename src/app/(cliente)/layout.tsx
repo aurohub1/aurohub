@@ -16,6 +16,8 @@ import PushPermission from "@/components/PushPermission";
 import { PublishQueueProvider } from "@/hooks/usePublishQueue";
 import PublishQueuePanel from "@/components/PublishQueuePanel";
 import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
+import NotificationBell from "@/components/layout/NotificationBell";
+import WelcomeNotifModal from "@/components/layout/WelcomeNotifModal";
 
 export default function ClienteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -134,6 +136,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         <span>Aurohub online</span>
         <span className="text-[var(--bdr2)]">&middot;</span>
         <span>{profile?.licensee?.name || "—"}</span>
+        {profile?.id && <NotificationBell userId={profile.id} />}
         {tickerItems.length > 0 && (
           <>
             <span className="text-[var(--bdr2)]">&middot;</span>
@@ -163,6 +166,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       </footer>
       <WelcomeTour role="cliente" />
       <PushPermission />
+      {profile?.id && <WelcomeNotifModal userId={profile.id} userName={profile.name || ""} />}
       <SupportFab />
       <PublishQueuePanel />
       </PublishQueueProvider>

@@ -59,6 +59,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "userId ou userIds obrigatório" }, { status: 400 });
     }
 
+    // Persiste notificação in-app para cada destinatário
+    try {
+      await admin.from("notifications").insert(
+        targets.map((uid) => ({
+          user_id: uid,
+          title: body.title,
+          message: body.body,
+          type: body.tag ?? "info",
+          data: body.url ? { url: body.url } : null,
+        }))
+      );
+    } catch (e) {
+      console.warn("[push/send] notif insert:", e);
+    }
+
     const { data: subs, error } = await admin
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
