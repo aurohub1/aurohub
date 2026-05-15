@@ -304,7 +304,11 @@ export default function PublicarPageBase({
   useEffect(() => {
     getProfile(supabase).then(async (p) => {
       setProfile(p);
-      getFeatures(supabase, p).then(feats => setFeatures(new Set(feats))).catch(() => {});
+      // await antes do render: garante que features (incluindo TV) estejam prontas
+      try {
+        const feats = await getFeatures(supabase, p);
+        setFeatures(new Set(feats));
+      } catch {}
       if (p?.licensee_id) {
         loadTemplates(p.licensee_id, p.store_id ?? null);
         supabase.from("system_config").select("value").eq("key", `preview_bg_${p.licensee_id}`).single().then(({ data }) => {
