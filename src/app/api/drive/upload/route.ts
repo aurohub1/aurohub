@@ -1,54 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { JWT } from "google-auth-library";
 
-const cachedToken = { token: "", expiresAt: 0 };
+export const runtime = "nodejs";
 
-function admin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-async function getRefreshToken(): Promise<string> {
-  const { data } = await admin()
-    .from("system_config")
-    .select("value")
-    .eq("key", "google_drive_refresh_token")
-    .single();
-  return data?.value ?? process.env.GOOGLE_REFRESH_TOKEN!;
-}
-
-async function getAccessToken(): Promise<string> {
-  if (cachedToken.token && Date.now() < cachedToken.expiresAt - 60_000) {
-    return cachedToken.token;
-  }
-  const refreshToken = await getRefreshToken();
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
+function getAuthClient(): JWT {
+  const b64 = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  if (!b64) throw new Error("GOOGLE_SERVICE_ACCOUNT_KEY não configurada");
+  const creds = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
+  return new JWT({
+    email: creds.client_email,
+    key: creds.private_key,
+    scopes: ["https://www.googleapis.com/auth/drive"],
   });
-  const data = await res.json();
-  if (!data.access_token) {
-    await admin().from("system_config").upsert(
-      { key: "drive_token_error", value: "true" },
-      { onConflict: "key" }
-    );
-    throw new Error("Falha ao obter access_token do Google");
-  }
-  await admin().from("system_config").upsert(
-    { key: "drive_token_error", value: "false" },
-    { onConflict: "key" }
-  );
-  cachedToken.token = data.access_token;
-  cachedToken.expiresAt = Date.now() + data.expires_in * 1000;
-  return cachedToken.token;
 }
 
 export async function POST(req: NextRequest) {
@@ -58,7 +21,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
     }
 
-    const accessToken = await getAccessToken();
+    const auth = getAuthClient();
+    const tokenRes = await auth.getAccessToken();
+    const accessToken = tokenRes.token;
+    if (!accessToken) throw new Error("Falha ao obter access_token da Service Account");
 
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64Data, "base64");
@@ -95,7 +61,8 @@ export async function POST(req: NextRequest) {
 
     const file = await uploadRes.json();
     return NextResponse.json({ fileId: file.id, webViewLink: file.webViewLink });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Erro desconhecido";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
