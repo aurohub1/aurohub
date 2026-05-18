@@ -564,7 +564,7 @@ export default function UnidadePublicarPage() {
 
   async function loadDestinoData(): Promise<{ nome: string; url: string }[]> {
     if (destinoDataRef.current) return destinoDataRef.current;
-    const { data } = await supabase.from("imgfundo").select("nome, url").limit(1000);
+    const { data } = await supabase.from("imgfundo").select("nome, url").neq("tipo", "card").limit(1000);
     const rows = ((data ?? []) as { nome: string; url: string }[]);
     destinoDataRef.current = rows;
     return rows;

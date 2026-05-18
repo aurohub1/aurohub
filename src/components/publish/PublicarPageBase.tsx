@@ -448,6 +448,7 @@ export default function PublicarPageBase({
     const { data } = await supabase
       .from("imgfundo")
       .select("nome,url")
+      .neq("tipo", "card")
       .order("nome")
       .limit(1000);
     destinoDataRef.current = (data ?? []) as { nome: string; url: string }[];
