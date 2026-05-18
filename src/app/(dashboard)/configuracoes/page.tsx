@@ -800,6 +800,12 @@ export default function ConfiguracoesPage() {
                     checked={getBool("sales_active")}
                     onChange={() => toggleBool("sales_active")}
                   />
+                  <Toggle
+                    label="Página de Assinatura (/assinar)"
+                    desc="Quando desativada, /assinar redireciona para /login — use para fechar vendas temporariamente"
+                    checked={getBool("assinar_ativo")}
+                    onChange={() => toggleBool("assinar_ativo")}
+                  />
                   <ReadOnlyField label="Versão do sistema" value="Aurohub v6.0" />
                 </div>
               )}
