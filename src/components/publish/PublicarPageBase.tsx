@@ -209,6 +209,7 @@ export default function PublicarPageBase({
   const [permsLoaded, setPermsLoaded] = useState(false);
   const [previewBgUrl, setPreviewBgUrl] = useState("");
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
   const [feriados, setFeriados] = useState<string[]>([]);
   const [postCounts, setPostCounts] = useState({ stories: 0, feed: 0, reels: 0, tv: 0 });
   const [postLimits, setPostLimits] = useState({ stories: 0, feed: 0, reels: 0, tv: 0 });
@@ -397,6 +398,7 @@ export default function PublicarPageBase({
   }, []);
 
   async function loadTemplates(lid: string, storeId: string | null) {
+    setTemplatesLoading(true);
     // Busca template_keys permitidos para este licensee/store
     let accessQuery = supabase
       .from("template_access")
@@ -410,7 +412,7 @@ export default function PublicarPageBase({
       .map(r => r.template_key)
       .filter(Boolean);
 
-    if (!keys.length) { setTemplates([]); return; }
+    if (!keys.length) { setTemplates([]); setTemplatesLoading(false); return; }
 
     const { data } = await supabase
       .from("form_templates")
@@ -437,6 +439,7 @@ export default function PublicarPageBase({
         thumbnail_url: r.thumbnail_url || null,
       }));
       setTemplates(mapped);
+      setTemplatesLoading(false);
     }
   }
 
@@ -733,8 +736,8 @@ export default function PublicarPageBase({
   }, [templates, tab, format]);
 
   const needsTemplateSelection = useMemo(
-    () => !selectedTemplateId && availableTemplates.length > 1,
-    [selectedTemplateId, availableTemplates]
+    () => templatesLoading || (!selectedTemplateId && availableTemplates.length > 1),
+    [templatesLoading, selectedTemplateId, availableTemplates]
   );
 
   const currentTemplate = useMemo(() => {
