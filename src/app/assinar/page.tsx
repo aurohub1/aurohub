@@ -50,25 +50,18 @@ interface SubscriberData {
 const ESTADOS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
   "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
-const PLAN_TOP_COLOR: Record<string, string> = {
-  essencial:    "#1A56C4",
-  profissional: "#1A56C4",
-  franquia:     "#FF7A1A",
-  enterprise:   "#D4A843",
-};
-
 /* ── Helpers ─────────────────────────────────────────── */
 
 function fmtBRL(v: number) {
-  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+  return Math.round(v).toLocaleString("pt-BR");
 }
 
 function planFeatures(p: Plan): string[] {
   const f: string[] = [];
-  if (p.max_users)           f.push(`Até ${p.max_users} usuário${p.max_users !== 1 ? "s" : ""}`);
-  if (p.max_stores)          f.push(`Até ${p.max_stores} loja${p.max_stores !== 1 ? "s" : ""}`);
-  if (p.max_feed_reels_day)  f.push(`${p.max_feed_reels_day} feed/reels por dia`);
-  if (p.max_stories_day)     f.push(`${p.max_stories_day} stories por dia`);
+  if (p.max_users)          f.push(`Até ${p.max_users} usuário${p.max_users !== 1 ? "s" : ""}`);
+  if (p.max_stores)         f.push(`Até ${p.max_stores} loja${p.max_stores !== 1 ? "s" : ""}`);
+  if (p.max_feed_reels_day) f.push(`${p.max_feed_reels_day} feed/reels por dia`);
+  if (p.max_stories_day)    f.push(`${p.max_stories_day} stories por dia`);
   return f;
 }
 
@@ -86,26 +79,26 @@ function StepBar({ current }: { current: Step }) {
           <div key={n} style={{ display: "flex", alignItems: "center" }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div style={{
-                width: 32, height: 32, borderRadius: "50%",
+                width: 28, height: 28, borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 13, fontWeight: 700,
-                background: done ? "#22C55E" : active ? "#1A56C4" : "#E5E7EB",
-                color: (done || active) ? "#fff" : "#9CA3AF",
-                border: `2px solid ${active ? "#1A56C4" : "transparent"}`,
+                fontSize: 11, fontWeight: 700,
+                background: active ? "#0F2557" : "transparent",
+                color: active ? "#fff" : done ? "#0F2557" : "#B0B8C8",
+                border: `1.5px solid ${active ? "#0F2557" : done ? "#0F2557" : "#D8DDE8"}`,
               }}>
                 {done ? "✓" : n}
               </div>
               <span style={{
-                marginTop: 4, fontSize: 11, fontWeight: 500,
-                color: active ? "#1A56C4" : done ? "#22C55E" : "#9CA3AF",
+                marginTop: 3, fontSize: 10, fontWeight: 500,
+                color: active ? "#0F2557" : done ? "#0F2557" : "#B0B8C8",
               }}>
                 {label}
               </span>
             </div>
             {i < 3 && (
               <div style={{
-                width: 44, height: 1, margin: "0 8px 18px",
-                background: done ? "#22C55E" : "#E5E7EB",
+                width: 28, height: 1, margin: "0 6px 18px",
+                background: "#D8DDE8",
               }} />
             )}
           </div>
@@ -125,7 +118,12 @@ function Field({
 }) {
   return (
     <div>
-      <label style={{ display: "block", fontSize: 12, color: "#6B7280", marginBottom: 6 }}>{label}</label>
+      <label style={{
+        display: "block", fontSize: 11, fontWeight: 600, color: "#B0B8C8",
+        marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em",
+      }}>
+        {label}
+      </label>
       <input
         type={type}
         value={value}
@@ -133,8 +131,9 @@ function Field({
         placeholder={placeholder}
         style={{
           width: "100%", height: 44, padding: "0 14px", boxSizing: "border-box",
-          borderRadius: 10, border: "1.5px solid #E5E7EB",
-          background: "#fff", color: "#0D1628", fontSize: 14, outline: "none",
+          borderRadius: 10, border: "1px solid #E4E7ED",
+          background: "rgba(255,255,255,0.85)", color: "#0A0F1E",
+          fontSize: 14, outline: "none",
         }}
       />
     </div>
@@ -153,12 +152,11 @@ export default function AssinarPage() {
   const [cycle, setCycle]                           = useState<Cycle>("monthly");
   const [selectedAddonSlugs, setSelectedAddonSlugs] = useState<string[]>([]);
 
-  const [sub, setSub]             = useState<SubscriberData>({
+  const [sub, setSub] = useState<SubscriberData>({
     name: "", email: "", phone: "", company_name: "", cnpj: "", city: "", state: "SP",
   });
   const [step2Error, setStep2Error] = useState("");
   const [accepted, setAccepted]     = useState(false);
-  const [processing, setProcessing] = useState(false);
   const [payError, setPayError]     = useState("");
 
   /* ── Load ─────────────────────────────────────────── */
@@ -171,7 +169,6 @@ export default function AssinarPage() {
           .select("id,name,slug,price_monthly,price_yearly,price_setup,min_months,max_feed_reels_day,max_stories_day,max_users,max_stores,is_enterprise,active,sort_order")
           .eq("active", true)
           .neq("slug", "interno")
-          .eq("is_internal", false)
           .order("sort_order"),
         supabase
           .from("add_ons")
@@ -180,9 +177,6 @@ export default function AssinarPage() {
           .not("slug", "in", '("novo_template","badge_design")')
           .order("sort_order"),
       ]);
-      console.log("[assinar] plans:", planRes.data, planRes.error);
-      console.log("[assinar] addons:", addonRes.data, addonRes.error);
-      console.log({ plans: planRes.data });
       setPlans((planRes.data as Plan[]) ?? []);
       setAddons((addonRes.data as AddOn[]) ?? []);
       setLoading(false);
@@ -201,7 +195,7 @@ export default function AssinarPage() {
       .reduce((s, a) => s + a.price_monthly, 0);
   }, [selectedPlan, cycle, selectedAddonSlugs, addons]);
 
-  const priceSetup        = selectedPlan?.price_setup ?? 0;
+  const priceSetup         = selectedPlan?.price_setup ?? 0;
   const selectedAddonItems = addons.filter((a) => selectedAddonSlugs.includes(a.slug));
 
   const contractText = useMemo(() => {
@@ -240,17 +234,16 @@ export default function AssinarPage() {
   }
 
   function validateStep2(): boolean {
-    if (!sub.name.trim())                            { setStep2Error("Nome completo é obrigatório."); return false; }
+    if (!sub.name.trim())                               { setStep2Error("Nome completo é obrigatório."); return false; }
     if (!sub.email.trim() || !sub.email.includes("@")) { setStep2Error("E-mail inválido."); return false; }
-    if (!sub.phone.trim())                           { setStep2Error("Telefone é obrigatório."); return false; }
-    if (!sub.company_name.trim())                    { setStep2Error("Nome da empresa é obrigatório."); return false; }
-    if (!sub.city.trim())                            { setStep2Error("Cidade é obrigatória."); return false; }
+    if (!sub.phone.trim())                             { setStep2Error("Telefone é obrigatório."); return false; }
+    if (!sub.company_name.trim())                      { setStep2Error("Nome da empresa é obrigatório."); return false; }
+    if (!sub.city.trim())                              { setStep2Error("Cidade é obrigatória."); return false; }
     setStep2Error("");
     return true;
   }
 
   async function handlePay() {
-    setProcessing(true);
     setPayError("");
     try {
       const ip  = await fetch("https://api.ipify.org?format=json")
@@ -271,75 +264,101 @@ export default function AssinarPage() {
       const data = await res.json() as { init_point?: string; error?: string };
       if (!res.ok || !data.init_point) {
         setPayError(data.error ?? "Erro ao iniciar pagamento. Tente novamente.");
-        setProcessing(false);
+        setStep(3);
         return;
       }
       window.location.href = data.init_point;
     } catch {
       setPayError("Erro de conexão. Tente novamente.");
-      setProcessing(false);
+      setStep(3);
     }
   }
 
   /* ── Render ───────────────────────────────────────── */
 
   return (
-    <div style={{ minHeight: "100dvh", background: "#F8FAFC", color: "#0D1628", fontFamily: "DM Sans, sans-serif" }}>
+    <div style={{ minHeight: "100dvh", width: "100%", color: "#0A0F1E", fontSize: 14, position: "relative" }}>
+
+      {/* Linha dourada no topo */}
+      <div style={{
+        position: "fixed", top: 0, left: 0, right: 0, height: 1, zIndex: 100,
+        background: "linear-gradient(90deg,transparent,rgba(212,168,67,0.7),transparent)",
+        pointerEvents: "none",
+      }} />
 
       {/* ── TOPBAR ──────────────────────────────────── */}
       <header style={{
-        position: "sticky", top: 0, zIndex: 50,
-        background: "#fff", borderBottom: "1px solid #E5E7EB",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        height: 72, padding: "0 32px",
+        position: "sticky", top: 1, zIndex: 50,
+        background: "rgba(247,247,248,0.88)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        borderBottom: "1px solid rgba(10,15,30,0.08)",
+        height: 58, padding: "0 48px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <span style={{
-          fontSize: 24, fontWeight: 700, color: "#D4A843",
-          fontFamily: "'Cormorant Garamond', Georgia, serif", letterSpacing: "-0.3px",
+          fontFamily: "Inter, sans-serif",
+          fontSize: 18, fontWeight: 800,
+          color: "#0A0F1E", letterSpacing: "-0.4px",
         }}>
           Aurohub
         </span>
+
         <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
           <StepBar current={step} />
         </div>
-        <div style={{ width: 80 }} />
+        <div style={{ width: 100 }} />
       </header>
 
       {/* ── MAIN ────────────────────────────────────── */}
-      <main style={{ maxWidth: 1140, margin: "0 auto", padding: "48px 24px 80px" }}>
+      <main style={{ maxWidth: 960, margin: "0 auto", padding: "48px 24px 60px" }}>
 
-        {/* ═══ STEP 1: Plano ══════════════════════════ */}
+        {/* ═══ STEP 1 ══════════════════════════════════ */}
         {step === 1 && (
-          <div style={{ width: "100%" }}>
-            <h1 style={{ fontSize: 28, fontWeight: 700, textAlign: "center", marginBottom: 6 }}>
-              Escolha seu plano
-            </h1>
-            <p style={{ fontSize: 15, color: "#6B7280", textAlign: "center", marginBottom: 36 }}>
-              Todos os planos incluem suporte e atualizações.
-            </p>
+          <div>
+            {/* Título */}
+            <div style={{ textAlign: "center", marginBottom: 28 }}>
+              <h1 style={{
+                fontSize: 28, fontWeight: 700, color: "#0A0F1E",
+                letterSpacing: "-0.5px", marginBottom: 8,
+                display: "inline-flex", alignItems: "center", gap: 8,
+              }}>
+                Escolha seu plano
+                <span className="pulse-dot" />
+              </h1>
+              <p style={{ fontSize: 13, color: "#6B7280", margin: 0 }}>
+                Sem taxas surpresa. Suporte e atualizações incluídos.
+              </p>
+            </div>
 
             {/* Toggle mensal / anual */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 40 }}>
-              <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 50, padding: 4, gap: 2 }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
+              <div style={{
+                display: "inline-flex",
+                background: "#EDEEF0",
+                borderRadius: 10, padding: 3, gap: 2,
+              }}>
                 {(["monthly", "annual"] as Cycle[]).map((c) => (
                   <button
                     key={c}
                     onClick={() => setCycle(c)}
                     style={{
-                      padding: "8px 26px", borderRadius: 50, fontSize: 13, fontWeight: 600,
-                      background: cycle === c ? "#1A56C4" : "transparent",
-                      color: cycle === c ? "#fff" : "#6B7280",
+                      padding: "7px 20px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                      background: cycle === c ? "#fff" : "transparent",
+                      color: cycle === c ? "#0F2557" : "#8A94A6",
                       border: "none", cursor: "pointer", transition: "all 0.15s",
-                      display: "flex", alignItems: "center", gap: 8,
+                      boxShadow: cycle === c ? "0 1px 4px rgba(10,15,30,0.1)" : "none",
+                      borderBottom: cycle === c ? "2px solid rgba(255,122,26,0.3)" : "2px solid transparent",
+                      display: "flex", alignItems: "center", gap: 6,
                     }}
                   >
                     {c === "monthly" ? "Mensal" : (
                       <>
                         Anual
                         <span style={{
-                          background: "#22C55E", color: "#fff", fontSize: 10, fontWeight: 800,
-                          padding: "2px 7px", borderRadius: 50,
+                          background: "#D4A843", color: "#0A0F1E",
+                          fontSize: 9, fontWeight: 700,
+                          padding: "2px 5px", borderRadius: 4,
                         }}>-15%</span>
                       </>
                     )}
@@ -349,253 +368,320 @@ export default function AssinarPage() {
             </div>
 
             {loading ? (
-              <div style={{ textAlign: "center", color: "#9CA3AF", padding: 60 }}>Carregando planos...</div>
+              <div style={{ textAlign: "center", color: "#B0B8C8", padding: 60 }}>
+                Carregando planos...
+              </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start", width: "100%" }}>
+              <>
+                {/* Cards de plano */}
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: 10, marginBottom: 28, paddingTop: 12,
+                }}>
+                  {plans.map((p) => {
+                    const isSelected   = selectedPlan?.slug === p.slug;
+                    const isEnterprise = p.is_enterprise;
+                    const displayPrice = cycle === "annual" && p.price_yearly > 0
+                      ? p.price_yearly / 12
+                      : p.price_monthly;
 
-                {/* LEFT: cards + add-ons */}
-                <div>
-                  {/* Plan cards */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 48 }}>
-                    {plans.map((p) => {
-                      const isSelected   = selectedPlan?.slug === p.slug;
-                      const topColor     = PLAN_TOP_COLOR[p.slug] ?? "#1A56C4";
-                      const isEnterprise = p.is_enterprise;
-                      const displayPrice = cycle === "annual" && p.price_yearly > 0
-                        ? p.price_yearly / 12
-                        : p.price_monthly;
-
-                      return (
-                        <div
-                          key={p.slug}
-                          onClick={() => !isEnterprise && setSelectedPlan(p)}
-                          style={{
-                            position: "relative",
-                            background: "#fff",
-                            border: `1.5px solid ${isSelected ? topColor : "#E5E7EB"}`,
-                            borderTop: `3px solid ${topColor}`,
-                            borderRadius: 16,
-                            padding: "28px 18px 20px",
-                            cursor: isEnterprise ? "default" : "pointer",
-                            boxShadow: isSelected
-                              ? `0 0 0 3px ${topColor}22, 0 2px 8px rgba(0,0,0,0.08)`
-                              : "0 1px 4px rgba(0,0,0,0.06)",
-                            transition: "all 0.15s",
-                          }}
-                        >
-                          {/* Badge MAIS POPULAR */}
-                          {p.slug === "profissional" && (
-                            <div style={{
-                              position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
-                              background: "#1A56C4", color: "#fff", fontSize: 9, fontWeight: 800,
-                              padding: "3px 10px", borderRadius: 50, whiteSpace: "nowrap", letterSpacing: "0.5px",
-                            }}>
-                              MAIS POPULAR
-                            </div>
-                          )}
-
-                          {/* Badge MELHOR CUSTO-BENEFÍCIO */}
-                          {p.slug === "franquia" && (
-                            <div style={{
-                              position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
-                              background: "#FF7A1A", color: "#fff", fontSize: 9, fontWeight: 800,
-                              padding: "3px 10px", borderRadius: 50, whiteSpace: "nowrap", letterSpacing: "0.5px",
-                            }}>
-                              MELHOR CUSTO-BENEFÍCIO
-                            </div>
-                          )}
-
-                          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10, color: "#0D1628" }}>
-                            {p.name}
+                    return (
+                      <div
+                        key={p.slug}
+                        className="plan-card"
+                        onClick={() => !isEnterprise && setSelectedPlan(p)}
+                        style={{
+                          position: "relative",
+                          background: isSelected
+                            ? "linear-gradient(160deg,#fff,#FFFCF5)"
+                            : "rgba(255,255,255,0.85)",
+                          border: isSelected
+                            ? "1px solid rgba(212,168,67,0.6)"
+                            : "1px solid rgba(255,255,255,0.95)",
+                          borderTop: (p.slug === "pro" || p.slug === "enterprise")
+                            ? "2px solid #D4A843"
+                            : "2px solid transparent",
+                          borderRadius: 16,
+                          padding: "22px 16px",
+                          cursor: isEnterprise ? "default" : "pointer",
+                          boxShadow: isSelected
+                            ? "0 0 0 3px rgba(212,168,67,0.1), 0 8px 28px rgba(10,15,30,0.1)"
+                            : "0 1px 3px rgba(10,15,30,0.05)",
+                          transition: "all 0.25s ease",
+                        }}
+                      >
+                        {/* Badge MAIS POPULAR */}
+                        {p.slug === "pro" && (
+                          <div style={{
+                            position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
+                            background: "#0F2557", color: "rgba(212,168,67,0.9)",
+                            fontSize: 9, fontWeight: 700,
+                            padding: "3px 10px", borderRadius: 4,
+                            whiteSpace: "nowrap", letterSpacing: "0.08em",
+                            boxShadow: "0 0 0 1px rgba(212,168,67,0.2)",
+                          }}>
+                            MAIS POPULAR
                           </div>
+                        )}
 
-                          {isEnterprise ? (
-                            <div style={{ fontSize: 22, fontWeight: 800, color: "#D4A843", marginBottom: 12 }}>
-                              Sob consulta
-                            </div>
-                          ) : (
-                            <>
-                              <div style={{ lineHeight: 1, marginBottom: 4 }}>
-                                <span style={{ fontSize: 26, fontWeight: 800, color: "#0D1628" }}>
-                                  R$ {fmtBRL(displayPrice)}
-                                </span>
-                                <span style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 400 }}>/mês</span>
-                              </div>
-                              {p.price_setup > 0 && (
-                                <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 2 }}>
-                                  + R$ {fmtBRL(p.price_setup)} implantação
-                                </div>
-                              )}
-                              <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 14 }}>
-                                Fidelidade: {p.min_months} meses
-                              </div>
-                            </>
-                          )}
+                        {/* Badge FRANQUIA */}
+                        {p.slug === "business" && (
+                          <div style={{
+                            position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
+                            background: "#0F2557", color: "#fff",
+                            fontSize: 9, fontWeight: 700,
+                            padding: "3px 10px", borderRadius: 4,
+                            whiteSpace: "nowrap", letterSpacing: "0.08em",
+                          }}>
+                            FRANQUIA
+                          </div>
+                        )}
 
-                          <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px", display: "flex", flexDirection: "column", gap: 5 }}>
-                            {planFeatures(p).map((feat) => (
-                              <li key={feat} style={{ fontSize: 12, color: "#374151", display: "flex", gap: 6, alignItems: "flex-start" }}>
-                                <span style={{ color: "#22C55E", flexShrink: 0 }}>✓</span>
-                                {feat}
-                              </li>
-                            ))}
-                          </ul>
-
-                          {isEnterprise ? (
-                            <a
-                              href="/suporte"
-                              style={{
-                                display: "block", textAlign: "center", width: "100%",
-                                padding: "10px 0", borderRadius: 10,
-                                background: "#D4A843", color: "#fff",
-                                fontSize: 13, fontWeight: 700, textDecoration: "none",
-                              }}
-                            >
-                              Falar com consultor
-                            </a>
-                          ) : (
-                            <button
-                              onClick={() => setSelectedPlan(p)}
-                              style={{
-                                width: "100%", padding: "10px 0", borderRadius: 10,
-                                background: isSelected ? "#1A56C4" : "#F3F4F6",
-                                color: isSelected ? "#fff" : "#374151",
-                                fontSize: 13, fontWeight: 700,
-                                border: isSelected ? "none" : "1.5px solid #E5E7EB",
-                                cursor: "pointer", transition: "all 0.15s",
-                              }}
-                            >
-                              {isSelected ? "✓ Selecionado" : "Selecionar"}
-                            </button>
-                          )}
+                        {/* Nome */}
+                        <div style={{
+                          fontSize: 10, fontWeight: 600,
+                          marginTop: (p.slug === "pro" || p.slug === "business") ? 10 : 0,
+                          marginBottom: 12,
+                          color: "#B0B8C8",
+                          textTransform: "uppercase", letterSpacing: "0.12em",
+                        }}>
+                          {p.name}
                         </div>
-                      );
-                    })}
-                  </div>
 
-                  {/* Add-ons */}
-                  {addons.length > 0 && (
-                    <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "#0D1628" }}>
-                        Add-ons opcionais
-                      </h3>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-                        {addons.map((a) => {
-                          const on = selectedAddonSlugs.includes(a.slug);
-                          return (
-                            <label
-                              key={a.slug}
-                              style={{
-                                display: "flex", alignItems: "flex-start", gap: 10,
-                                padding: "14px", borderRadius: 12, cursor: "pointer",
-                                border: `1.5px solid ${on ? "#1A56C4" : "#E5E7EB"}`,
-                                background: on ? "rgba(26,86,196,0.04)" : "#F9FAFB",
-                                transition: "all 0.12s",
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={on}
-                                onChange={() => toggleAddon(a.slug)}
-                                style={{ accentColor: "#1A56C4", width: 15, height: 15, marginTop: 2, flexShrink: 0 }}
-                              />
-                              <div>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: "#0D1628" }}>{a.name}</div>
-                                {a.description && (
-                                  <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{a.description}</div>
-                                )}
-                                <div style={{ fontSize: 12, fontWeight: 600, color: "#D4A843", marginTop: 4 }}>
-                                  + R$ {fmtBRL(a.price_monthly)}/mês
-                                </div>
-                              </div>
-                            </label>
-                          );
-                        })}
+                        {/* Preço */}
+                        {isEnterprise ? (
+                          <div style={{ fontSize: 20, fontWeight: 800, color: "#D4A843", marginBottom: 8 }}>
+                            Sob consulta
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display: "flex", alignItems: "flex-end", gap: 1, marginBottom: 4 }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#0F2557", marginBottom: 3, lineHeight: 1 }}>R$</span>
+                              <span style={{ fontSize: 32, fontWeight: 800, color: "#0F2557", letterSpacing: "-1.5px", lineHeight: 1 }}>
+                                {fmtBRL(displayPrice)}
+                              </span>
+                              <span style={{ fontSize: 11, color: "#B0B8C8", fontWeight: 400, marginBottom: 3, lineHeight: 1 }}>/mês</span>
+                            </div>
+                            <div style={{ fontSize: 10, color: "#B0B8C8", marginBottom: 1 }}>
+                              {p.price_setup > 0 ? `+ R$${fmtBRL(p.price_setup)} implantação` : "Sem implantação"}
+                            </div>
+                            <div style={{ fontSize: 10, color: "#B0B8C8", marginBottom: 10 }}>
+                              {p.min_months} meses fidelidade
+                            </div>
+                          </>
+                        )}
+
+                        {/* Separador */}
+                        <div style={{
+                          height: 1, marginBottom: 10,
+                          background: "linear-gradient(90deg,rgba(255,122,26,0.12),transparent)",
+                        }} />
+
+                        {/* Features */}
+                        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                          {planFeatures(p).map((feat) => (
+                            <li key={feat} style={{
+                              fontSize: 11, color: "#4A5568",
+                              display: "flex", gap: 6, alignItems: "flex-start", lineHeight: 1.5,
+                            }}>
+                              <span style={{ color: "#D4A843", flexShrink: 0 }}>—</span>
+                              {feat}
+                            </li>
+                          ))}
+                        </ul>
+
+                        {/* Botão */}
+                        {isEnterprise ? (
+                          <a
+                            href="/suporte"
+                            style={{
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              width: "100%", height: 38, borderRadius: 9, boxSizing: "border-box",
+                              background: "transparent",
+                              border: "1px solid #D4A843",
+                              color: "#B8902A",
+                              fontSize: 12, fontWeight: 600, textDecoration: "none",
+                            }}
+                          >
+                            Falar com consultor
+                          </a>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedPlan(p); }}
+                            style={{
+                              width: "100%", height: 38, borderRadius: 9,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              background: isSelected ? "#0F2557" : "#F7F7F8",
+                              color: isSelected ? "#fff" : "#0F2557",
+                              fontSize: 12, fontWeight: 600,
+                              border: `1px solid ${isSelected ? "#0F2557" : "#E4E7ED"}`,
+                              cursor: "pointer", transition: "all 0.2s ease",
+                            }}
+                          >
+                            {isSelected ? "✓ Selecionado" : "Selecionar"}
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
 
-                {/* RIGHT: sticky sidebar */}
-                <div style={{ position: "sticky", top: 88 }}>
-                  <div style={{
-                    background: "#fff", border: "1.5px solid #E5E7EB",
-                    borderRadius: 16, padding: "24px 20px",
-                    boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
-                  }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: "#0D1628" }}>Resumo</h3>
-
-                    {!selectedPlan ? (
-                      <p style={{ fontSize: 13, color: "#9CA3AF", textAlign: "center", padding: "20px 0" }}>
-                        Selecione um plano para ver o resumo.
-                      </p>
-                    ) : (
-                      <>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 8 }}>
-                          <span style={{ color: "#374151" }}>{selectedPlan.name}</span>
-                          <span style={{ fontWeight: 600, color: "#0D1628" }}>
-                            R$ {fmtBRL(
-                              cycle === "annual" && selectedPlan.price_yearly > 0
-                                ? selectedPlan.price_yearly / 12
-                                : selectedPlan.price_monthly
-                            )}/mês
-                          </span>
-                        </div>
-
-                        {selectedAddonItems.map((a) => (
-                          <div key={a.slug} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#6B7280", marginBottom: 6 }}>
-                            <span>{a.name}</span>
-                            <span>R$ {fmtBRL(a.price_monthly)}/mês</span>
-                          </div>
-                        ))}
-
-                        <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8 }}>
-                          {cycle === "monthly" ? "Cobrança mensal" : "Cobrança anual"} · {selectedPlan.min_months} meses fidelidade
-                        </div>
-
-                        <div style={{ borderTop: "1px solid #F3F4F6", marginTop: 16, paddingTop: 16 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                            <span style={{ fontSize: 13, color: "#374151" }}>Total mensal</span>
-                            <div style={{ textAlign: "right" }}>
-                              <div style={{ fontSize: 26, fontWeight: 800, color: "#1A56C4", lineHeight: 1 }}>
-                                R$ {fmtBRL(priceMonthly)}
+                {/* Add-ons */}
+                {addons.length > 0 && (
+                  <div style={{ marginBottom: 28 }}>
+                    <div style={{
+                      fontSize: 10, fontWeight: 600, letterSpacing: "0.12em",
+                      textTransform: "uppercase", color: "#B0B8C8",
+                      marginBottom: 10,
+                    }}>
+                      Add-ons opcionais
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 7 }}>
+                      {addons.map((a) => {
+                        const on = selectedAddonSlugs.includes(a.slug);
+                        return (
+                          <label
+                            key={a.slug}
+                            style={{
+                              display: "flex", alignItems: "flex-start", gap: 8,
+                              padding: "10px 12px", borderRadius: 10, cursor: "pointer",
+                              border: `1px solid ${on ? "rgba(212,168,67,0.5)" : "rgba(255,255,255,0.9)"}`,
+                              background: on ? "rgba(255,251,235,0.8)" : "rgba(255,255,255,0.7)",
+                              boxShadow: "0 1px 3px rgba(10,15,30,0.04)",
+                              transition: "all 0.12s",
+                            }}
+                          >
+                            <div style={{
+                              width: 14, height: 14, borderRadius: 3, flexShrink: 0, marginTop: 1,
+                              background: on ? "#D4A843" : "transparent",
+                              border: `1.5px solid ${on ? "#D4A843" : "#D8DDE8"}`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 9, color: "#0A0F1E", fontWeight: 700,
+                            }}>
+                              {on ? "✓" : ""}
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={on}
+                              onChange={() => toggleAddon(a.slug)}
+                              style={{ display: "none" }}
+                            />
+                            <div>
+                              <div style={{ fontSize: 11, fontWeight: 500, color: "#0F2557" }}>{a.name}</div>
+                              <div style={{ fontSize: 10, color: "#D4A843", fontWeight: 600, marginTop: 2 }}>
+                                + R${fmtBRL(a.price_monthly)}/mês
                               </div>
-                              <div style={{ fontSize: 10, color: "#9CA3AF" }}>/mês</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── RESUMO DO PEDIDO ──────────────────── */}
+                <div style={{ position: "relative", marginTop: 28 }}>
+                  <div style={{
+                    background: "rgba(255,255,255,0.9)",
+                    border: "1px solid rgba(255,255,255,0.95)",
+                    borderTop: "2px solid rgba(212,168,67,0.35)",
+                    borderRadius: 16, padding: "22px 28px",
+                    boxShadow: "0 4px 20px rgba(15,37,87,0.08)",
+                    display: "flex", alignItems: "center",
+                    justifyContent: "space-between", gap: 24,
+                  }}>
+                    {/* Label flutuante */}
+                    <div style={{
+                      position: "absolute", top: -9, left: 24,
+                      fontSize: 9, fontWeight: 600, textTransform: "uppercase",
+                      letterSpacing: "0.1em", color: "#B0B8C8",
+                      background: "linear-gradient(180deg,#F5F4F0,#EEEEF2)",
+                      padding: "0 8px",
+                    }}>
+                      RESUMO DO PEDIDO
+                    </div>
+
+                    {/* Esquerda: itens separados */}
+                    <div style={{ display: "flex", alignItems: "center", flex: 1, flexWrap: "wrap", gap: 0 }}>
+                      <div style={{ paddingRight: 20 }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#B0B8C8", marginBottom: 3 }}>Plano</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F2557" }}>
+                          {selectedPlan ? selectedPlan.name : "—"}
+                        </div>
+                      </div>
+
+                      {selectedPlan && <div style={{ width: 1, height: 32, background: "#E8E9EB", marginRight: 20 }} />}
+
+                      {selectedAddonItems.length > 0 && (
+                        <>
+                          <div style={{ paddingRight: 20 }}>
+                            <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#B0B8C8", marginBottom: 3 }}>Add-ons</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#0F2557" }}>
+                              {selectedAddonItems.map((a) => a.name).join(", ")}
                             </div>
                           </div>
+                          <div style={{ width: 1, height: 32, background: "#E8E9EB", marginRight: 20 }} />
+                        </>
+                      )}
 
-                          {priceSetup > 0 && (
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#9CA3AF", marginTop: 10 }}>
-                              <span>Implantação (única)</span>
-                              <span>R$ {fmtBRL(priceSetup)}</span>
+                      {selectedPlan && (
+                        <>
+                          <div style={{ paddingRight: 20 }}>
+                            <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#B0B8C8", marginBottom: 3 }}>Fidelidade</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#0F2557" }}>{selectedPlan.min_months} meses</div>
+                          </div>
+                          <div style={{ width: 1, height: 32, background: "#E8E9EB", marginRight: 20 }} />
+                          <div style={{ paddingRight: 20 }}>
+                            <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#B0B8C8", marginBottom: 3 }}>Implantação</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#0F2557" }}>
+                              {priceSetup > 0 ? `R$${fmtBRL(priceSetup)}` : "Gratuita"}
                             </div>
-                          )}
+                          </div>
+                        </>
+                      )}
+                    </div>
 
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B7280", marginTop: 6 }}>
-                            <span>Total {selectedPlan.min_months} meses</span>
-                            <span style={{ fontWeight: 600 }}>R$ {fmtBRL(priceMonthly * selectedPlan.min_months)}</span>
+                    {/* Direita: preço + botão */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 24, flexShrink: 0 }}>
+                      {selectedPlan && (
+                        <div style={{ borderRight: "1px solid #E4E7ED", paddingRight: 24 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#B0B8C8", marginBottom: 3 }}>Por mês</div>
+                          <div style={{ fontSize: 28, fontWeight: 800, color: "#0F2557", letterSpacing: "-1px", lineHeight: 1 }}>
+                            R${fmtBRL(priceMonthly)}
+                          </div>
+                          <div style={{ fontSize: 10, color: "#B0B8C8", marginTop: 3 }}>
+                            {selectedPlan.min_months} meses: R${fmtBRL(priceMonthly * selectedPlan.min_months + priceSetup)}
                           </div>
                         </div>
+                      )}
 
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                         <button
-                          onClick={() => setStep(2)}
+                          onClick={() => selectedPlan && setStep(2)}
+                          disabled={!selectedPlan}
                           style={{
-                            width: "100%", marginTop: 20, padding: "13px 0",
-                            borderRadius: 10, background: "#1A56C4", color: "#fff",
-                            fontSize: 15, fontWeight: 700, border: "none", cursor: "pointer",
+                            height: 46, padding: "0 32px", borderRadius: 10,
+                            background: selectedPlan ? "#0F2557" : "#EDEEF0",
+                            color: selectedPlan ? "#fff" : "#B0B8C8",
+                            fontSize: 13, fontWeight: 700,
+                            border: "none",
+                            borderBottom: selectedPlan ? "2px solid rgba(255,122,26,0.4)" : "2px solid transparent",
+                            cursor: selectedPlan ? "pointer" : "not-allowed",
+                            transition: "all 0.2s",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           Continuar →
                         </button>
-
-                        <div style={{ marginTop: 12, fontSize: 11, color: "#9CA3AF", textAlign: "center" }}>
-                          🔒 Pagamento seguro via Mercado Pago
+                        <div style={{ fontSize: 10, color: "#C0C8D8", textAlign: "center" }}>
+                          🔒 Mercado Pago · Ambiente seguro
                         </div>
-                      </>
-                    )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         )}
@@ -603,33 +689,37 @@ export default function AssinarPage() {
         {/* ═══ STEP 2: Dados ══════════════════════════ */}
         {step === 2 && (
           <div style={{ maxWidth: 560, margin: "0 auto" }}>
-            <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4, color: "#0D1628" }}>Seus dados</h1>
-            <p style={{ color: "#6B7280", marginBottom: 28, fontSize: 14 }}>Preencha para criar sua conta.</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: "#0A0F1E" }}>Seus dados</h1>
+            <p style={{ color: "#6B7280", marginBottom: 24, fontSize: 13 }}>Preencha para criar sua conta.</p>
 
             <div style={{
-              background: "#fff", border: "1.5px solid #E5E7EB",
-              borderRadius: 16, padding: "28px 24px",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+              background: "rgba(255,255,255,0.9)",
+              border: "1px solid rgba(255,255,255,0.95)",
+              borderRadius: 16, padding: "24px 20px",
+              boxShadow: "0 4px 20px rgba(15,37,87,0.08)",
             }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <Field label="Nome completo *"          value={sub.name}         onChange={(v) => setSub({ ...sub, name: v })} />
-                <Field label="E-mail *"                 type="email" value={sub.email}  onChange={(v) => setSub({ ...sub, email: v })} />
-                <Field label="Telefone / WhatsApp *"    type="tel"   value={sub.phone}  onChange={(v) => setSub({ ...sub, phone: v })} placeholder="(11) 99999-9999" />
-                <Field label="Nome da empresa *"        value={sub.company_name} onChange={(v) => setSub({ ...sub, company_name: v })} />
-                <Field label="CNPJ (opcional)"          value={sub.cnpj}         onChange={(v) => setSub({ ...sub, cnpj: v })} placeholder="00.000.000/0001-00" />
+                <Field label="Nome completo *"       value={sub.name}         onChange={(v) => setSub({ ...sub, name: v })} />
+                <Field label="E-mail *"              type="email" value={sub.email}   onChange={(v) => setSub({ ...sub, email: v })} />
+                <Field label="Telefone / WhatsApp *" type="tel"   value={sub.phone}   onChange={(v) => setSub({ ...sub, phone: v })} placeholder="(11) 99999-9999" />
+                <Field label="Nome da empresa *"     value={sub.company_name}         onChange={(v) => setSub({ ...sub, company_name: v })} />
+                <Field label="CNPJ (opcional)"       value={sub.cnpj}                 onChange={(v) => setSub({ ...sub, cnpj: v })} placeholder="00.000.000/0001-00" />
                 <div style={{ display: "flex", gap: 12 }}>
                   <div style={{ flex: 1 }}>
                     <Field label="Cidade *" value={sub.city} onChange={(v) => setSub({ ...sub, city: v })} />
                   </div>
                   <div style={{ width: 110 }}>
-                    <label style={{ display: "block", fontSize: 12, color: "#6B7280", marginBottom: 6 }}>Estado *</label>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#B0B8C8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      Estado *
+                    </label>
                     <select
                       value={sub.state}
                       onChange={(e) => setSub({ ...sub, state: e.target.value })}
                       style={{
                         width: "100%", height: 44, padding: "0 12px",
-                        borderRadius: 10, border: "1.5px solid #E5E7EB",
-                        background: "#fff", color: "#0D1628", fontSize: 14, outline: "none",
+                        borderRadius: 10, border: "1px solid #E4E7ED",
+                        background: "rgba(255,255,255,0.85)", color: "#0A0F1E",
+                        fontSize: 14, outline: "none",
                       }}
                     >
                       {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
@@ -643,16 +733,27 @@ export default function AssinarPage() {
               <div style={{ marginTop: 12, color: "#EF4444", fontSize: 13 }}>{step2Error}</div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
               <button
                 onClick={() => setStep(1)}
-                style={{ padding: "12px 24px", borderRadius: 10, background: "#fff", color: "#6B7280", border: "1.5px solid #E5E7EB", fontSize: 14, cursor: "pointer" }}
+                style={{
+                  padding: "11px 22px", borderRadius: 10,
+                  background: "rgba(255,255,255,0.85)", color: "#6B7280",
+                  border: "1px solid #E4E7ED", fontSize: 13, cursor: "pointer",
+                }}
               >
                 ← Voltar
               </button>
               <button
                 onClick={() => { if (validateStep2()) setStep(3); }}
-                style={{ padding: "13px 36px", borderRadius: 10, background: "#1A56C4", color: "#fff", fontSize: 15, fontWeight: 700, border: "none", cursor: "pointer" }}
+                style={{
+                  padding: "12px 32px", borderRadius: 10,
+                  background: "#0F2557", color: "#fff",
+                  fontSize: 13, fontWeight: 700,
+                  border: "none",
+                  borderBottom: "2px solid rgba(255,122,26,0.4)",
+                  cursor: "pointer",
+                }}
               >
                 Continuar →
               </button>
@@ -663,38 +764,44 @@ export default function AssinarPage() {
         {/* ═══ STEP 3: Contrato ═══════════════════════ */}
         {step === 3 && (
           <div style={{ maxWidth: 700, margin: "0 auto" }}>
-            <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4, color: "#0D1628" }}>Contrato de serviço</h1>
-            <p style={{ color: "#6B7280", marginBottom: 24, fontSize: 14 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: "#0A0F1E" }}>Contrato de serviço</h1>
+            <p style={{ color: "#6B7280", marginBottom: 20, fontSize: 13 }}>
               Leia o contrato antes de prosseguir para o pagamento.
             </p>
 
             <div style={{
               maxHeight: 400, overflowY: "auto", padding: "20px 24px",
-              border: "1.5px solid #E5E7EB", borderRadius: 12,
-              background: "#fff", marginBottom: 24,
-              fontSize: 13, lineHeight: 1.7, color: "#374151",
+              border: "1px solid rgba(255,255,255,0.95)",
+              borderRadius: 16,
+              background: "rgba(255,255,255,0.9)", marginBottom: 20,
+              fontSize: 13, lineHeight: 1.7, color: "#475569",
               fontFamily: "monospace", whiteSpace: "pre-wrap",
+              boxShadow: "0 4px 20px rgba(15,37,87,0.08)",
             }}>
               {contractText}
             </div>
 
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer", marginBottom: 32 }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer", marginBottom: 28 }}>
               <input
                 type="checkbox"
                 checked={accepted}
                 onChange={(e) => setAccepted(e.target.checked)}
-                style={{ accentColor: "#1A56C4", width: 18, height: 18, marginTop: 2, flexShrink: 0 }}
+                style={{ accentColor: "#0F2557", width: 18, height: 18, marginTop: 2, flexShrink: 0 }}
               />
-              <span style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.5 }}>
-                Li e aceito os <strong style={{ color: "#0D1628" }}>Termos de Serviço</strong> e o{" "}
-                <strong style={{ color: "#0D1628" }}>Contrato de Prestação de Serviços da Aurovista</strong>
+              <span style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>
+                Li e aceito os <strong style={{ color: "#0A0F1E" }}>Termos de Serviço</strong> e o{" "}
+                <strong style={{ color: "#0A0F1E" }}>Contrato de Prestação de Serviços da Aurovista</strong>
               </span>
             </label>
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <button
                 onClick={() => setStep(2)}
-                style={{ padding: "12px 24px", borderRadius: 10, background: "#fff", color: "#6B7280", border: "1.5px solid #E5E7EB", fontSize: 14, cursor: "pointer" }}
+                style={{
+                  padding: "11px 22px", borderRadius: 10,
+                  background: "rgba(255,255,255,0.85)", color: "#6B7280",
+                  border: "1px solid #E4E7ED", fontSize: 13, cursor: "pointer",
+                }}
               >
                 ← Voltar
               </button>
@@ -702,10 +809,12 @@ export default function AssinarPage() {
                 onClick={() => { setStep(4); handlePay(); }}
                 disabled={!accepted}
                 style={{
-                  padding: "13px 36px", borderRadius: 10,
-                  background: accepted ? "#1A56C4" : "#F3F4F6",
-                  color: accepted ? "#fff" : "#9CA3AF",
-                  fontSize: 15, fontWeight: 700, border: "none",
+                  padding: "12px 32px", borderRadius: 10,
+                  background: accepted ? "#0F2557" : "#EDEEF0",
+                  color: accepted ? "#fff" : "#B0B8C8",
+                  fontSize: 13, fontWeight: 700,
+                  border: "none",
+                  borderBottom: accepted ? "2px solid rgba(255,122,26,0.4)" : "2px solid transparent",
                   cursor: accepted ? "pointer" : "not-allowed",
                 }}
               >
@@ -721,11 +830,18 @@ export default function AssinarPage() {
             {payError ? (
               <>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: "#0D1628" }}>Erro ao processar</h2>
-                <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 32 }}>{payError}</p>
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: "#0A0F1E" }}>Erro ao processar</h2>
+                <p style={{ color: "#6B7280", fontSize: 13, marginBottom: 28 }}>{payError}</p>
                 <button
                   onClick={() => { setStep(3); setPayError(""); }}
-                  style={{ padding: "12px 28px", borderRadius: 10, background: "#1A56C4", color: "#fff", fontSize: 14, fontWeight: 600, border: "none", cursor: "pointer" }}
+                  style={{
+                    padding: "12px 28px", borderRadius: 10,
+                    background: "#0F2557", color: "#fff",
+                    fontSize: 13, fontWeight: 700,
+                    border: "none",
+                    borderBottom: "2px solid rgba(255,122,26,0.4)",
+                    cursor: "pointer",
+                  }}
                 >
                   ← Tentar novamente
                 </button>
@@ -734,13 +850,13 @@ export default function AssinarPage() {
               <>
                 <div style={{
                   width: 48, height: 48, margin: "0 auto 24px",
-                  border: "4px solid #E5E7EB", borderTopColor: "#1A56C4",
+                  border: "3px solid #E4E7ED", borderTopColor: "#0F2557",
                   borderRadius: "50%", animation: "spin 0.8s linear infinite",
                 }} />
-                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: "#0D1628" }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: "#0A0F1E" }}>
                   Redirecionando para pagamento...
                 </h2>
-                <p style={{ color: "#6B7280", fontSize: 14 }}>
+                <p style={{ color: "#6B7280", fontSize: 13 }}>
                   Aguarde. Você será redirecionado para o Mercado Pago.
                 </p>
               </>
@@ -751,22 +867,39 @@ export default function AssinarPage() {
 
       {/* ── FOOTER ──────────────────────────────────── */}
       <footer style={{
-        background: "#1A56C4", color: "#fff",
-        padding: "28px 24px", textAlign: "center",
+        background: "rgba(255,255,255,0.5)",
+        borderTop: "1px solid rgba(0,0,0,0.06)",
+        padding: "20px 48px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <p style={{ fontSize: 13, margin: "0 0 10px", opacity: 0.8 }}>
-          © 2026 Aurovista · Todos os direitos reservados
-        </p>
-        <div style={{ display: "flex", justifyContent: "center", gap: 16, fontSize: 12 }}>
-          <a href="/termos"    style={{ color: "#fff", opacity: 0.75, textDecoration: "none" }}>Termos de Serviço</a>
-          <span style={{ opacity: 0.4 }}>·</span>
-          <a href="/privacidade" style={{ color: "#fff", opacity: 0.75, textDecoration: "none" }}>Privacidade</a>
-          <span style={{ opacity: 0.4 }}>·</span>
-          <a href="/suporte"   style={{ color: "#fff", opacity: 0.75, textDecoration: "none" }}>Suporte</a>
+        <span style={{ fontSize: 11, color: "#B0B8C8" }}>© 2026 Aurovista</span>
+        <div style={{ display: "flex", gap: 20 }}>
+          <a href="/termos"      style={{ fontSize: 11, color: "#B0B8C8", textDecoration: "none" }}>Termos</a>
+          <a href="/privacidade" style={{ fontSize: 11, color: "#B0B8C8", textDecoration: "none" }}>Privacidade</a>
+          <a href="/suporte"     style={{ fontSize: 11, color: "#B0B8C8", textDecoration: "none" }}>Suporte</a>
         </div>
       </footer>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse-ring {
+          0%   { box-shadow: 0 0 0 0 rgba(255,122,26,0.5); }
+          70%  { box-shadow: 0 0 0 6px rgba(255,122,26,0); }
+          100% { box-shadow: 0 0 0 0 rgba(255,122,26,0); }
+        }
+        .pulse-dot {
+          display: inline-block;
+          width: 8px; height: 8px;
+          background: #FF7A1A;
+          border-radius: 50%;
+          box-shadow: 0 0 8px rgba(255,122,26,0.5);
+          animation: pulse-ring 1.8s ease-out infinite;
+          vertical-align: middle;
+        }
+        .plan-card:hover {
+          box-shadow: 0 6px 20px rgba(10,15,30,0.09) !important;
+        }
+      `}</style>
     </div>
   );
 }

@@ -113,6 +113,7 @@ export default function CentralPublicacaoPage() {
   const [scheduledAt, setScheduledAt] = useState<string>("");
 
   const [caption, setCaption] = useState<string>("");
+  const [tema, setTema] = useState("");
   const [generatingCaption, setGeneratingCaption] = useState(false);
 
   const [status, setStatus] = useState<PublishStatus>("idle");
@@ -250,10 +251,9 @@ export default function CentralPublicacaoPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          destino: lic?.name || "agência de viagens",
+          destino: tema.trim() || "viagem",
           tipo: pubType === "reels" ? "Instagram Reels (vídeo curto, vertical)" : pubType,
           formato: pubType,
-          // Se já há legenda digitada, usa como referência de estilo
           briefing: caption.trim() || undefined,
         }),
       });
@@ -772,6 +772,14 @@ export default function CentralPublicacaoPage() {
                   Gerar com IA
                 </button>
               </div>
+              <input
+                type="text"
+                value={tema}
+                onChange={(e) => setTema(e.target.value)}
+                placeholder="Ex: Cancun All Inclusive, Cruzeiro Natal..."
+                className="w-full text-sm px-3 py-2 rounded-lg"
+                style={{ background: "var(--bg2)", border: "0.5px solid var(--bdr)", color: "var(--txt)" }}
+              />
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
