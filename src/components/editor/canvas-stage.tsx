@@ -1006,9 +1006,24 @@ export default function CanvasStage(p: Props) {
       };
 
       if (el.type === "text") {
-        updates.fontSize = Math.max(6, Math.round((el.fontSize ?? 32) * sx));
-        updates.width    = Math.max(20, (el.width  ?? node.width())  * sx);
-        updates.height   = Math.max(20, (el.height ?? node.height()) * sy);
+        const anchor = trRef.current?.getActiveAnchor() ?? "";
+        const isCorner = ["top-left","top-right","bottom-left","bottom-right"].includes(anchor);
+        const isSideH  = ["middle-left","middle-right"].includes(anchor);
+        const isSideV  = ["top-center","bottom-center"].includes(anchor);
+
+        if (isCorner) {
+          updates.fontSize = Math.max(6, Math.round((el.fontSize ?? 32) * sx));
+          updates.width    = Math.max(20, (el.width  ?? node.width())  * sx);
+          updates.height   = Math.max(20, (el.height ?? node.height()) * sy);
+        } else if (isSideH) {
+          updates.fontSize = el.fontSize;
+          updates.width    = Math.max(20, (el.width ?? node.width()) * sx);
+          updates.height   = el.height;
+        } else if (isSideV) {
+          updates.fontSize = el.fontSize;
+          updates.width    = el.width;
+          updates.height   = Math.max(20, (el.height ?? node.height()) * sy);
+        }
       } else if (el.type === "circle") {
         updates.width  = Math.max(5, el.width  * sx);
         updates.height = Math.max(5, el.height * sy);
