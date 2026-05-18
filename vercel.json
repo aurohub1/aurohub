@@ -19,6 +19,14 @@
     {
       "path": "/api/cron/platform-updates",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/health-check",
+      "schedule": "0 11-23 * * *"
+    },
+    {
+      "path": "/api/cron/health-check",
+      "schedule": "0 0,1 * * *"
     }
   ]
 }
