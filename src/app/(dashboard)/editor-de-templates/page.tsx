@@ -145,6 +145,14 @@ export default function EditorTemplatesPage() {
       .from("system_config")
       .upsert({ key, value: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: "key" });
     invalidateSystemConfig(key);
+
+    // Propaga imediatamente para todos os form_templates com esse config_key
+    const configKey = key.replace(/^tmpl_/, "");
+    await supabase
+      .from("form_templates")
+      .update({ thumbnail_url: url })
+      .eq("config_key", configKey);
+
     setCanvasTemplates((prev) => prev.map((t) => (t.key === key ? { ...t, thumbnail: url } : t)));
   }
 
