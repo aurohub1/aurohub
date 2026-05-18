@@ -2879,6 +2879,14 @@ export function CardWhatsAppForm({
           >
             {legLoading ? "Gerando…" : "✦ Gerar legenda"}
           </button>
+          <button
+            type="button"
+            onClick={() => setSemEmojis(!semEmojis)}
+            className="rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-all"
+            style={{ borderColor: "var(--bdr)", color: semEmojis ? "var(--orange)" : "var(--txt3)", background: semEmojis ? "rgba(255,122,26,0.08)" : "transparent" }}
+          >
+            {semEmojis ? "Sem emojis ✓" : "Sem emojis"}
+          </button>
           {legenda && (
             <button
               type="button"
@@ -2889,14 +2897,6 @@ export function CardWhatsAppForm({
               {legCopied ? "✓ Copiado" : "📋 Copiar"}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setSemEmojis(!semEmojis)}
-            className="rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-all"
-            style={{ borderColor: "var(--bdr)", color: semEmojis ? "var(--orange)" : "var(--txt3)", background: semEmojis ? "rgba(255,122,26,0.08)" : "transparent" }}
-          >
-            {semEmojis ? "Sem emojis ✓" : "Sem emojis"}
-          </button>
         </div>
         {legenda && (
           <textarea
@@ -3406,6 +3406,14 @@ export function LaminaForm({
           >
             {legLoading ? "Gerando…" : "✦ Gerar legenda"}
           </button>
+          <button
+            type="button"
+            onClick={() => setSemEmojis(!semEmojis)}
+            className="rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-all"
+            style={{ borderColor: "var(--bdr)", color: semEmojis ? "var(--orange)" : "var(--txt3)", background: semEmojis ? "rgba(255,122,26,0.08)" : "transparent" }}
+          >
+            {semEmojis ? "Sem emojis ✓" : "Sem emojis"}
+          </button>
           {legenda && (
             <button
               type="button"
@@ -3416,14 +3424,6 @@ export function LaminaForm({
               {legCopied ? "✓ Copiado" : "📋 Copiar"}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setSemEmojis(!semEmojis)}
-            className="rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-all"
-            style={{ borderColor: "var(--bdr)", color: semEmojis ? "var(--orange)" : "var(--txt3)", background: semEmojis ? "rgba(255,122,26,0.08)" : "transparent" }}
-          >
-            {semEmojis ? "Sem emojis ✓" : "Sem emojis"}
-          </button>
         </div>
         {legenda && (
           <textarea
