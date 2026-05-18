@@ -1050,56 +1050,29 @@ export default function CanvasStage(p: Props) {
   // ── onTransform — feedback em tempo real ──
   const handleTransform = useCallback(() => {
     if (!trRef.current) return;
-    const nodes = trRef.current.nodes();
-    if (!nodes.length) return;
+    const node = trRef.current.getActiveAnchor()
+      ? trRef.current.nodes()[0]
+      : null;
+    if (!node) return;
 
-    nodes.forEach(node => {
-      const el = schema.elements.find(e => e.id === (node as any).id?.());
-      if (!el) return;
+    const sx = Math.abs(node.scaleX());
+    const sy = Math.abs(node.scaleY());
+    const el = schema.elements.find(e => e.id === selectedIds[0]);
+    if (!el) return;
 
-      const sx = Math.abs(node.scaleX());
-      const sy = Math.abs(node.scaleY());
+    const newW = Math.round((el.type === 'circle' ? el.width : node.width()) * sx);
+    const newH = Math.round((el.type === 'circle' ? el.height : node.height()) * sy);
 
-      if (el.type === "text") {
-        const anchor = trRef.current?.getActiveAnchor() ?? "";
-        const isCorner = ["top-left","top-right","bottom-left","bottom-right"].includes(anchor);
-        if (isCorner) {
-          const newSize = Math.max(6, (el.fontSize ?? 32) * sx);
-          (node as any).fontSize(newSize);
-          node.scaleX(el.flipX ? -1 : 1);
-          node.scaleY(el.flipY ? -1 : 1);
-          node.width((el.width ?? node.width()) * sx);
-        } else {
-          node.scaleX(el.flipX ? -1 : 1);
-          node.scaleY(el.flipY ? -1 : 1);
-          node.width(Math.max(20, (el.width ?? node.width()) * sx));
-          node.height(Math.max(20, (el.height ?? node.height()) * sy));
-        }
-      } else if (el.type === "image") {
-        const newW = Math.max(20, (el.width ?? node.width()) * sx);
-        const newH = Math.max(20, (el.height ?? node.height()) * sy);
-        node.scaleX(el.flipX ? -1 : 1);
-        node.scaleY(el.flipY ? -1 : 1);
-        node.width(newW);
-        node.height(newH);
-      } else {
-        node.width(Math.max(20, node.width() * sx));
-        node.height(Math.max(20, node.height() * sy));
-        node.scaleX(el.flipX ? -1 : 1);
-        node.scaleY(el.flipY ? -1 : 1);
-      }
+    const absPos = node.getAbsolutePosition();
+    const stageBox = node.getStage()?.container().getBoundingClientRect();
+    if (!stageBox) return;
 
-      const absPos = node.getAbsolutePosition();
-      const stageBox = node.getStage()?.container().getBoundingClientRect();
-      if (stageBox) {
-        setResizeIndicator({
-          visible: true,
-          x: absPos.x + stageBox.left,
-          y: absPos.y + stageBox.top - 28,
-          w: Math.round(node.width()),
-          h: Math.round(node.height()),
-        });
-      }
+    setResizeIndicator({
+      visible: true,
+      x: absPos.x + (stageBox?.left ?? 0),
+      y: absPos.y + (stageBox?.top ?? 0) - 28,
+      w: newW,
+      h: newH,
     });
   }, [selectedIds, schema.elements]);
 
