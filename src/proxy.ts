@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { get } from "@vercel/edge-config";
 
 const PUBLIC_PATHS = ["/manutencao", "/login", "/api", "/_next", "/favicon", "/public"];
 
@@ -29,6 +30,13 @@ async function isMaintenanceActive(): Promise<boolean> {
   const now = Date.now();
   if (maintenanceCache && now - maintenanceCache.ts < MAINTENANCE_TTL) {
     return maintenanceCache.active;
+  }
+  try {
+    const active = (await get<boolean>("maintenance")) === true;
+    maintenanceCache = { active, ts: now };
+    return active;
+  } catch {
+    // Edge Config indisponível — tenta Supabase como fallback
   }
   try {
     const controller = new AbortController();
