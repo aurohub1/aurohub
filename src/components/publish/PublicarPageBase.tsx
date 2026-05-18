@@ -179,6 +179,7 @@ interface TemplateRow {
   schema: any;
   width: number;
   height: number;
+  thumbnail_url: string | null;
 }
 
 interface PublicarPageBaseProps {
@@ -433,6 +434,7 @@ export default function PublicarPageBase({
         },
         width: r.width || FORMAT_DIMS[r.format as Format]?.[0] || 1080,
         height: r.height || FORMAT_DIMS[r.format as Format]?.[1] || 1920,
+        thumbnail_url: r.thumbnail_url || null,
       }));
       setTemplates(mapped);
     }
