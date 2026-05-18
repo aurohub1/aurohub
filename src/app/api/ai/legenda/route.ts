@@ -49,7 +49,7 @@ function buildPrompt(data: LegendaRequest): string {
   const dadosStr = linhas.join("\n");
 
   if (data.briefing?.trim()) {
-    return `Dados da oferta:\n${dadosStr}\n\n---\nREFERÊNCIA / EXEMPLO DO USUÁRIO (siga este estilo obrigatoriamente):\n"""\n${data.briefing.trim()}\n"""\n\nGere a legenda para Instagram seguindo o estilo, estrutura e tom da referência acima, adaptada para os dados desta oferta. Inclua hashtags no final.`;
+    return `Dados da oferta:\n${dadosStr}\n\n---\nO usuário forneceu o seguinte briefing:\n"""\n${data.briefing.trim()}\n"""\n\nUSE OBRIGATORIAMENTE esse briefing como tema central da legenda. A legenda deve ser sobre exatamente o que o usuário descreveu no briefing acima. Adapte para o formato ${data.formato || "Instagram"}, mantenha o tom animado e persuasivo, e inclua hashtags relevantes no final.`;
   }
 
   return `Dados da oferta:\n${dadosStr}\n\nGere uma legenda persuasiva e animada para Instagram${data.formato === "reels" || data.tipo?.toLowerCase().includes("reels") ? " Reels" : ""} desta oferta de viagem. Hook impactante na 1ª linha, detalhes da oferta, urgência, CTA claro e hashtags relevantes no final.`;
