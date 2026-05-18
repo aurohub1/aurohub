@@ -921,6 +921,9 @@ export default function CanvasStage(p: Props) {
   const hRulerRef = useRef<HTMLCanvasElement>(null);
   const vRulerRef = useRef<HTMLCanvasElement>(null);
   const [pendingGuide, setPendingGuide] = useState<{ orientation: "H" | "V"; pos: number } | null>(null);
+  const [resizeIndicator, setResizeIndicator] = useState<{
+    visible: boolean; x: number; y: number; w: number; h: number;
+  }>({ visible: false, x: 0, y: 0, w: 0, h: 0 });
 
   const handleDragMoveSnap = useCallback((id: string, rawX: number, rawY: number) => {
     if (!snapEnabled || selectedIds.length > 1) return { x: rawX, y: rawY };
@@ -1028,6 +1031,35 @@ export default function CanvasStage(p: Props) {
     // Uma única chamada → um único setState → um único re-render
     p.onBatchTransform?.(batch);
   }, [selectedIds, schema.elements, p.onBatchTransform]);
+
+  // ── onTransform — feedback em tempo real ──
+  const handleTransform = useCallback(() => {
+    if (!trRef.current) return;
+    const node = trRef.current.getActiveAnchor()
+      ? trRef.current.nodes()[0]
+      : null;
+    if (!node) return;
+
+    const sx = Math.abs(node.scaleX());
+    const sy = Math.abs(node.scaleY());
+    const el = schema.elements.find(e => e.id === selectedIds[0]);
+    if (!el) return;
+
+    const newW = Math.round((el.type === 'circle' ? el.width : node.width()) * sx);
+    const newH = Math.round((el.type === 'circle' ? el.height : node.height()) * sy);
+
+    const absPos = node.getAbsolutePosition();
+    const stageBox = node.getStage()?.container().getBoundingClientRect();
+    if (!stageBox) return;
+
+    setResizeIndicator({
+      visible: true,
+      x: absPos.x + (stageBox?.left ?? 0),
+      y: absPos.y + (stageBox?.top ?? 0) - 28,
+      w: newW,
+      h: newH,
+    });
+  }, [selectedIds, schema.elements]);
 
   useEffect(() => {
     if (stageRef.current) stageRef.current.position({ x: 0, y: 0 });
@@ -1441,7 +1473,7 @@ export default function CanvasStage(p: Props) {
               strokeWidth={1 / stageScale} dash={[4 / stageScale, 2 / stageScale]}
               listening={false} />
           )}
-          <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} keepRatio={selectedEl?.lockAspectRatio === true} boundBoxFunc={(_, nw) => nw} onTransformEnd={handleTransformEnd} />
+          <Transformer ref={trRef} borderStroke="#FF7A1A" anchorStroke="#FF7A1A" anchorFill="#0c0c12" anchorCornerRadius={3} anchorSize={7} borderStrokeWidth={1.5} keepRatio={selectedEl?.lockAspectRatio === true} boundBoxFunc={(_, nw) => nw} onTransform={handleTransform} onTransformEnd={() => { handleTransformEnd(); setResizeIndicator(r => ({ ...r, visible: false })); }} />
         </Layer>
       </Stage>
 
@@ -1472,6 +1504,27 @@ export default function CanvasStage(p: Props) {
         />
       )}
       </div>
+      {resizeIndicator.visible && (
+        <div style={{
+          position: 'fixed',
+          left: resizeIndicator.x,
+          top: resizeIndicator.y,
+          background: 'rgba(12,12,18,.85)',
+          color: '#fff',
+          fontSize: '11px',
+          fontWeight: 300,
+          fontFamily: 'Inter, sans-serif',
+          padding: '3px 8px',
+          borderRadius: '4px',
+          pointerEvents: 'none',
+          zIndex: 999,
+          letterSpacing: '.03em',
+          backdropFilter: 'blur(4px)',
+          border: '.5px solid rgba(255,255,255,.1)',
+        }}>
+          {resizeIndicator.w} × {resizeIndicator.h}
+        </div>
+      )}
     </div>
   );
 }
