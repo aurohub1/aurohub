@@ -2494,6 +2494,7 @@ export function CardWhatsAppForm({
   const [legLoading, setLegLoading] = useState(false);
   const [legCopied, setLegCopied] = useState(false);
   const [legBriefing, setLegBriefing] = useState("");
+  const [semEmojis, setSemEmojis] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -2624,6 +2625,7 @@ export function CardWhatsAppForm({
         datas: destFilled.map((d) => formatPeriodo(d.ida, d.volta)).filter(Boolean).slice(0, 2).join(" / "),
         tipo: "Card WhatsApp — 4 destinos (promocional, tom informal para WhatsApp)",
         briefing: legBriefing.trim() || undefined,
+        sem_emojis: semEmojis,
       };
       const res = await fetch("/api/ai/legenda", {
         method: "POST",
@@ -2887,6 +2889,14 @@ export function CardWhatsAppForm({
               {legCopied ? "✓ Copiado" : "📋 Copiar"}
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setSemEmojis(!semEmojis)}
+            className="rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-all"
+            style={{ borderColor: "var(--bdr)", color: semEmojis ? "var(--orange)" : "var(--txt3)", background: semEmojis ? "rgba(255,122,26,0.08)" : "transparent" }}
+          >
+            {semEmojis ? "Sem emojis ✓" : "Sem emojis"}
+          </button>
         </div>
         {legenda && (
           <textarea
@@ -3014,6 +3024,7 @@ export function LaminaForm({
   const [legLoading, setLegLoading] = useState(false);
   const [legCopied, setLegCopied] = useState(false);
   const [legBriefing, setLegBriefing] = useState("");
+  const [semEmojis, setSemEmojis] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -3142,6 +3153,7 @@ export function LaminaForm({
         datas: destFilled.map((d) => formatPeriodo(d.ida, d.volta)).filter(Boolean).slice(0, 2).join(" / "),
         tipo: "Lâmina Instagram — 4 destinos (promocional)",
         briefing: legBriefing.trim() || undefined,
+        sem_emojis: semEmojis,
       };
       const res = await fetch("/api/ai/legenda", {
         method: "POST",
@@ -3404,6 +3416,14 @@ export function LaminaForm({
               {legCopied ? "✓ Copiado" : "📋 Copiar"}
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setSemEmojis(!semEmojis)}
+            className="rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-all"
+            style={{ borderColor: "var(--bdr)", color: semEmojis ? "var(--orange)" : "var(--txt3)", background: semEmojis ? "rgba(255,122,26,0.08)" : "transparent" }}
+          >
+            {semEmojis ? "Sem emojis ✓" : "Sem emojis"}
+          </button>
         </div>
         {legenda && (
           <textarea

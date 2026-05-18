@@ -13,6 +13,7 @@ interface LegendaRequest {
   tipo?: string;
   formato?: string;
   briefing?: string;
+  sem_emojis?: boolean;
 }
 
 /* ── System prompt ───────────────────────────────────────── */
@@ -47,6 +48,10 @@ function buildPrompt(data: LegendaRequest): string {
   if (data.formato)  linhas.push(`Formato: ${data.formato}`);
 
   const dadosStr = linhas.join("\n");
+
+  if (data.sem_emojis) {
+    linhas.push("INSTRUÇÃO: NÃO use emojis. Texto limpo e direto.");
+  }
 
   if (data.briefing?.trim()) {
     return `Dados da oferta:\n${dadosStr}\n\n---\nO usuário forneceu o seguinte briefing:\n"""\n${data.briefing.trim()}\n"""\n\nUSE OBRIGATORIAMENTE esse briefing como tema central da legenda. A legenda deve ser sobre exatamente o que o usuário descreveu no briefing acima. Adapte para o formato ${data.formato || "Instagram"}, mantenha o tom animado e persuasivo, e inclua hashtags relevantes no final.`;
