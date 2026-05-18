@@ -70,7 +70,7 @@ async function tryClaude(prompt: string): Promise<string | null> {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250514",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 1024,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: prompt }],
@@ -78,7 +78,8 @@ async function tryClaude(prompt: string): Promise<string | null> {
     });
 
     if (!res.ok) {
-      console.warn("[AI/legenda] Claude falhou:", res.status, await res.text());
+      const body = await res.text();
+      console.warn("[AI/legenda] Claude falhou:", res.status, body);
       return null;
     }
 
