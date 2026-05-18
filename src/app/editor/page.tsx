@@ -302,6 +302,7 @@ function EditorInner() {
               schema: { elements: adaptedSchema.elements, background: adaptedSchema.background, formType, width: targetW, height: targetH },
               width: targetW,
               height: targetH,
+              thumbnail_url: (payload as any)?.thumbnail || null,
             };
             await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
             // Copia permissões de acesso do template original
@@ -422,6 +423,7 @@ function EditorInner() {
                         schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
                         width: p.width || 1080,
                         height: p.height || 1920,
+                        thumbnail_url: p.thumbnail || null,
                       };
                       const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
                       if (ftErr) console.error("[Editor][sync-variant] erro:", ftErr);
@@ -472,6 +474,7 @@ function EditorInner() {
                         schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
                         width: p.width || 1080,
                         height: p.height || 1920,
+                        thumbnail_url: p.thumbnail || null,
                       };
                       const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
                       if (ftErr) console.error("[Editor][sync-starter] erro:", ftErr);
@@ -547,6 +550,7 @@ function EditorInner() {
                     schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
                     width: p.width || 1080,
                     height: p.height || 1920,
+                    thumbnail_url: p.thumbnail || null,
                   };
                   const { error: ftErr } = await supabase.from("form_templates").upsert(ftData, { onConflict: "config_key" });
                   if (ftErr) console.error("[Editor][sync] form_templates erro:", ftErr);
