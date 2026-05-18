@@ -413,7 +413,7 @@ export default function PublicarPageBase({
 
     const { data } = await supabase
       .from("form_templates")
-      .select("*")
+      .select("id, config_key, name, form_type, format, schema, width, height, is_base, active, licensee_id, thumbnail_url, deleted_at")
       .in("config_key", keys)
       .eq("active", true)
       .is("deleted_at", null)
