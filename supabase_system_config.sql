@@ -24,6 +24,6 @@ INSERT INTO system_config (key, value) VALUES
   ('default_stories_day', '5'),
   ('max_stores_per_licensee', '10'),
   ('max_users_per_store', '5'),
-  ('maintenance_mode', 'false'),
+  ('maintenance_active', 'false'),
   ('sales_active', 'true')
 ON CONFLICT (key) DO NOTHING;

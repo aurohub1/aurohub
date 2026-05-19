@@ -103,6 +103,7 @@ export default function CentralPublicacaoPage() {
 
   // Upload state
   const [mediaDataUrl, setMediaDataUrl] = useState<string | null>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaIsVideo, setMediaIsVideo] = useState(false);
   const [mediaFormat, setMediaFormat] = useState<FormatType>("feed");
   const [dragOver, setDragOver] = useState(false);
@@ -181,6 +182,7 @@ export default function CentralPublicacaoPage() {
     setSelectedStoreId("");
     setSelectedStoreIds([]);
     setMediaDataUrl(null);
+    setMediaFile(null);
     setMediaIsVideo(false);
     setCaption("");
     setStatus("idle");
@@ -212,6 +214,7 @@ export default function CentralPublicacaoPage() {
       const dims = isVideo ? await getVideoDimensions(dataUrl) : await getImageDimensions(dataUrl);
       const detected = detectFormat(dims.width, dims.height, isVideo);
       setMediaDataUrl(dataUrl);
+      setMediaFile(isVideo ? file : null);
       setMediaIsVideo(isVideo);
       setMediaFormat(detected);
       setStatus("idle");
@@ -238,6 +241,7 @@ export default function CentralPublicacaoPage() {
 
   function clearMedia() {
     setMediaDataUrl(null);
+    setMediaFile(null);
     setMediaIsVideo(false);
     setStatus("idle");
     setStatusMsg("");
@@ -280,18 +284,64 @@ export default function CentralPublicacaoPage() {
     try {
       setStatus("uploading");
       setStatusMsg("Enviando mídia para Cloudinary...");
-      const upRes = await fetch("/api/cloudinary/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dataUrl: mediaDataUrl,
-          folder: `aurohubv2/central/${selectedLicenseeId}`,
-          resourceType: mediaIsVideo ? "video" : "image",
-        }),
-      });
-      const upData = await upRes.json();
-      if (!upRes.ok || !upData.secure_url) {
-        throw new Error(upData.error || "Upload falhou");
+
+      let cloudinaryUrl: string;
+
+      if (mediaIsVideo && mediaFile) {
+        // Upload direto: vídeo vai do browser para o Cloudinary sem passar pelo servidor Vercel,
+        // evitando o limite de 4.5MB do body nas API routes.
+        const EAGER = "f_mp4,vc_h264:baseline,ac_aac,br_4000k";
+        const signRes = await fetch("/api/cloudinary/sign-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folder: `aurohubv2/central/${selectedLicenseeId}`,
+            resource_type: "video",
+            eager: EAGER,
+          }),
+        });
+        const signData = await signRes.json();
+        if (!signRes.ok || !signData.signature) throw new Error(signData.error || "Falha ao assinar upload");
+
+        const fd = new FormData();
+        fd.append("file", mediaFile);
+        fd.append("api_key", signData.api_key);
+        fd.append("timestamp", String(signData.timestamp));
+        fd.append("folder", signData.folder);
+        fd.append("signature", signData.signature);
+        fd.append("eager", EAGER);
+
+        cloudinaryUrl = await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              const data = JSON.parse(xhr.responseText);
+              const eagerUrl = data.eager?.[0]?.secure_url as string | undefined;
+              const fallback = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${data.public_id}.mp4`;
+              resolve(eagerUrl || fallback);
+            } else {
+              const errMsg = (() => { try { return JSON.parse(xhr.responseText)?.error?.message; } catch { return null; } })();
+              reject(new Error(errMsg || "Upload falhou"));
+            }
+          };
+          xhr.onerror = () => reject(new Error("Erro de rede no upload"));
+          xhr.open("POST", `https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`);
+          xhr.send(fd);
+        });
+      } else {
+        // Imagem: tamanho pequeno, pode passar pelo servidor normalmente
+        const upRes = await fetch("/api/cloudinary/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dataUrl: mediaDataUrl,
+            folder: `aurohubv2/central/${selectedLicenseeId}`,
+            resourceType: "image",
+          }),
+        });
+        const upData = await upRes.json();
+        if (!upRes.ok || !upData.secure_url) throw new Error(upData.error || "Upload falhou");
+        cloudinaryUrl = upData.secure_url;
       }
 
       const errors: string[] = [];
@@ -312,8 +362,8 @@ export default function CentralPublicacaoPage() {
             ? { scheduled_publish_time: new Date(scheduledAt).toISOString() }
             : {}),
         };
-        if (mediaIsVideo) body.video_url = upData.secure_url;
-        else body.image_url = upData.secure_url;
+        if (mediaIsVideo) body.video_url = cloudinaryUrl;
+        else body.image_url = cloudinaryUrl;
 
         if (postToIG) {
           const pubRes = await fetch("/api/instagram/post", {
@@ -336,7 +386,7 @@ export default function CentralPublicacaoPage() {
             body: JSON.stringify({
               licensee_id: selectedLicenseeId,
               store_id: storeId,
-              image_url: !mediaIsVideo ? upData.secure_url : undefined,
+              image_url: !mediaIsVideo ? cloudinaryUrl : undefined,
               caption,
               media_type: mediaType,
             }),

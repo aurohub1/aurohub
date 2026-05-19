@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
-import { get } from "@vercel/edge-config";
 
 const PUBLIC_PATHS = ["/manutencao", "/login", "/api", "/_next", "/favicon", "/public"];
 
@@ -12,9 +11,9 @@ const CHAT_PATHS = [
   "/unidade/chat",
 ];
 
-// Cache de manutenção (módulo-level, persiste por worker; ~30s TTL)
+// Cache de manutenção (módulo-level, persiste por worker; ~5s TTL)
 let maintenanceCache: { active: boolean; ts: number } | null = null;
-const MAINTENANCE_TTL = 30_000;
+const MAINTENANCE_TTL = 5_000;
 
 function raceTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -29,14 +28,8 @@ function raceTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
 async function isMaintenanceActive(): Promise<boolean> {
   const now = Date.now();
   if (maintenanceCache && now - maintenanceCache.ts < MAINTENANCE_TTL) {
+    console.log("[maintenance] cache hit →", maintenanceCache.active);
     return maintenanceCache.active;
-  }
-  try {
-    const active = (await get<boolean>("maintenance")) === true;
-    maintenanceCache = { active, ts: now };
-    return active;
-  } catch {
-    // Edge Config indisponível — tenta Supabase como fallback
   }
   try {
     const controller = new AbortController();
@@ -55,9 +48,11 @@ async function isMaintenanceActive(): Promise<boolean> {
     clearTimeout(timer);
     const rows: { value: string }[] = await res.json();
     const active = rows?.[0]?.value === "true";
+    console.log("[maintenance] db rows →", JSON.stringify(rows), "→ active:", active);
     maintenanceCache = { active, ts: now };
     return active;
-  } catch {
+  } catch (err) {
+    console.log("[maintenance] fetch error →", String(err), "→ fallback:", maintenanceCache?.active ?? false);
     return maintenanceCache ? maintenanceCache.active : false;
   }
 }
