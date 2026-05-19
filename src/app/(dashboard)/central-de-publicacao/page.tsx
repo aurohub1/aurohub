@@ -179,6 +179,7 @@ export default function CentralPublicacaoPage() {
   /* ── Handlers ─────────────────────────────────── */
 
   function resetSelection() {
+    if (mediaIsVideo && mediaDataUrl?.startsWith("blob:")) URL.revokeObjectURL(mediaDataUrl);
     setSelectedStoreId("");
     setSelectedStoreIds([]);
     setMediaDataUrl(null);
@@ -210,13 +211,26 @@ export default function CentralPublicacaoPage() {
       return;
     }
     try {
-      const dataUrl = await fileToDataURL(file);
-      const dims = isVideo ? await getVideoDimensions(dataUrl) : await getImageDimensions(dataUrl);
-      const detected = detectFormat(dims.width, dims.height, isVideo);
-      setMediaDataUrl(dataUrl);
-      setMediaFile(isVideo ? file : null);
-      setMediaIsVideo(isVideo);
-      setMediaFormat(detected);
+      if (isVideo) {
+        // Object URL: sem conversão para base64 — File fica na memória original.
+        // Isso garante que o upload sempre usa o File diretamente via XHR,
+        // nunca passa base64 pelo servidor Vercel (limite 4.5MB).
+        const objectUrl = URL.createObjectURL(file);
+        const dims = await getVideoDimensions(objectUrl);
+        const detected = detectFormat(dims.width, dims.height, true);
+        setMediaDataUrl(objectUrl);
+        setMediaFile(file);
+        setMediaIsVideo(true);
+        setMediaFormat(detected);
+      } else {
+        const dataUrl = await fileToDataURL(file);
+        const dims = await getImageDimensions(dataUrl);
+        const detected = detectFormat(dims.width, dims.height, false);
+        setMediaDataUrl(dataUrl);
+        setMediaFile(null);
+        setMediaIsVideo(false);
+        setMediaFormat(detected);
+      }
       setStatus("idle");
       setStatusMsg("");
     } catch (err) {
@@ -240,6 +254,7 @@ export default function CentralPublicacaoPage() {
   }
 
   function clearMedia() {
+    if (mediaIsVideo && mediaDataUrl?.startsWith("blob:")) URL.revokeObjectURL(mediaDataUrl);
     setMediaDataUrl(null);
     setMediaFile(null);
     setMediaIsVideo(false);
@@ -340,6 +355,8 @@ export default function CentralPublicacaoPage() {
           xhr.send(fd);
         });
       } else {
+        // Segurança: nunca deixar vídeo cair aqui (causaria 413 no Vercel)
+        if (mediaIsVideo) throw new Error("Arquivo de vídeo não carregado — reselecione o arquivo.");
         // Imagem: tamanho pequeno, pode passar pelo servidor normalmente
         console.log("[Central/handlePublish] AVISO: caiu no else — mediaIsVideo:", mediaIsVideo, "mediaFile:", mediaFile);
         const upRes = await fetch("/api/cloudinary/upload", {
