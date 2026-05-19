@@ -106,6 +106,9 @@ export default function CentralPublicacaoPage() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaIsVideo, setMediaIsVideo] = useState(false);
   const [mediaFormat, setMediaFormat] = useState<FormatType>("feed");
+  const [mediaCloudinaryUrl, setMediaCloudinaryUrl] = useState<string | null>(null);
+  const [mediaUploadProgress, setMediaUploadProgress] = useState<number | null>(null);
+  const [mediaUploading, setMediaUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -171,6 +174,8 @@ export default function CentralPublicacaoPage() {
   const canPublish =
     !!selectedLicenseeId &&
     !!mediaDataUrl &&
+    !mediaUploading &&
+    (!mediaIsVideo || !!mediaCloudinaryUrl) &&
     storesToPublish.length > 0 &&
     (postToIG || postToFB) &&
     status !== "uploading" &&
@@ -185,6 +190,8 @@ export default function CentralPublicacaoPage() {
     setMediaDataUrl(null);
     setMediaFile(null);
     setMediaIsVideo(false);
+    setMediaCloudinaryUrl(null);
+    setMediaUploadProgress(null);
     setCaption("");
     setStatus("idle");
     setStatusMsg("");
@@ -212,9 +219,7 @@ export default function CentralPublicacaoPage() {
     }
     try {
       if (isVideo) {
-        // Object URL: sem conversão para base64 — File fica na memória original.
-        // Isso garante que o upload sempre usa o File diretamente via XHR,
-        // nunca passa base64 pelo servidor Vercel (limite 4.5MB).
+        // Object URL para preview — sem base64, sem dados no servidor
         const objectUrl = URL.createObjectURL(file);
         const dims = await getVideoDimensions(objectUrl);
         const detected = detectFormat(dims.width, dims.height, true);
@@ -222,6 +227,11 @@ export default function CentralPublicacaoPage() {
         setMediaFile(file);
         setMediaIsVideo(true);
         setMediaFormat(detected);
+        setMediaCloudinaryUrl(null);
+        setStatus("idle");
+        setStatusMsg("");
+        // Upload imediato browser → Cloudinary (padrão uploadReelsFileDirect)
+        await uploadVideoDirectly(file);
       } else {
         const dataUrl = await fileToDataURL(file);
         const dims = await getImageDimensions(dataUrl);
@@ -230,9 +240,10 @@ export default function CentralPublicacaoPage() {
         setMediaFile(null);
         setMediaIsVideo(false);
         setMediaFormat(detected);
+        setMediaCloudinaryUrl(null);
+        setStatus("idle");
+        setStatusMsg("");
       }
-      setStatus("idle");
-      setStatusMsg("");
     } catch (err) {
       console.error("[Central] handleFile:", err);
       setStatus("error");
@@ -258,8 +269,71 @@ export default function CentralPublicacaoPage() {
     setMediaDataUrl(null);
     setMediaFile(null);
     setMediaIsVideo(false);
+    setMediaCloudinaryUrl(null);
+    setMediaUploadProgress(null);
     setStatus("idle");
     setStatusMsg("");
+  }
+
+  // Padrão idêntico ao uploadReelsFileDirect em PublicarPageBase.tsx.
+  // Upload vai browser → Cloudinary via XHR — nunca passa pelo servidor Vercel.
+  async function uploadVideoDirectly(file: File) {
+    setMediaUploading(true);
+    setMediaUploadProgress(0);
+    setMediaCloudinaryUrl(null);
+    const EAGER = "f_mp4,vc_h264:baseline,ac_aac,br_4000k";
+    try {
+      const signRes = await fetch("/api/cloudinary/sign-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folder: `aurohubv2/central/${selectedLicenseeId || "anon"}`,
+          resource_type: "video",
+          eager: EAGER,
+        }),
+      });
+      const signData = await signRes.json();
+      if (!signRes.ok || !signData.signature) throw new Error(signData.error || "Falha ao assinar upload");
+
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("api_key", signData.api_key);
+      fd.append("timestamp", String(signData.timestamp));
+      fd.append("folder", signData.folder);
+      fd.append("signature", signData.signature);
+      fd.append("eager", EAGER);
+
+      const cloudUrl = await new Promise<string>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setMediaUploadProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+            const eagerUrl = data.eager?.[0]?.secure_url as string | undefined;
+            const fallback = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${data.public_id}.mp4`;
+            resolve(eagerUrl || fallback);
+          } else {
+            const errMsg = (() => { try { return JSON.parse(xhr.responseText)?.error?.message; } catch { return null; } })();
+            reject(new Error(errMsg || "Upload falhou"));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Erro de rede no upload"));
+        xhr.open("POST", `https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`);
+        xhr.send(fd);
+      });
+
+      setMediaCloudinaryUrl(cloudUrl);
+      setMediaUploadProgress(100);
+    } catch (err) {
+      setMediaCloudinaryUrl(null);
+      setMediaUploadProgress(null);
+      setStatus("error");
+      setStatusMsg(err instanceof Error ? err.message : "Erro no upload do vídeo");
+    } finally {
+      setMediaUploading(false);
+    }
   }
 
   async function generateCaption() {
@@ -300,65 +374,14 @@ export default function CentralPublicacaoPage() {
       setStatus("uploading");
       setStatusMsg("Enviando mídia para Cloudinary...");
 
-      console.log("[Central/handlePublish] --- início ---");
-      console.log("[Central/handlePublish] mediaIsVideo:", mediaIsVideo);
-      console.log("[Central/handlePublish] mediaFile:", mediaFile ? `File(${mediaFile.name}, ${(mediaFile.size / 1024 / 1024).toFixed(2)}MB, ${mediaFile.type})` : null);
-      console.log("[Central/handlePublish] mediaDataUrl length:", mediaDataUrl?.length ?? 0);
-      console.log("[Central/handlePublish] caminho:", mediaIsVideo && mediaFile ? "DIRETO (XHR → Cloudinary)" : "SERVIDOR (/api/cloudinary/upload)");
-
       let cloudinaryUrl: string;
 
-      if (mediaIsVideo && mediaFile) {
-        // Upload direto: vídeo vai do browser para o Cloudinary sem passar pelo servidor Vercel,
-        // evitando o limite de 4.5MB do body nas API routes.
-        const EAGER = "f_mp4,vc_h264:baseline,ac_aac,br_4000k";
-        console.log("[Central/handlePublish] buscando assinatura em /api/cloudinary/sign-upload...");
-        const signRes = await fetch("/api/cloudinary/sign-upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            folder: `aurohubv2/central/${selectedLicenseeId}`,
-            resource_type: "video",
-            eager: EAGER,
-          }),
-        });
-        const signData = await signRes.json();
-        console.log("[Central/handlePublish] sign-upload status:", signRes.status, "signature ok:", !!signData.signature);
-        if (!signRes.ok || !signData.signature) throw new Error(signData.error || "Falha ao assinar upload");
-
-        const fd = new FormData();
-        fd.append("file", mediaFile);
-        fd.append("api_key", signData.api_key);
-        fd.append("timestamp", String(signData.timestamp));
-        fd.append("folder", signData.folder);
-        fd.append("signature", signData.signature);
-        fd.append("eager", EAGER);
-
-        console.log("[Central/handlePublish] XHR → POST https://api.cloudinary.com/v1_1/.../video/upload");
-        cloudinaryUrl = await new Promise<string>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.onload = () => {
-            console.log("[Central/handlePublish] XHR status:", xhr.status, "response (200 chars):", xhr.responseText.slice(0, 200));
-            if (xhr.status === 200) {
-              const data = JSON.parse(xhr.responseText);
-              const eagerUrl = data.eager?.[0]?.secure_url as string | undefined;
-              const fallback = `https://res.cloudinary.com/${signData.cloud_name}/video/upload/f_mp4,vc_h264,ac_aac/${data.public_id}.mp4`;
-              console.log("[Central/handlePublish] cloudinaryUrl:", eagerUrl || fallback);
-              resolve(eagerUrl || fallback);
-            } else {
-              const errMsg = (() => { try { return JSON.parse(xhr.responseText)?.error?.message; } catch { return null; } })();
-              reject(new Error(errMsg || `Upload falhou (HTTP ${xhr.status})`));
-            }
-          };
-          xhr.onerror = () => reject(new Error("Erro de rede no upload"));
-          xhr.open("POST", `https://api.cloudinary.com/v1_1/${signData.cloud_name}/video/upload`);
-          xhr.send(fd);
-        });
+      if (mediaIsVideo) {
+        // Vídeo já foi enviado ao Cloudinary via uploadVideoDirectly no momento da seleção
+        if (!mediaCloudinaryUrl) throw new Error("Vídeo ainda sendo processado — aguarde.");
+        cloudinaryUrl = mediaCloudinaryUrl;
       } else {
-        // Segurança: nunca deixar vídeo cair aqui (causaria 413 no Vercel)
-        if (mediaIsVideo) throw new Error("Arquivo de vídeo não carregado — reselecione o arquivo.");
-        // Imagem: tamanho pequeno, pode passar pelo servidor normalmente
-        console.log("[Central/handlePublish] AVISO: caiu no else — mediaIsVideo:", mediaIsVideo, "mediaFile:", mediaFile);
+        // Imagem: envia via servidor (base64 pequeno, sem risco de 413)
         const upRes = await fetch("/api/cloudinary/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -368,11 +391,9 @@ export default function CentralPublicacaoPage() {
             resourceType: "image",
           }),
         });
-        console.log("[Central/handlePublish] /api/cloudinary/upload status:", upRes.status);
         if (!upRes.ok) {
           const rawText = await upRes.text();
-          console.error("[Central/handlePublish] resposta não-ok:", rawText.slice(0, 300));
-          throw new Error(`Upload via servidor falhou (HTTP ${upRes.status})`);
+          throw new Error(`Upload falhou (HTTP ${upRes.status}): ${rawText.slice(0, 200)}`);
         }
         const upData = await upRes.json();
         if (!upData.secure_url) throw new Error(upData.error || "Upload falhou");
@@ -401,18 +422,11 @@ export default function CentralPublicacaoPage() {
         else body.image_url = cloudinaryUrl;
 
         if (postToIG) {
-          console.log("[Central/handlePublish] POST /api/instagram/post body:", JSON.stringify({ ...body, video_url: body.video_url, image_url: body.image_url }));
           const pubRes = await fetch("/api/instagram/post", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           });
-          console.log("[Central/handlePublish] /api/instagram/post status:", pubRes.status);
-          if (!pubRes.ok) {
-            const rawText = await pubRes.text();
-            console.error("[Central/handlePublish] instagram/post resposta não-ok:", rawText.slice(0, 300));
-            throw new Error(`Instagram post falhou (HTTP ${pubRes.status})`);
-          }
           const pubData = await pubRes.json();
           if (!pubRes.ok || !pubData.success) {
             errors.push(`${store.name} (IG): ${pubData.error || pubData.detail || "falhou"}`);
