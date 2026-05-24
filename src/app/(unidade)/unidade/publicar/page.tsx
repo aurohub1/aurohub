@@ -35,6 +35,7 @@ interface TemplateRow {
   width: number;
   height: number;
   schema: EditorSchema;
+  thumbnail: string | null;
 }
 
 interface StoreOption { id: string; name: string; }
@@ -247,6 +248,11 @@ export default function UnidadePublicarPage() {
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Seletor de template (quando há múltiplos para o mesmo formType+format)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const initialTemplateRef = useRef<string | null>(null); // preserva seleção de URL param
+
   // Feriados dinâmicos via tabela `feriados` (Supabase), ordem alfabética pt-BR
   const { feriados: feriadosData, ready: feriadosReady, error: feriadosError } = useBadges();
   const feriadoOpts = useMemo(() => {
@@ -278,11 +284,43 @@ export default function UnidadePublicarPage() {
   const values = formCache[tab];
   const badges = badgeCache[tab];
 
-  // Template atual — match estrito por formType + format (sem fallback)
-  // Se não existir template pra (tab, format), o preview mostra placeholder
+  // Reseta seleção ao trocar aba ou formato
+  useEffect(() => {
+    setSelectedTemplateId(null);
+    setShowTemplatePicker(false);
+  }, [tab, format]);
+
+  // Auto-seleciona ou abre seletor quando templates carregam / seleção é resetada
+  useEffect(() => {
+    if (templates.length === 0) return;
+    if (selectedTemplateId !== null) return;
+    // Preserva template vindo de URL param (?template=id)
+    if (initialTemplateRef.current) {
+      const id = initialTemplateRef.current;
+      initialTemplateRef.current = null;
+      const found = templates.find((t) => t.id === id);
+      if (found) { setSelectedTemplateId(id); return; }
+    }
+    const matches = templates.filter((t) => t.formType === tab && t.format === format);
+    if (matches.length === 1) {
+      setSelectedTemplateId(matches[0].id);
+    } else if (matches.length > 1) {
+      setShowTemplatePicker(true);
+    }
+  }, [tab, format, templates, selectedTemplateId]);
+
+  // Template atual — match por seleção explícita ou único disponível
   const currentTemplate = useMemo(() => {
-    return templates.find((t) => t.formType === tab && t.format === format) ?? null;
-  }, [templates, tab, format]);
+    if (selectedTemplateId) return templates.find((t) => t.id === selectedTemplateId) ?? null;
+    const matches = templates.filter((t) => t.formType === tab && t.format === format);
+    return matches.length === 1 ? matches[0] : null;
+  }, [templates, tab, format, selectedTemplateId]);
+
+  // Templates disponíveis para a aba+formato atual
+  const templatesForCurrent = useMemo(
+    () => templates.filter((t) => t.formType === tab && t.format === format),
+    [templates, tab, format],
+  );
 
   const templateBinds = useMemo(() => {
     const b = new Set<string>();
@@ -410,7 +448,7 @@ export default function UnidadePublicarPage() {
       // Templates — base (is_base=true) + do licensee do usuário (licensee_id=?)
       const { data: tplData } = await supabase
         .from("form_templates")
-        .select("id, name, form_type, format, width, height, schema, is_base, licensee_id")
+        .select("id, name, form_type, format, width, height, schema, is_base, licensee_id, thumbnail_url")
         .or(`is_base.eq.true,licensee_id.eq.${p.licensee_id}`)
         .eq("active", true)
         .order("form_type")
@@ -419,7 +457,7 @@ export default function UnidadePublicarPage() {
 
       type FormTemplateRow = {
         id: string; name: string; form_type: string; format: string;
-        width: number; height: number;
+        width: number; height: number; thumbnail_url?: string | null;
         schema: { elements?: unknown[]; background?: string; duration?: number; qtdDestinos?: number; formType?: string } | null;
       };
       const rows: TemplateRow[] = (tplData ?? []).map((r) => {
@@ -434,6 +472,7 @@ export default function UnidadePublicarPage() {
           formType: row.form_type || "pacote",
           width: row.width || 1080,
           height: row.height || 1920,
+          thumbnail: row.thumbnail_url ?? null,
           schema: {
             elements: (sch.elements ?? []) as EditorSchema["elements"],
             background: sch.background || "#0E1520",
@@ -448,6 +487,7 @@ export default function UnidadePublicarPage() {
       if (templateParam) {
         const match = rows.find(t => t.key.includes(templateParam) || t.id === templateParam);
         if (match) {
+          initialTemplateRef.current = match.id; // seleção direta via URL
           setTab(match.formType as FormType);
           setFormat(match.format);
         }
@@ -1164,11 +1204,48 @@ export default function UnidadePublicarPage() {
               loadHoteis={loadHoteis}
             />
           )}
-          {tab !== "card_whatsapp" && !currentTemplate && (
+          {/* Indicador de template ativo + botão Trocar (múltiplos disponíveis) */}
+          {currentTemplate && templatesForCurrent.length > 1 && (
+            <div className="mb-2 flex items-center justify-between rounded-lg border border-[var(--bdr)] bg-[var(--bg2)] px-3 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                {currentTemplate.thumbnail && (
+                  <img src={currentTemplate.thumbnail} alt="" className="h-8 w-6 shrink-0 rounded object-cover" />
+                )}
+                <div className="min-w-0">
+                  <div className="truncate text-[11px] font-semibold text-[var(--txt)]">{currentTemplate.nome}</div>
+                  <div className="text-[10px] text-[var(--txt3)]">{templatesForCurrent.length} templates disponíveis</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTemplatePicker(true)}
+                className="ml-3 shrink-0 rounded-lg border border-[var(--bdr)] px-3 py-1 text-[10px] font-semibold text-[var(--txt2)] hover:border-[var(--orange)] hover:text-[var(--orange)] transition-colors"
+              >
+                Trocar
+              </button>
+            </div>
+          )}
+
+          {/* Múltiplos templates, nenhum selecionado ainda */}
+          {tab !== "card_whatsapp" && !currentTemplate && templatesForCurrent.length > 1 && (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <ImageIcon size={24} className="text-[var(--txt3)]" />
+              <div className="text-[12px] text-[var(--txt3)]">
+                {templatesForCurrent.length} templates disponíveis para <strong>{FORM_LABELS[tab as FormType]}</strong> · <strong>{FORMAT_LABELS[format]}</strong>
+              </div>
+              <button
+                onClick={() => setShowTemplatePicker(true)}
+                className="rounded-lg bg-[var(--orange)] px-5 py-2 text-[12px] font-semibold text-white"
+              >
+                Escolher template
+              </button>
+            </div>
+          )}
+
+          {tab !== "card_whatsapp" && !currentTemplate && templatesForCurrent.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <ImageIcon size={24} className="text-[var(--txt3)]" />
               <div className="text-[12px] text-[var(--txt3)]">
-                Nenhum template de <strong>{FORM_LABELS[tab]}</strong> para <strong>{FORMAT_LABELS[format]}</strong>.
+                Nenhum template de <strong>{FORM_LABELS[tab as FormType]}</strong> para <strong>{FORMAT_LABELS[format]}</strong>.
               </div>
             </div>
           )}
@@ -1663,6 +1740,70 @@ export default function UnidadePublicarPage() {
         )}
       </div>
     </div>
+
+    {/* ── Modal seletor de template ───────────────── */}
+    {showTemplatePicker && (
+      <div
+        className="fixed inset-0 z-[300] flex items-end justify-center sm:items-center"
+        style={{ background: "rgba(0,0,0,.55)", backdropFilter: "blur(6px)" }}
+        onClick={(e) => { if (e.target === e.currentTarget) setShowTemplatePicker(false); }}
+      >
+        <div className="mx-0 w-full max-w-lg rounded-t-2xl sm:rounded-2xl border border-[var(--bdr)] shadow-2xl" style={{ background: "var(--bg1)" }}>
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-[var(--bdr)] px-5 py-4">
+            <div>
+              <div className="text-[14px] font-bold text-[var(--txt)]">Escolha o template</div>
+              <div className="mt-0.5 text-[10px] text-[var(--txt3)]">
+                {FORM_LABELS[tab as FormType]} · {FORMAT_LABELS[format]} · {templatesForCurrent.length} disponíveis
+              </div>
+            </div>
+            <button
+              onClick={() => setShowTemplatePicker(false)}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--txt3)] hover:bg-[var(--hover-bg)] hover:text-[var(--txt)]"
+            >
+              <ChevronDown size={16} />
+            </button>
+          </div>
+
+          {/* Grid de miniaturas */}
+          <div className="grid grid-cols-2 gap-3 overflow-y-auto p-4 sm:grid-cols-3" style={{ maxHeight: "60vh" }}>
+            {templatesForCurrent.map((tpl) => {
+              const isSelected = selectedTemplateId === tpl.id;
+              return (
+                <button
+                  key={tpl.id}
+                  onClick={() => { setSelectedTemplateId(tpl.id); setShowTemplatePicker(false); }}
+                  className={`text-left overflow-hidden rounded-xl border-2 transition-all ${
+                    isSelected
+                      ? "border-[var(--orange)] shadow-md"
+                      : "border-[var(--bdr)] hover:border-[var(--txt3)]"
+                  }`}
+                >
+                  {/* Thumbnail */}
+                  <div
+                    className="flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900"
+                    style={{ aspectRatio: format === "tv" ? "16/9" : format === "feed" ? "4/5" : "9/16" }}
+                  >
+                    {tpl.thumbnail ? (
+                      <img src={tpl.thumbnail} alt={tpl.nome} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-2xl opacity-20">📄</span>
+                    )}
+                  </div>
+                  {/* Nome */}
+                  <div className={`px-2 py-2 ${isSelected ? "bg-[rgba(var(--orange-rgb),.08)]" : ""}`}>
+                    <div className="line-clamp-2 text-[11px] font-medium text-[var(--txt)]">{tpl.nome}</div>
+                    {isSelected && (
+                      <div className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--orange)]">Selecionado</div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    )}
   );
 }
 

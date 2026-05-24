@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin, Users, RefreshCw, CheckCircle, SlidersHorizontal } from "lucide-react";
+import { Pencil, Copy, CopyPlus, Trash2, Building2, MapPin, Users, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export interface CanvasTemplate {
@@ -406,14 +406,25 @@ export function TemplateCard({
         >
           <SlidersHorizontal size={15} />
         </button>
-        {activeStatus !== null && onSetActive && (
+        {activeStatus !== null && activeStatus !== undefined && onSetActive && (
           <button
             onClick={() => onSetActive(t.key)}
             onMouseEnter={() => setTooltip(activeStatus === "active" ? "Desativar" : "Ativar")}
             onMouseLeave={() => setTooltip(null)}
-            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${activeStatus === "active" ? "text-[#16a34a] hover:bg-[rgba(239,68,68,0.10)] hover:text-[#ef4444]" : "text-[#ef4444] hover:bg-[rgba(22,163,74,0.10)] hover:text-[#16a34a]"}`}
+            className="flex h-8 items-center justify-center px-2 transition-opacity hover:opacity-75"
+            title={activeStatus === "active" ? "Desativar" : "Ativar"}
           >
-            <CheckCircle size={15} />
+            <span
+              className={`relative inline-flex h-[14px] w-[26px] shrink-0 rounded-full transition-colors duration-200 ${
+                activeStatus === "active" ? "bg-[#16a34a]" : "bg-[#d1d5db]"
+              }`}
+            >
+              <span
+                className={`absolute top-[2px] h-[10px] w-[10px] rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                  activeStatus === "active" ? "translate-x-[14px]" : "translate-x-[2px]"
+                }`}
+              />
+            </span>
           </button>
         )}
         {onAccess && (
