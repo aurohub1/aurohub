@@ -60,6 +60,9 @@ export default function RootLayout({
             __html: `(function(){var t=localStorage.getItem('ah_theme');if(!t){var h=new Date().getHours();t=(h>=6&&h<19)?'light':'dark';}document.documentElement.setAttribute('data-theme',t);})();`,
           }}
         />
+        {/* Helvetica Neue Heavy + Bold — preload global para canvas de publicação */}
+        <link rel="preload" href="https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEHEAVY_q77zuw.OTF" as="font" type="font/otf" crossOrigin="anonymous" />
+        <link rel="preload" href="https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBOLD_mzadvj.OTF" as="font" type="font/otf" crossOrigin="anonymous" />
         {/* iOS splash screens — apple-touch-startup-image */}
         <link rel="apple-touch-startup-image" href="/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         <link rel="apple-touch-startup-image" href="/splash-1668x2224.png" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />

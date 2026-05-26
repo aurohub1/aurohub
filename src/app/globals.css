@@ -118,11 +118,11 @@
 }
 
 /* ── Helvetica Neue — Cloudinary (dxgj4bcch) ─────────────────────
-   Pesos 100-500, 700i, 800i, 900 carregam apenas no editor (/editor/layout.tsx).
-   Aqui ficam só os 3 pesos usados em todas as páginas do app.      */
+   Pesos 400, 700 e 800 disponíveis em todas as páginas (canvas de publicação).
+   Pesos 100-500i, 700i, 900 carregam apenas no editor (/editor/layout.tsx). */
 @font-face { font-family: "Helvetica Neue"; font-weight: 400; font-style: normal; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEROMAN_zujaeg.OTF") format("opentype"); font-display: swap; }
 @font-face { font-family: "Helvetica Neue"; font-weight: 700; font-style: normal; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEBOLD_mzadvj.OTF") format("opentype"); font-display: swap; }
-@font-face { font-family: "Helvetica Neue"; font-weight: 800; font-style: normal; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEHEAVY_q77zuw.OTF") format("opentype"); font-display: optional; }
+@font-face { font-family: "Helvetica Neue"; font-weight: 800; font-style: normal; src: url("https://res.cloudinary.com/dxgj4bcch/raw/upload/HELVETICANEUEHEAVY_q77zuw.OTF") format("opentype"); font-display: swap; }
 
 html {
   height: 100%;

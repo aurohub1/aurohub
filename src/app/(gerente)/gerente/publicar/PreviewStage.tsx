@@ -464,13 +464,18 @@ function applyLamColorMap(el: EditorElement, map: Record<string, string>): Edito
 function resolveKonvaFontStyle(el: any): string {
   const style: string = el.fontStyle || '';
   const numericWeight = parseInt(style, 10);
+  // Peso numérico puro ("400","700","800") → passa direto
   if (!isNaN(numericWeight) && style.trim() === String(numericWeight)) {
-    return numericWeight >= 700 ? 'bold' : 'normal';
+    return String(numericWeight);
   }
+  // Estilos textuais simples
   if (style === 'bold' || style === 'italic' || style === 'bold italic') return style;
+  // Combinação com peso numérico: "italic 800", "oblique 700" → passa direto
+  if (/\d/.test(style)) return style;
+  // Fallback: fontWeight numérico do schema (esquemas antigos)
   const weight = el.fontWeight;
-  const isBold = weight === 'bold' || Number(weight) >= 700;
-  return isBold ? 'bold' : 'normal';
+  if (weight && !isNaN(Number(weight))) return String(Number(weight));
+  return weight === 'bold' ? 'bold' : 'normal';
 }
 
 function skewProps(el: EditorElement) {
@@ -938,16 +943,59 @@ export default function PreviewStage({ schema, width, height, values, onReady }:
   }, [schema.elements, values]);
 
   useEffect(() => {
-    Promise.all([
-      document.fonts.load('800 1em "Helvetica Neue"'),
-      document.fonts.load('900 1em "Helvetica Neue"'),
-      document.fonts.load('700 1em "Helvetica Neue"'),
-    ]).then(() => setFontsLoaded(true));
+    // 1. FontFace API: carrega todos os pesos de Helvetica Neue
+    const CDN = "https://res.cloudinary.com/dxgj4bcch/raw/upload";
+    const faces = [
+      { src: `${CDN}/HELVETICANEUEROMAN_zujaeg.OTF`,  weight: "400" },
+      { src: `${CDN}/HELVETICANEUEMEDIUM_cseel0.OTF`, weight: "500" },
+      { src: `${CDN}/HELVETICANEUEBOLD_mzadvj.OTF`,   weight: "700" },
+      { src: `${CDN}/HELVETICANEUEHEAVY_q77zuw.OTF`,  weight: "800" },
+      { src: `${CDN}/HELVETICANEUEBLACK_os5dq7.OTF`,  weight: "900" },
+    ];
+    Promise.all(
+      faces.map(({ src, weight }) => {
+        const face = new FontFace("Helvetica Neue", `url(${src})`, { weight });
+        return face.load().then(loaded => { document.fonts.add(loaded); }).catch(() => {});
+      })
+    ).then(async () => {
+      // 2. document.fonts.load com peso+tamanho EXATOS de cada elemento de texto
+      //    Garante que o browser comprometeu a fonte para aquele contexto de canvas.
+      const seen = new Set<string>();
+      const perElLoads: Promise<FontFace[]>[] = [];
+      for (const el of schema.elements) {
+        if (el.type !== "text") continue;
+        const family = (el as any).fontFamily ?? "Helvetica Neue";
+        const rawStyle = String((el as any).fontStyle || "");
+        // Extrai peso numérico: "800" → 800, "italic 800" → 800, "bold" → 700
+        const wMatch = rawStyle.match(/\b(\d+)\b/);
+        const weight = wMatch ? parseInt(wMatch[1], 10)
+                              : rawStyle.includes("bold") ? 700 : 400;
+        const size = (el as any).fontSize ?? 24;
+        const key = `${weight}/${size}/${family}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        perElLoads.push(
+          document.fonts.load(`${weight} ${size}px "${family}"`).catch(() => [])
+        );
+      }
+      await Promise.all(perElLoads);
+      setFontsLoaded(true);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (stageRef.current && onReady) onReady(stageRef.current);
   }, [onReady]);
+
+  // Força redesenho do canvas após Stage montar com as fontes já carregadas
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const raf = requestAnimationFrame(() => stage.batchDraw());
+    return () => cancelAnimationFrame(raf);
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
 
@@ -976,6 +1024,43 @@ export default function PreviewStage({ schema, width, height, values, onReady }:
  * Exporta o canvas em tamanho real (não escalado).
  */
 export async function exportStagePNG(stage: Konva.Stage): Promise<string> {
-  try { await Promise.all(['700','900'].map(w => document.fonts.load(`${w} 1em "Helvetica Neue"`))); await document.fonts.ready; } catch { /* noop */ }
+  try {
+    const CDN = "https://res.cloudinary.com/dxgj4bcch/raw/upload";
+    const faces = [
+      { src: `${CDN}/HELVETICANEUEROMAN_zujaeg.OTF`,  weight: "400" },
+      { src: `${CDN}/HELVETICANEUEMEDIUM_cseel0.OTF`, weight: "500" },
+      { src: `${CDN}/HELVETICANEUEBOLD_mzadvj.OTF`,   weight: "700" },
+      { src: `${CDN}/HELVETICANEUEHEAVY_q77zuw.OTF`,  weight: "800" },
+      { src: `${CDN}/HELVETICANEUEBLACK_os5dq7.OTF`,  weight: "900" },
+    ];
+    await Promise.all(faces.map(({ src, weight }) =>
+      new FontFace("Helvetica Neue", `url(${src})`, { weight }).load()
+        .then(f => document.fonts.add(f)).catch(() => {})
+    ));
+    await document.fonts.ready;
+
+    // Carrega fonte com peso+tamanho EXATOS de cada nó Text do canvas
+    const textNodes = stage.find('Text');
+    if (textNodes.length) {
+      const seen = new Set<string>();
+      const loads: Promise<FontFace[]>[] = [];
+      for (const node of textNodes) {
+        const n = node as any;
+        const family: string = n.fontFamily?.() || "Helvetica Neue";
+        const styleStr: string = n.fontStyle?.() || "normal";
+        // Extrai peso numérico: "800" → 800, "italic 800" → 800, "bold" → 700
+        const wMatch = styleStr.match(/\b(\d+)\b/);
+        const weight = wMatch ? parseInt(wMatch[1], 10)
+                              : styleStr.includes("bold") ? 700 : 400;
+        const size: number = n.fontSize?.() || 24;
+        const key = `${weight}/${size}/${family}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        loads.push(document.fonts.load(`${weight} ${size}px "${family}"`).catch(() => []));
+      }
+      await Promise.all(loads);
+      stage.draw(); // redesenho síncrono com fontes já comprometidas
+    }
+  } catch { /* noop */ }
   return stage.toDataURL({ pixelRatio: 1 / (stage.scaleX() || 1), mimeType: "image/png" });
 }

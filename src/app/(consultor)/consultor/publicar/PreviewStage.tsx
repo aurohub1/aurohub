@@ -405,16 +405,16 @@ function applyLamColorMap(el: EditorElement, map: Record<string, string>): Edito
 function resolveKonvaFontStyle(el: any): string {
   const style: string = el.fontStyle || '';
   const numericWeight = parseInt(style, 10);
-  // Peso numérico puro ("700", "800", "900") → Konva só aceita "bold" ou "normal"
+  // Peso numérico puro ("400","500","700","800","900") → passa direto como CSS font shorthand
   if (!isNaN(numericWeight) && style.trim() === String(numericWeight)) {
-    return numericWeight >= 700 ? 'bold' : 'normal';
+    return String(numericWeight);
   }
   // Valores nativos Konva: passa direto
   if (style === 'bold' || style === 'italic' || style === 'bold italic') return style;
   // Fallback: fontWeight separado (schemas antigos)
   const weight = el.fontWeight;
-  const isBold = weight === 'bold' || Number(weight) >= 700;
-  return isBold ? 'bold' : 'normal';
+  if (weight && !isNaN(Number(weight))) return String(Number(weight));
+  return weight === 'bold' ? 'bold' : 'normal';
 }
 
 function skewProps(el: EditorElement) {
@@ -872,11 +872,22 @@ export default function PreviewStage({ schema, width, height, values, onReady }:
   }, [schema.elements, values]);
 
   useEffect(() => {
-    Promise.all([
-      document.fonts.load('800 1em "Helvetica Neue"'),
-      document.fonts.load('900 1em "Helvetica Neue"'),
-      document.fonts.load('700 1em "Helvetica Neue"'),
-    ]).then(() => setFontsLoaded(true));
+    // FontFace API direta — bypassa font-display:optional do globals.css
+    // (document.fonts.load não força download quando font-display é optional)
+    const CDN = "https://res.cloudinary.com/dxgj4bcch/raw/upload";
+    const faces = [
+      { src: `${CDN}/HELVETICANEUEROMAN_zujaeg.OTF`,  weight: "400" },
+      { src: `${CDN}/HELVETICANEUEMEDIUM_cseel0.OTF`, weight: "500" },
+      { src: `${CDN}/HELVETICANEUEBOLD_mzadvj.OTF`,   weight: "700" },
+      { src: `${CDN}/HELVETICANEUEHEAVY_q77zuw.OTF`,  weight: "800" },
+      { src: `${CDN}/HELVETICANEUEBLACK_os5dq7.OTF`,  weight: "900" },
+    ];
+    Promise.all(
+      faces.map(({ src, weight }) => {
+        const face = new FontFace("Helvetica Neue", `url(${src})`, { weight });
+        return face.load().then(loaded => { document.fonts.add(loaded); }).catch(() => {});
+      })
+    ).then(() => setFontsLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -910,6 +921,20 @@ export default function PreviewStage({ schema, width, height, values, onReady }:
  * Exporta o canvas em tamanho real (não escalado).
  */
 export async function exportStagePNG(stage: Konva.Stage): Promise<string> {
-  try { await Promise.all(['700','900'].map(w => document.fonts.load(`${w} 1em "Helvetica Neue"`))); await document.fonts.ready; } catch { /* noop */ }
+  try {
+    const CDN = "https://res.cloudinary.com/dxgj4bcch/raw/upload";
+    const faces = [
+      { src: `${CDN}/HELVETICANEUEROMAN_zujaeg.OTF`,  weight: "400" },
+      { src: `${CDN}/HELVETICANEUEMEDIUM_cseel0.OTF`, weight: "500" },
+      { src: `${CDN}/HELVETICANEUEBOLD_mzadvj.OTF`,   weight: "700" },
+      { src: `${CDN}/HELVETICANEUEHEAVY_q77zuw.OTF`,  weight: "800" },
+      { src: `${CDN}/HELVETICANEUEBLACK_os5dq7.OTF`,  weight: "900" },
+    ];
+    await Promise.all(faces.map(({ src, weight }) =>
+      new FontFace("Helvetica Neue", `url(${src})`, { weight }).load()
+        .then(f => document.fonts.add(f)).catch(() => {})
+    ));
+    await document.fonts.ready;
+  } catch { /* noop */ }
   return stage.toDataURL({ pixelRatio: 1 / (stage.scaleX() || 1), mimeType: "image/png" });
 }
