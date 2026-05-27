@@ -245,7 +245,7 @@ export default function ImportarTemplatePage() {
     height: Math.round((el.h / 100) * canvasH),
     fontSize: Math.round((el.fontSize || 32) * (canvasW / 1080)),
     fontFamily: "Helvetica Neue",
-    fontStyle: (el.fontStyle && el.fontStyle !== "bold") ? el.fontStyle : "400",
+    fontStyle: ((el as any).fontStyle && (el as any).fontStyle !== "bold") ? (el as any).fontStyle : "400",
     fill: el.color || "#FFFFFF",
     text: el.bind ? `[${el.bind}]` : el.label || "",
     bindParam: el.bind || "",
