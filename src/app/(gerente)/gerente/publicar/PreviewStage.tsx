@@ -952,7 +952,13 @@ export default function PreviewStage({ schema, width, height, values, onReady }:
 
   useEffect(() => {
     if (!fontsReady) return;
-    stageRef.current?.batchDraw();
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        stageRef.current?.batchDraw();
+      });
+      return () => cancelAnimationFrame(raf2);
+    });
+    return () => cancelAnimationFrame(raf1);
   }, [fontsReady, schema]);
 
   if (!fontsReady) return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
