@@ -881,7 +881,7 @@ interface Props {
 export default function PreviewStage({ schema, width, height, values, onReady }: Props) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontsReady, setFontsReady] = useState(false);
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
@@ -943,61 +943,22 @@ export default function PreviewStage({ schema, width, height, values, onReady }:
   }, [schema.elements, values]);
 
   useEffect(() => {
-    // 1. FontFace API: carrega todos os pesos de Helvetica Neue
-    const CDN = "https://res.cloudinary.com/dxgj4bcch/raw/upload";
-    const faces = [
-      { src: `${CDN}/HELVETICANEUEROMAN_zujaeg.OTF`,  weight: "400" },
-      { src: `${CDN}/HELVETICANEUEMEDIUM_cseel0.OTF`, weight: "500" },
-      { src: `${CDN}/HELVETICANEUEBOLD_mzadvj.OTF`,   weight: "700" },
-      { src: `${CDN}/HELVETICANEUEHEAVY_q77zuw.OTF`,  weight: "800" },
-      { src: `${CDN}/HELVETICANEUEBLACK_os5dq7.OTF`,  weight: "900" },
-    ];
+    const weights = [400, 700, 800, 900];
     Promise.all(
-      faces.map(({ src, weight }) => {
-        const face = new FontFace("Helvetica Neue", `url(${src})`, { weight });
-        return face.load().then(loaded => { document.fonts.add(loaded); }).catch(() => {});
-      })
-    ).then(async () => {
-      // 2. document.fonts.load com peso+tamanho EXATOS de cada elemento de texto
-      //    Garante que o browser comprometeu a fonte para aquele contexto de canvas.
-      const seen = new Set<string>();
-      const perElLoads: Promise<FontFace[]>[] = [];
-      for (const el of schema.elements) {
-        if (el.type !== "text") continue;
-        const family = (el as any).fontFamily ?? "Helvetica Neue";
-        const rawStyle = String((el as any).fontStyle || "");
-        // Extrai peso numérico: "800" → 800, "italic 800" → 800, "bold" → 700
-        const wMatch = rawStyle.match(/\b(\d+)\b/);
-        const weight = wMatch ? parseInt(wMatch[1], 10)
-                              : rawStyle.includes("bold") ? 700 : 400;
-        const size = (el as any).fontSize ?? 24;
-        const key = `${weight}/${size}/${family}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        perElLoads.push(
-          document.fonts.load(`${weight} ${size}px "${family}"`).catch(() => [])
-        );
-      }
-      await Promise.all(perElLoads);
-      setFontsLoaded(true);
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      weights.map(w => document.fonts.load(`${w} 32px "Helvetica Neue"`))
+    ).then(() => setFontsReady(true));
   }, []);
 
   useEffect(() => {
     if (stageRef.current && onReady) onReady(stageRef.current);
   }, [onReady]);
 
-  // Força redesenho do canvas após Stage montar com as fontes já carregadas
   useEffect(() => {
-    if (!fontsLoaded) return;
-    const stage = stageRef.current;
-    if (!stage) return;
-    const raf = requestAnimationFrame(() => stage.batchDraw());
-    return () => cancelAnimationFrame(raf);
-  }, [fontsLoaded]);
+    if (!fontsReady) return;
+    stageRef.current?.batchDraw();
+  }, [fontsReady, schema]);
 
-  if (!fontsLoaded) return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
+  if (!fontsReady) return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
 
   return (
     <div ref={containerRef} style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>

@@ -410,6 +410,8 @@ function resolveKonvaFontStyle(el: any): string {
     return String(numericWeight);
   }
   if (style === 'bold' || style === 'italic' || style === 'bold italic') return style;
+  // Combinação com peso numérico: "italic 800", "oblique 700" → passa direto
+  if (/\d/.test(style)) return style;
   const weight = el.fontWeight;
   if (weight && !isNaN(Number(weight))) return String(Number(weight));
   return weight === 'bold' ? 'bold' : 'normal';
