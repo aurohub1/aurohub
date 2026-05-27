@@ -463,19 +463,23 @@ function applyLamColorMap(el: EditorElement, map: Record<string, string>): Edito
 
 function resolveKonvaFontStyle(el: any): string {
   const style: string = el.fontStyle || '';
-  const numericWeight = parseInt(style, 10);
-  // Peso numérico puro ("400","700","800") → passa direto
-  if (!isNaN(numericWeight) && style.trim() === String(numericWeight)) {
-    return String(numericWeight);
-  }
-  // Estilos textuais simples
-  if (style === 'bold' || style === 'italic' || style === 'bold italic') return style;
-  // Combinação com peso numérico: "italic 800", "oblique 700" → passa direto
-  if (/\d/.test(style)) return style;
-  // Fallback: fontWeight numérico do schema (esquemas antigos)
-  const weight = el.fontWeight;
-  if (weight && !isNaN(Number(weight))) return String(Number(weight));
-  return weight === 'bold' ? 'bold' : 'normal';
+  const result = (() => {
+    const numericWeight = parseInt(style, 10);
+    // Peso numérico puro ("400","700","800") → passa direto
+    if (!isNaN(numericWeight) && style.trim() === String(numericWeight)) {
+      return String(numericWeight);
+    }
+    // Estilos textuais simples
+    if (style === 'bold' || style === 'italic' || style === 'bold italic') return style;
+    // Combinação com peso numérico: "italic 800", "oblique 700" → passa direto
+    if (/\d/.test(style)) return style;
+    // Fallback: fontWeight numérico do schema (esquemas antigos)
+    const weight = el.fontWeight;
+    if (weight && !isNaN(Number(weight))) return String(Number(weight));
+    return weight === 'bold' ? 'bold' : 'normal';
+  })();
+  console.log('[resolveKonvaFontStyle]', { fontStyle: el.fontStyle, fontWeight: el.fontWeight, result });
+  return result;
 }
 
 function skewProps(el: EditorElement) {
