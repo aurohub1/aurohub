@@ -424,6 +424,13 @@ export default function PublicarPageBase({
       .order("format")
       .order("name");
     if (data) {
+      // [DEBUG] ETAPA 1 — raw do banco (form_templates.schema, campo JSONB)
+      data.forEach((r: any) => {
+        if (r.name === "Pacote Base") {
+          const el = r.schema?.elements?.find((e: any) => e.bindParam === "valorint");
+          console.log('[ETAPA-1 DB raw]', r.name, el ? { fontStyle: el.fontStyle, fontWeight: el.fontWeight } : 'valorint not found');
+        }
+      });
       const mapped = data.map((r: any) => ({
         id: r.id,
         name: r.name,
@@ -438,6 +445,13 @@ export default function PublicarPageBase({
         height: r.height || FORMAT_DIMS[r.format as Format]?.[1] || 1920,
         thumbnail_url: r.thumbnail_url || null,
       }));
+      // [DEBUG] ETAPA 2 — após mapeamento (TemplateRow[])
+      mapped.forEach((t: any) => {
+        if (t.name === "Pacote Base") {
+          const el = t.schema?.elements?.find((e: any) => e.bindParam === "valorint");
+          console.log('[ETAPA-2 mapped]', t.name, el ? { fontStyle: el.fontStyle, fontWeight: el.fontWeight } : 'valorint not found');
+        }
+      });
       setTemplates(mapped);
       setTemplatesLoading(false);
     }
@@ -799,6 +813,11 @@ export default function PublicarPageBase({
     background: "#0E1520",
     duration: 5,
   };
+  // [DEBUG] ETAPA 3 — schema passado para <PreviewStage schema={schema}>
+  if (currentTemplate?.name === "Pacote Base") {
+    const el = schema?.elements?.find((e: any) => e.bindParam === "valorint");
+    console.log('[ETAPA-3 schema prop]', currentTemplate.name, el ? { fontStyle: el.fontStyle, fontWeight: el.fontWeight } : 'valorint not found');
+  }
   const [pw, ph] = FORMAT_DIMS[format];
 
   function goToForm(tipo: FormType) {
@@ -846,6 +865,11 @@ export default function PublicarPageBase({
   // Carrega fontes necessárias pelo peso+tamanho exatos de cada elemento de texto,
   // depois força redesenho do canvas Konva.
   const loadRequiredFonts = useCallback(async (elements: any[]) => {
+    // [DEBUG] ETAPA 4 — loadRequiredFonts (elemento valorint antes do batchDraw)
+    const valorintEl = elements.find((e: any) => e.bindParam === "valorint");
+    if (valorintEl) {
+      console.log('[ETAPA-4 loadRequiredFonts]', { fontStyle: valorintEl.fontStyle, fontWeight: valorintEl.fontWeight });
+    }
     const seen = new Set<string>();
     const fontPromises = elements
       .filter(el => el.type === "text" || el.type === "textbox")
