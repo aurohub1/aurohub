@@ -943,10 +943,7 @@ export default function PreviewStage({ schema, width, height, values, onReady }:
   }, [schema.elements, values]);
 
   useEffect(() => {
-    const weights = [400, 700, 800, 900];
-    Promise.all(
-      weights.map(w => document.fonts.load(`${w} 32px "Helvetica Neue"`))
-    ).then(() => setFontsReady(true));
+    document.fonts.ready.then(() => setFontsReady(true));
   }, []);
 
   useEffect(() => {
