@@ -1140,6 +1140,7 @@ export default function UnidadePublicarPage() {
   if (loading) return <div className="text-[13px] text-[var(--txt3)]">Carregando...</div>;
 
   return (
+    <>
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr] page-fade publicar-mobile">
       <style>{`
         /* Mobile-only (<768px): anti-zoom iOS em inputs + alvo touch 44px */
@@ -1804,6 +1805,7 @@ export default function UnidadePublicarPage() {
         </div>
       </div>
     )}
+    </>
   );
 }
 
