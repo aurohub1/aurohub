@@ -584,7 +584,7 @@ export default function EditorPage() {
                       <Prop label="Cor"><input type="color" value={t.fill} onChange={(e) => updateEl(t.id, { fill: e.target.value })} className="h-7 w-full cursor-pointer rounded border border-[var(--bdr)]" /></Prop>
                     </div>
                     <div className="flex gap-1">
-                      <button onClick={() => updateEl(t.id, { fontStyle: t.fontStyle === "bold" ? "normal" : "bold" })} className={`flex-1 rounded py-1 text-[11px] font-bold ${t.fontStyle === "bold" ? "bg-[var(--bg3)] text-[var(--txt)]" : "text-[var(--txt3)]"}`}>B</button>
+                      <button onClick={() => updateEl(t.id, { fontStyle: t.fontStyle === "bold" ? "400" : "700" })} className={`flex-1 rounded py-1 text-[11px] font-bold ${t.fontStyle === "bold" ? "bg-[var(--bg3)] text-[var(--txt)]" : "text-[var(--txt3)]"}`}>B</button>
                       <button onClick={() => updateEl(t.id, { fontStyle: t.fontStyle === "italic" ? "normal" : "italic" })} className={`flex-1 rounded py-1 text-[11px] italic ${t.fontStyle === "italic" ? "bg-[var(--bg3)] text-[var(--txt)]" : "text-[var(--txt3)]"}`}>I</button>
                       {(["left", "center", "right"] as const).map((a) => (
                         <button key={a} onClick={() => updateEl(t.id, { align: a })} className={`flex-1 rounded py-1 text-[11px] ${t.align === a ? "bg-[var(--bg3)] text-[var(--txt)]" : "text-[var(--txt3)]"}`}>
