@@ -843,6 +843,34 @@ export default function PublicarPageBase({
     }, 260);
   }
 
+  // Carrega fontes necessárias pelo peso+tamanho exatos de cada elemento de texto,
+  // depois força redesenho do canvas Konva.
+  const loadRequiredFonts = useCallback(async (elements: any[]) => {
+    const seen = new Set<string>();
+    const fontPromises = elements
+      .filter(el => el.type === "text" || el.type === "textbox")
+      .flatMap(el => {
+        const rawStyle = String(el.fontStyle || "");
+        const wMatch = rawStyle.match(/\b(\d+)\b/);
+        const weight = wMatch ? parseInt(wMatch[1], 10)
+                              : rawStyle.includes("bold") ? 700 : 400;
+        const family: string = el.fontFamily || "Helvetica Neue";
+        const size: number = el.fontSize || 24;
+        const key = `${weight}/${size}/${family}`;
+        if (seen.has(key)) return [];
+        seen.add(key);
+        return [document.fonts.load(`${weight} ${size}px "${family}"`).catch(() => [])];
+      });
+    await Promise.all(fontPromises);
+  }, []);
+
+  useEffect(() => {
+    if (!schema?.elements?.length) return;
+    loadRequiredFonts(schema.elements).then(() => {
+      stageRef.current?.batchDraw();
+    });
+  }, [schema, loadRequiredFonts]);
+
   // nomeLoja para PacoteForm
   const nomeLoja = getNomeLoja(profile!, effectiveSelectedTargetIds, effectivePublishTargets);
 
