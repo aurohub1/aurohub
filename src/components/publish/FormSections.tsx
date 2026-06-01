@@ -1967,7 +1967,7 @@ export function CruzeiroForm({
           </Field>
 
           {/* Valor da Parcela */}
-          <Field label="Valor da Parcela *">
+          <Field label="Valor Parcela *">
             <input
               type="text"
               value={(fields.valorparcela as string) || ''}
