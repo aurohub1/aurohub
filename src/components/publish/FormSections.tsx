@@ -1716,6 +1716,8 @@ export function CruzeiroForm({
   onImgFundo?: (nome: string) => Promise<void>;
 }) {
   void onImgFundo;
+  const [textoTotalManual, setTextoTotalManual] = useState('');
+
   // ═══ CÁLCULO AUTOMÁTICO: QUANTAS NOITES ═══
   const dataIda = (fields.dataida as string) || '';
   const dataVolta = (fields.datavolta as string) || '';
@@ -1802,9 +1804,18 @@ export function CruzeiroForm({
     if (vt) {
       set('valor_total', vt);
       set('crz_valor_total', vt); // Prefixado
+      if (!textoTotalManual) {
+        const textoAutoGerado = textoTotalCabine(vt);
+        set('valor_total_texto', textoAutoGerado);
+        set('cruzeiro_total', textoAutoGerado);
+        set('valortotal_cruzeiro', textoAutoGerado);
+        set('crz_valor_total_texto', textoAutoGerado);
+        set('crz_cruzeiro_total', textoAutoGerado);
+        set('crz_valortotal_cruzeiro', textoAutoGerado);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields.valortotal]);
+  }, [fields.valortotal, textoTotalManual]);
 
   return (
     <>
@@ -1987,19 +1998,38 @@ export function CruzeiroForm({
               const f = applyPriceMask(e.target.value);
               set('valortotal', f.formatted || e.target.value);
               set('valor_total', f.formatted || e.target.value);
-              set('cruzeiro_total', textoTotalCabine(f.formatted));
-              set('valortotal_cruzeiro', textoTotalCabine(f.formatted));
-              set('valor_total_texto', textoTotalCabine(f.formatted));
+              const textoAutoGerado = textoTotalCabine(f.formatted);
+              set('cruzeiro_total', textoTotalManual || textoAutoGerado);
+              set('valortotal_cruzeiro', textoTotalManual || textoAutoGerado);
+              set('valor_total_texto', textoTotalManual || textoAutoGerado);
               // Prefixados para isolamento entre forms
               set('crz_valortotal', f.formatted || e.target.value);
               set('crz_valor_total', f.formatted || e.target.value);
-              set('crz_cruzeiro_total', textoTotalCabine(f.formatted));
-              set('crz_valortotal_cruzeiro', textoTotalCabine(f.formatted));
-              set('crz_valor_total_texto', textoTotalCabine(f.formatted));
+              set('crz_cruzeiro_total', textoTotalManual || textoAutoGerado);
+              set('crz_valortotal_cruzeiro', textoTotalManual || textoAutoGerado);
+              set('crz_valor_total_texto', textoTotalManual || textoAutoGerado);
             }}
             placeholder="0,00"
             className={INPUT_CLASS}
           />
+        </Field>
+
+        {/* Texto do Valor Total — editável */}
+        <Field label="Texto do Valor Total">
+          <input
+            type="text"
+            value={textoTotalManual}
+            onChange={(e) => {
+              setTextoTotalManual(e.target.value);
+              set('valor_total_texto', e.target.value);
+              set('crz_valor_total_texto', e.target.value);
+            }}
+            placeholder="Ex: ou R$ 3.200,00 por pessoa cabine dupla."
+            className={INPUT_CLASS}
+          />
+          <p className="mt-1 text-xs text-[var(--txt3)]">
+            Deixe em branco para usar o valor calculado automaticamente.
+          </p>
         </Field>
       </Section>
 
