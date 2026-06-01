@@ -177,6 +177,8 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
       return values.data_correta || "";
     case "valor_total_texto":
     case "valortotaltexto": {
+      // Respeitar override manual (digitado pelo usuário no campo livre)
+      if (values.valor_total_texto) return values.valor_total_texto as string;
       const v = (values.valortotal as string) || '';
       if (!v) return '';
       const isCruzeiro = !!(values.cruzeiro_total || values.valortotal_cruzeiro);
@@ -184,6 +186,10 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     }
     case "cruzeiro_total":
     case "valortotal_cruzeiro": {
+      // Respeitar override manual via valor_total_texto, depois stored, depois auto
+      if (values.valor_total_texto) return values.valor_total_texto as string;
+      const stored = (values.cruzeiro_total || values.valortotal_cruzeiro) as string | undefined;
+      if (stored) return stored;
       const v = (values.valortotal as string) || '';
       return v ? `ou R$ ${v} por pessoa cabine dupla.` : '';
     }
