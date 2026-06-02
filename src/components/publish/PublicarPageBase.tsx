@@ -1698,7 +1698,7 @@ export default function PublicarPageBase({
             status={status}
             statusMsg={statusMsg}
             currentTemplate={currentTemplate}
-            canPublish={userPerms ? userPerms.can_publish : true}
+            canPublish={tab !== "card_whatsapp" && (userPerms ? userPerms.can_publish : true)}
             canDownload={userPerms ? userPerms.can_download : true}
             onPublish={() =>
               handlePublish({
