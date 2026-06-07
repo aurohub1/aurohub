@@ -40,9 +40,11 @@ interface CanvasEditorProps {
   isAdm?: boolean;
   autoSaveStatus?: "saved" | "saving" | "idle";
   logoUrl?: string;
+  onAddCustomBind?: (name: string) => void;
+  onRemoveCustomBind?: (name: string) => void;
 }
 
-export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onAdaptFormat, onNew, isAdm, autoSaveStatus, logoUrl }: CanvasEditorProps) {
+export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onAdaptFormat, onNew, isAdm, autoSaveStatus, logoUrl, onAddCustomBind, onRemoveCustomBind }: CanvasEditorProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const resetPanRef = useRef<() => void>(() => {});
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -640,7 +642,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         />
 
         {paramView ? (
-          <ParameterView schema={schema} onUpdate={updateElement} onExport={onExport ? handleExport : undefined} onExportJpg={onExportJpg ? handleExportJpg : undefined} />
+          <ParameterView schema={schema} onUpdate={updateElement} onExport={onExport ? handleExport : undefined} onExportJpg={onExportJpg ? handleExportJpg : undefined} onAddCustomBind={onAddCustomBind} onRemoveCustomBind={onRemoveCustomBind} />
         ) : (
           <PropsPanel
             selected={selected} canvasW={width} canvasH={height} allElements={schema.elements.flatMap(el => {

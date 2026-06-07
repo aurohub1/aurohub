@@ -1,18 +1,39 @@
+import { useState } from "react";
 import { EditorElement, EditorSchema, BIND_GROUPS } from "./types";
-import { Download, RotateCcw, Upload } from "lucide-react";
+import { Download, RotateCcw, Upload, Trash2, Plus } from "lucide-react";
 
 interface Props {
   schema: EditorSchema;
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
   onExport?: () => void;
   onExportJpg?: () => void;
+  onAddCustomBind?: (name: string) => void;
+  onRemoveCustomBind?: (name: string) => void;
+}
+
+function slugifyBind(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
 }
 
 const IMAGE_BINDS = ["imgfundo", "imgdestino", "imghotel", "imgloja", "imgperfil", "imgbadge1", "imgbadge2", "imgbadge3", "img_fundo", "img_campanha", "img_aviao", "img_anoiteceu", "badge", "allinclusive", "ofertas"];
 
-export default function ParameterView({ schema, onUpdate, onExport, onExportJpg }: Props) {
+export default function ParameterView({ schema, onUpdate, onExport, onExportJpg, onAddCustomBind, onRemoveCustomBind }: Props) {
+  const [newBind, setNewBind] = useState("");
+  const customBinds: string[] = schema.customBinds || [];
   const bindElements = schema.elements.filter(el => el.bindParam);
   const isImageBind = (bp: string) => IMAGE_BINDS.includes(bp) || bp.startsWith("img");
+
+  function handleAddBind() {
+    const slug = slugifyBind(newBind);
+    if (!slug || customBinds.includes(slug)) return;
+    onAddCustomBind?.(slug);
+    setNewBind("");
+  }
 
   function resetAll() {
     for (const el of bindElements) {
@@ -112,6 +133,59 @@ export default function ParameterView({ schema, onUpdate, onExport, onExportJpg 
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {/* ── Binds customizados ── */}
+        {(customBinds.length > 0 || onAddCustomBind) && (
+          <div style={{ borderTop: "1px solid var(--ed-bdr)", paddingTop: 10, marginTop: 8 }}>
+            <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--ed-txt3)", marginBottom: 6 }}>
+              Binds customizados
+            </div>
+
+            {/* Lista */}
+            {customBinds.map(name => (
+              <div key={name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 4 }}>
+                <span style={{ fontSize: 9, color: "var(--ed-bind)", fontFamily: "monospace" }}>⬡ {name}</span>
+                {onRemoveCustomBind && (
+                  <button
+                    onClick={() => onRemoveCustomBind(name)}
+                    title="Excluir bind"
+                    style={{ width: 20, height: 20, border: "none", borderRadius: 4, background: "transparent", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }}
+                  >
+                    <Trash2 size={10} />
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {/* Input criar */}
+            {onAddCustomBind && (
+              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                <input
+                  type="text"
+                  value={newBind}
+                  onChange={e => setNewBind(slugifyBind(e.target.value))}
+                  placeholder="novo_bind"
+                  style={{ ...inputS, flex: 1 }}
+                  onKeyDown={e => { if (e.key === "Enter") handleAddBind(); }}
+                />
+                <button
+                  onClick={handleAddBind}
+                  disabled={!slugifyBind(newBind) || customBinds.includes(slugifyBind(newBind))}
+                  title="Criar bind"
+                  style={{
+                    width: 28, height: 28, border: "none", borderRadius: 6, flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: (!slugifyBind(newBind) || customBinds.includes(slugifyBind(newBind))) ? "var(--ed-hover)" : "var(--ed-active)",
+                    color: (!slugifyBind(newBind) || customBinds.includes(slugifyBind(newBind))) ? "var(--ed-txt3)" : "var(--ed-active-txt)",
+                    cursor: (!slugifyBind(newBind) || customBinds.includes(slugifyBind(newBind))) ? "not-allowed" : "pointer",
+                  }}
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

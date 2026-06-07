@@ -103,9 +103,8 @@ const TIPOS = [
     id: "tv" as FormType,
     Icon: Tv,
     nome: "TV",
-    desc: "Arte para televisão 16:9",
+    desc: "Arte para televisão",
     color: "#0891b2",
-    feature: "tv",
   },
 ];
 
@@ -782,12 +781,14 @@ export default function PublicarPageBase({
     return all.filter(f => f === "stories" || features.has(f as Feature));
   }, [features, profile]);
 
-  // Formatos com templates disponíveis, intersectados com os permitidos pela feature
+  // Formatos com templates disponíveis, intersectados com os permitidos pela feature.
+  // "tv" só aparece no toggle quando o card TV está selecionado (tab === "tv");
+  // nos demais tipos (pacote, cruzeiro, etc.) o formato TV é excluído do toggle.
   const visibleFormats = useMemo(() => {
     const s = new Set(
       templates.filter((t) => t.formType === tab).map((t) => t.format)
     );
-    return allowedFormats.filter((f) => s.has(f));
+    return allowedFormats.filter((f) => s.has(f) && (tab === "tv" || f !== "tv"));
   }, [templates, tab, allowedFormats]);
 
   // Auto-switch format when feature is revoked
@@ -1683,6 +1684,33 @@ export default function PublicarPageBase({
                 Formulário de {tab} em breve.
               </div>
             )}
+
+            {/* ── Campos de binds customizados do template ── */}
+            {(() => {
+              const customBinds: string[] = currentTemplate?.schema?.customBinds || [];
+              if (!customBinds.length) return null;
+              return (
+                <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--bdr)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--txt3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>
+                    Campos extras
+                  </div>
+                  {customBinds.map((bindName) => (
+                    <div key={bindName} style={{ marginBottom: 10 }}>
+                      <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--txt2)", marginBottom: 3 }}>
+                        {bindName}
+                      </label>
+                      <input
+                        type="text"
+                        value={values[bindName] || ""}
+                        onChange={(e) => set(bindName, e.target.value)}
+                        placeholder={`[${bindName}]`}
+                        style={{ width: "100%", height: 34, borderRadius: 7, border: "1px solid var(--bdr)", background: "var(--bg2)", padding: "0 10px", fontSize: 12, color: "var(--txt)", outline: "none", boxSizing: "border-box" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
           </div>
 

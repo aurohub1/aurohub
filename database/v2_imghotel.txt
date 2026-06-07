@@ -1,0 +1,42 @@
+CANA BRAVA ALL INCLUSIVE RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750640/canabrava_iz9wiw.png
+COMANDATUBA|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750642/comandatuba_qfdodv.png
+COROA VERMELHA HOTEL ALL INCLUSIVE|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750643/coroavermelhabeach_texqzu.png
+COROA VERMELHA HOTEL|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750643/coroavermelhabeach_texqzu.png
+COSTÃO DO SANTINHO|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750644/costaodosantinho_zbgakg.png
+COSTEIRA PALACE RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750646/costeirapalace1_utfejz.png
+EL ARAM BEACH CABO|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773770074/El_Aram_Beach_Cabo_1_1_luvk9w.png
+ENOTEL|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750655/enotel_bzdc5u.png
+GRAND OCA MARAGOGI RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750673/GRAND_OCA_MARAGOGI_RESORT_swtmj1.png
+GRAND PALLADIUM IMBASSAI RESROT E SPA|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750675/GRAND_PALLADIUM_IMBASSAI_RESORT_SPA_fvlvuy.png
+IBEROSTAR SELECTION|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750675/IBEROSTAR_SELECTION_j5xisw.png
+IBEROSTAR WAVES BAHIA|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750676/IBEROSTAR_WAVES_BAHIA_qtjcot.png
+IBEROSTAR WAVES BAHIA|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750676/IBEROSTAR_WAVES_BAHIA1_p0tuoj.png
+IBEROSTAR WAVES PUNTA CANA|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773770084/Iberostar_Waves_Punta_Cana_qab0ye.png
+LA TORRE RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750687/latorrre_wmju35.png
+MACEIÓ MAR RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750695/maceiomarresort_g9m8rq.png
+MAKAI RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750700/makai_kzws7u.png
+NAUTICOMAR RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750711/NAUTICOMAR_RESORT1_qr1lhe.png
+NAUTICOMAR RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750711/NAUTICOMAR_RESORT2_ikx6se.png
+OCAPORA HOTEL|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750712/ocapora_mkkifu.png
+OCEAN PALACE BEACH RESORT E BUNGALOWS|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750712/OCEAN_PALACE_BEACH_RESORT_E_BUNGALOWS_budhgt.png
+PORTO SEGURO PRAIA RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750720/PORTO_SEGURO_PRAIA_RESORT_zjefpp.png
+PRATAGY BEACH RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750729/pratagy1_gj6vsh.png
+PRATAGY BEACH RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750730/pratagy2_rokojf.png
+RESORT ALL INCLUSIVE ARCOBALENO|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750738/RESORT_ALL_INCLUSIVE_ARCOBALENO_k8aycn.png
+RESORT ENOTEL|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750655/enotel_bzdc5u.png
+SAUIPE BRISA GRAND PREMIUM ALL INCLUSIVE|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750746/sauipebrisagrandpremium_nicquo.png
+SAUIPE SOL GRAND PREMIUM|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750746/sauipesolgrandpremium_gprxws.png
+SAUIPE TERRA RESORT - COSTA DO SAUIPE|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750750/sauipeterraresort_ajhk8i.png
+SUMMERVILLE RESORT ALL INCLUSIVE|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750751/summervilleresort_u108tg.png
+THE WESTIN PORTO DE GALINHAS ALL INCLUSIVE RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750753/thewestinportodegalinhas1_ugy9dm.png
+THE WESTIN PORTO DE GALINHAS|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750751/thewestinportodegalinhas_vhn5fu.png
+THE WESTIN PORTO DE GALINHAS|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750753/thewestinportodegalinhas1_ugy9dm.png
+TRANSAMERICA COMANDATUBA RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750642/comandatuba_qfdodv.png
+VILA GALE ALAGOAS ALL INCLUSIVE|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750758/vilagalealagoas_y9z8ik.png
+VILA GALE ALAGOAS|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750758/vilagalealagoas_y9z8ik.png
+VILA GALE CUMBUCO RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750760/VILAGALECUMBUCO_ultwwn.png
+VILA GALÉ CUMBUCO|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773770020/vilagalecabo_ancqvo.png
+VILA GALE ECO RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773770020/vilagalecabo_ancqvo.png
+VILA GALE MARES|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750756/vila_gal%C3%A9_mares_oaefg7.png
+VILA GALÉ TOUROS|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750760/vilagaletouros_hdl5fm.png
+WISH NATAL RESORT|hotel|https://res.cloudinary.com/dxgj4bcch/image/upload/v1773750764/wishnatal_i7ycog.png

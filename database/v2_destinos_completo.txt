@@ -1,0 +1,62 @@
+ARACAJU|destino
+ARRAIAL D'AJUDA|destino
+ASSUNÇÃO|destino
+BALNEÁRIO CAMBORIÚ|destino
+BARILOCHE|destino
+BARRA DE SÃO MIGUEL|destino
+BARRA DE SÃOMIGUEL|destino
+BELÉM|destino
+BELO HORIZONTE|destino
+BONITO|destino
+BRASÍLIA|destino
+BUENOS AIRES|destino
+BUENOSA IRES|destino
+BUENOSAIRES|destino
+CABO DE STO. AGOSTINHO|destino
+CABO FRIO|destino
+CAMPINA GRANDE|destino
+CAMPINAS|destino
+CANA BRAVA|destino
+CANELA|destino
+CARAIVA|destino
+CURAÇAO|destino
+CURITIBA|destino
+FERNANDO DE NORONHA|destino
+FLORIANÓPOLIS|destino
+FLÓRIDA|destino
+FORT LAUDERDALE|destino
+FORTALEZA|destino
+FOZ DO IGUAÇU|destino
+GOIÂNIA|destino
+GRAMADO|destino
+ILHÉUS|destino
+ITACARÉ|destino
+JOÃO PESSOA|destino
+LISBOA|destino
+LONDRINA|destino
+MACEIÓ|destino
+MADRID|destino
+MANAUS|destino
+MARAGOGI|destino
+MENDOZA|destino
+MONTEVIDEO|destino
+NATAL|destino
+ORLANDO|destino
+PARIS|destino
+PIPA|destino
+PORTO ALEGRE|destino
+PORTO DE GALINHAS|destino
+PORTO SEGURO|destino
+PORTO|destino
+PUNTA CANA|destino
+PUNTA DEL ESTE|destino
+RECIFE|destino
+RIO DE JANEIRO|destino
+SALVADOR|destino
+SANTIAGO|destino
+SÃO LUIS DO MARANHÃO|destino
+SÃO LUÍS|destino
+SÃO MIGUEL DOS MILAGRES|destino
+TERESINA|destino
+TRANCOSO|destino
+VITÓRIA|destino

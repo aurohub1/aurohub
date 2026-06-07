@@ -282,6 +282,7 @@ export interface EditorSchema {
   duration?: number;
   qtdDestinos?: number;
   formType?: string;
+  customBinds?: string[];
 }
 
 /** Converte BINDS_POR_FORM para formato BindGroups usado pelo editor */
@@ -677,17 +678,17 @@ export const QUICK_START_PRESETS: EditorPreset[] = [
 
 /** Reescala um schema para um novo tamanho de canvas — uso em geração de variantes */
 export function rescaleSchema(schema: EditorSchema, srcW: number, srcH: number, dstW: number, dstH: number): EditorSchema {
-  const sx = dstW / srcW;
-  const sy = dstH / srcH;
-  const s = Math.min(sx, sy);
+  const s = Math.min(dstW / srcW, dstH / srcH);
+  const offsetX = Math.round((dstW - srcW * s) / 2);
+  const offsetY = Math.round((dstH - srcH * s) / 2);
   return {
     ...schema,
     elements: schema.elements.map(el => ({
       ...el,
-      x: Math.round(el.x * sx),
-      y: Math.round(el.y * sy),
-      width: Math.round(el.width * sx),
-      height: el.type === "text" ? Math.round(el.height * s) : Math.round(el.height * sy),
+      x:        Math.round(el.x      * s) + offsetX,
+      y:        Math.round(el.y      * s) + offsetY,
+      width:    Math.round(el.width  * s),
+      height:   Math.round(el.height * s),
       fontSize: el.fontSize ? Math.round(el.fontSize * s) : el.fontSize,
     })),
   };

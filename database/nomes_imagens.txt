@@ -1,0 +1,716 @@
+nome                                        | form_type  | tipo
+----------------------------------------------------------------
+488AC77C-6EF2-4207-9F0D-90107862E0CB        | todos      | card
+5_M3ACYS                                    | todos      | card
+6_FUQAJB                                    | todos      | card
+Aracaju                                     | pacote     | destino
+Aracaju                                     | pacote     | destino
+ARACAJU                                     | todos      | destino
+ARACAJU                                     | todos      | destino
+ARACAJU                                     | todos      | destino
+ARACAJU                                     | todos      | destino
+ARACAJU                                     | todos      | destino
+ARACAJU                                     | todos      | destino
+ARACAJU                                     | todos      | destino
+ARACAJU                                     | todos      | destino
+ARACAJU                                     | todos      | destino
+ARACAJU                                     | todos      | destino
+Aracaju (1)                                 | pacote     | destino
+Aracaju (2)                                 | pacote     | destino
+ARACAJU_JF7L01                              | todos      | card
+ARRAIAL D'AJUDA                             | todos      | destino
+ARRAIAL D'AJUDA                             | todos      | destino
+ARRAIAL D'AJUDA                             | todos      | destino
+ARRAIAL D'AJUDA                             | todos      | destino
+Arraial D'ajuda.jpg                         | pacote     | destino
+Assuncao                                    | pacote     | destino
+Assuncao                                    | pacote     | destino
+Assuncao                                    | pacote     | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+ASSUNÇÃO                                    | todos      | destino
+Assuncao (1)                                | pacote     | destino
+Assuncao1 (1)                               | pacote     | destino
+Balneareocambo                              | pacote     | destino
+Balneareocambo (2)                          | pacote     | destino
+Balneario                                   | pacote     | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+BALNEÁRIO CAMBORIÚ                          | todos      | destino
+Balneariocamboriu                           | pacote     | destino
+Balneariocamboriu                           | pacote     | destino
+Bariloche                                   | pacote     | destino
+BARILOCHE                                   | todos      | destino
+BARILOCHE                                   | todos      | destino
+BARILOCHE                                   | todos      | destino
+BARILOCHE                                   | todos      | destino
+Bariloche (1)                               | pacote     | destino
+Barra De São Miguel                         | pacote     | destino
+BARRA DE SÃO MIGUEL                         | todos      | destino
+Barra De São Miguel (2)                     | pacote     | destino
+BARRA DE SÃOMIGUEL                          | todos      | destino
+BARRA DE SÃOMIGUEL                          | todos      | destino
+BARRA DE SÃOMIGUEL                          | todos      | destino
+BE52D25D-94CC-44CA-84A0-1052ABB7604A        | todos      | card
+Belem                                       | pacote     | destino
+BELÉM                                       | todos      | destino
+BELÉM                                       | todos      | destino
+BELÉM                                       | todos      | destino
+BELÉM                                       | todos      | destino
+Belo Horizonte                              | pacote     | destino
+BELO HORIZONTE                              | todos      | destino
+BELO HORIZONTE                              | todos      | destino
+BELO HORIZONTE                              | todos      | destino
+BELO HORIZONTE                              | todos      | destino
+BELO HORIZONTE                              | todos      | destino
+BELO HORIZONTE                              | todos      | destino
+BELO HORIZONTE                              | todos      | destino
+BELO HORIZONTE                              | todos      | destino
+Belo Horizonte (1)                          | pacote     | destino
+Belohorizonte                               | pacote     | destino
+Bonito                                      | pacote     | destino
+BONITO                                      | todos      | destino
+BONITO                                      | todos      | destino
+BONITO                                      | todos      | destino
+BONITO                                      | todos      | destino
+Brasilia                                    | pacote     | destino
+Brasilia                                    | pacote     | destino
+Brasilia                                    | pacote     | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+BRASÍLIA                                    | todos      | destino
+Buenos Aires                                | pacote     | destino
+Buenos Aires                                | pacote     | destino
+Buenos Aires                                | pacote     | destino
+Buenos Aires                                | pacote     | destino
+BUENOS AIRES                                | todos      | destino
+BUENOS AIRES                                | todos      | destino
+BUENOS AIRES                                | todos      | destino
+BUENOS AIRES                                | todos      | destino
+BUENOS AIRES                                | todos      | destino
+BUENOS AIRES                                | todos      | destino
+BUENOS AIRES                                | todos      | destino
+BUENOS AIRES                                | todos      | destino
+BUENOSA IRES                                | todos      | destino
+BUENOSAIRES                                 | todos      | destino
+BUENOSAIRES                                 | todos      | destino
+BUENOSAIRES                                 | todos      | destino
+BUENOSAIRES                                 | todos      | destino
+CABO DE STO. AGOSTINHO                      | todos      | destino
+CABO DE STO. AGOSTINHO                      | todos      | destino
+CABO DE STO. AGOSTINHO                      | todos      | destino
+CABO DE STO. AGOSTINHO                      | todos      | destino
+CABO FRIO                                   | todos      | destino
+CABO FRIO                                   | todos      | destino
+CABO FRIO                                   | todos      | destino
+CABO FRIO                                   | todos      | destino
+Cabofrio                                    | pacote     | destino
+CAMPINA GRANDE                              | todos      | destino
+CAMPINA GRANDE                              | todos      | destino
+CAMPINA GRANDE                              | todos      | destino
+CAMPINA GRANDE                              | todos      | destino
+Campinagrande                               | hotel      | hotel
+Campinas                                    | pacote     | destino
+CAMPINAS                                    | todos      | destino
+CAMPINAS                                    | todos      | destino
+CAMPINAS                                    | todos      | destino
+CAMPINAS                                    | todos      | destino
+CANA BRAVA                                  | todos      | destino
+CANA BRAVA                                  | todos      | destino
+CANA BRAVA                                  | todos      | destino
+CANA BRAVA                                  | todos      | destino
+Canabrava                                   | hotel      | hotel
+Canela                                      | pacote     | destino
+CANELA                                      | todos      | destino
+CANELA                                      | todos      | destino
+CANELA                                      | todos      | destino
+CANELA                                      | todos      | destino
+Caraiva                                     | pacote     | destino
+CARAIVA                                     | todos      | destino
+CARAIVA                                     | todos      | destino
+CARAIVA                                     | todos      | destino
+CARAIVA                                     | todos      | destino
+Comandatuba                                 | pacote     | destino
+Comandatuba                                 | pacote     | destino
+Coroavermelhabeach                          | pacote     | destino
+Costa Delicioza                             | cruzeiro   | cruzeiro
+Costa Delicioza                             | cruzeiro   | cruzeiro
+Costa Deliziosa                             | cruzeiro   | cruzeiro
+Costa Deliziosa                             | cruzeiro   | cruzeiro
+Costa Diadema                               | cruzeiro   | cruzeiro
+Costa Diadema                               | cruzeiro   | cruzeiro
+Costa Didadema                              | cruzeiro   | cruzeiro
+Costa Didadema                              | cruzeiro   | cruzeiro
+Costa Fascinosa                             | cruzeiro   | cruzeiro
+Costa Fascinosa                             | cruzeiro   | cruzeiro
+Costa Favolosa                              | cruzeiro   | cruzeiro
+Costa Favolosa                              | cruzeiro   | cruzeiro
+Costa Favolosa (2)                          | cruzeiro   | cruzeiro
+Costa Favolosa (2)                          | cruzeiro   | cruzeiro
+Costa Fortuna                               | cruzeiro   | cruzeiro
+Costa Fortuna                               | cruzeiro   | cruzeiro
+Costa Geral                                 | cruzeiro   | cruzeiro
+Costa Geral                                 | cruzeiro   | cruzeiro
+Costa Pacifica                              | cruzeiro   | cruzeiro
+Costa Pacifica                              | cruzeiro   | cruzeiro
+Costa Serena                                | cruzeiro   | cruzeiro
+Costa Serena                                | cruzeiro   | cruzeiro
+Costa Smeralda                              | cruzeiro   | cruzeiro
+Costa Smeralda                              | cruzeiro   | cruzeiro
+Costa Smeralda                              | cruzeiro   | cruzeiro
+Costa Smeralda                              | cruzeiro   | cruzeiro
+Costa Toscana                               | cruzeiro   | cruzeiro
+Costa Toscana                               | cruzeiro   | cruzeiro
+Costa Toscana                               | cruzeiro   | cruzeiro
+Costa Toscana                               | cruzeiro   | cruzeiro
+Costa Toscana                               | cruzeiro   | cruzeiro
+Costa Toscana                               | cruzeiro   | cruzeiro
+Costa Venezia                               | cruzeiro   | cruzeiro
+Costa Venezia                               | cruzeiro   | cruzeiro
+Costaodosantinho                            | pacote     | destino
+Costeirapalace                              | hotel      | hotel
+Curacao                                     | pacote     | destino
+Curaçao                                     | pacote     | destino
+Curaçao                                     | pacote     | destino
+Curaçao                                     | pacote     | destino
+Curaçao                                     | pacote     | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+CURAÇAO                                     | todos      | destino
+Curitiba                                    | pacote     | destino
+Curitiba                                    | pacote     | destino
+CURITIBA                                    | todos      | destino
+CURITIBA                                    | todos      | destino
+CURITIBA                                    | todos      | destino
+CURITIBA                                    | todos      | destino
+CURITIBA                                    | todos      | destino
+CURITIBA                                    | todos      | destino
+CURITIBA                                    | todos      | destino
+CURITIBA                                    | todos      | destino
+Disney Adventure                            | cruzeiro   | cruzeiro
+Disney Adventure                            | cruzeiro   | cruzeiro
+Disney Adventure                            | cruzeiro   | cruzeiro
+Disney Cruise Line                          | cruzeiro   | cruzeiro
+Disney Cruise Line                          | cruzeiro   | cruzeiro
+Disney Cruise Line                          | cruzeiro   | cruzeiro
+Disney Destiny                              | cruzeiro   | cruzeiro
+Disney Dream                                | cruzeiro   | cruzeiro
+Disney Dream                                | cruzeiro   | cruzeiro
+Disney Dream                                | cruzeiro   | cruzeiro
+Disney Fantasy                              | cruzeiro   | cruzeiro
+Disney Magic                                | cruzeiro   | cruzeiro
+Disney Treadure                             | cruzeiro   | cruzeiro
+Disney Treasure                             | cruzeiro   | cruzeiro
+Disney Treasure                             | cruzeiro   | cruzeiro
+Disney Treasure (2)                         | cruzeiro   | cruzeiro
+Disney Wish                                 | cruzeiro   | cruzeiro
+Disney Wish                                 | cruzeiro   | cruzeiro
+Disney Wonder                               | cruzeiro   | cruzeiro
+Disneydream                                 | cruzeiro   | cruzeiro
+Disneydream                                 | cruzeiro   | cruzeiro
+Disneyfantasy                               | cruzeiro   | cruzeiro
+Disneywish                                  | cruzeiro   | cruzeiro
+Disneywonder                                | cruzeiro   | cruzeiro
+El Aram Beach Cabo                          | pacote     | destino
+Enotel                                      | hotel      | hotel
+F53F2891-2DD3-437B-BD6F-DADB1A9062BE        | todos      | card
+Fernando De Noronha                         | pacote     | destino
+FERNANDO DE NORONHA                         | todos      | destino
+FERNANDO DE NORONHA                         | todos      | destino
+FERNANDO DE NORONHA                         | todos      | destino
+FERNANDO DE NORONHA                         | todos      | destino
+Florianopolis                               | pacote     | destino
+Florianopolis                               | pacote     | destino
+FLORIANÓPOLIS                               | todos      | destino
+FLORIANÓPOLIS                               | todos      | destino
+FLORIANÓPOLIS                               | todos      | destino
+FLORIANÓPOLIS                               | todos      | destino
+FLORIANÓPOLIS                               | todos      | destino
+FLORIANÓPOLIS                               | todos      | destino
+FLORIANÓPOLIS                               | todos      | destino
+FLORIANÓPOLIS                               | todos      | destino
+Florida                                     | pacote     | destino
+FLÓRIDA                                     | todos      | destino
+FLÓRIDA                                     | todos      | destino
+FLÓRIDA                                     | todos      | destino
+FLÓRIDA                                     | todos      | destino
+FORT LAUDERDALE                             | todos      | destino
+FORT LAUDERDALE                             | todos      | destino
+FORT LAUDERDALE                             | todos      | destino
+FORT LAUDERDALE                             | todos      | destino
+FORT LAUDERDALE                             | todos      | destino
+FORT LAUDERDALE                             | todos      | destino
+FORT LAUDERDALE                             | todos      | destino
+FORT LAUDERDALE                             | todos      | destino
+Fortaleza                                   | pacote     | destino
+Fortaleza                                   | pacote     | destino
+Fortaleza                                   | pacote     | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+FORTALEZA                                   | todos      | destino
+Fortaleza (2)                               | pacote     | destino
+FORTALEZA_TO9TPB                            | todos      | card
+Fortlauderdal                               | pacote     | destino
+Fortlauderdale                              | pacote     | destino
+Fortlauderdale                              | pacote     | destino
+Fortlauderdale                              | pacote     | destino
+FORTLAUDERDALE_YXLHBW                       | todos      | card
+FOZ DO IGUAÇU                               | todos      | destino
+FOZ DO IGUAÇU                               | todos      | destino
+FOZ DO IGUAÇU                               | todos      | destino
+FOZ DO IGUAÇU                               | todos      | destino
+FOZ DO IGUAÇU                               | todos      | destino
+FOZ DO IGUAÇU                               | todos      | destino
+FOZ DO IGUAÇU                               | todos      | destino
+Fozdoiguaçu                                 | pacote     | destino
+Fozdoiguaçu                                 | pacote     | destino
+Goiania                                     | pacote     | destino
+GOIÂNIA                                     | todos      | destino
+GOIÂNIA                                     | todos      | destino
+GOIÂNIA                                     | todos      | destino
+GOIÂNIA                                     | todos      | destino
+GOIÂNIA                                     | todos      | destino
+GOIÂNIA                                     | todos      | destino
+GOIÂNIA                                     | todos      | destino
+GOIÂNIA                                     | todos      | destino
+Goiania (2)                                 | pacote     | destino
+Gramado                                     | pacote     | destino
+GRAMADO                                     | todos      | destino
+GRAMADO                                     | todos      | destino
+GRAMADO                                     | todos      | destino
+GRAMADO                                     | todos      | destino
+GRAMADO                                     | todos      | destino
+GRAMADO                                     | todos      | destino
+GRAMADO                                     | todos      | destino
+GRAMADO                                     | todos      | destino
+Gramado (2)                                 | pacote     | destino
+Grand Oca Maragogi Resort                   | hotel      | hotel
+Grand Palladium Imbassai Resort & Spa       | hotel      | hotel
+Iberostar Selection                         | hotel      | hotel
+Iberostar Waves Bahia                       | hotel      | hotel
+Iberostar Waves Bahia                       | hotel      | hotel
+Iberostar Waves Punta Cana                  | hotel      | hotel
+Ilheus                                      | pacote     | destino
+Ilheus                                      | pacote     | destino
+Ilheus                                      | pacote     | destino
+ILHÉUS                                      | todos      | destino
+ILHÉUS                                      | todos      | destino
+ILHÉUS                                      | todos      | destino
+ILHÉUS                                      | todos      | destino
+ILHÉUS                                      | todos      | destino
+ILHÉUS                                      | todos      | destino
+Itacare                                     | pacote     | destino
+ITACARÉ                                     | todos      | destino
+JOÃO PESSOA                                 | todos      | destino
+JOÃO PESSOA                                 | todos      | destino
+JOÃO PESSOA                                 | todos      | destino
+Joaopessoa                                  | pacote     | destino
+Joaopessoa                                  | pacote     | destino
+Joaopessoa                                  | pacote     | destino
+Latorrre                                    | pacote     | destino
+Lisboa                                      | pacote     | destino
+Lisboa                                      | pacote     | destino
+Lisboa                                      | pacote     | destino
+Lisboa                                      | pacote     | destino
+LISBOA                                      | todos      | destino
+LISBOA                                      | todos      | destino
+LISBOA                                      | todos      | destino
+LISBOA                                      | todos      | destino
+Lisboa2 (1)                                 | pacote     | destino
+Lisboa3 (1)                                 | pacote     | destino
+Londrina                                    | pacote     | destino
+LONDRINA                                    | todos      | destino
+Maceio                                      | pacote     | destino
+Maceio                                      | pacote     | destino
+Maceio                                      | pacote     | destino
+MACEIÓ                                      | todos      | destino
+MACEIÓ                                      | todos      | destino
+MACEIÓ                                      | todos      | destino
+Maceiomarresort                             | pacote     | destino
+Madrid                                      | pacote     | destino
+Madrid                                      | pacote     | destino
+Madrid                                      | pacote     | destino
+MADRID                                      | todos      | destino
+MADRID                                      | todos      | destino
+MADRID                                      | todos      | destino
+Madrid (2)                                  | pacote     | destino
+Makai                                       | hotel      | hotel
+Manaus                                      | pacote     | destino
+MANAUS                                      | todos      | destino
+Maragogi                                    | pacote     | destino
+MARAGOGI                                    | todos      | destino
+Mendoza                                     | pacote     | destino
+MENDOZA                                     | todos      | destino
+Mendoza (1)                                 | pacote     | destino
+MÊS_DO_CONSUMIDOR_28_WWNF2H                 | todos      | card
+Montevideo                                  | pacote     | destino
+Montevideo                                  | pacote     | destino
+MONTEVIDEO                                  | todos      | destino
+MONTEVIDEO                                  | todos      | destino
+Msc Belissima                               | cruzeiro   | cruzeiro
+Msc Belissima                               | cruzeiro   | cruzeiro
+Msc Belissima (2)                           | cruzeiro   | cruzeiro
+Msc Divina                                  | cruzeiro   | cruzeiro
+Msc Euribia                                 | cruzeiro   | cruzeiro
+Msc Fantasia                                | cruzeiro   | cruzeiro
+Msc Grandiosa                               | cruzeiro   | cruzeiro
+Msc Grandiosa                               | cruzeiro   | cruzeiro
+Msc Grandiosa (2)                           | cruzeiro   | cruzeiro
+Msc Lirica                                  | cruzeiro   | cruzeiro
+Msc Lirica (1)                              | cruzeiro   | cruzeiro
+Msc Lirica (2)                              | cruzeiro   | cruzeiro
+Msc Lirica (3)                              | cruzeiro   | cruzeiro
+Msc Magnifica                               | cruzeiro   | cruzeiro
+Msc Meraviglia                              | cruzeiro   | cruzeiro
+Msc Musica                                  | cruzeiro   | cruzeiro
+Msc Opera                                   | cruzeiro   | cruzeiro
+Msc Orchestra                               | cruzeiro   | cruzeiro
+Msc Poesia                                  | cruzeiro   | cruzeiro
+Msc Preciosa                                | cruzeiro   | cruzeiro
+Msc Preciosa (2)                            | cruzeiro   | cruzeiro
+Msc Precioza                                | cruzeiro   | cruzeiro
+Msc Seascape                                | cruzeiro   | cruzeiro
+Msc Seashore                                | cruzeiro   | cruzeiro
+Msc Seaside                                 | cruzeiro   | cruzeiro
+Msc Seaside (2)                             | cruzeiro   | cruzeiro
+Msc Seaview                                 | cruzeiro   | cruzeiro
+Msc Seaview (2)                             | cruzeiro   | cruzeiro
+Msc Sinfonia                                | cruzeiro   | cruzeiro
+Msc Splendida                               | cruzeiro   | cruzeiro
+Msc Virtuosa                                | cruzeiro   | cruzeiro
+Msc World America                           | cruzeiro   | cruzeiro
+Msc World Of Europa                         | cruzeiro   | cruzeiro
+Mscarmonia                                  | cruzeiro   | cruzeiro
+Natal                                       | pacote     | destino
+Natal                                       | pacote     | destino
+Natal                                       | pacote     | destino
+NATAL                                       | todos      | destino
+NATAL                                       | todos      | destino
+NATAL                                       | todos      | destino
+Nauticomar Resort                           | hotel      | hotel
+Nauticomar Resort                           | hotel      | hotel
+Norwegian Aqua                              | cruzeiro   | cruzeiro
+Norwegian Aqua (2)                          | cruzeiro   | cruzeiro
+Norwegian Bliss                             | cruzeiro   | cruzeiro
+Norwegian Bliss                             | cruzeiro   | cruzeiro
+Norwegian Breakaway                         | cruzeiro   | cruzeiro
+Norwegian Cruise Line                       | cruzeiro   | cruzeiro
+Norwegian Dawn                              | cruzeiro   | cruzeiro
+Norwegian Dream                             | cruzeiro   | cruzeiro
+Norwegian Encore                            | cruzeiro   | cruzeiro
+Norwegian Encore                            | cruzeiro   | cruzeiro
+Norwegian Encore                            | cruzeiro   | cruzeiro
+Norwegian Encore                            | cruzeiro   | cruzeiro
+Norwegian Encore3 (1)                       | cruzeiro   | cruzeiro
+Norwegian Escape                            | cruzeiro   | cruzeiro
+Norwegian Escape (2)                        | cruzeiro   | cruzeiro
+Norwegian Gem                               | cruzeiro   | cruzeiro
+Norwegian Getaway                           | cruzeiro   | cruzeiro
+Norwegian Getaway                           | cruzeiro   | cruzeiro
+Norwegian Joy                               | cruzeiro   | cruzeiro
+Norwegian Joy                               | cruzeiro   | cruzeiro
+Norwegian Pearl                             | cruzeiro   | cruzeiro
+Norwegian Pearl                             | cruzeiro   | cruzeiro
+Norwegian Pearl                             | cruzeiro   | cruzeiro
+Norwegian Sky                               | cruzeiro   | cruzeiro
+Norwegian Spirit                            | cruzeiro   | cruzeiro
+Norwegian Spirit                            | cruzeiro   | cruzeiro
+Norwegian Star                              | cruzeiro   | cruzeiro
+Norwegian Star                              | cruzeiro   | cruzeiro
+Norwegian Sun                               | cruzeiro   | cruzeiro
+Norwegian Viva                              | cruzeiro   | cruzeiro
+Norwegian Viva                              | cruzeiro   | cruzeiro
+Norwegian Viva                              | cruzeiro   | cruzeiro
+Norwegian Viva                              | cruzeiro   | cruzeiro
+Ocapora                                     | pacote     | destino
+Ocean Palace Beach Resort E Bungalows       | hotel      | hotel
+Oceania Cruises Allura                      | cruzeiro   | cruzeiro
+Oceania Cruises Insignia                    | cruzeiro   | cruzeiro
+Oceania Cruises Insignia                    | cruzeiro   | cruzeiro
+Oceania Cruises Marina                      | cruzeiro   | cruzeiro
+Oceania Cruises Marina                      | cruzeiro   | cruzeiro
+Oceania Cruises Nautica                     | cruzeiro   | cruzeiro
+Oceania Cruises Nautica                     | cruzeiro   | cruzeiro
+Oceania Cruises Regatta                     | cruzeiro   | cruzeiro
+Oceania Cruises Riviera                     | cruzeiro   | cruzeiro
+Oceania Cruises Riviera (2)                 | cruzeiro   | cruzeiro
+Oceania Cruises Riviera (3)                 | cruzeiro   | cruzeiro
+Oceania Cruises Sirena                      | cruzeiro   | cruzeiro
+Oceania Cruises Sirena                      | cruzeiro   | cruzeiro
+Oceania Cruises Vista                       | cruzeiro   | cruzeiro
+Oceania Cruises Vista (2)                   | cruzeiro   | cruzeiro
+Orlando                                     | pacote     | destino
+Orlando                                     | pacote     | destino
+ORLANDO                                     | todos      | destino
+ORLANDO                                     | todos      | destino
+Paris                                       | pacote     | destino
+Paris                                       | pacote     | destino
+PARIS                                       | todos      | destino
+PARIS                                       | todos      | destino
+Pipa                                        | pacote     | destino
+PIPA                                        | todos      | destino
+PORTO                                       | todos      | destino
+Porto Alegre                                | pacote     | destino
+PORTO ALEGRE                                | todos      | destino
+Porto De Galinhas                           | pacote     | destino
+PORTO DE GALINHAS                           | todos      | destino
+PORTO DE GALINHAS                           | todos      | destino
+Porto Seguro                                | pacote     | destino
+PORTO SEGURO                                | todos      | destino
+PORTO SEGURO                                | todos      | destino
+PORTO SEGURO                                | todos      | destino
+Porto Seguro Praia Resort                   | hotel      | hotel
+Portodegalinhas                             | pacote     | destino
+Portoportugal                               | pacote     | destino
+Portoseguro                                 | pacote     | destino
+Portoseguro                                 | pacote     | destino
+Pratagy                                     | hotel      | hotel
+Pratagy                                     | hotel      | hotel
+Princess - Royal                            | cruzeiro   | cruzeiro
+Princess Cruise - Caribbean Princess        | cruzeiro   | cruzeiro
+Princess Cruise - Crown Princess            | cruzeiro   | cruzeiro
+Princess Cruise - Crown Princess (2)        | cruzeiro   | cruzeiro
+Princess Cruise - Diamond Princess          | cruzeiro   | cruzeiro
+Princess Cruise - Diamond Princess          | cruzeiro   | cruzeiro
+Princess Cruise - Discovery Princess        | cruzeiro   | cruzeiro
+Princess Cruise - Enchanted Princess        | cruzeiro   | cruzeiro
+Princess Cruise - Enchanted Princess        | cruzeiro   | cruzeiro
+Princess Cruise - Enchanted Princess        | cruzeiro   | cruzeiro
+Princess Cruise - Majestic Princess         | cruzeiro   | cruzeiro
+Princess Cruise - Majestic Princess (2)     | cruzeiro   | cruzeiro
+Princess Cruise - Pacific Princess          | cruzeiro   | cruzeiro
+Princess Cruise - Regal Princess            | cruzeiro   | cruzeiro
+Princess Cruise - Sky Princess              | cruzeiro   | cruzeiro
+Princess Cruise - Star Princess             | cruzeiro   | cruzeiro
+Princess Cruise - Star Princess             | cruzeiro   | cruzeiro
+Princess Cruise - Sun Princess              | cruzeiro   | cruzeiro
+Princess Sky                                | cruzeiro   | cruzeiro
+PUNTA CANA                                  | todos      | destino
+PUNTA CANA                                  | todos      | destino
+PUNTA CANA                                  | todos      | destino
+PUNTA DEL ESTE                              | todos      | destino
+Puntacana                                   | pacote     | destino
+Puntacana                                   | pacote     | destino
+Puntadeleste                                | pacote     | destino
+Recife                                      | pacote     | destino
+Recife                                      | pacote     | destino
+Recife                                      | pacote     | destino
+RECIFE                                      | todos      | destino
+RECIFE                                      | todos      | destino
+RECIFE                                      | todos      | destino
+RECIFE12_VIL9UB                             | todos      | card
+Resort All Inclusive Arcobaleno             | pacote     | destino
+RIO DE JANEIRO                              | todos      | destino
+Rio De Janiero                              | pacote     | destino
+Royal - Oasis Of The Seas                   | cruzeiro   | cruzeiro
+Royal Caribbean - Adventure Of The Seas     | cruzeiro   | cruzeiro
+Royal Caribbean - Adventure Of The Seas     | cruzeiro   | cruzeiro
+Royal Caribbean - Allure Of The Seas        | cruzeiro   | cruzeiro
+Royal Caribbean - Allure Of The Seas        | cruzeiro   | cruzeiro
+Royal Caribbean - Anthem Of The Seas        | cruzeiro   | cruzeiro
+Royal Caribbean - Anthem Of The Seas        | cruzeiro   | cruzeiro
+Royal Caribbean - Anthem Of The Seas2 (2)   | cruzeiro   | cruzeiro
+Royal Caribbean - Enchantment Of The Seas   | cruzeiro   | cruzeiro
+Royal Caribbean - Enchantment Of The Seas   | cruzeiro   | cruzeiro
+Royal Caribbean - Explorer Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Explorer Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Freedom Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Freedom Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Freedom Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Harmony Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Harmony Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Harmony Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Icon Of The Seas          | cruzeiro   | cruzeiro
+Royal Caribbean - Icon Of The Seas          | cruzeiro   | cruzeiro
+Royal Caribbean - Icon Of The Seas          | cruzeiro   | cruzeiro
+Royal Caribbean - Icon Of The Seas          | cruzeiro   | cruzeiro
+Royal Caribbean - Icon Of The Seas6 (1)     | cruzeiro   | cruzeiro
+Royal Caribbean - Independence Of The Seas  | cruzeiro   | cruzeiro
+Royal Caribbean - Independence Of The Seas  | cruzeiro   | cruzeiro
+Royal Caribbean - Independence Of The Seas  | cruzeiro   | cruzeiro
+Royal Caribbean - Jewel Of The Seas         | cruzeiro   | cruzeiro
+Royal Caribbean - Liberty Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Liberty Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Liberty Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Liberty Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Liberty Of The Seas (2)   | cruzeiro   | cruzeiro
+Royal Caribbean - Mariner Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Mariner Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Mariner Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Mariner Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Mariner Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Mariner Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Navigator Of The Seas     | cruzeiro   | cruzeiro
+Royal Caribbean - Navigator Of The Seas     | cruzeiro   | cruzeiro
+Royal Caribbean - Navigator Of The Seas3 (2)| cruzeiro   | cruzeiro
+Royal Caribbean - Oasis Of The Seas         | cruzeiro   | cruzeiro
+Royal Caribbean - Oasis Of The Seas         | cruzeiro   | cruzeiro
+Royal Caribbean - Odyssey Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Odyssey Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Odyssey Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Ovation Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Ovation Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Ovation Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Quantum Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Quantum Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Quantum Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Radiance Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Radiance Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Rhapsody Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Rhapsody Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Rhapsody Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Rhapsody Of The Seas2 (2) | cruzeiro   | cruzeiro
+Royal Caribbean - Spectrum Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Spectrum Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Spectrum Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Spectrum Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Spectrum Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Symphony Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Symphony Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Symphony Of The Seas      | cruzeiro   | cruzeiro
+Royal Caribbean - Voyager Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Voyager Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Voyager Of The Seas       | cruzeiro   | cruzeiro
+Royal Caribbean - Voyager Of The Seas3 (1)  | cruzeiro   | cruzeiro
+Royal Caribbean - Wonder Of The Seas        | cruzeiro   | cruzeiro
+Royal Caribbean - Wonder Of The Seas        | cruzeiro   | cruzeiro
+Royal Caribbean - Wonder Of The Seas        | cruzeiro   | cruzeiro
+Royal Caribbean - Wonder Of The Seas        | cruzeiro   | cruzeiro
+Royal Icon                                  | cruzeiro   | cruzeiro
+Royal Legend Of The Seas                    | cruzeiro   | cruzeiro
+Royal Ovation                               | cruzeiro   | cruzeiro
+Royal Serenade                              | cruzeiro   | cruzeiro
+Royal Star Of The Seas                      | cruzeiro   | cruzeiro
+Royal Utopia                                | cruzeiro   | cruzeiro
+Royal Vision                                | cruzeiro   | cruzeiro
+Royal Wonder Of The Seas                    | cruzeiro   | cruzeiro
+Royal Wonder Of The Seas                    | cruzeiro   | cruzeiro
+Salvador                                    | pacote     | destino
+Salvador                                    | pacote     | destino
+SALVADOR                                    | todos      | destino
+SALVADOR                                    | todos      | destino
+SALVADOR                                    | todos      | destino
+Salvadorbahia                               | pacote     | destino
+SANTIAGO                                    | todos      | destino
+Santiagochile                               | pacote     | destino
+SÃO LUÍS                                    | todos      | destino
+SÃO LUIS DO MARANHÃO                        | todos      | destino
+SÃO MIGUEL DOS MILAGRES                     | todos      | destino
+Saoluismaranhao                             | pacote     | destino
+Saomigueldosmilagres                        | pacote     | destino
+Sauipebrisagrandpremium                     | hotel      | hotel
+Sauipesolgrandpremium                       | hotel      | hotel
+Sauipeterraresort                           | hotel      | hotel
+Summervilleresort                           | hotel      | hotel
+TEMPORADA_DE_INVERNO_2_BYMMUO               | todos      | card
+Teresina                                    | pacote     | destino
+TERESINA                                    | todos      | destino
+Thewestingportodegalinhas                   | hotel      | hotel
+Thewestinportodegalinhas                    | hotel      | hotel
+Thewestinportodegalinhas (1)                | hotel      | hotel
+Trancoso                                    | pacote     | destino
+TRANCOSO                                    | todos      | destino
+Vila Galé Mares                             | hotel      | hotel
+Vilagalealagoas                             | pacote     | destino
+Vilagalecabo                                | pacote     | destino
+Vilagalecabo (1)                            | pacote     | destino
+Vilagalecumbuco                             | pacote     | destino
+Vilagaletouros                              | pacote     | destino
+Vitoria                                     | pacote     | destino
+VITÓRIA                                     | todos      | destino
+Wishnatal                                   | pacote     | destino
+X Celebrity Apex                            | cruzeiro   | cruzeiro
+X Celebrity Ascent                          | cruzeiro   | cruzeiro
+X Celebrity Beyond                          | cruzeiro   | cruzeiro
+X Celebrity Boundless                       | cruzeiro   | cruzeiro
+X Celebrity Boundless                       | cruzeiro   | cruzeiro
+X Celebrity Boundless                       | cruzeiro   | cruzeiro
+X Celebrity Compass                         | cruzeiro   | cruzeiro
+X Celebrity Compass                         | cruzeiro   | cruzeiro
+X Celebrity Constellation                   | cruzeiro   | cruzeiro
+X Celebrity Cruise - Apex                   | cruzeiro   | cruzeiro
+X Celebrity Eclipse                         | cruzeiro   | cruzeiro
+X Celebrity Edge                            | cruzeiro   | cruzeiro
+X Celebrity Equinox                         | cruzeiro   | cruzeiro
+X Celebrity Flora                           | cruzeiro   | cruzeiro
+X Celebrity Flora                           | cruzeiro   | cruzeiro
+X Celebrity Infinity                        | cruzeiro   | cruzeiro
+X Celebrity Millennium                      | cruzeiro   | cruzeiro
+X Celebrity Reflection                      | cruzeiro   | cruzeiro
+X Celebrity Roamer                          | cruzeiro   | cruzeiro
+X Celebrity Roamer                          | cruzeiro   | cruzeiro
+X Celebrity Seeker                          | cruzeiro   | cruzeiro
+X Celebrity Seeker                          | cruzeiro   | cruzeiro
+X Celebrity Silhouette                      | cruzeiro   | cruzeiro
+X Celebrity Solstice                        | cruzeiro   | cruzeiro
+X Celebrity Summit                          | cruzeiro   | cruzeiro
+X Celebrity Wanderer                        | cruzeiro   | cruzeiro
+X Celebrity Wanderer                        | cruzeiro   | cruzeiro
+X Celebrity Xcel                            | cruzeiro   | cruzeiro
+X Celebrity Xcel                            | cruzeiro   | cruzeiro
+
+---
+Total: 708
+form_types: cruzeiro, hotel, pacote, todos
+tipos: card, cruzeiro, destino, hotel
+Gerado: 2026-06-03T12:20:45.337Z

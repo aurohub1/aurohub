@@ -6,6 +6,7 @@ import type Konva from "konva";
 import { X, Search, Save, Upload, Heart, Send, MessageCircle, Bookmark, MoreHorizontal, Plus, Pencil, RotateCcw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getProfile } from "@/lib/auth";
+import { invalidateSystemConfig } from "@/hooks/useSystemConfig";
 import { EditorElement, EditorSchema, QUICK_START_PRESETS, rescaleSchema, genId } from "./types";
 
 /* ── Shared UI ──────────────────────────────────── */
@@ -137,11 +138,12 @@ export function AssetsPanel({ onClose, onInsert }: { onClose: () => void; onInse
 }
 
 /* ══ 7. HISTÓRICO VISUAL ═══════════════════════════ */
-interface HistoryEntry { id: string; template_id: string; schema: EditorSchema; thumbnail: string | null; created_at: string; }
-export function HistoryPanel({ templateId, onClose, onRestore }: { templateId: string; onClose: () => void; onRestore: (s: EditorSchema) => void }) {
+interface HistoryEntry { id: string; template_id: string; schema: EditorSchema; thumbnail: string | null; saved_at: string; created_at: string; note: string | null; }
+export function HistoryPanel({ templateId, onClose, onRestore, currentSchema }: { templateId: string; onClose: () => void; onRestore: (s: EditorSchema) => void; currentSchema?: EditorSchema }) {
   const [list, setList] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<HistoryEntry | null>(null);
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -150,7 +152,7 @@ export function HistoryPanel({ templateId, onClose, onRestore }: { templateId: s
           .from("template_history")
           .select("*")
           .eq("template_id", templateId)
-          .order("created_at", { ascending: false })
+          .order("saved_at", { ascending: false })
           .limit(10);
         setList((data as HistoryEntry[]) || []);
       } catch (err) { console.error("[History]", err); }
@@ -166,15 +168,45 @@ export function HistoryPanel({ templateId, onClose, onRestore }: { templateId: s
         <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
           <div style={{ width: 120, aspectRatio: "9/16", background: confirming.thumbnail ? `url(${confirming.thumbnail}) center/contain no-repeat #000` : "var(--ed-hover)", borderRadius: 8 }} />
           <p style={{ fontSize: 12, color: "var(--ed-txt2)", textAlign: "center", margin: 0 }}>
-            Restaurar versão de <strong>{fmt(confirming.created_at)}</strong>?<br />
-            <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>As alterações não salvas do estado atual serão descartadas.</span>
+            Restaurar versão de <strong>{fmt(confirming.saved_at || confirming.created_at)}</strong>?<br />
+            <span style={{ fontSize: 10, color: "var(--ed-txt3)" }}>O estado atual será salvo como versão antes de restaurar.</span>
           </p>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setConfirming(null)} style={{ padding: "8px 20px", borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-hover)", color: "var(--ed-txt)", fontSize: 11, cursor: "pointer" }}>
+            <button onClick={() => setConfirming(null)} disabled={restoring} style={{ padding: "8px 20px", borderRadius: 6, border: "1px solid var(--ed-bdr)", background: "var(--ed-hover)", color: "var(--ed-txt)", fontSize: 11, cursor: restoring ? "default" : "pointer", opacity: restoring ? 0.5 : 1 }}>
               Cancelar
             </button>
-            <button onClick={() => { onRestore(confirming.schema); onClose(); }} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-              Restaurar esta versão
+            <button
+              disabled={restoring}
+              onClick={async () => {
+                setRestoring(true);
+                try {
+                  if (currentSchema) {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    await supabase.from("template_history").insert({
+                      template_id: templateId,
+                      schema: currentSchema,
+                      saved_by: user?.id ?? null,
+                      saved_at: new Date().toISOString(),
+                      note: "antes de restaurar",
+                    });
+                  }
+                  await supabase.from("system_config").upsert({
+                    key: templateId,
+                    value: JSON.stringify(confirming.schema),
+                    updated_at: new Date().toISOString(),
+                  }, { onConflict: "key" });
+                  invalidateSystemConfig(templateId);
+                  onRestore(confirming.schema);
+                  onClose();
+                } catch (err) {
+                  console.error("[Restore]", err);
+                  alert("Erro ao restaurar versão.");
+                  setRestoring(false);
+                }
+              }}
+              style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "#FF7A1A", color: "#fff", fontSize: 11, fontWeight: 700, cursor: restoring ? "default" : "pointer", opacity: restoring ? 0.6 : 1 }}
+            >
+              {restoring ? "Restaurando..." : "Restaurar esta versão"}
             </button>
           </div>
         </div>
@@ -207,7 +239,11 @@ export function HistoryPanel({ templateId, onClose, onRestore }: { templateId: s
               {/* Thumbnail */}
               <div style={{ aspectRatio: "9/16", background: h.thumbnail ? `url(${h.thumbnail}) center/contain no-repeat #111` : "var(--ed-hover)", borderRadius: 6 }} />
               {/* Data */}
-              <span style={{ fontSize: 9, color: "var(--ed-txt2)", textAlign: "center" }}>{fmt(h.created_at)}</span>
+              <span style={{ fontSize: 9, color: "var(--ed-txt2)", textAlign: "center" }}>{fmt(h.saved_at || h.created_at)}</span>
+              {/* Nota da versão */}
+              {h.note && h.note !== "auto-save" && (
+                <span style={{ fontSize: 8, color: "#FF7A1A", textAlign: "center", fontStyle: "italic", lineHeight: 1.2 }}>{h.note}</span>
+              )}
               {/* Botão restaurar — desabilitado para a versão mais recente */}
               <button
                 onClick={() => i === 0 ? undefined : setConfirming(h)}
