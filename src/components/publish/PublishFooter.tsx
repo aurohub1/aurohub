@@ -1,4 +1,4 @@
-import { Check, Loader2, Trash2, HardDrive } from "lucide-react";
+import { Check, Loader2, Trash2 } from "lucide-react";
 import type { StoreOption } from "./useStoreTargets";
 
 type Format = "stories" | "feed" | "reels" | "tv";
@@ -15,7 +15,6 @@ interface PublishFooterProps {
   statusMsg: string;
   currentTemplate: any;
   onPublish: () => void;
-  onPublishDrive: () => void;
   onClear: () => void;
   onDownload: () => void;
   canPublish?: boolean;
@@ -34,7 +33,6 @@ export function PublishFooter({
   statusMsg,
   currentTemplate,
   onPublish,
-  onPublishDrive,
   onClear,
   onDownload,
   canPublish = true,
@@ -163,7 +161,7 @@ export function PublishFooter({
         <>
           <button
             data-tour="publish-button"
-            onClick={onPublish}
+            onClick={() => { onPublish(); onDownload(); }}
             disabled={!enablePublishing || busy || !currentTemplate}
             style={{
               width: "100%",
@@ -193,27 +191,8 @@ export function PublishFooter({
                 Publicando...
               </>
             ) : (
-              "✈ Publicar no Instagram"
+              "✈ Publicar + Download"
             )}
-          </button>
-          <button
-            onClick={enablePublishing ? onPublishDrive : undefined}
-            disabled={!enablePublishing || busy || !currentTemplate}
-            style={{
-              width: "100%",
-              padding: "7px",
-              borderRadius: "10px",
-              border: "none",
-              background: "#334155",
-              color: "#fff",
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: !enablePublishing || busy || !currentTemplate ? "not-allowed" : "pointer",
-              opacity: !enablePublishing || busy || !currentTemplate ? 0.5 : 1,
-            }}
-          >
-            <HardDrive size={14} style={{ display: "inline", marginRight: "6px" }} />
-            Publicar + Drive
           </button>
         </>
       )}

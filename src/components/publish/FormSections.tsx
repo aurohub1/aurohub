@@ -1043,12 +1043,13 @@ export function PacoteForm({
   }
 
   // ── Visibilidade por binds do template ─────────────
-  const showDestino = hasBind(binds, "destino");
+  const showDestino = hasBind(binds, "destino", "imghrz");
   const showSaida = hasBind(binds, "saida");
   const showTipovoo = hasBind(binds, "tipovoo");
   const showIda = hasBind(binds, "dataida", "dataperiodo");
   const showVolta = hasBind(binds, "datavolta", "dataperiodo");
-  const showHotel = hasBind(binds, "hotel", "imghotel");
+  const showHotel = hasBind(binds, "hotel", "imghotel", "hotelhrz");
+  console.log("[PacoteForm binds]", binds ? [...binds].join(",") : "undefined", "| showDestino:", showDestino, "| showHotel:", showHotel);
   const showServicos =
     !binds ||
     binds.has("servicoslista") ||
@@ -1077,10 +1078,15 @@ export function PacoteForm({
             <Field label="Destino *" asSection>
               <SearchableSelect
                 value={(fields.destino as string) || ""}
-                onChange={(v) => set("destino", v.toUpperCase())}
+                onChange={(v) => {
+                  set("destino", v.toUpperCase());
+                }}
                 onBlur={(v) => {
-                  const up = v.toUpperCase();
-                  if (up.trim()) onImgFundo?.(up);
+                  const up = (v || "").toUpperCase();
+                  console.log("[destino onBlur DIRETO] up=", up);
+                  if (up.trim()) {
+                    onImgFundo?.(up);
+                  }
                 }}
                 options={destinoOpts}
                 placeholder="ex. CANCÚN"
@@ -1327,7 +1333,7 @@ export function PacoteForm({
               <SearchableSelect
                 value={(fields.numerodesconto as string) || ""}
                 onChange={(v) => set("numerodesconto", v)}
-                options={["10","15","20","25","30","40","50"]}
+                options={["5","10","15","20","25","30","40","50"]}
                 placeholder="Selecione"
                 readOnly
               />
@@ -1350,11 +1356,29 @@ export function PacoteForm({
                 placeholder="ex. 8.900,00"
                 className={INPUT_CLASS}
               />
-              {fields.valortotalfmt ? (
-                <p className="mt-1 text-[10px] text-[var(--txt3)]">
-                  Arte: <strong>{String(fields.valortotalfmt)}</strong>
-                </p>
-              ) : null}
+              <input
+                type="text"
+                value={(fields.valortotalfmt as string) || ""}
+                onChange={(e) => set("valortotalfmt", e.target.value)}
+                onBlur={(e) => {
+                  const raw = e.target.value.trim();
+                  if (!raw) return;
+                  if (/^\d+$/.test(raw)) {
+                    // Apenas dígitos → aplica máscara de milhar e monta texto padrão
+                    const comMilhar = raw.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                    const formatted = `ou R$ ${comMilhar} por pessoa em apto. duplo`;
+                    set("valortotalfmt", formatted);
+                    set("pct_valortotalfmt", formatted);
+                  } else {
+                    // Texto livre → mantém exatamente o que foi digitado
+                    set("valortotalfmt", raw);
+                    set("pct_valortotalfmt", raw);
+                  }
+                }}
+                placeholder="Texto na arte (ex: ou R$ 8.900 por pessoa em apto. duplo)"
+                className={INPUT_CLASS}
+                style={{ marginTop: 4 }}
+              />
             </Field>
           )}
         </Section>
@@ -1393,12 +1417,12 @@ export function CampanhaForm({
     loadHoteis?.().then(setHotelOpts).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const showDestino = hasBind(binds, "destino");
+  const showDestino = hasBind(binds, "destino", "imghrz");
   const showSaida = hasBind(binds, "saida");
   const showTipovoo = hasBind(binds, "tipovoo");
   const showIda = hasBind(binds, "dataida");
   const showVolta = hasBind(binds, "datavolta");
-  const showHotel = hasBind(binds, "hotel", "imghotel");
+  const showHotel = hasBind(binds, "hotel", "imghotel", "hotelhrz");
   const showTipoHospedagem = showHotel || hasBind(binds, "tipohospedagem");
   // Serviços — mostra se qualquer servico1..N estiver presente (sem binds = todos).
   const showServicos = !binds || Array.from({ length: 8 }, (_, i) => `servico${i + 1}`).some((k) => binds.has(k));

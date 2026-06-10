@@ -282,7 +282,7 @@ export interface EditorSchema {
   duration?: number;
   qtdDestinos?: number;
   formType?: string;
-  customBinds?: string[];
+  customBinds?: { key: string; label: string }[];
 }
 
 /** Converte BINDS_POR_FORM para formato BindGroups usado pelo editor */
@@ -329,7 +329,7 @@ export function getBindGroups(formType?: string, qtdDestinos: number = 4): typeo
 export function getImageBindFields(formType?: string): string[] {
   const groups = getBindGroups(formType);
   const extras = new Set(["badge","allinclusive","ofertas"]);
-  const isImg = (f: string) => /^img/i.test(f) || /badge/i.test(f) || /^foto/i.test(f) || extras.has(f);
+  const isImg = (f: string) => /^img/i.test(f) || /hrz$/i.test(f) || /badge/i.test(f) || /^foto/i.test(f) || extras.has(f);
   const seen = new Set<string>();
   const out: string[] = [];
   for (const g of groups) for (const f of g.fields) if (isImg(f) && !seen.has(f)) { seen.add(f); out.push(f); }

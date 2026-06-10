@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, Magnet, Group, Ungroup, Ruler, LayoutGrid, MessageSquare, MessageSquareOff, Keyboard } from "lucide-react";
+import { ArrowLeft, Undo2, Redo2, Copy, ClipboardPaste, CopyPlus, Trash2, Eye, EyeOff, Sun, Moon, Download, Save, Smartphone, Layers, History, Package, FilePlus, Magnet, Group, Ungroup, Ruler, LayoutGrid, MessageSquare, MessageSquareOff, Keyboard, Braces } from "lucide-react";
 
 interface Props {
   onUndo: () => void; onRedo: () => void;
@@ -25,6 +25,7 @@ interface Props {
   autoSaveStatus?: "saved" | "saving" | "idle";
   onGroup?: () => void; onUngroup?: () => void;
   onShortcuts?: () => void;
+  onBinds?: () => void;
   logoUrl?: string;
 }
 
@@ -49,6 +50,7 @@ export default function Toolbar(p: Props) {
           <option value="pacote">Pacote</option><option value="campanha">Campanha</option>
           <option value="passagem">Passagem</option><option value="cruzeiro">Cruzeiro</option>
           <option value="anoiteceu">Anoiteceu</option><option value="lamina">Card WhatsApp</option>
+          <option value="tv">TV</option>
         </select>
       )}
       {p.onFormatChange && (
@@ -77,6 +79,7 @@ export default function Toolbar(p: Props) {
       {p.onGroup && <><Sep /><Btn icon={<Group size={14} />} tip="Agrupar (Ctrl+G)" o={p.onGroup} /></>}
       {p.onUngroup && <Btn icon={<Ungroup size={14} />} tip="Desagrupar (Ctrl+Shift+G)" o={p.onUngroup} />}
       {p.onToggleParamView && <><Sep /><Btn icon={p.paramViewActive ? <EyeOff size={14} /> : <Eye size={14} />} tip="Parameter View (Ctrl+P)" o={p.onToggleParamView} active={p.paramViewActive} /></>}
+      {p.onBinds && <Btn icon={<Braces size={14} />} tip="Binds customizados" o={p.onBinds} label="Binds" />}
       {p.onHistory && <Btn icon={<History size={14} />} tip="Histórico" o={p.onHistory} />}
       {p.onShortcuts && <Btn icon={<Keyboard size={14} />} tip="Atalhos de teclado (Ctrl+/)" o={p.onShortcuts} />}
       {p.onPreview && <Btn icon={<Smartphone size={14} />} tip="Preview Instagram" o={p.onPreview} />}

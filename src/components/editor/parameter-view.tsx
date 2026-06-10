@@ -7,8 +7,8 @@ interface Props {
   onUpdate: (id: string, u: Partial<EditorElement>) => void;
   onExport?: () => void;
   onExportJpg?: () => void;
-  onAddCustomBind?: (name: string) => void;
-  onRemoveCustomBind?: (name: string) => void;
+  onAddCustomBind?: (bind: { key: string; label: string }) => void;
+  onRemoveCustomBind?: (key: string) => void;
 }
 
 function slugifyBind(s: string): string {
@@ -23,16 +23,21 @@ function slugifyBind(s: string): string {
 const IMAGE_BINDS = ["imgfundo", "imgdestino", "imghotel", "imgloja", "imgperfil", "imgbadge1", "imgbadge2", "imgbadge3", "img_fundo", "img_campanha", "img_aviao", "img_anoiteceu", "badge", "allinclusive", "ofertas"];
 
 export default function ParameterView({ schema, onUpdate, onExport, onExportJpg, onAddCustomBind, onRemoveCustomBind }: Props) {
-  const [newBind, setNewBind] = useState("");
-  const customBinds: string[] = schema.customBinds || [];
+  const [newKey, setNewKey] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+  // Normaliza backward-compat: aceita string[] (legado) ou { key, label }[]
+  const customBinds: { key: string; label: string }[] = (schema.customBinds || []).map((b: any) =>
+    typeof b === "string" ? { key: b, label: b } : b
+  );
   const bindElements = schema.elements.filter(el => el.bindParam);
   const isImageBind = (bp: string) => IMAGE_BINDS.includes(bp) || bp.startsWith("img");
 
   function handleAddBind() {
-    const slug = slugifyBind(newBind);
-    if (!slug || customBinds.includes(slug)) return;
-    onAddCustomBind?.(slug);
-    setNewBind("");
+    const slug = slugifyBind(newKey);
+    if (!slug || customBinds.some(b => b.key === slug)) return;
+    onAddCustomBind?.({ key: slug, label: newLabel.trim() || slug });
+    setNewKey("");
+    setNewLabel("");
   }
 
   function resetAll() {
@@ -144,12 +149,17 @@ export default function ParameterView({ schema, onUpdate, onExport, onExportJpg,
             </div>
 
             {/* Lista */}
-            {customBinds.map(name => (
-              <div key={name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 4 }}>
-                <span style={{ fontSize: 9, color: "var(--ed-bind)", fontFamily: "monospace" }}>⬡ {name}</span>
+            {customBinds.map(b => (
+              <div key={b.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 4 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 9, color: "var(--ed-bind)", fontFamily: "monospace" }}>⬡ {b.key}</span>
+                  {b.label !== b.key && (
+                    <span style={{ fontSize: 9, color: "var(--ed-txt3)", marginLeft: 4 }}>→ "{b.label}"</span>
+                  )}
+                </div>
                 {onRemoveCustomBind && (
                   <button
-                    onClick={() => onRemoveCustomBind(name)}
+                    onClick={() => onRemoveCustomBind(b.key)}
                     title="Excluir bind"
                     style={{ width: 20, height: 20, border: "none", borderRadius: 4, background: "transparent", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }}
                   >
@@ -159,31 +169,41 @@ export default function ParameterView({ schema, onUpdate, onExport, onExportJpg,
               </div>
             ))}
 
-            {/* Input criar */}
+            {/* Inputs criar */}
             {onAddCustomBind && (
-              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
                 <input
                   type="text"
-                  value={newBind}
-                  onChange={e => setNewBind(slugifyBind(e.target.value))}
-                  placeholder="novo_bind"
-                  style={{ ...inputS, flex: 1 }}
+                  value={newKey}
+                  onChange={e => setNewKey(slugifyBind(e.target.value))}
+                  placeholder="nome_do_bind"
+                  style={inputS}
                   onKeyDown={e => { if (e.key === "Enter") handleAddBind(); }}
                 />
-                <button
-                  onClick={handleAddBind}
-                  disabled={!slugifyBind(newBind) || customBinds.includes(slugifyBind(newBind))}
-                  title="Criar bind"
-                  style={{
-                    width: 28, height: 28, border: "none", borderRadius: 6, flexShrink: 0,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: (!slugifyBind(newBind) || customBinds.includes(slugifyBind(newBind))) ? "var(--ed-hover)" : "var(--ed-active)",
-                    color: (!slugifyBind(newBind) || customBinds.includes(slugifyBind(newBind))) ? "var(--ed-txt3)" : "var(--ed-active-txt)",
-                    cursor: (!slugifyBind(newBind) || customBinds.includes(slugifyBind(newBind))) ? "not-allowed" : "pointer",
-                  }}
-                >
-                  <Plus size={12} />
-                </button>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <input
+                    type="text"
+                    value={newLabel}
+                    onChange={e => setNewLabel(e.target.value)}
+                    placeholder="Label para o usuário"
+                    style={{ ...inputS, flex: 1 }}
+                    onKeyDown={e => { if (e.key === "Enter") handleAddBind(); }}
+                  />
+                  <button
+                    onClick={handleAddBind}
+                    disabled={!slugifyBind(newKey) || customBinds.some(b => b.key === slugifyBind(newKey))}
+                    title="Criar bind"
+                    style={{
+                      width: 28, height: 28, border: "none", borderRadius: 6, flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: (!slugifyBind(newKey) || customBinds.some(b => b.key === slugifyBind(newKey))) ? "var(--ed-hover)" : "var(--ed-active)",
+                      color: (!slugifyBind(newKey) || customBinds.some(b => b.key === slugifyBind(newKey))) ? "var(--ed-txt3)" : "var(--ed-active-txt)",
+                      cursor: (!slugifyBind(newKey) || customBinds.some(b => b.key === slugifyBind(newKey))) ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
               </div>
             )}
           </div>

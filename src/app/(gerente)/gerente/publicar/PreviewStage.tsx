@@ -106,6 +106,9 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     }
 
     case "valortotalfmt": {
+      // Se o usuário editou o texto manualmente (via campo "Texto na arte"), usa esse valor diretamente
+      if (values.valortotalfmt) return values.valortotalfmt as string;
+      // Fallback: deriva de totalduplo/cruzeiro_total (compat legado — "totalduplo" em centavos)
       const raw = values.totalduplo || values.cruzeiro_total || values.valortotal_cruzeiro || "";
       const nums = raw.replace(/\D/g, "");
       if (!nums) return "";
@@ -369,7 +372,7 @@ const DYNAMIC_BADGES = new Set([
 ]);
 
 // Chaves de bind cujo valor é fornecido dinamicamente via values (não são URLs reais).
-const IMG_BIND_KEYS = new Set(["imgfundo", "imghotel"]);
+const IMG_BIND_KEYS = new Set(["imgfundo", "imghotel", "imghrz", "hotelhrz"]);
 
 /** Se src é literalmente uma chave de bind (ex: "imgfundo"), resolve pelo values. */
 function resolveElSrc(src: string | undefined, values: Record<string, string>): string | undefined {
@@ -405,17 +408,16 @@ function resolveImage(
     return undefined;
   }
 
-  // bindParam imgfundo/imghotel: ignora src (mesmo base64) e usa sempre values.
+  // bindParam imgfundo/imghotel/imghrz/hotelhrz: ignora src (mesmo base64) e usa sempre values.
   if (bp === "imgfundo") return values.imgfundo || undefined;
   if (bp === "imghotel") return values.imghotel || undefined;
+  if (bp === "imghrz") return values.imghrz || undefined;
+  if (bp === "hotelhrz") return values.hotelhrz || undefined;
 
   // IMAGE com src já definida e não é uma chave de bind: bind controla só visibilidade.
   if (el.src && !IMG_BIND_KEYS.has(el.src)) return el.src;
 
   const val = values[bp];
-  if (bp === "imgfundo" || bp === "imghotel") {
-    console.log(`[PreviewStage resolveImage] bp=${bp} values[bp]=${val} → retornando:`, val || "undefined");
-  }
   if (val) return val;
   return undefined;
 }
@@ -737,7 +739,7 @@ function RenderEl({ el, values, formType }: { el: EditorElement; values: Record<
   if (el.type === "imageBind") {
     const bp = el.bindParam || (el as any).imageBind;
     if (!bp) return null;
-    if (bp === "imgfundo" || bp === "imghotel") {
+    if (bp === "imgfundo" || bp === "imghotel" || bp === "imghrz" || bp === "hotelhrz") {
       console.log(`[PreviewStage imageBind] bp=${bp} values[bp]=${values[bp]} el.src=${el.src}`);
     }
     if (!bp.endsWith("_badge")) {

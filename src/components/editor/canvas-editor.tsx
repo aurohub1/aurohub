@@ -40,8 +40,8 @@ interface CanvasEditorProps {
   isAdm?: boolean;
   autoSaveStatus?: "saved" | "saving" | "idle";
   logoUrl?: string;
-  onAddCustomBind?: (name: string) => void;
-  onRemoveCustomBind?: (name: string) => void;
+  onAddCustomBind?: (bind: { key: string; label: string }) => void;
+  onRemoveCustomBind?: (key: string) => void;
 }
 
 export function CanvasEditor({ width, height, schema, onChange, onExport, onExportJpg, onSave, saving, format, onFormatChange, formType, onFormTypeChange, qtdDestinos, onQtdDestinosChange, templateId, variantsEnabled, onSaveVariants, onAdaptFormat, onNew, isAdm, autoSaveStatus, logoUrl, onAddCustomBind, onRemoveCustomBind }: CanvasEditorProps) {
@@ -78,6 +78,9 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   const [showIcons, setShowIcons] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showBindsModal, setShowBindsModal] = useState(false);
+  const [bindsNewKey, setBindsNewKey] = useState("");
+  const [bindsNewLabel, setBindsNewLabel] = useState("");
   const lastBadgeCheckRef = useRef<string>("");
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
@@ -144,6 +147,9 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
     const prev = schemaRef.current;
     const changed = s.elements.filter(e => { const o = prev.elements.find(p => p.id === e.id); return !o || o.x !== e.x || o.y !== e.y || o.width !== e.width || o.height !== e.height; }).map(e => e.id);
     if (changed.length > 0) console.log('[changeSchema] elementos movidos/redimensionados:', changed);
+    // Atualiza ref imediatamente — garante que chamadas consecutivas no mesmo tick
+    // (ex: multi-select loop em PropsPanel.u) enxerguem o schema acumulado, não o stale.
+    schemaRef.current = s;
     onChange(s);
     pushHistory(s);
   }, [onChange, pushHistory]);
@@ -582,6 +588,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
         autoSaveStatus={autoSaveStatus}
         onGroup={selectedIds.length >= 2 ? groupSelected : undefined}
         onUngroup={selected?.type === "group" ? ungroupSelected : undefined}
+        onBinds={isAdm ? () => setShowBindsModal(true) : undefined}
         logoUrl={logoUrl}
       />
 
@@ -707,6 +714,75 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
       )}
       {croppingEl?.src && <CropModal src={croppingEl.src} initial={croppingEl.cropW && croppingEl.cropH ? { x: croppingEl.cropX || 0, y: croppingEl.cropY || 0, width: croppingEl.cropW, height: croppingEl.cropH } : undefined} onClose={() => setCropElementId(null)} onConfirm={handleCropConfirm} />}
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+
+      {/* ── Modal Binds Customizados (ADM only) ── */}
+      {showBindsModal && (() => {
+        const slugify = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+        const customBinds: { key: string; label: string }[] = (schema.customBinds || []).map((b: any) =>
+          typeof b === "string" ? { key: b, label: b } : b
+        );
+        const slugKey = slugify(bindsNewKey);
+        const isDuplicate = customBinds.some(b => b.key === slugKey);
+        const canAdd = !!slugKey && !isDuplicate;
+        function addBind() {
+          if (!canAdd) return;
+          onAddCustomBind?.({ key: slugKey, label: bindsNewLabel.trim() || slugKey });
+          setBindsNewKey(""); setBindsNewLabel("");
+        }
+        return (
+          <div onClick={() => setShowBindsModal(false)} style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: 360, background: "var(--ed-surface)", border: "1px solid var(--ed-bdr)", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.4)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid var(--ed-bdr)" }}>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--ed-bind)" }}>Binds Customizados</span>
+                <button onClick={() => setShowBindsModal(false)} style={{ width: 24, height: 24, border: "none", background: "var(--ed-hover)", borderRadius: 6, cursor: "pointer", color: "var(--ed-txt2)", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+              </div>
+              {/* Lista */}
+              <div style={{ padding: "12px 16px", maxHeight: 240, overflowY: "auto" }}>
+                {customBinds.length === 0 ? (
+                  <div style={{ fontSize: 11, color: "var(--ed-txt3)", textAlign: "center", padding: "16px 0" }}>Nenhum bind customizado ainda</div>
+                ) : customBinds.map(b => (
+                  <div key={b.key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, padding: "6px 8px", background: "var(--ed-hover)", borderRadius: 6 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--ed-bind)", fontWeight: 700 }}>⬡ {b.key}</span>
+                      {b.label !== b.key && <span style={{ fontSize: 10, color: "var(--ed-txt3)", marginLeft: 6 }}>→ "{b.label}"</span>}
+                    </div>
+                    {onRemoveCustomBind && (
+                      <button onClick={() => onRemoveCustomBind(b.key)} title="Excluir" style={{ width: 22, height: 22, border: "none", borderRadius: 4, background: "transparent", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 13 }}>🗑</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {/* Inputs */}
+              {onAddCustomBind && (
+                <div style={{ padding: "0 16px 16px", borderTop: "1px solid var(--ed-bdr)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <input
+                    type="text" value={bindsNewKey} onChange={e => setBindsNewKey(slugify(e.target.value))}
+                    placeholder="nome_do_bind  (ex: promo_especial)"
+                    onKeyDown={e => { if (e.key === "Enter") addBind(); }}
+                    style={{ width: "100%", height: 32, borderRadius: 7, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", padding: "0 10px", fontSize: 11, color: "var(--ed-txt)", outline: "none", boxSizing: "border-box" }}
+                  />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input
+                      type="text" value={bindsNewLabel} onChange={e => setBindsNewLabel(e.target.value)}
+                      placeholder='Label para o usuário  (ex: "Promoção Especial")'
+                      onKeyDown={e => { if (e.key === "Enter") addBind(); }}
+                      style={{ flex: 1, height: 32, borderRadius: 7, border: "1px solid var(--ed-bdr)", background: "var(--ed-input)", padding: "0 10px", fontSize: 11, color: "var(--ed-txt)", outline: "none", boxSizing: "border-box" }}
+                    />
+                    <button
+                      onClick={addBind} disabled={!canAdd}
+                      style={{ height: 32, padding: "0 14px", borderRadius: 7, border: "none", background: canAdd ? "var(--ed-active)" : "var(--ed-hover)", color: canAdd ? "var(--ed-active-txt)" : "var(--ed-txt3)", fontSize: 11, fontWeight: 700, cursor: canAdd ? "pointer" : "not-allowed", flexShrink: 0 }}
+                    >
+                      + Criar
+                    </button>
+                  </div>
+                  {slugKey && isDuplicate && <span style={{ fontSize: 10, color: "#EF4444" }}>Bind "{slugKey}" já existe</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

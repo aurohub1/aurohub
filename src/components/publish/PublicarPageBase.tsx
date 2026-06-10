@@ -130,7 +130,9 @@ function normalizar(s: string) {
   return s
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[̀-ͯ]/g, "") // remove diacríticos (range explícito, evita bugs de encoding)
+    .replace(/[‘‘’`]/g, " ") // apóstrofos → espaço (d’Ajuda → "d ajuda")
+    .replace(/\s+/g, " ")              // colapsa espaços múltiplos
     .trim();
 }
 function slugify(s: string) {
@@ -251,12 +253,15 @@ export default function PublicarPageBase({
   const [reelsError, setReelsError] = useState<string | null>(null);
   const destinoDataRef = useRef<{ nome: string; url: string }[] | null>(null);
   const hotelDataRef = useRef<{ nome: string; url: string }[] | null>(null);
+  const destinoHrzDataRef = useRef<{ nome: string; url: string }[] | null>(null);
   // Cache: destino slug → URL já sorteada. Evita re-sorteio em re-renders.
   const resolvedDestinoImgRef = useRef<Record<string, string>>({});
   const lastDestinoRef = useRef<string>("");
   const lastHotelRef = useRef<string>("");
   const destinoImgRef = useRef<string>("");  // URL resolvida para o destino atual
   const hotelImgRef = useRef<string>("");    // URL resolvida para o hotel atual (prioridade)
+  const destinoHrzRef = useRef<string>("");  // URL horizontal resolvida para o destino atual
+  const hotelHrzRef = useRef<string>("");    // URL horizontal resolvida para o hotel atual
   const previewAreaRef = useRef<HTMLDivElement>(null);
   const tabsWrapRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
@@ -276,7 +281,6 @@ export default function PublicarPageBase({
     statusMsg,
     stageRef,
     handleDownload,
-    handlePublishDrive,
     handlePublish,
   } = usePublishLogic(enablePublishing, handleClear);
 
@@ -478,6 +482,19 @@ export default function PublicarPageBase({
     return hotelDataRef.current;
   }
 
+  async function loadDestinoHrzData() {
+    // TEMP: cache desativado para diagnóstico — forçando fetch sempre
+    console.log("[loadDestinoHrzData] buscando do Supabase...");
+    const { data, error } = await supabase
+      .from("imgfundo_hrz")
+      .select("nome,url")
+      .limit(1000);
+    if (error) console.error("[loadDestinoHrzData] erro:", error);
+    destinoHrzDataRef.current = (data ?? []) as { nome: string; url: string }[];
+    console.log("[loadDestinoHrzData] carregado:", destinoHrzDataRef.current.length, "rows — primeiros:", destinoHrzDataRef.current.slice(0, 5).map(r => r.nome));
+    return destinoHrzDataRef.current;
+  }
+
   async function fetchImgFundo(destino: string) {
     console.log("[fetchImgFundo] destino recebido:", destino);
     const rows = await loadDestinoData();
@@ -512,6 +529,54 @@ export default function PublicarPageBase({
     );
     console.log("[fetchImgHotel] resultado:", result);
     return result;
+  }
+
+  /** Match parcial: sem-espaços + qualquer palavra com 5+ chars.
+   *  Bate "Coroa Vermelha Hotel" ↔ "coroavermelhabeach" via palavra "coroa"/"vermelha". */
+  function matchHrz(rows: { nome: string; url: string }[], t: string) {
+    const ts    = t.replace(/\s+/g, "");
+    const words = t.split(" ").filter((w) => w.length >= 5);
+    return rows.filter((r) => {
+      const rn  = normalizar(r.nome);
+      const rns = rn.replace(/\s+/g, "");
+      return (
+        rns === ts ||
+        rns.includes(ts) ||
+        ts.includes(rns) ||
+        words.some((w) => rns.includes(w) || w.includes(rns))
+      );
+    });
+  }
+
+  async function fetchImgHrz(nome: string) {
+    console.log("[fetchImgHrz] buscando:", nome, "→ normalizado:", normalizar(nome));
+    const rows = await loadDestinoHrzData();
+    console.log("[fetchImgHrz] total rows em imgfundo_hrz:", rows.length);
+    const t = normalizar(nome);
+    console.log("[fetchImgHrz] t=", t, "| rows sample:", rows.slice(0,5).map(r => normalizar(r.nome)));
+    const m = matchHrz(rows, t);
+    console.log("[fetchImgHrz] matches:", m.length, m.map(r => r.url));
+    if (!m.length) {
+      console.log("[fetchImgHrz] nenhum match para:", t, "— amostra nomes:", rows.slice(0, 8).map(r => r.nome));
+      return null;
+    }
+    console.log("[fetchImgHrz] match encontrado:", m.length, "registro(s)", m.map(r => r.nome));
+    return proximaImagem("hrz_dest_" + slugify(nome), m.map((r) => r.url));
+  }
+
+  async function fetchHotelHrz(hotel: string) {
+    console.log("[fetchHotelHrz] buscando:", hotel, "→ normalizado:", normalizar(hotel));
+    const rows = await loadDestinoHrzData();
+    console.log("[fetchHotelHrz] total rows em imgfundo_hrz:", rows.length);
+    const t = normalizar(hotel);
+    console.log("[fetchHotelHrz] t=", t, "| rows sample:", rows.slice(0,5).map(r => normalizar(r.nome)));
+    const m = matchHrz(rows, t);
+    if (!m.length) {
+      console.log("[fetchHotelHrz] nenhum match para:", t, "— amostra nomes:", rows.slice(0, 8).map(r => r.nome));
+      return null;
+    }
+    console.log("[fetchHotelHrz] match encontrado:", m.length, "registro(s)", m.map(r => r.nome));
+    return proximaImagem("hrz_hotel_" + slugify(hotel), m.map((r) => r.url));
   }
 
   async function loadDestinos(q: string = "") {
@@ -586,27 +651,31 @@ export default function PublicarPageBase({
   const badges = badgeCache[tab] ?? {};
 
   const onImgFundo = useCallback(async (nome: string) => {
-    if (!nome?.trim()) return;
-    const elems = currentTemplateRef.current?.schema?.elements ?? [];
-    const shouldFetch = elems.find((el: any) => el.bindParam === "destino")?.autoFetchImage !== false;
-    if (!shouldFetch) return;
-    if (lastDestinoRef.current === nome.trim()) return;
-    lastDestinoRef.current = nome.trim();
+    console.log("[onImgFundo] ENTRADA nome:", nome);
+    if (!nome?.trim()) { console.log("[onImgFundo] BLOQUEADO: nome vazio"); return; }
     const url = await fetchImgFundo(nome);
     destinoImgRef.current = url ?? "";
     // Só aplica se hotel não tem imagem própria (hotel tem prioridade)
     if (!hotelImgRef.current) {
       if (url) setField("imgfundo", url);
     }
+    // Horizontal: busca na imgfundo_hrz e seta imghrz (sempre, independente de hotelHrz)
+    console.log("[onImgFundo] chamando fetchImgHrz com:", nome);
+    const hrzUrl = await fetchImgHrz(nome);
+    console.log("[onImgFundo] fetchImgHrz retornou:", hrzUrl);
+    destinoHrzRef.current = hrzUrl ?? "";
+    if (hrzUrl) setField("imghrz", hrzUrl);
   }, [tab]);
 
   async function onHotelBlur(hotel?: string) {
     const h = (hotel ?? values.hotel)?.trim();
+    console.log("[onHotelBlur] chamado com:", h);
     if (!h) return;
     const hCap = capitalizeBR(h);
     if (hCap !== values.hotel) setField("hotel", hCap);
     const elems = currentTemplateRef.current?.schema?.elements ?? [];
     const shouldFetch = elems.find((el: any) => el.bindParam === "hotel")?.autoFetchImage !== false;
+    console.log("[onHotelBlur] shouldFetch:", shouldFetch, "lastHotelRef:", lastHotelRef.current);
     if (!shouldFetch) return;
     if (lastHotelRef.current === h) return;
     lastHotelRef.current = h;
@@ -617,6 +686,15 @@ export default function PublicarPageBase({
     } else {
       hotelImgRef.current = "";
       if (destinoImgRef.current) setField("imgfundo", destinoImgRef.current);
+    }
+    // Horizontal: hotel prevalece sobre destino em imghrz
+    const hHrzUrl = await fetchHotelHrz(h);
+    if (hHrzUrl) {
+      hotelHrzRef.current = hHrzUrl;
+      setField("imghrz", hHrzUrl);        // hotel prevalece sobre destino
+    } else {
+      hotelHrzRef.current = "";
+      if (destinoHrzRef.current) setField("imghrz", destinoHrzRef.current);  // fallback destino
     }
   }
 
@@ -746,7 +824,12 @@ export default function PublicarPageBase({
   }, [values, badges]);
 
   const availableTemplates = useMemo(() => {
-    return templates.filter((t) => t.formType === tab && t.format === format);
+    return templates.filter((t) => {
+      if (tab === "tv") return t.format === "tv";
+      if (t.formType !== tab) return false;
+      if (t.format === "tv") return false;
+      return t.format === format;
+    });
   }, [templates, tab, format]);
 
   const needsTemplateSelection = useMemo(
@@ -809,6 +892,17 @@ export default function PublicarPageBase({
     }
   }, [format]);
 
+  // Ao trocar de aba, limpa guards de "já buscou" para que o destino/hotel
+  // seja buscado novamente na nova aba (evita retorno antecipado nos callbacks)
+  useEffect(() => {
+    lastDestinoRef.current = "";
+    lastHotelRef.current = "";
+    destinoImgRef.current = "";
+    hotelImgRef.current = "";
+    destinoHrzRef.current = "";
+    hotelHrzRef.current = "";
+  }, [tab]);
+
   const schema = currentTemplate?.schema ?? {
     elements: [],
     background: "#0E1520",
@@ -819,7 +913,9 @@ export default function PublicarPageBase({
     const el = schema?.elements?.find((e: any) => e.bindParam === "valorint");
     console.log('[ETAPA-3 schema prop]', currentTemplate.name, el ? { fontStyle: el.fontStyle, fontWeight: el.fontWeight } : 'valorint not found');
   }
-  const [pw, ph] = FORMAT_DIMS[format];
+  // Usa o format do template atual quando disponível — evita flash portrait→landscape
+  // no primeiro render do TV (format state pode estar desatualizado)
+  const [pw, ph] = FORMAT_DIMS[(currentTemplate?.format as Format) ?? format];
 
   function goToForm(tipo: FormType) {
     // Auto-seleciona o formato disponível para o tipo (mesmo comportamento do switchTab)
@@ -839,6 +935,8 @@ export default function PublicarPageBase({
     setTimeout(() => {
       setPhase("selector");
       setSelectedTemplateId(null);
+      setTab("pacote");
+      setFormat("stories");
       setAnimOut(false);
     }, 260);
   }
@@ -1687,23 +1785,26 @@ export default function PublicarPageBase({
 
             {/* ── Campos de binds customizados do template ── */}
             {(() => {
-              const customBinds: string[] = currentTemplate?.schema?.customBinds || [];
+              // Normaliza backward-compat: aceita string[] (legado) ou { key, label }[]
+              const customBinds: { key: string; label: string }[] = (currentTemplate?.schema?.customBinds || []).map((b: any) =>
+                typeof b === "string" ? { key: b, label: b } : b
+              );
               if (!customBinds.length) return null;
               return (
                 <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--bdr)" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "var(--txt3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>
                     Campos extras
                   </div>
-                  {customBinds.map((bindName) => (
-                    <div key={bindName} style={{ marginBottom: 10 }}>
+                  {customBinds.map((bind) => (
+                    <div key={bind.key} style={{ marginBottom: 10 }}>
                       <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--txt2)", marginBottom: 3 }}>
-                        {bindName}
+                        {bind.label}
                       </label>
                       <input
                         type="text"
-                        value={values[bindName] || ""}
-                        onChange={(e) => set(bindName, e.target.value)}
-                        placeholder={`[${bindName}]`}
+                        value={values[bind.key] || ""}
+                        onChange={(e) => set(bind.key, e.target.value)}
+                        placeholder={`[${bind.key}]`}
                         style={{ width: "100%", height: 34, borderRadius: 7, border: "1px solid var(--bdr)", background: "var(--bg2)", padding: "0 10px", fontSize: 12, color: "var(--txt)", outline: "none", boxSizing: "border-box" }}
                       />
                     </div>
@@ -1738,17 +1839,6 @@ export default function PublicarPageBase({
                 format,
                 reelsVideoUrl: format === "reels" ? reelsVideoUrl : null,
                 reelsFileBlob: format === "reels" && reelsFile && !reelsVideoUrl ? reelsFile : null,
-              })
-            }
-            onPublishDrive={() =>
-              handlePublishDrive({
-                profile,
-                selectedTargetIds: effectiveSelectedTargetIds,
-                publishTargets: effectivePublishTargets,
-                currentTemplate,
-                values,
-                format,
-                formType: tab,
               })
             }
             onClear={handleClear}

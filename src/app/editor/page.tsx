@@ -32,6 +32,20 @@ function safeZone(fmt: string): { x: number; y: number; w: number; h: number } {
   }
 }
 
+/** Protege bindParams de elementos text: nunca deixa bind de imagem (imghrz, imgfundo, imghotel*) num text.
+ *  Se um elemento text tiver bindParam de imagem, reverte para o bind textual correto. */
+function sanitizeTextBinds(elements: unknown[]): unknown[] {
+  const IMAGE_ONLY_BINDS = new Set(["imghrz", "imgfundo", "imghotel", "imghotel2"]);
+  return (elements ?? []).map((el: any) => {
+    if (el?.type === "text" && IMAGE_ONLY_BINDS.has(el.bindParam)) {
+      const fixedBind = el.id === "p_dst" ? "destino" : "hotel";
+      console.warn(`[sanitizeTextBinds] ${el.id}: bindParam ${el.bindParam} → ${fixedBind}`);
+      return { ...el, bindParam: fixedBind };
+    }
+    return el;
+  });
+}
+
 function EditorInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -104,7 +118,7 @@ function EditorInner() {
         if (data?.value) {
           const parsed = JSON.parse(data.value);
           if (parsed.elements) {
-            setSchema({ elements: parsed.elements, background: parsed.bgColor || parsed.background || "#FFFFFF", duration: parsed.duration || 5, qtdDestinos: parsed.qtdDestinos, customBinds: parsed.customBinds });
+            setSchema({ elements: sanitizeTextBinds(parsed.elements) as typeof schema.elements, background: parsed.bgColor || parsed.background || "#FFFFFF", duration: parsed.duration || 5, qtdDestinos: parsed.qtdDestinos, customBinds: parsed.customBinds });
             if (parsed.format) setFormat(parsed.format);
             if (parsed.formType) setFormType(parsed.formType);
             if (parsed.qtdDestinos) setQtdDestinos(parsed.qtdDestinos);
@@ -260,12 +274,12 @@ function EditorInner() {
         onQtdDestinosChange={setQtdDestinos}
         schema={schema}
         onChange={(s) => setSchema(s)}
-        onAddCustomBind={(name) => {
-          setSchema(prev => ({ ...prev, customBinds: [...(prev.customBinds || []), name] }));
+        onAddCustomBind={(bind) => {
+          setSchema(prev => ({ ...prev, customBinds: [...(prev.customBinds || []), bind] }));
           setTimeout(() => persistSchemaRef.current?.(), 0);
         }}
-        onRemoveCustomBind={(name) => {
-          setSchema(prev => ({ ...prev, customBinds: (prev.customBinds || []).filter(b => b !== name) }));
+        onRemoveCustomBind={(key) => {
+          setSchema(prev => ({ ...prev, customBinds: (prev.customBinds || []).filter(b => b.key !== key) }));
           setTimeout(() => persistSchemaRef.current?.(), 0);
         }}
         autoSaveStatus={autoSaveStatus}
@@ -307,7 +321,7 @@ function EditorInner() {
               is_base: !loadedLicenseeId,
               active: true,
               licensee_id: loadedLicenseeId || null,
-              schema: { elements: adaptedSchema.elements, background: adaptedSchema.background, formType, width: targetW, height: targetH, customBinds: adaptedSchema.customBinds || [] },
+              schema: { elements: sanitizeTextBinds(adaptedSchema.elements), background: adaptedSchema.background, formType, width: targetW, height: targetH, customBinds: adaptedSchema.customBinds || [] },
               width: targetW,
               height: targetH,
               thumbnail_url: (payload as any)?.thumbnail || null,
@@ -428,7 +442,7 @@ function EditorInner() {
                         is_base: !p.licenseeId,
                         active: true,
                         licensee_id: p.licenseeId || null,
-                        schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920, customBinds: p.customBinds || [] },
+                        schema: { elements: sanitizeTextBinds(p.elements || []), background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920, customBinds: p.customBinds || [] },
                         width: p.width || 1080,
                         height: p.height || 1920,
                         thumbnail_url: p.thumbnail || null,
@@ -479,7 +493,7 @@ function EditorInner() {
                         is_base: !p.licenseeId,
                         active: true,
                         licensee_id: p.licenseeId || null,
-                        schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920, customBinds: p.customBinds || [] },
+                        schema: { elements: sanitizeTextBinds(p.elements || []), background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920, customBinds: p.customBinds || [] },
                         width: p.width || 1080,
                         height: p.height || 1920,
                         thumbnail_url: p.thumbnail || null,
@@ -506,7 +520,9 @@ function EditorInner() {
               const slug = slugifyTemplateName(meta.nome);
               const key = templateId || `${slug}_${Date.now()}`;
               const payload = {
-                ...schema, width: cW, height: cH,
+                ...schema,
+                elements: sanitizeTextBinds(schema.elements) as typeof schema.elements,
+                width: cW, height: cH,
                 format: meta.format, formType: meta.formType, qtdDestinos,
                 nome: meta.nome,
                 is_base: meta.isBase ?? false,
@@ -555,7 +571,7 @@ function EditorInner() {
                     is_base: !p.licenseeId,
                     active: true,
                     licensee_id: p.licenseeId || null,
-                    schema: { elements: p.elements, background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
+                    schema: { elements: sanitizeTextBinds(p.elements || []), background: p.background || "#0E1520", formType: p.formType, width: p.width || 1080, height: p.height || 1920 },
                     width: p.width || 1080,
                     height: p.height || 1920,
                     thumbnail_url: p.thumbnail || null,

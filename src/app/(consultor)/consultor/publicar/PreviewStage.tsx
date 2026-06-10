@@ -101,6 +101,7 @@ function resolveBindParam(bindParam: string, values: Record<string, string>): st
     }
 
     case "valortotalfmt": {
+      if (values.valortotalfmt) return values.valortotalfmt as string;
       const raw = values.totalduplo || values.cruzeiro_total || values.valortotal_cruzeiro || "";
       const nums = raw.replace(/\D/g, "");
       if (!nums) return "";

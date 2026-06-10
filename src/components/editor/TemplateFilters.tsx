@@ -20,6 +20,7 @@ export function TemplateFilters({
     { k: "card_whatsapp", l: "Card WhatsApp" },
     { k: "lamina", l: "Lâmina" },
     { k: "anoiteceu", l: "Anoiteceu" },
+    { k: "tv", l: "TV" },
   ];
 
   const formatOptions = [

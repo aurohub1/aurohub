@@ -18,6 +18,8 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
     Imagens: [
       { id: 'imgfundo', label: 'Imagem de Fundo', type: 'image' },
       { id: 'imghotel', label: 'Imagem do Hotel', type: 'image' },
+      { id: 'imghrz', label: 'Imagem de Fundo (TV/Horizontal)', type: 'image' },
+      { id: 'hotelhrz', label: 'Imagem do Hotel (TV/Horizontal)', type: 'image' },
       { id: 'imgloja', label: 'Logo da Loja', type: 'image' },
     ],
     Destino: [
@@ -105,6 +107,7 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
   cruzeiro: {
     Imagens: [
       { id: 'imgfundo', label: 'Imagem de Fundo', type: 'image' },
+      { id: 'img_fundo', label: 'Imagem de Fundo (Navio)', type: 'image' },
       { id: 'logo_cia', label: 'Logo CIA Marítima', type: 'image' },
       { id: 'imgloja', label: 'Logo da Loja', type: 'image' },
     ],
@@ -204,6 +207,53 @@ export const BINDS_POR_FORM: Record<string, BindCategory> = {
     ],
     Loja: [
       { id: 'logo_loja', label: 'Logo Azul Viagens', type: 'image' },
+    ],
+  },
+
+  tv: {
+    Imagens: [
+      { id: 'imgfundo', label: 'Imagem de Fundo', type: 'image' },
+      { id: 'imghotel', label: 'Imagem do Hotel', type: 'image' },
+      { id: 'imghrz', label: 'Imagem de Fundo (TV/Horizontal)', type: 'image' },
+      { id: 'hotelhrz', label: 'Imagem do Hotel (TV/Horizontal)', type: 'image' },
+      { id: 'imgloja', label: 'Logo da Loja', type: 'image' },
+    ],
+    Destino: [
+      { id: 'destino', label: 'Destino / Resort', type: 'text' },
+      { id: 'saida', label: 'Saída', type: 'text' },
+      { id: 'voo', label: 'Tipo de Voo', type: 'text' },
+      { id: 'periodo', label: 'Período', type: 'text' },
+      { id: 'noites', label: 'Noites', type: 'text' },
+      { id: 'hotel', label: 'Hotel', type: 'text' },
+      { id: 'tipohospedagem', label: 'Tipo de Hospedagem', type: 'text' },
+      { id: 'incluso', label: 'Incluso', type: 'text' },
+      { id: 'servico1', label: 'Serviço 1', type: 'text' },
+      { id: 'servico2', label: 'Serviço 2', type: 'text' },
+      { id: 'servico3', label: 'Serviço 3', type: 'text' },
+      { id: 'servico4', label: 'Serviço 4', type: 'text' },
+      { id: 'servico5', label: 'Serviço 5', type: 'text' },
+      { id: 'servico6', label: 'Serviço 6', type: 'text' },
+      { id: 'servicos', label: 'Serviços (lista completa, 1 por linha)', type: 'text' },
+      { id: 'servicoslista', label: 'Serviços (lista completa)', type: 'text' },
+      { id: 'texto', label: 'Texto Livre', type: 'text' },
+    ],
+    Valor: [
+      { id: 'formapagamento', label: 'Forma de Pagamento', type: 'text' },
+      { id: 'parcelas', label: 'Parcelas', type: 'text' },
+      { id: 'valorparcela', label: 'Valor da Parcela', type: 'text' },
+      { id: 'valortotal', label: 'Valor Total', type: 'text' },
+      { id: 'entrada', label: 'Entrada', type: 'text' },
+    ],
+    Loja: [
+      { id: 'loja', label: 'Nome da Loja', type: 'text' },
+    ],
+    Badges: [
+      { id: 'desconto', label: 'Desconto (%)', type: 'text' },
+      { id: 'oferta_badge', label: 'Oferta Azul', type: 'image' },
+      { id: 'ultima_chamada_badge', label: 'Última Chamada', type: 'image' },
+      { id: 'ultimos_lugares_badge', label: 'Últimos Lugares', type: 'image' },
+      { id: 'all_inclusive_badge', label: 'All Inclusive', type: 'image' },
+      { id: 'feriado_badge', label: 'Badge Feriado', type: 'image' },
     ],
   },
 
