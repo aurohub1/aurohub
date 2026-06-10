@@ -612,8 +612,8 @@ function EditorInner() {
                 console.error("[ACCESS] catch:", err);
               }
 
-              // Notifica usuários do licensee quando é template NOVO (não update)
-              if (!templateId && meta.licenseeId) {
+              // Notifica usuários do licensee — novo ou atualizado
+              if (meta.licenseeId) {
                 try {
                   const { data: users } = await supabase
                     .from("profiles")
@@ -621,15 +621,18 @@ function EditorInner() {
                     .eq("licensee_id", meta.licenseeId);
                   const userIds = (users ?? []).map((u: { id: string }) => u.id);
                   if (userIds.length > 0) {
+                    const isUpdate = !!templateId;
                     fetch("/api/push/send", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         userIds,
-                        title: "✨ Novo template disponível",
-                        body: `${meta.nome} — ${meta.format}`,
+                        title: isUpdate ? "🔄 Template atualizado" : "✨ Novo template disponível",
+                        body: isUpdate
+                          ? `O template '${meta.nome}' foi atualizado com melhorias. Confira!`
+                          : `${meta.nome} — ${meta.format}`,
                         url: "/",
-                        tag: "new-template",
+                        tag: isUpdate ? "updated-template" : "new-template",
                       }),
                     }).catch(() => null);
                   }
