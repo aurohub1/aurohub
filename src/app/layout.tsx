@@ -21,6 +21,7 @@ const cormorant = Cormorant_Garamond({
   weight: ["400", "600", "700"],
 });
 
+
 export const metadata: Metadata = {
   title: "Aurohub — Central ADM",
   description: "SaaS de imagens para agências de viagem",

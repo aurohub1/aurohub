@@ -955,7 +955,18 @@ export default function PreviewStage({ schema, width, height, values, onReady }:
   }, [schema.elements, values]);
 
   useEffect(() => {
-    document.fonts.ready.then(() => setFontsReady(true));
+    (async () => {
+      try {
+        await Promise.all([
+          document.fonts.load('400 40px "Bebas Neue"'),
+          document.fonts.load('700 40px "Bebas Neue"'),
+        ]);
+        await document.fonts.ready;
+      } catch (e) {
+        console.warn('[PreviewStage] font load failed', e);
+      }
+      setFontsReady(true);
+    })();
   }, []);
 
   useEffect(() => {

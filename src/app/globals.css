@@ -117,6 +117,15 @@
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }
 
+/* ── Bebas Neue — local (public/fonts) ──────────────────────────── */
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('/fonts/BebasNeue-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
 /* ── Helvetica Neue — Cloudinary (dxgj4bcch) ─────────────────────
    Pesos 400, 700 e 800 disponíveis em todas as páginas (canvas de publicação).
    Pesos 100-500i, 700i, 900 carregam apenas no editor (/editor/layout.tsx). */

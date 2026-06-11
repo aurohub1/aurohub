@@ -350,7 +350,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   // Export PNG
   const handleExport = useCallback(async () => {
     if (!stageRef.current || !onExport) return;
-    try { await Promise.all(['400','700','800','900'].map(w => document.fonts.load(`${w} 1em "Helvetica Neue"`))); await document.fonts.ready; } catch { /* noop */ }
+    try { await Promise.all([...['400','700','800','900'].map(w => document.fonts.load(`${w} 1em "Helvetica Neue"`)), document.fonts.load(`400 1em "Bebas Neue"`)]); await document.fonts.ready; } catch { /* noop */ }
     const old = stageRef.current.scaleX();
     stageRef.current.scale({ x: 1, y: 1 });
     const uri = stageRef.current.toDataURL({ x: 0, y: 0, width, height, pixelRatio: 3 });
@@ -361,7 +361,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   // Export JPG
   const handleExportJpg = useCallback(async () => {
     if (!stageRef.current || !onExportJpg) return;
-    try { await Promise.all(['400','700','800','900'].map(w => document.fonts.load(`${w} 1em "Helvetica Neue"`))); await document.fonts.ready; } catch { /* noop */ }
+    try { await Promise.all([...['400','700','800','900'].map(w => document.fonts.load(`${w} 1em "Helvetica Neue"`)), document.fonts.load(`400 1em "Bebas Neue"`)]); await document.fonts.ready; } catch { /* noop */ }
     const old = stageRef.current.scaleX();
     stageRef.current.scale({ x: 1, y: 1 });
     const uri = stageRef.current.toDataURL({ x: 0, y: 0, width, height, mimeType: 'image/jpeg', quality: 0.95, pixelRatio: 2 });
@@ -372,7 +372,7 @@ export function CanvasEditor({ width, height, schema, onChange, onExport, onExpo
   // Save com thumbnail JPEG do canvas real (pixelRatio 1, quality 0.85)
   const handleSaveClick = useCallback(async () => {
     if (!onSave) return;
-    try { await Promise.all(['400','700','800','900'].map(w => document.fonts.load(`${w} 1em "Helvetica Neue"`))); await document.fonts.ready; } catch { /* noop */ }
+    try { await Promise.all([...['400','700','800','900'].map(w => document.fonts.load(`${w} 1em "Helvetica Neue"`)), document.fonts.load(`400 1em "Bebas Neue"`)]); await document.fonts.ready; } catch { /* noop */ }
     let thumb: string | undefined;
     if (stageRef.current) {
       const old = stageRef.current.scaleX();
