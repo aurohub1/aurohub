@@ -181,6 +181,9 @@ interface TemplateRow {
   width: number;
   height: number;
   thumbnail_url: string | null;
+  visibilityScope: "segment" | "brand" | "licensee" | "store" | "restricted";
+  scopeBrandId: string | null;
+  scopeStoreId: string | null;
 }
 
 interface PublicarPageBaseProps {
@@ -210,6 +213,7 @@ export default function PublicarPageBase({
   const [permsLoaded, setPermsLoaded] = useState(false);
   const [previewBgUrl, setPreviewBgUrl] = useState("");
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
+  const [storeBrandIds, setStoreBrandIds] = useState<Record<string, string | null>>({});
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [feriados, setFeriados] = useState<string[]>([]);
   const [postCounts, setPostCounts] = useState({ stories: 0, feed: 0, reels: 0, tv: 0 });
@@ -402,30 +406,52 @@ export default function PublicarPageBase({
 
   async function loadTemplates(lid: string, storeId: string | null) {
     setTemplatesLoading(true);
-    // Busca template_keys permitidos para este licensee/store
-    let accessQuery = supabase
-      .from("template_access")
-      .select("template_key")
-      .eq("licensee_id", lid);
-    if (storeId) {
-      accessQuery = accessQuery.or(`store_id.eq.${storeId},store_id.is.null`);
-    }
-    const { data: accessData } = await accessQuery;
-    const keys = ((accessData ?? []) as { template_key: string }[])
-      .map(r => r.template_key)
-      .filter(Boolean);
+    const [accessResult, licenseeResult, storesResult, templatesResult] = await Promise.all([
+      supabase
+        .from("template_access")
+        .select("template_key,store_id")
+        .eq("licensee_id", lid),
+      supabase
+        .from("licensees")
+        .select("segment_id")
+        .eq("id", lid)
+        .single(),
+      supabase
+        .from("stores")
+        .select("id,brand_id")
+        .eq("licensee_id", lid),
+      supabase
+        .from("form_templates")
+        .select("id, config_key, name, form_type, format, schema, width, height, is_base, active, licensee_id, thumbnail_url, deleted_at, visibility_scope, scope_segment_id, scope_brand_id, scope_store_id")
+        .eq("active", true)
+        .is("deleted_at", null)
+        .order("form_type")
+        .order("format")
+        .order("name"),
+    ]);
 
-    if (!keys.length) { setTemplates([]); setTemplatesLoading(false); return; }
+    const accessRows = (accessResult.data ?? []) as { template_key: string; store_id: string | null }[];
+    const explicitKeys = new Set(
+      accessRows
+        .filter(row => !storeId || row.store_id === null || row.store_id === storeId)
+        .map(row => row.template_key)
+        .filter(Boolean)
+    );
+    const segmentId = (licenseeResult.data as { segment_id?: string | null } | null)?.segment_id ?? null;
+    const stores = (storesResult.data ?? []) as { id: string; brand_id: string | null }[];
+    const brandMap = Object.fromEntries(stores.map(store => [store.id, store.brand_id]));
+    const allowedStoreIds = new Set(stores.map(store => store.id));
+    const allowedBrandIds = new Set(stores.map(store => store.brand_id).filter(Boolean));
+    setStoreBrandIds(brandMap);
 
-    const { data } = await supabase
-      .from("form_templates")
-      .select("id, config_key, name, form_type, format, schema, width, height, is_base, active, licensee_id, thumbnail_url, deleted_at")
-      .in("config_key", keys)
-      .eq("active", true)
-      .is("deleted_at", null)
-      .order("form_type")
-      .order("format")
-      .order("name");
+    const data = ((templatesResult.data ?? []) as any[]).filter(row => {
+      if (explicitKeys.has(row.config_key)) return true;
+      if (row.licensee_id === lid) return true;
+      if (row.visibility_scope === "segment") return !!segmentId && row.scope_segment_id === segmentId;
+      if (row.visibility_scope === "brand") return !!row.scope_brand_id && allowedBrandIds.has(row.scope_brand_id);
+      if (row.visibility_scope === "store") return !!row.scope_store_id && allowedStoreIds.has(row.scope_store_id);
+      return false;
+    });
     if (data) {
       // [DEBUG] ETAPA 1 — raw do banco (form_templates.schema, campo JSONB)
       data.forEach((r: any) => {
@@ -447,6 +473,9 @@ export default function PublicarPageBase({
         width: r.width || FORMAT_DIMS[r.format as Format]?.[0] || 1080,
         height: r.height || FORMAT_DIMS[r.format as Format]?.[1] || 1920,
         thumbnail_url: r.thumbnail_url || null,
+        visibilityScope: r.visibility_scope || (r.licensee_id ? "licensee" : "restricted"),
+        scopeBrandId: r.scope_brand_id || null,
+        scopeStoreId: r.scope_store_id || null,
       }));
       // [DEBUG] ETAPA 2 — após mapeamento (TemplateRow[])
       mapped.forEach((t: any) => {
@@ -825,12 +854,25 @@ export default function PublicarPageBase({
 
   const availableTemplates = useMemo(() => {
     return templates.filter((t) => {
+      if (t.visibilityScope === "brand") {
+        if (!effectiveSelectedTargetIds.length || !t.scopeBrandId) return false;
+        if (!effectiveSelectedTargetIds.every(id => storeBrandIds[id] === t.scopeBrandId)) return false;
+      }
+      if (t.visibilityScope === "store") {
+        if (effectiveSelectedTargetIds.length !== 1 || effectiveSelectedTargetIds[0] !== t.scopeStoreId) return false;
+      }
       if (tab === "tv") return t.format === "tv";
       if (t.formType !== tab) return false;
       if (t.format === "tv") return false;
       return t.format === format;
     });
-  }, [templates, tab, format]);
+  }, [templates, tab, format, effectiveSelectedTargetIds, storeBrandIds]);
+
+  useEffect(() => {
+    if (selectedTemplateId && !availableTemplates.some(template => template.id === selectedTemplateId)) {
+      setSelectedTemplateId(null);
+    }
+  }, [availableTemplates, selectedTemplateId]);
 
   const needsTemplateSelection = useMemo(
     () => templatesLoading || (!selectedTemplateId && availableTemplates.length > 1),

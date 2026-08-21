@@ -6,6 +6,7 @@ export type SplashEffect =
   | "ondas" | "flutuacao" | "scanner" | "holofote" | "chuvapontos"
   | "gradiente" | "dissolve" | "bigbang" | "aurora" | "tinta" | "vagalumes"
   | "aurora_espacial" | "galaxia"
+  | "laura_malz_premium"
   | "vidro_janela" | "vidro_liquido"
   | "cidade_a" | "cidade_b" | "restaurante" | "saude"
   | "moda" | "imobiliaria" | "educacao" | "beleza"
@@ -595,6 +596,7 @@ export default function SplashScreen({
           break;
         }
 
+        case "laura_malz_premium":
         case "aurora_espacial": {
           for(let i=0;i<200;i++){
             const sx=(i*173.7)%W,sy=(i*97.3)%H;

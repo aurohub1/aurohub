@@ -6,6 +6,56 @@ import { supabase } from "@/lib/supabase";
 import { getProfile, homeForRole } from "@/lib/auth";
 import SplashScreen, { type SplashEffect, type TextoEfeito } from "@/components/splash/SplashScreen";
 
+interface LicenseeSplashConfig {
+  splash_logo_url: string | null;
+  logo_url: string | null;
+  splash_effect: string | null;
+  splash_logo_orientation: string | null;
+  splash_speed: number | null;
+  splash_smoothness: number | null;
+  splash_sound_url: string | null;
+  splash_text_effect: string | null;
+  splash_color1: string | null;
+  splash_color2: string | null;
+  splash_color3: string | null;
+  splash_color4: string | null;
+  splash_color5: string | null;
+  splash_glow: boolean | null;
+  splash_glow_intensity: number | null;
+  splash_glow_color: string | null;
+  color_primary: string | null;
+  color_secondary: string | null;
+}
+
+const LICENSEE_SPLASH_FIELDS = [
+  "splash_logo_url", "logo_url", "splash_effect", "splash_logo_orientation",
+  "splash_speed", "splash_smoothness", "splash_sound_url", "splash_text_effect",
+  "splash_color1", "splash_color2", "splash_color3", "splash_color4", "splash_color5",
+  "splash_glow", "splash_glow_intensity", "splash_glow_color",
+  "color_primary", "color_secondary",
+].join(",");
+
+function licenseeSplash(lic: LicenseeSplashConfig) {
+  return {
+    logoUrl: lic.splash_logo_url || lic.logo_url || undefined,
+    effect: lic.splash_effect || "particles",
+    logoOrientation: lic.splash_logo_orientation || "horizontal",
+    cor1: lic.splash_color1 || lic.color_primary || "#D4A843",
+    cor2: lic.splash_color2 || lic.color_secondary || "#FF7A1A",
+    cor3: lic.splash_color3 || "#1E3A6E",
+    cor4: lic.splash_color4 || undefined,
+    cor5: lic.splash_color5 || undefined,
+    corFundo: "#0E1520",
+    velocidade: lic.splash_speed ?? 5,
+    suavidade: lic.splash_smoothness ?? 7,
+    somUrl: lic.splash_sound_url || undefined,
+    textoEfeito: lic.splash_text_effect || undefined,
+    glowTexto: lic.splash_glow ?? true,
+    glowIntensidade: lic.splash_glow_intensity ?? 5,
+    glowCor: lic.splash_glow_color || undefined,
+  };
+}
+
 /* ── Particle system ─────────────────────────────── */
 
 interface Particle {
@@ -279,25 +329,11 @@ export default function LoginPage() {
         } else if (profile?.licensee_id) {
           const { data: lic } = await supabase
             .from("licensees")
-            .select("logo_url,splash_effect,splash_logo_orientation,splash_velocidade,splash_suavidade,splash_som_url,cor_primaria,cor_secundaria,cor_acento,cor_fundo,cor4,cor5")
+            .select(LICENSEE_SPLASH_FIELDS)
             .eq("id", profile.licensee_id)
             .single();
           if (lic) {
-            const lic2 = lic as typeof lic & { splash_velocidade?: number; splash_suavidade?: number; splash_som_url?: string };
-            splashConfig = {
-              logoUrl: lic.logo_url || undefined,
-              effect: lic.splash_effect || "particles",
-              logoOrientation: lic.splash_logo_orientation || "horizontal",
-              cor1: lic.cor_primaria || "#D4A843",
-              cor2: lic.cor_secundaria || "#FF7A1A",
-              cor3: lic.cor_acento || "#1E3A6E",
-              cor4: lic.cor4 || undefined,
-              cor5: lic.cor5 || undefined,
-              corFundo: lic.cor_fundo || "#0E1520",
-              velocidade: lic2.splash_velocidade ?? 5,
-              suavidade: lic2.splash_suavidade ?? 7,
-              somUrl: lic2.splash_som_url || undefined,
-            };
+            splashConfig = licenseeSplash(lic as unknown as LicenseeSplashConfig);
           }
         }
 
@@ -381,25 +417,11 @@ export default function LoginPage() {
       } else if (profile?.licensee_id) {
         const { data: lic } = await supabase
           .from("licensees")
-          .select("logo_url,splash_effect,splash_logo_orientation,splash_velocidade,splash_suavidade,splash_som_url,cor_primaria,cor_secundaria,cor_acento,cor_fundo,cor4,cor5")
+          .select(LICENSEE_SPLASH_FIELDS)
           .eq("id", profile.licensee_id)
           .single();
         if (lic) {
-          const lic2 = lic as typeof lic & { splash_velocidade?: number; splash_suavidade?: number; splash_som_url?: string };
-          splashConfig = {
-            logoUrl: lic.logo_url || undefined,
-            effect: lic.splash_effect || "particles",
-            logoOrientation: lic.splash_logo_orientation || "horizontal",
-            cor1: lic.cor_primaria || "#D4A843",
-            cor2: lic.cor_secundaria || "#FF7A1A",
-            cor3: lic.cor_acento || "#1E3A6E",
-            cor4: lic.cor4 || undefined,
-            cor5: lic.cor5 || undefined,
-            corFundo: lic.cor_fundo || "#0E1520",
-            velocidade: lic2.splash_velocidade ?? 5,
-            suavidade: lic2.splash_suavidade ?? 7,
-            somUrl: lic2.splash_som_url || undefined,
-          };
+          splashConfig = licenseeSplash(lic as unknown as LicenseeSplashConfig);
         }
       }
 

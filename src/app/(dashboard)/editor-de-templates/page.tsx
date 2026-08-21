@@ -12,6 +12,7 @@ import { PermissionsModal } from "@/components/users/PermissionsModal";
 import { getSystemConfig, invalidateSystemConfig } from "@/hooks/useSystemConfig";
 
 interface Licensee { id: string; name: string; }
+interface Brand { id: string; name: string; }
 
 interface UpdateClientEntry {
   formTemplateId: string;
@@ -38,6 +39,7 @@ export default function EditorTemplatesPage() {
   const [globalFilterType, setGlobalFilterType] = useState("");
   const [globalFilterFormat, setGlobalFilterFormat] = useState("");
   const [licensees, setLicensees] = useState<Licensee[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
 
   // Clone modal (base → licensee)
   const [cloneKey, setCloneKey] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export default function EditorTemplatesPage() {
   // Map: licenseeId → Set<storeId> (vazio = todas as lojas)
   const [accessSelections, setAccessSelections] = useState<Map<string, Set<string>>>(new Map());
   const [accessIsBase, setAccessIsBase] = useState(false);
+  const [accessBrandId, setAccessBrandId] = useState("");
   const [savingAccess, setSavingAccess] = useState(false);
   const [licenseeStores, setLicenseeStores] = useState<Map<string, { id: string; name: string }[]>>(new Map());
 
@@ -73,8 +76,12 @@ export default function EditorTemplatesPage() {
       const p = await getProfile(supabase);
       setProfile(p);
       // Load licensees for clone modal
-      const { data: lR } = await supabase.from("licensees").select("id, name").order("name");
+      const [{ data: lR }, { data: bR }] = await Promise.all([
+        supabase.from("licensees").select("id, name").order("name"),
+        supabase.from("franquias").select("id, name").order("name"),
+      ]);
       setLicensees((lR as Licensee[]) ?? []);
+      setBrands((bR as Brand[]) ?? []);
     })();
   }, []);
 
@@ -497,7 +504,14 @@ export default function EditorTemplatesPage() {
   const openAccessModal = async (key: string) => {
     setAccessKey(key);
     const tmpl = canvasTemplates.find(t => t.key === key);
-    setAccessIsBase(tmpl?.isBase ?? false);
+    const { data: scopedTemplate } = await supabase
+      .from("form_templates")
+      .select("visibility_scope,scope_brand_id")
+      .eq("config_key", key)
+      .maybeSingle();
+    const scope = (scopedTemplate as { visibility_scope?: string; scope_brand_id?: string | null } | null)?.visibility_scope;
+    setAccessIsBase(scope === "segment" || (!scope && (tmpl?.isBase ?? false)));
+    setAccessBrandId(scope === "brand" ? (scopedTemplate?.scope_brand_id ?? "") : "");
 
     // Carrega lojas de todos os licensees
     const storesMap = new Map<string, { id: string; name: string }[]>();
@@ -541,6 +555,8 @@ export default function EditorTemplatesPage() {
       if (existing) {
         const parsed = JSON.parse(existing);
         parsed.is_base = accessIsBase;
+        parsed.visibility_scope = accessIsBase ? "segment" : accessBrandId ? "brand" : "licensee";
+        parsed.scope_brand_id = accessBrandId || null;
         await supabase.from("system_config").upsert({
           key: accessKey,
           value: JSON.stringify(parsed),
@@ -556,8 +572,19 @@ export default function EditorTemplatesPage() {
         .delete()
         .eq("template_key", accessKey);
 
+      await supabase
+        .from("form_templates")
+        .update({
+          visibility_scope: accessIsBase ? "segment" : accessBrandId ? "brand" : "licensee",
+          scope_segment_id: accessIsBase ? "agencia_viagem" : null,
+          scope_brand_id: accessBrandId || null,
+          scope_store_id: null,
+          is_base: accessIsBase,
+        })
+        .eq("config_key", accessKey);
+
       // Se não é base, insere os registros
-      if (!accessIsBase && accessSelections.size > 0) {
+      if (!accessIsBase && !accessBrandId && accessSelections.size > 0) {
         const rows: { template_key: string; licensee_id: string; store_id: string | null }[] = [];
 
         for (const [licId, storeIds] of accessSelections.entries()) {
@@ -580,6 +607,7 @@ export default function EditorTemplatesPage() {
       setAccessKey(null);
       setAccessSelections(new Map());
       setAccessIsBase(false);
+      setAccessBrandId("");
       setLicenseeStores(new Map());
       await loadCanvasTemplates();
     } catch (err) {
@@ -1102,33 +1130,36 @@ export default function EditorTemplatesPage() {
           <div className="mx-4 flex w-full max-w-[500px] flex-col rounded-2xl border border-[var(--bdr)]" style={{ background: "var(--card-bg)" }}>
             <div className="border-b border-[var(--bdr)] px-6 py-4">
               <div className="text-[15px] font-bold text-[var(--txt)]">Gerenciar acesso ao template</div>
-              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Escolha quais clientes e lojas podem usar este template</div>
+              <div className="mt-0.5 text-[11px] text-[var(--txt3)]">Defina segmento, marca ou acesso privado por cliente e loja</div>
             </div>
             <div className="max-h-[60vh] flex-1 overflow-y-auto px-6 py-4">
               <div className="flex flex-col gap-4">
-                {/* Checkbox "Todos (base)" */}
+                {/* Escopo sem ambiguidade: segmento, marca ou privado */}
                 <div className="rounded-lg border border-[var(--bdr)] p-3">
-                  <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={accessIsBase}
-                      onChange={(e) => {
-                        setAccessIsBase(e.target.checked);
-                        if (e.target.checked) {
-                          setAccessSelections(new Map());
-                        }
-                      }}
-                      className="accent-[var(--orange)]"
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-[13px] font-bold text-[var(--txt)]">Todos os clientes (template base)</span>
-                      <span className="text-[10px] text-[var(--txt3)]">Visível para todos os licensees e lojas</span>
-                    </div>
-                  </label>
+                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--txt3)]">Escopo do template</label>
+                  <select
+                    value={accessIsBase ? "segment" : accessBrandId ? `brand:${accessBrandId}` : "private"}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setAccessIsBase(value === "segment");
+                      setAccessBrandId(value.startsWith("brand:") ? value.slice(6) : "");
+                      if (value !== "private") setAccessSelections(new Map());
+                    }}
+                    className="w-full rounded-lg border border-[var(--bdr)] bg-[var(--bg1)] px-3 py-2 text-[12px] text-[var(--txt)]"
+                  >
+                    <option value="segment">Global do segmento — Agência de viagens</option>
+                    {brands.map(brand => (
+                      <option key={brand.id} value={`brand:${brand.id}`}>Global da marca — {brand.name}</option>
+                    ))}
+                    <option value="private">Privado — cliente ou loja específica</option>
+                  </select>
+                  <p className="mt-2 text-[10px] text-[var(--txt3)]">
+                    Global da marca Azul é compartilhado entre lojas Azul, sem compartilhar fundos ou templates privados dos proprietários.
+                  </p>
                 </div>
 
                 {/* Hierarquia Marcas → Lojas */}
-                {!accessIsBase && (
+                {!accessIsBase && !accessBrandId && (
                   <div>
                     <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--txt3)]">
                       Marcas e Lojas
