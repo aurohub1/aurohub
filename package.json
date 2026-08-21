@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "set NODE_OPTIONS=--use-system-ca && next dev -p 3001",
+    "prebuild": "node scripts/block-v3-deployment.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
