@@ -12,7 +12,8 @@ export async function GET() {
 
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const {data:profile,error:profileError} = await admin.from("profiles").select("role").eq("id",user.id).single();
-  if (profileError || profile?.role !== "adm") return NextResponse.json({error:"Apenas administradores podem conectar a Shutterstock."},{status:403});
+  const administrativeRoles = new Set(["adm", "admin", "superadmin"]);
+  if (profileError || !profile?.role || !administrativeRoles.has(profile.role)) return NextResponse.json({error:"Apenas administradores podem conectar a Shutterstock."},{status:403});
 
   const config=getShutterstockConfig();
   if (!config) return NextResponse.json({error:"Configuração da Shutterstock incompleta."},{status:503});
